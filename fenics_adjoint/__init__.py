@@ -12,14 +12,4 @@ if not 'backend' in sys.modules:
 backend = sys.modules['backend']
 
 from . import assembly
-
-
-
-
-
-
-
-
-
 from .ui import *
-
