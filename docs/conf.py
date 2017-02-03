@@ -20,6 +20,52 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
+# Create Mock classes for FEniCS
+class Mock(object):
+
+    __all__ = []
+
+    assign = None
+    apply = None
+    vector = None
+    split = None
+    interpolate = None
+    copy = None
+    __add__ = None
+    __mul__ = None
+    __neg__ = None
+    get_gst = None
+    SolverType_LU  = None
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __call__(self, *args, **kwargs):
+        return Mock()
+
+    @classmethod
+    def __getattr__(cls, name):
+        if name in ('__file__', '__path__'):
+            return '/dev/null'
+        elif name[0] == name[0].upper():
+            mockType = type(name, (Mock, ), {})
+            mockType.__module__ = __name__
+            return mockType
+        else:
+            return Mock()
+
+MOCK_MODULES = ['dolfin', 'ffc', 'backend.fem', 'backend.fem.projection', 'backend.PeriodicBC',
+                'backend', 'ufl', 'numpy', 'scipy', 'scipy.optimize', 'ufl.classes',
+                'ufl.algorithms', 'ufl.operators']
+for mod_name in MOCK_MODULES:
+    try:
+        importlib.import_module(mod_name)
+    except:
+        print("Generating mock module %s." % mod_name)
+        sys.modules[mod_name] = Mock()
+import backend
+backend.__name__ = "dolfin"
+
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
