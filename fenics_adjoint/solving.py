@@ -1,65 +1,63 @@
 import backend
-from .tape import Tape, Block, Function
+import ufl
+from .tape import Tape, Block, Function, get_working_tape
 
 def solve(eq, func, bc):
-	output = backend.solve(eq, func, bc)
+    output = backend.solve(eq, func, bc)
 
-	tape = Tape.get_tape()
-	SolveBlock.create_block(tape, eq, func, bc)
+    tape = get_working_tape()
+    block = SolveBlock(eq, func, bc)
+    tape.add_block(block)
 
-	return output
-
+    return output
 
 
 class SolveBlock(Block):
-	def _init_(self, eq, func, bc):
-		self.eq = eq
-		self.bc = bc
-		self.func = func
+    def __init__(self, eq, func, bc):
+        super(SolveBlock, self).__init__()
+        self.eq = eq
+        self.bc = bc
+        self.func = func
+        if isinstance(self.eq.lhs, ufl.Form) and isinstance(self.eq.rhs, ufl.Form):
+            self.linear = True
+            # Add dependence on coefficients on the right hand side.
+            for c in self.eq.rhs.coefficients():
+                self.add_dependency(c)
 
-	def evaluate_adj(self):
-		adj_var = Function(self.func.function_space())
-		lhs = self.eq.lhs
-		dFdu = backend.derivative(lhs, self.func, backend.TrialFunction(self.func.function_space()))
-		#dFdu = backend.adjoint(dFdu)
+            # Add solution function to dependencies.
+            self.add_dependency(func)
+        else:
+            self.linear = False
 
-		dFdu = backend.assemble(dFdu)
-		self.bc.apply(dFdu)
-		B = dFdu.copy()
-		#A_mat, B_mat = backend.as_backend_type(dFdu).mat(), backend.as_backend_type(B).mat()
-		#A_mat.transpose(B_mat)
+        for c in self.eq.lhs.coefficients():
+                self.add_dependency(c)
 
+    def evaluate_adj(self):
+        adj_var = Function(self.func.function_space())
 
-		#print type(dFdu)
-		#from numpy import transpose
-		#adj_dFdu = transpose(dFdu.array())
+        # Obtain (dFdu)^T.
+        if self.linear:
+            dFdu = self.eq.lhs
+        else:
+            dFdu = backend.derivative(self.eq.lhs, self.func, backend.TrialFunction(self.func.function_space()))
 
-		dJdu = self.func.get_adj_output()
+        adj_dFdu = backend.adjoint(dFdu)
+        adj_dFdu = backend.assemble(dFdu)
 
-		#J = self.func**2*backend.dx
-		#dJdu = backend.derivative(J, self.func, backend.TestFunction(self.func.function_space()))
-		#dJdu = backend.assemble(dJdu)
+        # Get dJdu from previous calculations.
+        dJdu = self.func.get_adj_output()
 
-		#backend.solve(dFdu == dJdu, adj_var, self.bc, solver_parameters={'print_matrix': True, 'print_rhs': True})
-		self.bc.apply(dJdu)
-		#print B.array()
-		backend.solve(B, adj_var.vector(), dJdu)
+        # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
+        bc = backend.DirichletBC(self.bc) # TODO: Make it possible to use non-Dirichlet BC/mixed BC.
+        bc.homogenize()
+        bc.apply(adj_dFdu)
+        bc.apply(dJdu)
 
-		for c in lhs.coefficients():
-			if c != self.func:
-				#dc = Function(c.function_space())
-				#dc.vector()[:] = 1
-				dFdm = backend.derivative(lhs, c, backend.TrialFunction(c.function_space()))
-				dFdm = backend.assemble(-dFdm)
-				#print dFdm.array()
-				#self.bc.apply(dFdm)
+        # Solve the adjoint equations.
+        backend.solve(adj_dFdu, adj_var.vector(), dJdu)
 
-				adj_dFdm = dFdm.copy()
-				#print adj_dFdm.array()
-				dFdm_mat, adj_dFdm_mat = backend.as_backend_type(dFdm).mat(), backend.as_backend_type(adj_dFdm).mat()
-				dFdm_mat.transpose(adj_dFdm_mat)
-				
-
-				c.add_adj_output(adj_dFdm*adj_var.vector())
-
-
+        for c in self.get_dependencies():
+            if c != self.func:
+                dFdm = -backend.derivative(self.eq.lhs-self.eq.rhs, c, backend.TrialFunction(c.function_space()))
+                dFdm = backend.adjoint(dFdm)
+                c.add_adj_output(backend.assemble(dFdm)*adj_var.vector())
