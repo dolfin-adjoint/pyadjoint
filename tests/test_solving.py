@@ -14,7 +14,7 @@ def test_linear_problem():
     bc = DirichletBC(V, Constant(1), "on_boundary")
 
     def J(f):
-        a = inner(grad(u), grad(v))*dx
+        a = f*inner(grad(u), grad(v))*dx
         L = f*v*dx
         solve(a == L, u_, bc)
         return assemble(u_**2*dx)
@@ -33,12 +33,213 @@ def test_nonlinear_problem():
     bc = DirichletBC(V, Constant(1), "on_boundary")
 
     def J(f):
-        a = inner(grad(u), grad(v))*dx + u**2*v*dx - f*v*dx
+        a = f*inner(grad(u), grad(v))*dx + u**2*v*dx - f*v*dx
         L = 0
         solve(a == L, u, bc)
         return assemble(u**2*dx)
 
     _test_adjoint(J, f)
+
+def test_mixed_boundary():
+    mesh = UnitSquareMesh(10,10)
+
+    V = FunctionSpace(mesh,"CG",1)
+    u = TrialFunction(V)
+    u_ = Function(V)
+    v = TestFunction(V)
+
+    class Up(SubDomain):
+        def inside(self, x, on_boundary):
+            return near(x[1], 1)
+
+    class Down(SubDomain):
+        def inside(self, x, on_boundary):
+            return near(x[1], 0)
+
+    class Left(SubDomain):
+        def inside(self, x, on_boundary):
+            return near(x[0], 0)
+
+    class Right(SubDomain):
+        def inside(self, x, on_boundary):
+            return near(x[0], 1)
+
+    left = Left()
+    right = Right()
+    up = Up()
+    down = Down()
+
+    boundary = FacetFunction("size_t", mesh)
+    boundary.set_all(0)
+    up.mark(boundary, 1)
+    down.mark(boundary,2)
+    ds = Measure("ds", subdomain_data=boundary)
+
+    bc1 = DirichletBC(V,Expression("x[1]*x[1]", degree=1),left)
+    bc2 = DirichletBC(V,2,right)
+    bc = [bc1,bc2]
+
+    g1 = Constant(2)
+    g2 = Constant(1)
+    f = Function(V)
+    f.vector()[:] = 10
+
+    def J(f):
+        a = f*inner(grad(u), grad(v))*dx
+        L = inner(f,v)*dx + inner(g1,v)*ds(1) + inner(g2,v)*ds(2)
+
+        solve(a==L,u_,bc)
+
+        return assemble(u_**2*dx)
+
+    _test_adjoint(J, f)
+
+
+def test_wrt_constant_dirichlet_boundary():
+    mesh = IntervalMesh(10, 0, 1)
+    V = FunctionSpace(mesh, "Lagrange", 1)
+
+    c = Constant(1)
+
+    u = TrialFunction(V)
+    u_ = Function(V)
+    v = TestFunction(V)
+    bc = DirichletBC(V, Constant(1), "on_boundary")
+
+    def J(bc):
+        a = inner(grad(u), grad(v))*dx
+        L = c*v*dx
+        solve(a == L, u_, bc)
+        return assemble(u_**2*dx)
+
+    _test_adjoint_constant_boundary(J, bc)
+
+def test_wrt_function_dirichlet_boundary():
+    mesh = UnitSquareMesh(10,10)
+
+    V = FunctionSpace(mesh,"CG",1)
+    u = TrialFunction(V)
+    u_ = Function(V)
+    v = TestFunction(V)
+
+    class Up(SubDomain):
+        def inside(self, x, on_boundary):
+            return near(x[1], 1)
+
+    class Down(SubDomain):
+        def inside(self, x, on_boundary):
+            return near(x[1], 0)
+
+    class Left(SubDomain):
+        def inside(self, x, on_boundary):
+            return near(x[0], 0)
+
+    class Right(SubDomain):
+        def inside(self, x, on_boundary):
+            return near(x[0], 1)
+
+    left = Left()
+    right = Right()
+    up = Up()
+    down = Down()
+
+    boundary = FacetFunction("size_t", mesh)
+    boundary.set_all(0)
+    up.mark(boundary, 1)
+    down.mark(boundary,2)
+    ds = Measure("ds", subdomain_data=boundary)
+
+    bc1 = DirichletBC(V,Expression("x[1]*x[1]", degree=1),left)
+    bc2 = DirichletBC(V,2,right)
+    bc = [bc1,bc2]
+
+    g1 = Constant(2)
+    g2 = Constant(1)
+    f = Function(V)
+    f.vector()[:] = 10
+
+    def J(g1):
+        a = inner(grad(u), grad(v))*dx
+        L = inner(f,v)*dx + inner(g1,v)*ds(1) + inner(g2,v)*ds(2)
+
+        solve(a==L,u_,bc)
+
+        return assemble(u_**2*dx)
+
+    _test_adjoint_constant(J, g1)
+
+def test_wrt_constant():
+    mesh = IntervalMesh(10, 0, 1)
+    V = FunctionSpace(mesh, "Lagrange", 1)
+
+    c = Constant(1)
+
+    u = TrialFunction(V)
+    u_ = Function(V)
+    v = TestFunction(V)
+    bc = DirichletBC(V, Constant(1), "on_boundary")
+
+    def J(c):
+        a = inner(grad(u), grad(v))*dx
+        L = c*v*dx
+        solve(a == L, u_, bc)
+        return assemble(u_**2*dx)
+
+    _test_adjoint_constant(J, c)
+
+def test_wrt_constant_neumann_boundary():
+    mesh = UnitSquareMesh(10,10)
+
+    V = FunctionSpace(mesh,"CG",1)
+    u = TrialFunction(V)
+    u_ = Function(V)
+    v = TestFunction(V)
+
+    class Up(SubDomain):
+        def inside(self, x, on_boundary):
+            return near(x[1], 1)
+
+    class Down(SubDomain):
+        def inside(self, x, on_boundary):
+            return near(x[1], 0)
+
+    class Left(SubDomain):
+        def inside(self, x, on_boundary):
+            return near(x[0], 0)
+
+    class Right(SubDomain):
+        def inside(self, x, on_boundary):
+            return near(x[0], 1)
+
+    left = Left()
+    right = Right()
+    up = Up()
+    down = Down()
+
+    boundary = FacetFunction("size_t", mesh)
+    boundary.set_all(0)
+    up.mark(boundary, 1)
+    down.mark(boundary,2)
+    ds = Measure("ds", subdomain_data=boundary)
+
+    bc1 = DirichletBC(V,Expression("x[1]*x[1]", degree=1),left)
+    bc2 = DirichletBC(V,2,right)
+    bc = [bc1,bc2]
+
+    g1 = Constant(2)
+    g2 = Constant(1)
+    f = Function(V)
+    f.vector()[:] = 10
+
+    def J(g1):
+        a = inner(grad(u), grad(v))*dx
+        L = inner(f,v)*dx + inner(g1,v)*ds(1) + inner(g2,v)*ds(2)
+
+        solve(a==L,u_,bc)
+
+        return assemble(u_**2*dx)
+
+    _test_adjoint_constant(J, g1)
 
 
 
@@ -49,6 +250,66 @@ def convergence_rates(E_values, eps_values):
         r.append(log(E_values[i]/E_values[i-1])/log(eps_values[i]/eps_values[i-1]))
 
     return r
+
+def _test_adjoint_constant_boundary(J, bc):
+    import numpy.random
+    tape = Tape()
+    set_working_tape(tape)
+
+    h = Constant(1)
+    c = Constant(1)
+
+    eps_ = [0.4/2.0**i for i in range(4)]
+    residuals = []
+    for eps in eps_:
+        bc.set_value(Constant(c + eps*h))
+        Jp = J(bc)
+        tape.clear_tape()
+        bc.set_value(c)
+        Jm = J(bc)
+        Jm.set_initial_adj_input(1.0)
+        tape.evaluate()
+
+        dJdbc = bc.get_adj_output()
+
+        residual = abs(Jp - Jm - eps*dJdbc)
+        residuals.append(residual)
+
+    r = convergence_rates(residuals, eps_)
+    print r
+
+    tol = 1E-1
+    assert( r[-1] > 2-tol )
+
+
+
+def _test_adjoint_constant(J, c):
+    import numpy.random
+    tape = Tape()
+    set_working_tape(tape)
+
+    h = Constant(1)
+
+    eps_ = [0.4/2.0**i for i in range(4)]
+    residuals = []
+    for eps in eps_:
+
+        Jp = J(c + eps*h)
+        tape.clear_tape()
+        Jm = J(c)
+        Jm.set_initial_adj_input(1.0)
+        tape.evaluate()
+
+        dJdc = c.get_adj_output()
+
+        residual = abs(Jp - Jm - eps*dJdc)
+        residuals.append(residual)
+
+    r = convergence_rates(residuals, eps_)
+    print r
+
+    tol = 1E-1
+    assert( r[-1] > 2-tol )
 
 def _test_adjoint(J, f):
     import numpy.random
@@ -75,4 +336,7 @@ def _test_adjoint(J, f):
         residuals.append(residual)
 
     r = convergence_rates(residuals, eps_)
-    assert( r[-1] > 2-1E-3 )
+    print r
+
+    tol = 1E-1
+    assert( r[-1] > 2-tol )

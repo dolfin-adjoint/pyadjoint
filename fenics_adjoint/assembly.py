@@ -2,15 +2,14 @@ import backend
 from .tape import Tape, Block, get_working_tape
 
 def assemble(*args, **kwargs):
-    tape = get_working_tape()
-
     annotate_tape = kwargs.pop("annotate_tape", True)
     output = backend.assemble(*args, **kwargs)
 
     if annotate_tape:
         form = args[0]
-
         block = AssembleBlock(form)
+
+        tape = get_working_tape()
         tape.add_block(block)
 
         output = block.create_reference_object(output)

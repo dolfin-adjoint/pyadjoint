@@ -97,12 +97,6 @@ class OverloadedType(object):
 
         self.adj_value = 0
 
-        self._init_(*args, **kwargs)
-
-    def _init_(self):
-        # TODO: Remove this method and use super instead.
-        return NotImplemented
-
     def add_adj_output(self, val):
         self.adj_value += val
 
@@ -117,18 +111,26 @@ class OverloadedType(object):
 
 
 class Function(OverloadedType, backend.Function):
-    def _init_(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
+        super(Function, self).__init__(*args, **kwargs)
         backend.Function.__init__(self, *args, **kwargs)
 
 class Constant(OverloadedType, backend.Constant):
-    def _init_(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
+        super(Constant, self).__init__(*args, **kwargs)
         backend.Constant.__init__(self, *args, **kwargs)
+
+class DirichletBC(OverloadedType, backend.DirichletBC):
+    def __init__(self, *args, **kwargs):
+        super(DirichletBC, self).__init__(*args, **kwargs)
+        backend.DirichletBC.__init__(self, *args, **kwargs)
 
 class AdjFloat(OverloadedType, float):
     def __new__(cls, *args, **kwargs):
         return float.__new__(cls, *args)
 
-    def _init_(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
+        super(AdjFloat, self).__init__(*args, **kwargs)
         float.__init__(self, *args, **kwargs)
 
     def __mul__(self, other):
@@ -137,9 +139,7 @@ class AdjFloat(OverloadedType, float):
             return NotImplemented
 
         block = AdjFloat.MulBlock(self.tape, self, other)
-
         output = block.create_reference_type(output)
-
         return output 
 
 
