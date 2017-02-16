@@ -114,7 +114,7 @@ def test_wrt_constant_dirichlet_boundary():
 
     _test_adjoint_constant_boundary(J, bc)
 
-def test_wrt_function_dirichlet_boundary():
+def test_wrt_function_neumann_boundary():
     mesh = UnitSquareMesh(10,10)
 
     V = FunctionSpace(mesh,"CG",1)
