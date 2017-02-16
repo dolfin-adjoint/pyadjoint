@@ -1,0 +1,12 @@
+image: quay.io/fenicsproject/stable:latest
+
+pipelines:
+  default:
+    - step:
+        script:
+          - pip2 install scipy
+          - pip2 install --no-cache-dir git+https://github.com/funsim/moola.git@master
+          - pip2 install --no-cache-dir --upgrade pytest
+          - cd $BITBUCKET_CLONE_DIR
+          - pip2 install --no-cache-dir --upgrade --prefix=$FENICS_PREFIX .
+          - python2 -m pytest -v tests/
