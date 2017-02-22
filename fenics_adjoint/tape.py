@@ -39,7 +39,6 @@ class Tape(object):
         for i in range(len(self.blocks)-1, -1, -1):
             self.blocks[i].reset_variables()
 
-
 class Block(object):
     """Base class for all Tape Block types.
     
@@ -58,7 +57,7 @@ class Block(object):
         self.fwd_outputs = []
 
     def add_dependency(self, dep):
-        self.dependencies.add(dep)
+        self.dependencies.add(dep.get_block_output())
 
     def get_dependencies(self):
         return self.dependencies
@@ -76,15 +75,47 @@ class Block(object):
         elif isinstance(output, backend.Function):
             cls = Function
         else:
-            return NotImplemented
+            raise NotImplementedError
 
         ret = cls(output)
-        self.create_fwd_output(ret)
+        self.create_fwd_output(ret.get_block_output())
 
         return ret
 
     def evaluate_adj():
-        return NotImplemented
+        raise NotImplementedError
+
+class BlockOutput(object):
+    def __init__(self, output):
+        self.output = output
+        self.adj_value = 0
+        self.saved_output = None
+
+    def add_adj_output(self, val):
+        self.adj_value += val
+
+    def get_adj_output(self):
+        #print "Bugger ut: ", self.adj_value
+        #print self.output
+        return self.adj_value
+
+    def set_initial_adj_input(self, value):
+        self.adj_value = value
+
+    def reset_variables(self):
+        self.adj_value = 0
+
+    def get_output(self):
+        return self.output
+
+    def save_output(self):
+        self.saved_output = Function(self.output.function_space(), self.output.vector())
+
+    def get_saved_output(self):
+        if self.saved_output:
+            return self.saved_output
+        else:
+            return self.output
 
 class OverloadedType(object):
     def __init__(self, *args, **kwargs):
@@ -95,25 +126,40 @@ class OverloadedType(object):
         else:
             self.tape = get_working_tape()
 
-        self.adj_value = 0
+        self.original_block_output = self.create_block_output()
 
-    def add_adj_output(self, val):
-        self.adj_value += val
+    def create_block_output(self):
+        block_output = BlockOutput(self)
+        self.set_block_output(block_output)
+        return block_output
+
+    def set_block_output(self, block_output):
+        self.block_output = block_output
+
+    def get_block_output(self):
+        return self.block_output
 
     def get_adj_output(self):
-        return self.adj_value
+        return self.original_block_output.get_adj_output()
 
     def set_initial_adj_input(self, value):
-        self.adj_value = value
+        self.block_output.set_initial_adj_input(value)
 
     def reset_variables(self):
-        self.adj_value = 0
+        self.original_block_output.reset_variables()
 
 
 class Function(OverloadedType, backend.Function):
     def __init__(self, *args, **kwargs):
         super(Function, self).__init__(*args, **kwargs)
         backend.Function.__init__(self, *args, **kwargs)
+
+    def assign(self, other, *args, **kwargs):
+        self.get_block_output().save_output()
+        self.set_block_output(other.get_block_output())
+        self.get_block_output().output = self
+
+        return super(Function, self).assign(other, *args, **kwargs)
 
 class Constant(OverloadedType, backend.Constant):
     def __init__(self, *args, **kwargs):

@@ -28,7 +28,8 @@ class AssembleBlock(Block):
     def evaluate_adj(self):
         adj_input = self.fwd_outputs[0].get_adj_output()
 
-        for c in self.get_dependencies():
+        for block_output in self.get_dependencies():
+            c = block_output.get_output()
             if isinstance(c, backend.Function):
                 dc = backend.TestFunction(c.function_space())
             elif isinstance(c, backend.Constant):
@@ -36,4 +37,4 @@ class AssembleBlock(Block):
 
             dform = backend.derivative(self.form, c, dc)
             output = backend.assemble(dform)
-            c.add_adj_output(adj_input * output)
+            block_output.add_adj_output(adj_input * output)

@@ -22,7 +22,7 @@ class SolveBlock(Block):
             self.eq = args[0]
             self.func = args[1]
 
-            # Store boundary conditions, if any are given.
+            # Store boundary conditions in a list.
             if len(args) > 2:
                 if isinstance(args[2], list):
                     self.bcs = args[2]
@@ -36,9 +36,6 @@ class SolveBlock(Block):
                 # Add dependence on coefficients on the right hand side.
                 for c in self.eq.rhs.coefficients():
                     self.add_dependency(c)
-
-                # Add solution function to dependencies.
-                self.add_dependency(self.func)
             else:
                 self.linear = False
 
@@ -46,24 +43,28 @@ class SolveBlock(Block):
                 self.add_dependency(bc)
 
             for c in self.eq.lhs.coefficients():
-                    self.add_dependency(c)
+                self.add_dependency(c)
+
+            self.create_fwd_output(self.func.create_block_output())
         else:
             # Linear algebra problem.
             raise NotImplementedError
 
     def evaluate_adj(self):
-        adj_var = Function(self.func.function_space())
+        block_output = self.fwd_outputs[0]
+        u = block_output.get_output()
+        adj_var = Function(u.function_space())
 
         # Obtain (dFdu)^T.
         if self.linear:
             dFdu = self.eq.lhs
         else:
-            dFdu = backend.derivative(self.eq.lhs, self.func, backend.TrialFunction(self.func.function_space()))
+            dFdu = backend.derivative(self.eq.lhs, self.func, backend.TrialFunction(u.function_space()))
 
         dFdu = backend.assemble(dFdu)
 
         # Get dJdu from previous calculations.
-        dJdu = self.func.get_adj_output()
+        dJdu = block_output.get_adj_output()
 
         # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
         bcs = []
@@ -81,7 +82,8 @@ class SolveBlock(Block):
         backend.solve(dFdu, adj_var.vector(), dJdu)
 
         # TODO: Clean up and restructure the code, if possible.
-        for c in self.get_dependencies():
+        for block_output in self.get_dependencies():
+            c = block_output.get_output()
             if c != self.func:
                 if isinstance(c, backend.Function):
                     if self.linear:
@@ -89,7 +91,7 @@ class SolveBlock(Block):
                         #dFdm = backend.adjoint(dFdm_rhs)
 
                         if c in self.eq.lhs.coefficients():
-                            dFdm_lhs = backend.action(self.eq.lhs, self.func)
+                            dFdm_lhs = backend.action(self.eq.lhs, self.fwd_outputs[0].get_output() ) #self.func)
                             dFdm_lhs = -backend.derivative(dFdm_lhs, c, backend.TrialFunction(c.function_space()))
                             #dFdm_lhs = backend.adjoint(dFdm_lhs)
                             dFdm += dFdm_lhs
@@ -117,13 +119,13 @@ class SolveBlock(Block):
 
                     dFdm_mat.transpose(dFdm_mat)
 
-                    c.add_adj_output(dFdm*adj_var.vector())
+                    block_output.add_adj_output(dFdm*adj_var.vector())
                 elif isinstance(c, backend.Constant):
                     if self.linear:
                         dFdm = backend.derivative(self.eq.rhs, c, backend.Constant(1))
 
                         if c in self.eq.lhs.coefficients():
-                            dFdm_lhs = backend.action(self.eq.lhs, self.func)
+                            dFdm_lhs = backend.action(self.eq.lhs, self.fwd_outputs[0].get_saved_output())
                             dFdm_lhs = -backend.derivative(dFdm_lhs, c, backend.Constant(1))
                             dFdm += dFdm_lhs
 
@@ -131,104 +133,21 @@ class SolveBlock(Block):
                         dFdm = -backend.derivative(self.eq.lhs, c, backend.Constant(1))
 
                     dFdm = backend.assemble(dFdm)
+
                     [bc.apply(dFdm) for bc in bcs]
 
-                    c.add_adj_output(dFdm.inner(adj_var.vector()))
+                    block_output.add_adj_output(dFdm.inner(adj_var.vector()))
                 elif isinstance(c, backend.DirichletBC):
                     tmp_bc = DirichletBC(c)
                     if self.linear:
-                        dFdm = backend.derivative(self.eq.rhs, backend.Constant(1), backend.Constant(1)) # Hacky way of getting 0 vector
-                        dFdm = backend.assemble(dFdm)
-                        tmp_bc.set_value(backend.Constant(1))
-                        tmp_bc.apply(dFdm)
+                        adj_output = []
+                        adj_var_array = adj_var.vector().array()
+                        for key in c.get_boundary_values():
+                            adj_output.append(adj_var_array[key])
 
-                        #print adj_var.vector().array()
-                        #print dFdm.inner(adj_var.vector())
+                        import numpy as np
+                        adj_output = np.array(adj_output)
 
-                        c.add_adj_output(dFdm.inner(adj_var.vector()))
+                        block_output.add_adj_output(adj_output)
                     else:
                         pass
-
-
-    def evaluate_adj2(self):
-        """
-        The old, and slightly less hacky version of the evaluate_adj method.
-        As of now I am between two methods, and haven't decided which to
-        move forward with.
-        """
-        adj_var = Function(self.func.function_space())
-
-        # Obtain (dFdu)^T.
-        if self.linear:
-            dFdu = self.eq.lhs
-        else:
-            dFdu = backend.derivative(self.eq.lhs, self.func, backend.TrialFunction(self.func.function_space()))
-
-        adj_dFdu = backend.adjoint(dFdu)
-        adj_dFdu = backend.assemble(dFdu)
-
-        # Get dJdu from previous calculations.
-        dJdu = self.func.get_adj_output()
-        unmod_dJdu = dJdu.copy()
-
-        # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
-        for bc in self.bcs:
-            if isinstance(bc, backend.DirichletBC):
-                bc = backend.DirichletBC(bc)
-                bc.homogenize()
-            bc.apply(adj_dFdu, dJdu)
-
-        # Solve the adjoint equations.
-        backend.solve(adj_dFdu, adj_var.vector(), dJdu)
-
-        # TODO: Clean up and restructure the code, if possible.
-        for c in self.get_dependencies():
-            if c != self.func:
-                if isinstance(c, backend.Function):
-                    if self.linear:
-                        dFdm_rhs = backend.derivative(self.eq.rhs, c, backend.TrialFunction(c.function_space()))
-                        dFdm = backend.adjoint(dFdm_rhs)
-
-                        if c in self.eq.lhs.coefficients():
-                            dFdm_lhs = backend.action(self.eq.lhs, self.func)
-                            dFdm_lhs = -backend.derivative(dFdm_lhs, c, backend.TrialFunction(c.function_space()))
-                            dFdm_lhs = backend.adjoint(dFdm_lhs)
-                            dFdm += dFdm_lhs
-
-                    else:
-                        dFdm = -backend.derivative(self.eq.lhs, c, backend.TrialFunction(c.function_space()))
-                        dFdm = backend.adjoint(dFdm)
-
-                    c.add_adj_output(backend.assemble(dFdm)*adj_var.vector())
-                elif isinstance(c, backend.Constant):
-                    if self.linear:
-                        dFdm = backend.derivative(self.eq.rhs, c, backend.Constant(1))
-
-                        if c in self.eq.lhs.coefficients():
-                            dFdm_lhs = backend.action(self.eq.lhs, self.func)
-                            dFdm_lhs = -backend.derivative(dFdm_lhs, c, backend.Constant(1))
-                            dFdm += dFdm_lhs
-
-                    else:
-                        dFdm = -backend.derivative(self.eq.lhs, c, backend.Constant(1))
-
-                    c.add_adj_output(backend.assemble(dFdm).inner(adj_var.vector()))
-        ####
-        # Below does not work.
-        ####
-        backend.solve(adj_dFdu, adj_var.vector(), unmod_dJdu)
-        for bc in self.bcs:
-            if isinstance(bc, backend.DirichletBC):
-                tmp_bc = DirichletBC(bc)
-                if self.linear:
-                    dFdm = backend.derivative(self.eq.rhs, backend.Constant(1), backend.Constant(1)) # Hacky way of getting 0 vector
-                    dFdm = backend.assemble(dFdm)
-                    tmp_bc.set_value(backend.Constant(1))
-                    tmp_bc.apply(dFdm)
-
-                    #print adj_var.vector().array()
-                    #print dFdm.inner(adj_var.vector())
-
-                    bc.add_adj_output(dFdm.inner(adj_var.vector()))
-                else:
-                    pass
