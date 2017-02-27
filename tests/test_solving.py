@@ -170,7 +170,7 @@ def test_wrt_function_dirichlet_boundary():
     down.mark(boundary,2)
     ds = Measure("ds", subdomain_data=boundary)
 
-    bc_func = project(Expression("1", degree=1), V)
+    bc_func = project(Expression("sin(x[1])", degree=1), V)
     bc1 = DirichletBC(V,bc_func,left)
     bc2 = DirichletBC(V,2,right)
     bc = [bc1,bc2]
@@ -340,33 +340,25 @@ def test_time_dependent():
     bc = [bc_left, bc_right]
 
     # Some variables
-    T = 1.0           # Playtime
-    dt = 0.1       # Timestep
-    f = Constant(1)           # Thermal conductivity constant
+    T = 0.2
+    dt = 0.1
+    f = Constant(1)
 
     def J(f):
         u_1 = Function(V)
-        u_1.vector()[:] = 1 #project(Constant(1),V)
-        #u_2 = Function(V)
-        #u_1.vector()[0] = 2 
-        # Weak formulation. u is the unknown at the current time step, i.e u^(n+1)
-        # while u_1 is the solution at the previous time step
-        a = u*v*dx + dt*f*inner(grad(u),grad(v))*dx
+        u_1.vector()[:] = 1 
+
+        a = u_1*u*v*dx + dt*f*inner(grad(u),grad(v))*dx
         L = u_1*v*dx
 
         # Time loop
         t = dt
         while t <= T:
-            solve(a==L, u_, bc)
-            u_1.assign(u_)            # Updating solution
+            solve(a == L, u_, bc)
+            u_1.assign(u_)
             t += dt
 
-        #a = u*v*dx + dt*f*inner(grad(u),grad(v))*dx
-        #L = u_2*v*dx
-
-        #solve(a==L, u_, bc)
-
-        return assemble(u_**2*dx)
+        return assemble(u_1**2*dx)
 
     _test_adjoint_constant(J, f)
 
@@ -402,15 +394,8 @@ def _test_adjoint_function_boundary(J, bc, f):
         tape.evaluate()
 
         dJdbc = bc.get_adj_output()
-        
-        h_vec = []
-        import numpy as np
-        for key in bc.get_boundary_values():
-            h_vec.append(h.vector().array()[key])
 
-        h_vec = np.array(h_vec)
-
-        residual = abs(Jp - Jm - eps*np.dot(dJdbc,h_vec))
+        residual = abs(Jp - Jm - eps*dJdbc.inner(h.vector()))
         residuals.append(residual)
 
     r = convergence_rates(residuals, eps_)
@@ -458,7 +443,7 @@ def _test_adjoint_constant(J, c):
 
     h = Constant(1)
 
-    eps_ = [0.4/2.0**i for i in range(4)]
+    eps_ = [0.01/2.0**i for i in range(4)]
     residuals = []
     for eps in eps_:
 
@@ -489,7 +474,7 @@ def _test_adjoint(J, f):
     h = Function(V)
     h.vector()[:] = numpy.random.rand(V.dim())
 
-    eps_ = [0.4/2.0**i for i in range(4)]
+    eps_ = [0.01/2.0**i for i in range(5)]
     residuals = []
     for eps in eps_:
 
@@ -506,6 +491,7 @@ def _test_adjoint(J, f):
 
     r = convergence_rates(residuals, eps_)
     print r
+    print residuals
 
     tol = 1E-1
     assert( r[-1] > 2-tol )
