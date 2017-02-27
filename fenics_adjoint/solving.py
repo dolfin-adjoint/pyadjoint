@@ -19,7 +19,9 @@ class SolveBlock(Block):
         super(SolveBlock, self).__init__()
         if isinstance(args[0], ufl.equation.Equation):
             # Variational problem.
-            self.eq = args[0]
+            eq = args[0]
+            self.lhs = eq.lhs
+            self.rhs = eq.rhs
             self.func = args[1]
 
             # Store boundary conditions in a list.
@@ -31,10 +33,10 @@ class SolveBlock(Block):
             else:
                 self.bcs = []
 
-            if isinstance(self.eq.lhs, ufl.Form) and isinstance(self.eq.rhs, ufl.Form):
+            if isinstance(self.lhs, ufl.Form) and isinstance(self.rhs, ufl.Form):
                 self.linear = True
                 # Add dependence on coefficients on the right hand side.
-                for c in self.eq.rhs.coefficients():
+                for c in self.rhs.coefficients():
                     self.add_dependency(c)
             else:
                 self.linear = False
@@ -42,7 +44,7 @@ class SolveBlock(Block):
             for bc in self.bcs:
                 self.add_dependency(bc)
 
-            for c in self.eq.lhs.coefficients():
+            for c in self.lhs.coefficients():
                 self.add_dependency(c)
 
             self.create_fwd_output(self.func.create_block_output())
@@ -51,20 +53,35 @@ class SolveBlock(Block):
             raise NotImplementedError
 
     def evaluate_adj(self):
-        block_output = self.fwd_outputs[0]
-        u = block_output.get_output()
-        adj_var = Function(u.function_space())
+        fwd_block_output = self.fwd_outputs[0]
+        u = fwd_block_output.get_output()
+        V = u.function_space()
+        adj_var = Function(V)
+
+        if self.linear:
+            tmp_u = Function(self.func.function_space()) # Replace later? Maybe save function space on initialization.
+            F_form = backend.action(self.lhs, tmp_u) - self.rhs
+        else:
+            tmp_u = self.func
+            F_form = self.lhs
+
+        replaced_coeffs = dict()
+        for block_output in self.get_dependencies():
+            coeff = block_output.get_output()
+            if coeff in F_form.coefficients():
+                replaced_coeffs[coeff] = block_output.get_saved_output()
+
+        replaced_coeffs[tmp_u] = self.fwd_outputs[0].get_saved_output()
+
+        F_form = backend.replace(F_form, replaced_coeffs)
 
         # Obtain (dFdu)^T.
-        if self.linear:
-            dFdu = self.eq.lhs
-        else:
-            dFdu = backend.derivative(self.eq.lhs, self.func, backend.TrialFunction(u.function_space()))
+        dFdu = backend.derivative(F_form, self.fwd_outputs[0].get_saved_output(), backend.TrialFunction(u.function_space()))
 
         dFdu = backend.assemble(dFdu)
 
         # Get dJdu from previous calculations.
-        dJdu = block_output.get_adj_output()
+        dJdu = fwd_block_output.get_adj_output()
 
         # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
         bcs = []
@@ -81,35 +98,21 @@ class SolveBlock(Block):
         # Solve the adjoint equations.
         backend.solve(dFdu, adj_var.vector(), dJdu)
 
-        # TODO: Clean up and restructure the code, if possible.
         for block_output in self.get_dependencies():
             c = block_output.get_output()
             if c != self.func:
                 if isinstance(c, backend.Function):
-                    if self.linear:
-                        dFdm = backend.derivative(self.eq.rhs, c, backend.TrialFunction(c.function_space()))
-                        #dFdm = backend.adjoint(dFdm_rhs)
-
-                        if c in self.eq.lhs.coefficients():
-                            dFdm_lhs = backend.action(self.eq.lhs, self.fwd_outputs[0].get_output() ) #self.func)
-                            dFdm_lhs = -backend.derivative(dFdm_lhs, c, backend.TrialFunction(c.function_space()))
-                            #dFdm_lhs = backend.adjoint(dFdm_lhs)
-                            dFdm += dFdm_lhs
-
+                    if c in replaced_coeffs:
+                        c_rep = replaced_coeffs[c]
                     else:
-                        dFdm = -backend.derivative(self.eq.lhs, c, backend.TrialFunction(c.function_space()))
-                        #dFdm = backend.adjoint(dFdm)
+                        c_rep = c
 
+                    dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(c.function_space()))
                     dFdm = backend.assemble(dFdm)
 
                     dFdm_mat = backend.as_backend_type(dFdm).mat()
 
                     import numpy as np
-                    #dFdm_mat.setValue(1, 1, 1)
-                    #dFdm.zero(np.array([0, self.func.function_space().dim()-1], dtype=np.intc))
-
-                    #print dFdm.array()
-                    #import sys; sys.exit()
                     bc_rows = []
                     for bc in bcs:
                         for key in bc.get_boundary_values():
@@ -121,33 +124,15 @@ class SolveBlock(Block):
 
                     block_output.add_adj_output(dFdm*adj_var.vector())
                 elif isinstance(c, backend.Constant):
-                    if self.linear:
-                        dFdm = backend.derivative(self.eq.rhs, c, backend.Constant(1))
-
-                        if c in self.eq.lhs.coefficients():
-                            dFdm_lhs = backend.action(self.eq.lhs, self.fwd_outputs[0].get_saved_output())
-                            dFdm_lhs = -backend.derivative(dFdm_lhs, c, backend.Constant(1))
-                            dFdm += dFdm_lhs
-
-                    else:
-                        dFdm = -backend.derivative(self.eq.lhs, c, backend.Constant(1))
-
+                    dFdm = -backend.derivative(F_form, c, backend.Constant(1))
                     dFdm = backend.assemble(dFdm)
 
                     [bc.apply(dFdm) for bc in bcs]
 
                     block_output.add_adj_output(dFdm.inner(adj_var.vector()))
                 elif isinstance(c, backend.DirichletBC):
-                    tmp_bc = DirichletBC(c)
-                    if self.linear:
-                        adj_output = []
-                        adj_var_array = adj_var.vector().array()
-                        for key in c.get_boundary_values():
-                            adj_output.append(adj_var_array[key])
+                    tmp_bc = backend.DirichletBC(V, adj_var, c.user_sub_domain())
+                    adj_output = Function(V)
+                    tmp_bc.apply(adj_output.vector())
 
-                        import numpy as np
-                        adj_output = np.array(adj_output)
-
-                        block_output.add_adj_output(adj_output)
-                    else:
-                        pass
+                    block_output.add_adj_output(adj_output.vector())
