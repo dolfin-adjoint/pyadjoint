@@ -150,7 +150,7 @@ class BlockOutput(object):
         self.adj_value = 0
         self.saved_output = None
         BlockOutput.id_cnt += 1
-        self.name = id_cnt
+        self.id = BlockOutput.id_cnt
 
     def add_adj_output(self, val):
         self.adj_value += val
@@ -186,7 +186,7 @@ class BlockOutput(object):
             return self.output
 
     def get_name(self):
-        return self.name
+        return self.id
 
 
 def create_overloaded_object(obj):
@@ -298,6 +298,7 @@ class DirichletBC(OverloadedType, backend.DirichletBC):
         super(DirichletBC, self).__init__(*args, **kwargs)
         backend.DirichletBC.__init__(self, *args, **kwargs)
 
+"""
 class OverloadedExpressionMetaClass(backend.ExpressionMetaClass):
     def __new__(mcs, class_name, bases, dict_):
         # Some logic to exclude overloaded Expression from bases, and replace with backend.Expression.
@@ -308,8 +309,15 @@ class OverloadedExpressionMetaClass(backend.ExpressionMetaClass):
 
         pass
 
+
 class CompiledExpression(OverloadedType):
-    pass    
+    def __init__(self, original):
+        # Copy all attributes and functions from original into self
+
+        # alternative:
+        self.original = original
+        # Create trigger if self.func is called and does not exist, try calling self.original.func
+
 
 
 class Expression(OverloadedType, backend.Expression):
@@ -322,7 +330,7 @@ class Expression(OverloadedType, backend.Expression):
         super(Expression, self).__init__(*args, **kwargs)
         backend.Expression.__init__(self, *args, **kwargs)
 
-
+"""
 class AdjFloat(OverloadedType, float):
     def __new__(cls, *args, **kwargs):
         return float.__new__(cls, *args)
