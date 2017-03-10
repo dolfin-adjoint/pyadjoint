@@ -1,1 +1,1 @@
-# FEniCS-adjoint 2
+# Dolfin-adjoint 2
