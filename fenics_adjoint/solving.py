@@ -37,23 +37,23 @@ class SolveBlock(Block):
                 self.linear = True
                 # Add dependence on coefficients on the right hand side.
                 for c in self.rhs.coefficients():
-                    self.add_dependency(c)
+                    self.add_dependency(c.get_block_output())
             else:
                 self.linear = False
 
             for bc in self.bcs:
-                self.add_dependency(bc)
+                self.add_dependency(bc.get_block_output())
 
             for c in self.lhs.coefficients():
-                self.add_dependency(c)
+                self.add_dependency(c.get_block_output())
 
-            self.create_fwd_output(self.func.create_block_output())
+            self.add_output(self.func.create_block_output())
         else:
             # Linear algebra problem.
             raise NotImplementedError
 
     def evaluate_adj(self):
-        fwd_block_output = self.fwd_outputs[0]
+        fwd_block_output = self.get_outputs()[0]
         u = fwd_block_output.get_output()
         V = u.function_space()
         adj_var = Function(V)
@@ -71,12 +71,12 @@ class SolveBlock(Block):
             if coeff in F_form.coefficients():
                 replaced_coeffs[coeff] = block_output.get_saved_output()
 
-        replaced_coeffs[tmp_u] = self.fwd_outputs[0].get_saved_output()
+        replaced_coeffs[tmp_u] = fwd_block_output.get_saved_output()
 
         F_form = backend.replace(F_form, replaced_coeffs)
 
         # Obtain (dFdu)^T.
-        dFdu = backend.derivative(F_form, self.fwd_outputs[0].get_saved_output(), backend.TrialFunction(u.function_space()))
+        dFdu = backend.derivative(F_form, fwd_block_output.get_saved_output(), backend.TrialFunction(u.function_space()))
 
         dFdu = backend.assemble(dFdu)
 
