@@ -48,7 +48,10 @@ class Mock(object):
         if name in ('__file__', '__path__'):
             return '/dev/null'
         elif name[0] == name[0].upper():
-            mockType = type(name, (Mock, ), {})
+            if name in MOCK_META_CLASSES:
+                mockType = type(name, (MockMeta, ), {})
+            else:
+                mockType = type(name, (Mock, ), {})
             mockType.__module__ = __name__
             return mockType
         else:
@@ -65,6 +68,11 @@ for mod_name in MOCK_MODULES:
         sys.modules[mod_name] = Mock()
 import backend
 backend.__name__ = "dolfin"
+
+class MockMeta(type):
+    pass
+
+MOCK_META_CLASSES = ["ExpressionMetaClass"]
 
 # -- General configuration ------------------------------------------------
 
