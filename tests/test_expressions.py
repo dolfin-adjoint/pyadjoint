@@ -15,8 +15,6 @@ def test_subclass_expression():
 
 	f = MyExpression1(degree=1)
 
-	# Assert
-
 	# Expression is removed from bases by the metaclass:
 	assert(Expression not in MyExpression1.__bases__)
 
@@ -28,7 +26,6 @@ def test_subclass_expression():
 def test_jit_expression():
 	f = Expression("a*sin(k*pi*x[0])*cos(k*pi*x[1])", a=2, k=3, degree=2)
 
-	# Assert
 	assert(isinstance(f, OverloadedType))
 
 
@@ -42,5 +39,39 @@ def test_jit_expression_evaluations():
 
 	assert(f(0.0) == 2)
 	assert(f.u == 2)
+
+
+def test_jit_expression_adj():
+	mesh = IntervalMesh(10, 0, 1)
+	f = Expression("sin(a*x[0])", a=2, degree=1)
+
+	form = f**2*dx(domain=mesh)
+	J = assemble(form)
+	
+	J.set_initial_adj_input(1.0)
+	tape = get_working_tape()
+	tape.evaluate()
+
+	exp_dJdf = f.get_adj_output()
+	
+	tape = Tape()
+	set_working_tape(tape)
+
+	V = FunctionSpace(mesh, "Lagrange", 1)
+
+	# Workaround before interpolate is overloaded
+	tmp = interpolate(f, V)
+	f = Function(V)
+	f.vector()[:] = tmp.vector()[:]
+
+	form = f**2*dx
+	J = assemble(form)
+
+	J.set_initial_adj_input(1.0)
+	tape.evaluate()
+
+	func_dJdf = f.get_adj_output()
+
+	assert((exp_dJdf == func_dJdf).all())
 
 

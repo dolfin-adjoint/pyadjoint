@@ -1,4 +1,5 @@
 import backend
+import ufl
 from .tape import Tape, Block, get_working_tape, create_overloaded_object
 
 def assemble(*args, **kwargs):
@@ -34,6 +35,19 @@ class AssembleBlock(Block):
                 dc = backend.TestFunction(c.function_space())
             elif isinstance(c, backend.Constant):
                 dc = backend.Constant(1)
+            elif isinstance(c, backend.Expression):
+                # Create a FunctionSpace from self.form and Expression.
+                # And then make a TestFunction from this space.
+
+                mesh = self.form.ufl_domain().ufl_cargo()
+                c_element = c.ufl_element()
+
+                # In newer versions of FEniCS there is a method named reconstruct, thus we may
+                # in the future just call c_element.reconstruct(cell=mesh.ufl_cell()).
+                element = ufl.FiniteElement(c_element.family(), mesh.ufl_cell(), c_element.degree())
+                V = backend.FunctionSpace(mesh, element)
+                dc = backend.TestFunction(V)
+                
 
             dform = backend.derivative(self.form, c, dc)
             output = backend.assemble(dform)

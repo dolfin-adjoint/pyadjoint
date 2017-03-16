@@ -11,6 +11,9 @@ def solve(*args, **kwargs):
         block = SolveBlock(*args, **kwargs)
         tape.add_block(block)
 
+        block_output = args[1].create_block_output()
+        block.add_output(block_output)
+
     return output
 
 
@@ -47,7 +50,7 @@ class SolveBlock(Block):
             for c in self.lhs.coefficients():
                 self.add_dependency(c.get_block_output())
 
-            self.add_output(self.func.create_block_output())
+            #self.add_output(self.func.create_block_output())
         else:
             # Linear algebra problem.
             raise NotImplementedError
@@ -136,3 +139,25 @@ class SolveBlock(Block):
                     tmp_bc.apply(adj_output.vector())
 
                     block_output.add_adj_output(adj_output.vector())
+                elif isinstance(c, backend.Expression):
+                    if c in replaced_coeffs:
+                        c_rep = replaced_coeffs[c]
+                    else:
+                        c_rep = c
+
+                    dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(V)) # TODO: What space to use?
+                    dFdm = backend.assemble(dFdm)
+
+                    dFdm_mat = backend.as_backend_type(dFdm).mat()
+
+                    import numpy as np
+                    bc_rows = []
+                    for bc in bcs:
+                        for key in bc.get_boundary_values():
+                            bc_rows.append(key)
+
+                    dFdm.zero(np.array(bc_rows, dtype=np.intc))
+
+                    dFdm_mat.transpose(dFdm_mat)
+
+                    block_output.add_adj_output(dFdm*adj_var.vector())
