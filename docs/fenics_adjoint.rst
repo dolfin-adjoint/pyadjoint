@@ -1,6 +1,13 @@
 fenics_adjoint package
 ======================
 
+Subpackages
+-----------
+
+.. toctree::
+
+    fenics_adjoint.types
+
 Submodules
 ----------
 
@@ -12,18 +19,18 @@ fenics_adjoint.assembly module
     :undoc-members:
     :show-inheritance:
 
-fenics_adjoint.solving module
------------------------------
+fenics_adjoint.projection module
+--------------------------------
 
-.. automodule:: fenics_adjoint.solving
+.. automodule:: fenics_adjoint.projection
     :members:
     :undoc-members:
     :show-inheritance:
 
-fenics_adjoint.tape module
---------------------------
+fenics_adjoint.solving module
+-----------------------------
 
-.. automodule:: fenics_adjoint.tape
+.. automodule:: fenics_adjoint.solving
     :members:
     :undoc-members:
     :show-inheritance:
