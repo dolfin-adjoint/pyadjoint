@@ -1,6 +1,8 @@
 import backend
 import ufl
-from .tape import Tape, Block, Function, get_working_tape, DirichletBC
+from pyadjoint.tape import Tape, Block, get_working_tape
+from .types import Function, DirichletBC
+
 
 def solve(*args, **kwargs):
     annotate_tape = kwargs.pop("annotate_tape", True)

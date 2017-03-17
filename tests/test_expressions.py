@@ -2,8 +2,7 @@ from fenics import *
 from fenics_adjoint import *
 
 # For asserts
-OverloadedType = tape.OverloadedType
-
+from pyadjoint.tape import OverloadedType
 
 def test_subclass_expression():
 	class MyExpression1(Expression):
@@ -59,7 +58,7 @@ def test_jit_expression_adj():
 
 	V = FunctionSpace(mesh, "Lagrange", 1)
 
-	# Workaround before interpolate is overloaded
+	# TODO: Workaround before interpolate is overloaded
 	tmp = interpolate(f, V)
 	f = Function(V)
 	f.vector()[:] = tmp.vector()[:]
