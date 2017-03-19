@@ -58,7 +58,7 @@ class Tape(object):
     def create_graph(self, backend="networkx"):
         import networkx as nx
 
-        G = nx.Graph()
+        G = nx.DiGraph()
         for block in self._blocks:
             block.create_graph(G)
 
@@ -81,11 +81,14 @@ class Tape(object):
         node_labels = nx.get_node_attributes(G, 'state')
         
         # Draw edges
-        nx.draw_networkx_edges(G,pos,width=1.0,alpha=0.5)
+        nx.draw_networkx_edges(G, pos, width=1.0, alpha=0.5)
         nx.draw_networkx_labels(G, pos, labels=node_labels)
 
         edge_labels = nx.get_edge_attributes(G, 'state')
         nx.draw_networkx_edge_labels(G, pos, labels=edge_labels)
+
+        # Turn axis off
+        plt.axis('off')
 
         # Show or save graph
         if not filename:
