@@ -17,6 +17,7 @@ def test_tape_visualisation():
     a = f*inner(grad(u), grad(v))*dx
     L = f*v*dx
     solve(a == L, u_, bc)
+    project(u_, V)
 
     tape = get_working_tape()
     tape.visualise(filename="graph.pdf")

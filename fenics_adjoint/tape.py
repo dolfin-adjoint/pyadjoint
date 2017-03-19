@@ -55,24 +55,26 @@ class Tape(object):
         for i in range(len(self._blocks)-1, -1, -1):
             self._blocks[i].reset_variables()
 
-    def create_graph(self, backend="networkx"):
+    def create_graph(self, backend="networkx", scale=1.0):
         import networkx as nx
 
         G = nx.DiGraph()
-        for block in self._blocks:
-            block.create_graph(G)
+        for i, block in enumerate(self._blocks):
+            block.create_graph(G, pos=i, scale=scale)
 
         return G
 
-    def visualise(self, filename=None):
+    def visualise(self, filename=None, scale=1.0):
         import networkx as nx
         import matplotlib.pyplot as plt
  
-        G = self.create_graph()
-
-        pos = nx.spring_layout(G)
+        G = self.create_graph(scale=scale)
         
         # Draw nodes
+        fixed_node_positions = nx.get_node_attributes(G, 'position')
+        pos = nx.spring_layout(G, pos=fixed_node_positions, fixed=fixed_node_positions.keys())
+       
+
         node_colors = nx.get_node_attributes(G, 'node_color').values()
         nx.draw_networkx_nodes(G, pos,
                                node_color=node_colors,
@@ -165,25 +167,28 @@ class Block(object):
         """
         raise NotImplementedError
 
-    def create_graph(self, G):
+    def create_graph(self, G, pos, scale=1.0):
 
         # Edges for block dependencies
-        for dep in self.get_dependencies():
+        for xpos, dep in enumerate(self.get_dependencies()):
                 G.add_edge(str(dep), str(self))
                 G.edge[str(dep)][str(self)]['state'] = "dep"
                 G.node[str(dep)]['state'] = str(dep)
                 G.node[str(dep)]['node_color'] = "r"
+                G.node[str(dep)]['position'] = (scale*(0.1*xpos), scale*(-pos+0.5))
 
         # Edges for block outputs
-        for out in self.get_outputs():
+        for xpos, out in enumerate(self.get_outputs()):
             G.add_edge(str(self), str(out))
             G.edge[str(self)][str(out)]['state'] = "out"
             G.node[str(out)]['state'] = str(out)
             G.node[str(out)]['node_color'] = "r"
+            G.node[str(out)]['position'] = (scale*(0.1*xpos), scale*(-pos-0.5))
 
         # Set properties for Block node
         G.node[str(self)]['state'] = str(self)
         G.node[str(self)]['node_color'] = "b"
+        G.node[str(self)]['position'] = (0, scale*(-pos))
 
 
 class BlockOutput(object):
