@@ -55,7 +55,7 @@ class Tape(object):
         for i in range(len(self._blocks)-1, -1, -1):
             self._blocks[i].reset_variables()
 
-    def create_graph(self):
+    def create_graph(self, backend="networkx"):
         import networkx as nx
 
         G = nx.Graph()
@@ -63,6 +63,35 @@ class Tape(object):
             block.create_graph(G)
 
         return G
+
+    def visualise(self, filename=None):
+        import networkx as nx
+        import matplotlib.pyplot as plt
+ 
+        G = self.create_graph()
+
+        pos = nx.spring_layout(G)
+        
+        # Draw nodes
+        node_colors = nx.get_node_attributes(G, 'node_color').values()
+        nx.draw_networkx_nodes(G, pos,
+                               node_color=node_colors,
+                               node_size=500,
+                               alpha=0.8)
+        node_labels = nx.get_node_attributes(G, 'state')
+        
+        # Draw edges
+        nx.draw_networkx_edges(G,pos,width=1.0,alpha=0.5)
+        nx.draw_networkx_labels(G, pos, labels=node_labels)
+
+        edge_labels = nx.get_edge_attributes(G, 'state')
+        nx.draw_networkx_edge_labels(G, pos, labels=edge_labels)
+
+        # Show or save graph
+        if not filename:
+            plt.show()
+        else:
+            plt.savefig(filename)
 
 
 class Block(object):
@@ -134,10 +163,25 @@ class Block(object):
         raise NotImplementedError
 
     def create_graph(self, G):
-        deps = get_dependencies()
-        outs = get_outputs()
 
-        G.add_edge(deps.get_name(), outs.get_name())
+        # Edges for block dependencies
+        for dep in self.get_dependencies():
+                G.add_edge(str(dep), str(self))
+                G.edge[str(dep)][str(self)]['state'] = "dep"
+                G.node[str(dep)]['state'] = str(dep)
+                G.node[str(dep)]['node_color'] = "r"
+
+        # Edges for block outputs
+        for out in self.get_outputs():
+            G.add_edge(str(self), str(out))
+            G.edge[str(self)][str(out)]['state'] = "out"
+            G.node[str(out)]['state'] = str(out)
+            G.node[str(out)]['node_color'] = "r"
+
+        # Set properties for Block node
+        G.node[str(self)]['state'] = str(self)
+        G.node[str(self)]['node_color'] = "b"
+
 
 class BlockOutput(object):
     """References a block output variable.
@@ -185,8 +229,9 @@ class BlockOutput(object):
         else:
             return self.output
 
-    def get_name(self):
-        return self.id
+    def __str__(self):
+        return str(self.output)
+
 
 
 def create_overloaded_object(obj):
