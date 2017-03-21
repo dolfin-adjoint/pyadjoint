@@ -95,6 +95,7 @@ class Tape(object):
         # Show or save graph
         if not filename:
             plt.show()
+            plt.clf()
         else:
             plt.savefig(filename)
 
@@ -171,11 +172,11 @@ class Block(object):
 
         # Edges for block dependencies
         for xpos, dep in enumerate(self.get_dependencies()):
-                G.add_edge(str(dep), str(self))
-                G.edge[str(dep)][str(self)]['state'] = "dep"
-                G.node[str(dep)]['state'] = str(dep)
-                G.node[str(dep)]['node_color'] = "r"
-                G.node[str(dep)]['position'] = (scale*(0.1*xpos), scale*(-pos+0.5))
+            G.add_edge(str(dep), str(self))
+            G.edge[str(dep)][str(self)]['state'] = "dep"
+            G.node[str(dep)]['state'] = str(dep)
+            G.node[str(dep)]['node_color'] = "r"
+            G.node[str(dep)]['position'] = (scale*(0.1*xpos), scale*(-pos+0.5))
 
         # Edges for block outputs
         for xpos, out in enumerate(self.get_outputs()):
