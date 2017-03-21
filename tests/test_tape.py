@@ -14,7 +14,7 @@ bc = DirichletBC(V, Constant(1), "on_boundary")
 
 a = f*inner(grad(u), grad(v))*dx
 L = f*v*dx
-for i in range(10):
+for i in range(3):
     solve(a == L, u_, bc)
 
 tape = get_working_tape()

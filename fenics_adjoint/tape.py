@@ -67,7 +67,7 @@ class Tape(object):
     def visualise(self, filename=None, scale=1.0):
         import networkx as nx
         import matplotlib.pyplot as plt
- 
+
         G = self.create_graph(scale=scale)
         
         # Draw nodes
@@ -172,24 +172,26 @@ class Block(object):
 
         # Edges for block dependencies
         for xpos, dep in enumerate(self.get_dependencies()):
-            G.add_edge(str(dep), str(self))
-            G.edge[str(dep)][str(self)]['state'] = "dep"
-            G.node[str(dep)]['state'] = str(dep)
-            G.node[str(dep)]['node_color'] = "r"
-            G.node[str(dep)]['position'] = (scale*(0.1*xpos), scale*(-pos+0.5))
+            G.add_edge(id(dep), id(self))
+            G.edge[id(dep)][id(self)]['state'] = "dep"
+            if "state" not in G.node[id(dep)]:
+                G.node[id(dep)]['state'] = str(dep)
+                G.node[id(dep)]['node_color'] = "r"
+                G.node[id(dep)]['position'] = (scale*(0.1*xpos), scale*(-pos+0.5))
 
         # Edges for block outputs
         for xpos, out in enumerate(self.get_outputs()):
-            G.add_edge(str(self), str(out))
-            G.edge[str(self)][str(out)]['state'] = "out"
-            G.node[str(out)]['state'] = str(out)
-            G.node[str(out)]['node_color'] = "r"
-            G.node[str(out)]['position'] = (scale*(0.1*xpos), scale*(-pos-0.5))
+            G.add_edge(id(self), id(out))
+            G.edge[id(self)][id(out)]['state'] = "out"
+            if "state" not in G.node[id(out)]:
+                G.node[id(out)]['state'] = str(out)
+                G.node[id(out)]['node_color'] = "r"
+                G.node[id(out)]['position'] = (scale*(0.1*xpos), scale*(-pos-0.5))
 
         # Set properties for Block node
-        G.node[str(self)]['state'] = str(self)
-        G.node[str(self)]['node_color'] = "b"
-        G.node[str(self)]['position'] = (0, scale*(-pos))
+        G.node[id(self)]['state'] = str(self)
+        G.node[id(self)]['node_color'] = "b"
+        G.node[id(self)]['position'] = (0, scale*(-pos))
 
 
 class BlockOutput(object):
