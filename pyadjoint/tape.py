@@ -47,8 +47,17 @@ class Tape(object):
         # len() is computed in constant time, so this should be fine.
         return len(self._blocks)-1
 
-    def evaluate(self):
-        for i in range(len(self._blocks)-1, -1, -1):
+    def get_blocks(self):
+        """Returns a list of the blocks on the tape.
+
+        Returns:
+            :obj:`list`: A list of :class:`Block` instances.
+
+        """
+        return self._blocks
+
+    def evaluate(self, last_block=0):
+        for i in range(len(self._blocks)-1, last_block-1, -1):
             self._blocks[i].evaluate_adj()
 
     def reset_variables(self):
@@ -191,6 +200,14 @@ class Block(object):
         """
         raise NotImplementedError
 
+    def recompute(self):
+        """This method must be overriden.
+
+        The method should implement a routine for recomputing the block in the forward model.
+
+        """
+        raise NotImplementedError
+
     def create_graph(self, G, pos, scale=1.0):
 
         # Edges for block dependencies
@@ -244,6 +261,7 @@ class BlockOutput(object):
     def reset_variables(self):
         self.adj_value = 0
 
+    # TODO: Make this just an attribute. Extend with Property if needed later.
     def get_output(self):
         return self.output
 

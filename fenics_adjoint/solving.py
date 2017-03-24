@@ -166,3 +166,24 @@ class SolveBlock(Block):
                     dFdm_mat.transpose(dFdm_mat)
 
                     block_output.add_adj_output(dFdm*adj_var.vector())
+
+    def recompute(self):
+        replace_coeffs = {}
+        for c in self.lhs.coefficients():
+            if c != c.get_block_output().output:
+                replace_coeffs[c] = c.get_block_output().output
+
+        self.lhs = backend.replace(self.lhs, replace_coeffs)
+
+        if self.linear:
+            replace_coeffs = {}
+            for c in self.rhs.coefficients():
+                if c != c.get_block_output().output:
+                    replace_coeffs[c] = c.get_block_output().output
+
+            self.rhs = backend.replace(self.rhs, replace_coeffs)
+
+        bcs = [bc.get_block_output().output for bc in self.bcs]
+
+        backend.solve(self.lhs == self.rhs, self.func, bcs)
+

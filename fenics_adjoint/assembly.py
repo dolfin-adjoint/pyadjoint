@@ -37,6 +37,8 @@ class AssembleBlock(Block):
             elif isinstance(c, backend.Constant):
                 dc = backend.Constant(1)
             elif isinstance(c, backend.Expression):
+                # TODO: Replace all of this with an Expression.derivative attribute.
+
                 # Create a FunctionSpace from self.form and Expression.
                 # And then make a TestFunction from this space.
 
@@ -53,3 +55,17 @@ class AssembleBlock(Block):
             dform = backend.derivative(self.form, c, dc)
             output = backend.assemble(dform)
             block_output.add_adj_output(adj_input * output)
+
+    def recompute(self):
+        replace_coeffs = {}
+        for c in self.form.coefficients():
+            if c != c.get_block_output().output:
+                replace_coeffs[c] = c.get_block_output().output
+
+        self.form = backend.replace(self.form, replace_coeffs)
+
+        output = backend.assemble(self.form)
+        output = create_overloaded_object(output)
+        # TODO: Needed? Keeps integrity I guess.
+        #output.set_block_output(self.get_outputs()[0])
+        self.get_outputs()[0].output = output
