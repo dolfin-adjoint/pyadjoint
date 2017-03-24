@@ -1,6 +1,7 @@
 import backend
 import ufl
-from .tape import Tape, Block, get_working_tape, create_overloaded_object
+from pyadjoint.tape import Block, get_working_tape
+from .types import create_overloaded_object
 
 def assemble(*args, **kwargs):
     annotate_tape = kwargs.pop("annotate_tape", True)
