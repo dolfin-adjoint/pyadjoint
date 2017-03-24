@@ -23,6 +23,12 @@ def test_tape_visualisation():
 
 
 def test_tape_time():
+    try:
+        import pygraphviz
+    except ImportError:
+        # No need to run test if pygraphviz is not installed.
+        return False
+
     set_working_tape(Tape())
 
     mesh = IntervalMesh(10, 0, 1)
