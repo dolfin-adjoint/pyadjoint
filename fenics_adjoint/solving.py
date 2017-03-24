@@ -57,6 +57,9 @@ class SolveBlock(Block):
             # Linear algebra problem.
             raise NotImplementedError
 
+    def __str__(self):
+        return "{} = {}".format(str(self.lhs), str(self.rhs))
+
     def evaluate_adj(self):
         fwd_block_output = self.get_outputs()[0]
         u = fwd_block_output.get_output()

@@ -55,14 +55,72 @@ class Tape(object):
         for i in range(len(self._blocks)-1, -1, -1):
             self._blocks[i].reset_variables()
 
-    def create_graph(self):
+    def create_graph(self, backend="networkx", scale=1.0):
         import networkx as nx
 
-        G = nx.Graph()
-        for block in self._blocks:
-            block.create_graph(G)
+        G = nx.DiGraph()
+        for i, block in enumerate(self._blocks):
+            block.create_graph(G, pos=i, scale=scale)
 
         return G
+
+    def visualise(self, filename=None, scale=1.0, dot=False):
+        """Makes a visualisation of the tape as a graph.
+
+        For bigger tapes it is recommended to set the keyword argument
+        `dot` to True. It should then save a file in dot format and you
+        can render it using Graphviz dot.
+
+        Args:
+            filename (:obj:`str`, optional): File to save the visualisation. Default None.
+            scale (:obj:`float`, optional): Scales the distances between nodes.
+                Only relevant for dot set to False. Default 1.0.
+            dot (:obj:`bool`, optional): Write to specified file in dot-format. Default False.
+
+        Raises:
+            NotImplementedError: If you choose dot-format but supply no filename.
+
+        """
+        G = self.create_graph(scale=scale)
+
+        if dot:
+            from networkx.drawing.nx_agraph import write_dot
+            if filename:
+                write_dot(G, filename)
+            else:
+                raise NotImplementedError
+        else:
+            import networkx as nx
+            import pylab as plt
+
+            # Draw nodes
+            fixed_node_positions = nx.get_node_attributes(G, 'position')
+            pos = nx.spring_layout(G, pos=fixed_node_positions, fixed=fixed_node_positions.keys())
+
+
+            node_colors = nx.get_node_attributes(G, 'node_color').values()
+            nx.draw_networkx_nodes(G, pos,
+                                   node_color=node_colors,
+                                   node_size=500,
+                                   alpha=0.8)
+            node_labels = nx.get_node_attributes(G, 'label')
+
+            # Draw edges
+            nx.draw_networkx_edges(G, pos, width=1.0, alpha=0.5)
+            nx.draw_networkx_labels(G, pos, labels=node_labels)
+
+            edge_labels = nx.get_edge_attributes(G, 'label')
+            nx.draw_networkx_edge_labels(G, pos, labels=edge_labels)
+
+            # Turn axis off
+            plt.axis('off')
+
+            # Show or save graph
+            if not filename:
+                plt.show()
+                plt.clf()
+            else:
+                plt.savefig(filename)
 
 
 class Block(object):
@@ -133,11 +191,31 @@ class Block(object):
         """
         raise NotImplementedError
 
-    def create_graph(self, G):
-        deps = get_dependencies()
-        outs = get_outputs()
+    def create_graph(self, G, pos, scale=1.0):
 
-        G.add_edge(deps.get_name(), outs.get_name())
+        # Edges for block dependencies
+        for xpos, dep in enumerate(self.get_dependencies()):
+            G.add_edge(id(dep), id(self))
+            G.edge[id(dep)][id(self)]['label'] = "dep"
+            if "label" not in G.node[id(dep)]:
+                G.node[id(dep)]['label'] = str(dep)
+                G.node[id(dep)]['node_color'] = "r"
+                G.node[id(dep)]['position'] = (scale*(0.1*xpos), scale*(-pos+0.5))
+
+        # Edges for block outputs
+        for xpos, out in enumerate(self.get_outputs()):
+            G.add_edge(id(self), id(out))
+            G.edge[id(self)][id(out)]['label'] = "out"
+            if "label" not in G.node[id(out)]:
+                G.node[id(out)]['label'] = str(out)
+                G.node[id(out)]['node_color'] = "r"
+                G.node[id(out)]['position'] = (scale*(0.1*xpos), scale*(-pos-0.5))
+
+        # Set properties for Block node
+        G.node[id(self)]['label'] = str(self)
+        G.node[id(self)]['node_color'] = "b"
+        G.node[id(self)]['position'] = (0, scale*(-pos))
+
 
 class BlockOutput(object):
     """References a block output variable.
@@ -185,8 +263,8 @@ class BlockOutput(object):
         else:
             return self.output
 
-    def get_name(self):
-        return self.id
+    def __str__(self):
+        return str(self.output)
 
 
 class OverloadedType(object):
