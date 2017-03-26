@@ -53,3 +53,8 @@ Some things that will increase the chance that your pull request is accepted:
 * Write good commit and pull request message.
 
 [style]: http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html
+
+# License
+This software is licensed under the [GNU LGPL v3][license].
+
+[license]: https://bitbucket.org/dolfin-adjoint/dolfin-adjoint2/raw/master/LICENSE
