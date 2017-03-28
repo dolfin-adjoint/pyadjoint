@@ -49,7 +49,7 @@ some changes or improvements or alternatives.
 Some things that will increase the chance that your pull request is accepted:
 
 * Write tests.
-* Add documentation that follows the [style guide][style].
+* Add Python docstrings that follow the [Google Style][style].
 * Write good commit and pull request message.
 
 [style]: http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html
