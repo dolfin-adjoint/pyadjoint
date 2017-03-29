@@ -292,6 +292,9 @@ class OverloadedType(object):
     it can be referenced by blocks as well as overload basic mathematical
     operations such as __mul__, __add__, where they are needed.
 
+    Abstract methods:
+        :func:`adj_update_value`
+
     """
     def __init__(self, *args, **kwargs):
         tape = kwargs.pop("tape", None)
@@ -322,5 +325,17 @@ class OverloadedType(object):
 
     def reset_variables(self):
         self.original_block_output.reset_variables()
+
+    def adj_update_value(self, value):
+        """This method must be overriden.
+
+        The method should implement a routine for assigning a new value
+        to the overloaded object.
+
+        Args:
+            value (:obj:`object`): Should be an instance of the OverloadedType.
+
+        """
+        raise NotImplementedError
 
 

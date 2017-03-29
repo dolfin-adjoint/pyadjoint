@@ -57,13 +57,6 @@ class AssembleBlock(Block):
             block_output.add_adj_output(adj_input * output)
 
     def recompute(self):
-        replace_coeffs = {}
-        for c in self.form.coefficients():
-            if c != c.get_block_output().output:
-                replace_coeffs[c] = c.get_block_output().output
-
-        self.form = backend.replace(self.form, replace_coeffs)
-
         output = backend.assemble(self.form)
         output = create_overloaded_object(output)
         # TODO: Needed? Keeps integrity I guess.

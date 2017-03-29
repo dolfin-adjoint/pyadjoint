@@ -3,23 +3,23 @@ from fenics_adjoint import *
 
 
 def test_constant():
-	mesh = IntervalMesh(10, 0, 1)
-	V = FunctionSpace(mesh, "Lagrange", 1)
+    mesh = IntervalMesh(10, 0, 1)
+    V = FunctionSpace(mesh, "Lagrange", 1)
 
-	c = Constant(1)
-	f = Function(V)
-	f.vector()[:] = 1
+    c = Constant(1)
+    f = Function(V)
+    f.vector()[:] = 1
 
-	u = Function(V)
-	v = TestFunction(V)
-	bc = DirichletBC(V, Constant(1), "on_boundary")
+    u = Function(V)
+    v = TestFunction(V)
+    bc = DirichletBC(V, Constant(1), "on_boundary")
 
-	F = inner(grad(u), grad(v))*dx - f**2*v*dx
-	solve(F == 0, u, bc)
+    F = inner(grad(u), grad(v))*dx - f**2*v*dx
+    solve(F == 0, u, bc)
 
-	J = Functional(c**2*u*dx)
-	Jhat = ReducedFunctional(J, c)
-	_test_adjoint_constant(Jhat, c)
+    J = assemble(c**2*u*dx)
+    Jhat = ReducedFunctional(J, c)
+    _test_adjoint_constant(Jhat, Constant(5))
 
 
 def _test_adjoint_constant(J, c):
