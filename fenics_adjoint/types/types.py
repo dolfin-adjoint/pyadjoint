@@ -1,6 +1,6 @@
 import backend
 from .function import Function
-from .adjfloat import AdjFloat
+from pyadjoint.adjfloat import AdjFloat
 
 
 def create_overloaded_object(obj):

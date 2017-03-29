@@ -1,18 +1,6 @@
-from pyadjoint.tape import OverloadedType, Block, get_working_tape
-
-"""
-TODO: This may very well be defined in some kind of numpy_adjoint package.
-Actually, if this is defined in numpy_adjoint we get a problem with assembly.py
-because assemble() can return a float, which needs to be converted to an OverloadedType
-by using `create_overloaded_object`.
-
-However we obviously might need an AdjFloat in numpy_adjoint as well.
-
-So the question is what do we do when an adjoint package has a type that is shared by others?
-Maybe float is an edge case and since it is supported natively by python we might just
-include it in the underlying pyadjoint package.
-
-"""
+from .tape import get_working_tape
+from .block import Block
+from .overloaded_type import OverloadedType
 
 
 class AdjFloat(OverloadedType, float):

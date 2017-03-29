@@ -1,5 +1,5 @@
 import backend
-from pyadjoint.tape import OverloadedType
+from pyadjoint.overloaded_type import OverloadedType
 
 
 _backend_ExpressionMetaClass = backend.functions.expression.ExpressionMetaClass

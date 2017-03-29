@@ -1,6 +1,7 @@
 import backend
 import ufl
-from pyadjoint.tape import Block, get_working_tape
+from pyadjoint.tape import get_working_tape
+from pyadjoint.block import Block
 from .types import create_overloaded_object
 
 def assemble(*args, **kwargs):

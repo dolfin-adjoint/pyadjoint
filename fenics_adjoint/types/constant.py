@@ -1,5 +1,5 @@
 import backend
-from pyadjoint.tape import OverloadedType
+from pyadjoint.overloaded_type import OverloadedType
 
 
 class Constant(OverloadedType, backend.Constant):

@@ -1,5 +1,7 @@
 import backend
-from pyadjoint.tape import OverloadedType, Block, get_working_tape
+from pyadjoint.tape import get_working_tape
+from pyadjoint.block import Block
+from pyadjoint.overloaded_type import OverloadedType
 
 
 class Function(OverloadedType, backend.Function):
