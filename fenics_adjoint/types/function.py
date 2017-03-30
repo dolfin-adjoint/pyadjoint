@@ -16,8 +16,15 @@ class Function(OverloadedType, backend.Function):
             tape = get_working_tape()
             tape.add_block(block)
         
-
         return super(Function, self).assign(other, *args, **kwargs)
+
+    def adj_update_value(self, value):
+        if isinstance(value, backend.Function):
+            super(Function, self).assign(value)
+        else:
+            # Assuming vector
+            self.vector()[:] = value
+
 
 
 class AssignBlock(Block):

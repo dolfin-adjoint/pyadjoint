@@ -8,4 +8,8 @@ class Constant(OverloadedType, backend.Constant):
         backend.Constant.__init__(self, *args, **kwargs)
 
     def adj_update_value(self, value):
-        self.assign(value)
+        if isinstance(value, backend.Constant):
+            self.assign(value)
+        else:
+            # Assume float/integer
+            self.assign(Constant(value))

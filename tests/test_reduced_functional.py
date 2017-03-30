@@ -19,37 +19,90 @@ def test_constant():
 
     J = assemble(c**2*u*dx)
     Jhat = ReducedFunctional(J, c)
-    _test_adjoint_constant(Jhat, Constant(5))
+    assert(taylor_test(Jhat, Constant(5), 1) > 1.9)
 
 
-def _test_adjoint_constant(J, c):
-    import numpy.random
+def test_function():
+    mesh = IntervalMesh(10, 0, 1)
+    V = FunctionSpace(mesh, "Lagrange", 1)
 
-    h = Constant(1)
+    c = Constant(1)
+    f = Function(V)
+    f.vector()[:] = 1
 
-    eps_ = [0.01/2.0**i for i in range(4)]
-    residuals = []
-    for eps in eps_:
+    u = Function(V)
+    v = TestFunction(V)
+    bc = DirichletBC(V, Constant(1), "on_boundary")
 
-        Jp = J(Constant(c + eps*h))
-        Jm = J(c)
+    F = inner(grad(u), grad(v))*dx - f**2*v*dx
+    solve(F == 0, u, bc)
 
-        dJdc = J.derivative()
+    J = assemble(c**2*u*dx)
+    Jhat = ReducedFunctional(J, f)
+    h = Function(V)
+    from numpy.random import rand
+    h.vector()[:] = rand(V.dim())
+    # Note that if you use f.vector() directly, it will not work
+    # as expected since f is the control and thus the initial point in control
+    # space is changed as you do the test. (Since f.vector is also assigned new values on pertubations)
+    g = f.copy(deepcopy=True)
+    assert(taylor_test(Jhat, g.vector(), h.vector()) > 1.9)
 
-        residual = abs(Jp - Jm - eps*dJdc)
-        residuals.append(residual)
 
-    r = convergence_rates(residuals, eps_)
-    print r
+def test_wrt_function_dirichlet_boundary():
+    mesh = UnitSquareMesh(10,10)
 
-    tol = 1E-1
-    assert( r[-1] > 2-tol )
+    V = FunctionSpace(mesh,"CG",1)
+    u = TrialFunction(V)
+    u_ = Function(V)
+    v = TestFunction(V)
 
+    class Up(SubDomain):
+        def inside(self, x, on_boundary):
+            return near(x[1], 1)
 
-def convergence_rates(E_values, eps_values):
-    from numpy import log
-    r = []
-    for i in range(1, len(eps_values)):
-        r.append(log(E_values[i]/E_values[i-1])/log(eps_values[i]/eps_values[i-1]))
+    class Down(SubDomain):
+        def inside(self, x, on_boundary):
+            return near(x[1], 0)
 
-    return r
+    class Left(SubDomain):
+        def inside(self, x, on_boundary):
+            return near(x[0], 0)
+
+    class Right(SubDomain):
+        def inside(self, x, on_boundary):
+            return near(x[0], 1)
+
+    left = Left()
+    right = Right()
+    up = Up()
+    down = Down()
+
+    boundary = FacetFunction("size_t", mesh)
+    boundary.set_all(0)
+    up.mark(boundary, 1)
+    down.mark(boundary,2)
+    ds = Measure("ds", subdomain_data=boundary)
+
+    bc_func = project(Expression("sin(x[1])", degree=1), V)
+    bc1 = DirichletBC(V,bc_func,left)
+    bc2 = DirichletBC(V,2,right)
+    bc = [bc1,bc2]
+
+    g1 = Constant(2)
+    g2 = Constant(1)
+    f = Function(V)
+    f.vector()[:] = 10
+
+    a = inner(grad(u), grad(v))*dx
+    L = inner(f,v)*dx + inner(g1,v)*ds(1) + inner(g2,v)*ds(2)
+
+    solve(a==L,u_,bc)
+
+    J = assemble(u_**2*dx)
+
+    Jhat = ReducedFunctional(J, bc1)
+    h = Function(V)
+    h.vector()[:] = 1
+    assert(taylor_test(Jhat, bc_func, h, dot=lambda a, b: a.vector().inner(b)) > 1.9)
+

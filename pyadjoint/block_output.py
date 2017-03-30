@@ -37,6 +37,9 @@ class BlockOutput(object):
         # other functions, say an output function from a SolveBlock. As
         # backend.solve overwrites the vector of the solution function.
 
+        # TODO: I just realized, this is backend.Function specific. Maybe we should
+        # create some kind of copy abstract method.
+
         self.saved_output = self.output.copy(deepcopy=True)
 
     def get_saved_output(self):
