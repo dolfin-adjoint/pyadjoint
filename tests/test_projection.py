@@ -26,4 +26,5 @@ def test_projection():
 	tape.evaluate()
 
 	dJdf = f.get_adj_output()
-	print dJdf.array()
+	# TODO: This test does nothing. Make it actually test projection.
+	#print dJdf.array()
