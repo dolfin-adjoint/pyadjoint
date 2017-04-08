@@ -1,5 +1,6 @@
 import backend
 
+# TOOD: Save/checkpoint functions always. Not just on assign.
 
 _working_tape = None
 
@@ -225,7 +226,7 @@ class BlockOutput(object):
     def __init__(self, output):
         self.output = output
         self.adj_value = 0
-        self.saved_output = None
+        self.checkpoint = None
         BlockOutput.id_cnt += 1
         self.id = BlockOutput.id_cnt
 
@@ -247,18 +248,11 @@ class BlockOutput(object):
         return self.output
 
     def save_output(self):
-        # Previously I used 
-        # self.saved_ouput = Function(self.output.function_space(), self.output.vector()) as
-        # assign allocates a new vector (and promptly doesn't need nor 
-        # modifies the old vector) However this does not work when we also want to save copies of
-        # other functions, say an output function from a SolveBlock. As
-        # backend.solve overwrites the vector of the solution function.
-
-        self.saved_output = self.output.copy(deepcopy=True)
+        self.checkpoint = self.output._ad_create_checkpoint()
 
     def get_saved_output(self):
-        if self.saved_output:
-            return self.saved_output
+        if self.checkpoint:
+            return self.output._ad_restore_at_checkpoint(self.checkpoint)
         else:
             return self.output
 
@@ -303,5 +297,31 @@ class OverloadedType(object):
 
     def reset_variables(self):
         self.original_block_output.reset_variables()
+
+    def _ad_create_checkpoint(self):
+        """This method must be overriden.
+        
+        Should implement a way to create a checkpoint for the overloaded object.
+        The checkpoint should be returned and possible to restore from in the
+        corresponding _ad_restore_at_checkpoint method.
+
+        Returns:
+            :obj:`object`: A checkpoint. Could be of any type, but must be possible
+                to restore an object from that point.
+
+        """
+        raise NotImplementedError
+
+    def _ad_restore_at_checkpoint(self, checkpoint):
+        """This method must be overriden.
+
+        Should implement a way to restore the object at supplied checkpoint.
+        The checkpoint is created from the _ad_create_checkpoint method.
+
+        Returns:
+            :obj:`OverloadedType`: The object with same state as at the supplied checkpoint.
+
+        """
+        raise NotImplementedError
 
 

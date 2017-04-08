@@ -14,8 +14,13 @@ class Function(OverloadedType, backend.Function):
             tape = get_working_tape()
             tape.add_block(block)
         
-
         return super(Function, self).assign(other, *args, **kwargs)
+
+    def _ad_create_checkpoint(self):
+        return self.copy(deepcopy=True)
+
+    def _ad_restore_at_checkpoint(self, checkpoint):
+        return checkpoint
 
 
 class AssignBlock(Block):
