@@ -40,10 +40,7 @@ class AssembleBlock(Block):
 
         for block_output in self.get_dependencies():
             c = block_output.get_output()
-            if c in replaced_coeffs:
-                c_rep = replaced_coeffs[c]
-            else:
-                c_rep = c
+            c_rep = replaced_coeffs.get(c, c)
 
             if isinstance(c, backend.Expression):
                 # Create a FunctionSpace from self.form and Expression.
