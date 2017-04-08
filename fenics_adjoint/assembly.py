@@ -27,6 +27,9 @@ class AssembleBlock(Block):
         for c in self.form.coefficients():
             self.add_dependency(c.get_block_output())
 
+    def __str__(self):
+        return str(self.form)
+
     def evaluate_adj(self):
         adj_input = self.get_outputs()[0].get_adj_output()
 
