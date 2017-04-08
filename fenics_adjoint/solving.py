@@ -73,7 +73,7 @@ class SolveBlock(Block):
             tmp_u = self.func
             F_form = self.lhs
 
-        replaced_coeffs = dict()
+        replaced_coeffs = {}
         for block_output in self.get_dependencies():
             coeff = block_output.get_output()
             if coeff in F_form.coefficients():
@@ -90,6 +90,10 @@ class SolveBlock(Block):
 
         # Get dJdu from previous calculations.
         dJdu = fwd_block_output.get_adj_output()
+
+        # TODO: It might make sense to move this so we don't have to do the computations above.
+        if isinstance(dJdu, (int, float)) and dJdu == 0:
+            return
 
         # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
         bcs = []
@@ -149,7 +153,7 @@ class SolveBlock(Block):
                         c_rep = replaced_coeffs[c]
                     else:
                         c_rep = c
-
+                    
                     dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(V)) # TODO: What space to use?
                     dFdm = backend.assemble(dFdm)
 
@@ -165,4 +169,4 @@ class SolveBlock(Block):
 
                     dFdm_mat.transpose(dFdm_mat)
 
-                    block_output.add_adj_output(dFdm*adj_var.vector())
+                    block_output.add_adj_output([[dFdm*adj_var.vector(), V]])
