@@ -79,7 +79,6 @@ class Block(object):
         # Edges for block dependencies
         for xpos, dep in enumerate(self.get_dependencies()):
             G.add_edge(id(dep), id(self))
-            G.edge[id(dep)][id(self)]['label'] = "dep"
             if "label" not in G.node[id(dep)]:
                 G.node[id(dep)]['label'] = str(dep)
                 G.node[id(dep)]['node_color'] = "r"
@@ -88,7 +87,6 @@ class Block(object):
         # Edges for block outputs
         for xpos, out in enumerate(self.get_outputs()):
             G.add_edge(id(self), id(out))
-            G.edge[id(self)][id(out)]['label'] = "out"
             if "label" not in G.node[id(out)]:
                 G.node[id(out)]['label'] = str(out)
                 G.node[id(out)]['node_color'] = "r"
@@ -98,5 +96,6 @@ class Block(object):
         G.node[id(self)]['label'] = str(self)
         G.node[id(self)]['node_color'] = "b"
         G.node[id(self)]['position'] = (0, scale*(-pos))
+        G.node[id(self)]['shape'] = "box"
 
 

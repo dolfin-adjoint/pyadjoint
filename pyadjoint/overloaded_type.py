@@ -49,6 +49,32 @@ class OverloadedType(object):
         # the adj_output to the same type as `self`.
         raise NotImplementedError
 
+    def _ad_create_checkpoint(self):
+        """This method must be overriden.
+        
+        Should implement a way to create a checkpoint for the overloaded object.
+        The checkpoint should be returned and possible to restore from in the
+        corresponding _ad_restore_at_checkpoint method.
+
+        Returns:
+            :obj:`object`: A checkpoint. Could be of any type, but must be possible
+                to restore an object from that point.
+
+        """
+        raise NotImplementedError
+
+    def _ad_restore_at_checkpoint(self, checkpoint):
+        """This method must be overriden.
+
+        Should implement a way to restore the object at supplied checkpoint.
+        The checkpoint is created from the _ad_create_checkpoint method.
+
+        Returns:
+            :obj:`OverloadedType`: The object with same state as at the supplied checkpoint.
+
+        """
+        raise NotImplementedError
+
     def adj_update_value(self, value):
         """This method must be overriden.
 

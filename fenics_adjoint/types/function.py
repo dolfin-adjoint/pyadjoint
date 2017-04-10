@@ -28,6 +28,12 @@ class Function(OverloadedType, backend.Function):
         adj_value = self.get_adj_output()
         return Function(self.function_space(), adj_value)
 
+    def _ad_create_checkpoint(self):
+        return self.copy(deepcopy=True)
+
+    def _ad_restore_at_checkpoint(self, checkpoint):
+        return checkpoint
+
     def adj_update_value(self, value):
         if isinstance(value, backend.Function):
             super(Function, self).assign(value)
@@ -54,7 +60,6 @@ class Function(OverloadedType, backend.Function):
 
     def _ad_dot(self, other):
         return self.vector().inner(other.vector())
-
 
 
 class AssignBlock(Block):

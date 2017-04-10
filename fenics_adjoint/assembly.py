@@ -4,6 +4,7 @@ from pyadjoint.tape import get_working_tape
 from pyadjoint.block import Block
 from .types import create_overloaded_object
 
+
 def assemble(*args, **kwargs):
     annotate_tape = kwargs.pop("annotate_tape", True)
     output = backend.assemble(*args, **kwargs)
@@ -28,18 +29,24 @@ class AssembleBlock(Block):
         for c in self.form.coefficients():
             self.add_dependency(c.get_block_output())
 
+    def __str__(self):
+        return str(self.form)
+
     def evaluate_adj(self):
         adj_input = self.get_outputs()[0].get_adj_output()
 
+        replaced_coeffs = {}
+        for block_output in self.get_dependencies():
+            coeff = block_output.get_output()
+            replaced_coeffs[coeff] = block_output.get_saved_output()
+
+        form = backend.replace(self.form, replaced_coeffs)
+
         for block_output in self.get_dependencies():
             c = block_output.get_output()
-            if isinstance(c, backend.Function):
-                dc = backend.TestFunction(c.function_space())
-            elif isinstance(c, backend.Constant):
-                dc = backend.Constant(1)
-            elif isinstance(c, backend.Expression):
-                # TODO: Replace all of this with an Expression.derivative attribute.
+            c_rep = replaced_coeffs.get(c, c)
 
+            if isinstance(c, backend.Expression):
                 # Create a FunctionSpace from self.form and Expression.
                 # And then make a TestFunction from this space.
 
@@ -51,9 +58,19 @@ class AssembleBlock(Block):
                 element = ufl.FiniteElement(c_element.family(), mesh.ufl_cell(), c_element.degree())
                 V = backend.FunctionSpace(mesh, element)
                 dc = backend.TestFunction(V)
-                
 
-            dform = backend.derivative(self.form, c, dc)
+                dform = backend.derivative(form, c_rep, dc)
+                output = backend.assemble(dform)
+                block_output.add_adj_output([[adj_input * output, V]])
+
+                continue
+
+            if isinstance(c, backend.Function):
+                dc = backend.TestFunction(c.function_space())
+            elif isinstance(c, backend.Constant):
+                dc = backend.Constant(1)
+
+            dform = backend.derivative(form, c_rep, dc)
             output = backend.assemble(dform)
             block_output.add_adj_output(adj_input * output)
 

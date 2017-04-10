@@ -7,7 +7,7 @@ class BlockOutput(object):
     def __init__(self, output):
         self.output = output
         self.adj_value = 0
-        self.saved_output = None
+        self.checkpoint = None
         BlockOutput.id_cnt += 1
         self.id = BlockOutput.id_cnt
 
@@ -28,21 +28,11 @@ class BlockOutput(object):
         return self.output
 
     def save_output(self):
-        # Previously I used 
-        # self.saved_ouput = Function(self.output.function_space(), self.output.vector()) as
-        # assign allocates a new vector (and promptly doesn't need nor 
-        # modifies the old vector) However this does not work when we also want to save copies of
-        # other functions, say an output function from a SolveBlock. As
-        # backend.solve overwrites the vector of the solution function.
-
-        # TODO: I just realized, this is backend.Function specific. Maybe we should
-        # create some kind of copy abstract method.
-
-        self.saved_output = self.output.copy(deepcopy=True)
+        self.checkpoint = self.output._ad_create_checkpoint()
 
     def get_saved_output(self):
-        if self.saved_output:
-            return self.saved_output
+        if self.checkpoint:
+            return self.output._ad_restore_at_checkpoint(self.checkpoint)
         else:
             return self.output
 

@@ -1,5 +1,6 @@
 import backend
 
+# TOOD: Save/checkpoint functions always. Not just on assign.
 
 _working_tape = None
 
@@ -130,5 +131,4 @@ class Tape(object):
                 plt.clf()
             else:
                 plt.savefig(filename)
-
 
