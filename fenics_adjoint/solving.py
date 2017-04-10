@@ -169,5 +169,25 @@ class SolveBlock(Block):
                     block_output.add_adj_output(dFdm*adj_var.vector())
 
     def recompute(self):
-        backend.solve(self.lhs == self.rhs, self.func, self.bcs)
+        replace_lhs_coeffs = {}
+        replace_rhs_coeffs = {}
+        for block_output in self.get_dependencies():
+            c = block_output.output
+            c_rep = block_output.get_saved_output()
+
+            if c != c_rep:
+                if c in self.lhs.coefficients():
+                    replace_lhs_coeffs[c] = c_rep
+                
+                if self.linear and c in self.rhs.coefficients():
+                    replace_rhs_coeffs[c] = c_rep
+
+        lhs = backend.replace(self.lhs, replace_lhs_coeffs)
+        
+        rhs = 0
+        if self.linear:
+            rhs = backend.replace(self.rhs, replace_rhs_coeffs)
+
+        backend.solve(lhs == rhs, self.func, self.bcs)
+        #print self.func.vector().array()
 

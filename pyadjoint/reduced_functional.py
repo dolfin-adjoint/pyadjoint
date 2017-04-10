@@ -42,7 +42,7 @@ class ReducedFunctional(object):
         self.functional_block_output.set_initial_adj_input(1.0)
         self.tape.evaluate(self.block_idx)
 
-        return self.control.get_adj_output()
+        return self.control.get_derivative()
 
     def __call__(self, value):
         """Computes the reduced functional with supplied control value.

@@ -24,7 +24,16 @@ class AdjFloat(OverloadedType, float):
         output = AdjFloat(output)
         block.add_output(output.get_block_output())
         
-        return output 
+        return output
+
+    def _ad_mult(self, other):
+        return self*other
+
+    def _ad_add(self, other):
+        return self+other
+
+    def _ad_dot(self, other):
+        return float.__mul__(self, other)
 
 
 class MulBlock(Block):

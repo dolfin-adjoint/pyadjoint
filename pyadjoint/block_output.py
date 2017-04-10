@@ -15,8 +15,6 @@ class BlockOutput(object):
         self.adj_value += val
 
     def get_adj_output(self):
-        #print "Bugger ut: ", self.adj_value
-        #print self.output
         return self.adj_value
 
     def set_initial_adj_input(self, value):

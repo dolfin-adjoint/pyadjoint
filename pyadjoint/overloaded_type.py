@@ -43,6 +43,12 @@ class OverloadedType(object):
     def reset_variables(self):
         self.original_block_output.reset_variables()
 
+    def get_derivative(self):
+        # TODO: Decide on naming here.
+        # Basically the method should implement a way to convert
+        # the adj_output to the same type as `self`.
+        raise NotImplementedError
+
     def adj_update_value(self, value):
         """This method must be overriden.
 
@@ -51,6 +57,59 @@ class OverloadedType(object):
 
         Args:
             value (:obj:`object`): Should be an instance of the OverloadedType.
+
+        """
+        raise NotImplementedError
+
+    def _ad_mult(self, other):
+        """This method must be overriden.
+
+        The method should implement a routine for multiplying the overloaded object
+        with another object, and return an object of the same type as `self`.
+
+        Args:
+            other (:obj:`object`): The object to be multiplied with this.
+                Should at the very least accept :obj:`float` and :obj:`integer` objects.
+
+        Returns:
+            :obj:`OverloadedType`: The product of the two objects represented as
+                an instance of the same subclass of :class:`OverloadedType` as the type
+                of `self`.
+
+        """
+        raise NotImplementedError
+
+    def _ad_add(self, other):
+        """This method must be overriden.
+
+        The method should implement a routine for adding the overloaded object
+        with another object, and return an object of the same type as `self`.
+
+        Args:
+            other (:obj:`object`): The object to be added with this.
+                Should at the very least accept objects of the same type as `self`.
+
+        Returns:
+            :obj:`OverloadedType`: The sum of the two objects represented as
+                an instance of the same subclass of :class:`OverloadedType` as the type
+                of `self`.
+
+        """
+        raise NotImplementedError
+
+    def _ad_dot(self, other):
+        """This method must be overriden.
+
+        The method should implement a routine for computing the dot product of
+        the overloaded object with another object of the same type, and return
+        a :obj:`float`.
+
+        Args:
+            other (:obj:`OverloadedType`): The object to compute the dot product with.
+                Should be of the same type as `self`.
+
+        Returns:
+            :obj:`float`: The dot product of the two objects.
 
         """
         raise NotImplementedError

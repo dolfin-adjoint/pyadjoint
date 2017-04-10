@@ -19,7 +19,7 @@ def test_constant():
 
     J = assemble(c**2*u*dx)
     Jhat = ReducedFunctional(J, c)
-    assert(taylor_test(Jhat, Constant(5), 1) > 1.9)
+    assert(taylor_test(Jhat, Constant(5), Constant(1)) > 1.9)
 
 
 def test_function():
@@ -39,14 +39,16 @@ def test_function():
 
     J = assemble(c**2*u*dx)
     Jhat = ReducedFunctional(J, f)
+    
     h = Function(V)
     from numpy.random import rand
     h.vector()[:] = rand(V.dim())
-    # Note that if you use f.vector() directly, it will not work
+    # Note that if you use f directly, it will not work
     # as expected since f is the control and thus the initial point in control
     # space is changed as you do the test. (Since f.vector is also assigned new values on pertubations)
     g = f.copy(deepcopy=True)
-    assert(taylor_test(Jhat, g.vector(), h.vector()) > 1.9)
+
+    assert(taylor_test(Jhat, g, h) > 1.9)
 
 
 def test_wrt_function_dirichlet_boundary():
@@ -101,8 +103,62 @@ def test_wrt_function_dirichlet_boundary():
 
     J = assemble(u_**2*dx)
 
-    Jhat = ReducedFunctional(J, bc1)
+    Jhat = ReducedFunctional(J, bc_func)
     h = Function(V)
     h.vector()[:] = 1
-    assert(taylor_test(Jhat, bc_func, h, dot=lambda a, b: a.vector().inner(b)) > 1.9)
+
+    g = bc_func.copy(deepcopy=True)
+
+    assert(taylor_test(Jhat, g, h) > 1.9)
+
+
+def test_time_dependent():
+    # Defining the domain, 100 points from 0 to 1
+    mesh = IntervalMesh(100, 0, 1)
+
+    # Defining function space, test and trial functions
+    V = FunctionSpace(mesh,"CG",1)
+    u = TrialFunction(V)
+    u_ = Function(V)
+    v = TestFunction(V)
+
+    # Marking the boundaries
+    def left(x, on_boundary):
+        return near(x[0],0)
+
+    def right(x, on_boundary):
+        return near(x[0],1)
+
+    # Dirichlet boundary conditions
+    bc_left = DirichletBC(V, 1, left)
+    bc_right = DirichletBC(V, 2, right)
+    bc = [bc_left, bc_right]
+
+    # Some variables
+    T = 0.5
+    dt = 0.1
+    f = Function(V)
+    f.vector()[:] = 1
+
+    u_1 = Function(V)
+    u_1.vector()[:] = 1 
+
+    a = u_1*u*v*dx + dt*f*inner(grad(u),grad(v))*dx
+    L = u_1*v*dx
+
+    # Time loop
+    t = dt
+    while t <= T:
+        solve(a == L, u_, bc)
+        u_1.assign(u_)
+        t += dt
+
+    J = assemble(u_**2*dx)
+
+    Jhat = ReducedFunctional(J, u_1)
+    
+    h = Function(V)
+    h.vector()[:] = 1
+    g = f.copy(deepcopy=True)
+    assert(taylor_test(Jhat, g, h) > 1.9)
 
