@@ -27,7 +27,7 @@ def taylor_test(J, m, h):
     epsilons = [0.01/2**i for i in range(4)]
     for eps in epsilons:
 
-        perturbation = h._ad_mult(eps)
+        perturbation = h._ad_mul(eps)
         Jp = J(m._ad_add(perturbation))
 
         res = abs(Jp - Jm - eps*h._ad_dot(dJdm))

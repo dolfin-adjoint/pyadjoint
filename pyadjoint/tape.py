@@ -1,5 +1,8 @@
 import backend
 
+# Type dependencies
+import block
+
 # TOOD: Save/checkpoint functions always. Not just on assign.
 
 _working_tape = None
@@ -19,14 +22,6 @@ class Tape(object):
 
     The tape consists of blocks, :class:`Block` instances.
     Each block represents one operation in the forward model.
-
-    TODO: Does the name "Tape" even make sense in this case?
-    That is the tape should be what binds blocks together?
-    Maybe even BlockOutputs are tapes? Might be worth considering,
-    as I'm not particularly satisfied with the name "BlockOutput".
-    However ultimately the blocks themselves reference the BlockOutput,
-    and not the other way around. So they don't actually function as
-    one would think of a Tape.
 
     """
     __slots__ = ["_blocks"]
@@ -52,7 +47,7 @@ class Tape(object):
         """Returns a list of the blocks on the tape.
 
         Returns:
-            :obj:`list`: A list of :class:`Block` instances.
+            list[block.Block]: A list of :class:`Block` instances.
 
         """
         return self._blocks
@@ -82,10 +77,11 @@ class Tape(object):
         can render it using Graphviz dot.
 
         Args:
-            filename (:obj:`str`, optional): File to save the visualisation. Default None.
-            scale (:obj:`float`, optional): Scales the distances between nodes.
+            filename (str|None): File to save the visualisation. Default None.
+            scale (float): Scales the distances between nodes.
                 Only relevant for dot set to False. Default 1.0.
-            dot (:obj:`bool`, optional): Write to specified file in dot-format. Default False.
+            dot (bool): Write to specified file in dot-format. Default False.
+                If this is True, then filename must be set.
 
         Raises:
             NotImplementedError: If you choose dot-format but supply no filename.

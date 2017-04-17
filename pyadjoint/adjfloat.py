@@ -26,7 +26,14 @@ class AdjFloat(OverloadedType, float):
         
         return output
 
-    def _ad_mult(self, other):
+    def _ad_create_checkpoint(self):
+        # Floats are immutable.
+        return self
+
+    def _ad_restore_at_checkpoint(self, checkpoint):
+        return checkpoint
+
+    def _ad_mul(self, other):
         return self*other
 
     def _ad_add(self, other):

@@ -24,9 +24,18 @@ class Function(OverloadedType, backend.Function):
         
         return super(Function, self).assign(other, *args, **kwargs)
 
-    def get_derivative(self):
+    def get_derivative(self, project=False):
         adj_value = self.get_adj_output()
-        return Function(self.function_space(), adj_value)
+        if not project:
+            func = Function(self.function_space(), adj_value)
+            return func
+        else:
+            ret = Function(self.function_space())
+            u = backend.TrialFunction(self.function_space())
+            v = backend.TestFunction(self.function_space())
+            M = backend.assemble(u*v*backend.dx)
+            backend.solve(M, ret.vector(), adj_value)
+            return ret
 
     def _ad_create_checkpoint(self):
         return self.copy(deepcopy=True)
@@ -48,7 +57,7 @@ class Function(OverloadedType, backend.Function):
             # Assuming vector
             self.vector()[:] = value
 
-    def _ad_mult(self, other):
+    def _ad_mul(self, other):
         r = Function(self.function_space())
         backend.Function.assign(r, self*other)
         return r
@@ -79,17 +88,6 @@ class AssignBlock(Block):
 
     def recompute(self):
         deps = self.get_dependencies()
-        func_bo = deps[0]
         other_bo = deps[1]
 
-        # Currently only saves other as it is usually written to
-        # in solve during recomputation. However we can't save func_bo
-        # as it currently holds the values it has at the end of a forward computation
-        # (since the recompute deals with saved outputs and not the real outputs)
-        # All this will be made much simpler when we create a new system for saving output
-        # TODO: We want to always save output, not only on assigns or similar operations.
-        other_bo.save_output()
-
-        backend.Function.assign(func_bo.output, other_bo.output)
-        
-        self.get_outputs()[0].save_output()
+        backend.Function.assign(self.get_outputs()[0].get_saved_output(), other_bo.get_saved_output())

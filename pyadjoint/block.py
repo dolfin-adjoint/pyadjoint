@@ -21,7 +21,8 @@ class Block(object):
             dep (:class:`BlockOutput`): The object to be added.
 
         """
-        if not dep in self._dependencies: # Can be optimized if we have need for huge lists.
+        if dep not in self._dependencies:  # Can be optimized if we have need for huge lists.
+            dep.save_output(overwrite=False)
             self._dependencies.append(dep)
 
     def get_dependencies(self):
@@ -70,6 +71,11 @@ class Block(object):
         """This method must be overriden.
 
         The method should implement a routine for recomputing the block in the forward model.
+        
+        Currently the designed way of doing the recomputing is to use the saved outputs/checkpoints in the
+        BlockOutput dependencies, and write to the saved output/checkpoint of the BlockOuput outputs. Thus the
+        recomputes are always working with the checkpoints. However I welcome suggestions of other ways to implement
+        the recompute.
 
         """
         raise NotImplementedError

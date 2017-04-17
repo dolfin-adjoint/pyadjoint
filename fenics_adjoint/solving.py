@@ -7,7 +7,6 @@ from .types import Function, DirichletBC
 
 def solve(*args, **kwargs):
     annotate_tape = kwargs.pop("annotate_tape", True)
-    output = backend.solve(*args, **kwargs)
 
     if annotate_tape:
         tape = get_working_tape()
@@ -17,6 +16,7 @@ def solve(*args, **kwargs):
         block_output = args[1].create_block_output()
         block.add_output(block_output)
 
+    output = backend.solve(*args, **kwargs)
     return output
 
 
@@ -173,6 +173,7 @@ class SolveBlock(Block):
                     block_output.add_adj_output([[dFdm*adj_var.vector(), V]])
 
     def recompute(self):
+        func = self.func
         replace_lhs_coeffs = {}
         replace_rhs_coeffs = {}
         for block_output in self.get_dependencies():
@@ -182,6 +183,8 @@ class SolveBlock(Block):
             if c != c_rep:
                 if c in self.lhs.coefficients():
                     replace_lhs_coeffs[c] = c_rep
+                    if c == self.func:
+                        func = c_rep
                 
                 if self.linear and c in self.rhs.coefficients():
                     replace_rhs_coeffs[c] = c_rep
@@ -192,4 +195,7 @@ class SolveBlock(Block):
         if self.linear:
             rhs = backend.replace(self.rhs, replace_rhs_coeffs)
 
-        backend.solve(lhs == rhs, self.func, self.bcs)
+        backend.solve(lhs == rhs, func, self.bcs)
+        # Save output for use in later re-computations.
+        # TODO: Consider redesigning the saving system so a new deepcopy isn't created on each forward replay.
+        self.get_outputs()[0].checkpoint = func._ad_create_checkpoint()

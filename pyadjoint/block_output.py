@@ -21,14 +21,19 @@ class BlockOutput(object):
         self.adj_value = value
 
     def reset_variables(self):
-        self.adj_value = 0
+        # TODO: Is this a good approach?
+        if type(self.adj_value) == list:
+            self.adj_value = []
+        else:
+            self.adj_value = 0
 
     # TODO: Make this just an attribute. Extend with Property if needed later.
     def get_output(self):
         return self.output
 
-    def save_output(self):
-        self.checkpoint = self.output._ad_create_checkpoint()
+    def save_output(self, overwrite=True):
+        if overwrite or not self.checkpoint:
+            self.checkpoint = self.output._ad_create_checkpoint()
 
     def get_saved_output(self):
         if self.checkpoint:

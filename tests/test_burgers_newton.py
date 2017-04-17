@@ -15,10 +15,7 @@ def Dt(u, u_, timestep):
     return (u - u_)/timestep
 
 def J(ic):
-    #workaround_u = ic.copy(deepcopy=True)
-
     u_ = Function(V)
-    #u_.vector()[:] = workaround_u.vector()[:]
     u = Function(V)
     v = TestFunction(V)
 
@@ -61,8 +58,6 @@ def test_burgers_newton():
     ic.vector()[:] = pr.vector()[:]
 
     _test_adjoint(J, ic)
-
-
 
 def _test_adjoint(J, f):
     import numpy.random

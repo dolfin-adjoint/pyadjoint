@@ -1,5 +1,7 @@
 from .tape import get_working_tape
 
+# Type dependencies
+import overloaded_type
 
 class ReducedFunctional(object):
     """Class representing the reduced functional.
@@ -26,23 +28,27 @@ class ReducedFunctional(object):
                 self.block_idx = i
                 break
 
-    def derivative(self):
+    def derivative(self, project=False):
         """Returns the derivative of the functional w.r.t. the control.
 
         Using the adjoint method, the derivative of the functional with
         respect to the control, around the last supplied value of the control,
         is computed and returned.
+        
+        Args:
+            project (bool): If True returns the L^2 Riesz representation of the derivative. Otherwise the l^2 Riesz
+                representation. Default is False.
 
         Returns:
-            :obj:`object`: The derivative with respect to the control.
-                Most often this will be a float.
+            overloaded_type.OverloadedType: The derivative with respect to the control.
+                Should be an instance of the same type as the control.
 
         """
         self.tape.reset_variables()
         self.functional_block_output.set_initial_adj_input(1.0)
         self.tape.evaluate(self.block_idx)
 
-        return self.control.get_derivative()
+        return self.control.get_derivative(project)
 
     def __call__(self, value):
         """Computes the reduced functional with supplied control value.
@@ -62,7 +68,7 @@ class ReducedFunctional(object):
         for i in range(self.block_idx, len(blocks)):
             blocks[i].recompute()
 
-        return self.functional_block_output.output
+        return self.functional_block_output.get_saved_output()
 
 
 

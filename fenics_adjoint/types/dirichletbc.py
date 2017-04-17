@@ -12,6 +12,7 @@ from pyadjoint.block import Block
 # TODO: Might need/want some way of creating a new DirichletBCBlock if DirichletBC is assigned
 #       new boundary values/function.
 
+
 class DirichletBC(OverloadedType, backend.DirichletBC):
     def __init__(self, *args, **kwargs):
         super(DirichletBC, self).__init__(*args, **kwargs)
@@ -31,6 +32,12 @@ class DirichletBC(OverloadedType, backend.DirichletBC):
             tape.add_block(block)
             block.add_output(self.block_output)
 
+    def _ad_create_checkpoint(self):
+        return self
+
+    def _ad_restore_at_checkpoint(self, checkpoint):
+        return checkpoint
+
 
 class DirichletBCBlock(Block):
     def __init__(self, bc, *args):
@@ -44,6 +51,11 @@ class DirichletBCBlock(Block):
             # TODO: Implement the other cases.
             #       Probably just a BC without dependencies?
             #       In which case we might not even need this Block?
+            # Update: What if someone runs: `DirichletBC(V, g*g, "on_boundary")`.
+            #         In this case the backend will project the product onto V.
+            #         But we will have to annotate the product somehow.
+            #         One solution would be to do a check and add a ProjectBlock before the DirichletBCBlock.
+            #         (Either by actually running our project or by "manually" inserting a project block).
             pass
 
     def evaluate_adj(self):

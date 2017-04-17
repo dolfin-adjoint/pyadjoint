@@ -43,14 +43,14 @@ class OverloadedType(object):
     def reset_variables(self):
         self.original_block_output.reset_variables()
 
-    def get_derivative(self):
+    def get_derivative(self, project=False):
         # TODO: Decide on naming here.
         # Basically the method should implement a way to convert
         # the adj_output to the same type as `self`.
         raise NotImplementedError
 
     def _ad_create_checkpoint(self):
-        """This method must be overriden.
+        """This method must be overridden.
         
         Should implement a way to create a checkpoint for the overloaded object.
         The checkpoint should be returned and possible to restore from in the
@@ -64,7 +64,7 @@ class OverloadedType(object):
         raise NotImplementedError
 
     def _ad_restore_at_checkpoint(self, checkpoint):
-        """This method must be overriden.
+        """This method must be overridden.
 
         Should implement a way to restore the object at supplied checkpoint.
         The checkpoint is created from the _ad_create_checkpoint method.
@@ -76,7 +76,7 @@ class OverloadedType(object):
         raise NotImplementedError
 
     def adj_update_value(self, value):
-        """This method must be overriden.
+        """This method must be overridden.
 
         The method should implement a routine for assigning a new value
         to the overloaded object.
@@ -87,8 +87,8 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
-    def _ad_mult(self, other):
-        """This method must be overriden.
+    def _ad_mul(self, other):
+        """This method must be overridden.
 
         The method should implement a routine for multiplying the overloaded object
         with another object, and return an object of the same type as `self`.
@@ -106,7 +106,7 @@ class OverloadedType(object):
         raise NotImplementedError
 
     def _ad_add(self, other):
-        """This method must be overriden.
+        """This method must be overridden.
 
         The method should implement a routine for adding the overloaded object
         with another object, and return an object of the same type as `self`.
@@ -124,7 +124,7 @@ class OverloadedType(object):
         raise NotImplementedError
 
     def _ad_dot(self, other):
-        """This method must be overriden.
+        """This method must be overridden.
 
         The method should implement a routine for computing the dot product of
         the overloaded object with another object of the same type, and return
@@ -139,5 +139,3 @@ class OverloadedType(object):
 
         """
         raise NotImplementedError
-
-
