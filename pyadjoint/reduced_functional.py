@@ -28,7 +28,7 @@ class ReducedFunctional(object):
                 self.block_idx = i
                 break
 
-    def derivative(self, project=False):
+    def derivative(self, options={}):
         """Returns the derivative of the functional w.r.t. the control.
 
         Using the adjoint method, the derivative of the functional with
@@ -48,7 +48,7 @@ class ReducedFunctional(object):
         self.functional_block_output.set_initial_adj_input(1.0)
         self.tape.evaluate(self.block_idx)
 
-        return self.control.get_derivative(project)
+        return self.control.get_derivative(options=options)
 
     def __call__(self, value):
         """Computes the reduced functional with supplied control value.

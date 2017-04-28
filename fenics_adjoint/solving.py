@@ -13,10 +13,12 @@ def solve(*args, **kwargs):
         block = SolveBlock(*args, **kwargs)
         tape.add_block(block)
 
+    output = backend.solve(*args, **kwargs)
+
+    if annotate_tape:
         block_output = args[1].create_block_output()
         block.add_output(block_output)
 
-    output = backend.solve(*args, **kwargs)
     return output
 
 
@@ -93,7 +95,7 @@ class SolveBlock(Block):
         dJdu = fwd_block_output.get_adj_output()
 
         # TODO: It might make sense to move this so we don't have to do the computations above.
-        if isinstance(dJdu, (int, float)) and dJdu == 0:
+        if dJdu is None:
             return
 
         # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
@@ -114,12 +116,9 @@ class SolveBlock(Block):
         for block_output in self.get_dependencies():
             c = block_output.get_output()
             if c != self.func:
-                if isinstance(c, backend.Function):
-                    if c in replaced_coeffs:
-                        c_rep = replaced_coeffs[c]
-                    else:
-                        c_rep = c
+                c_rep = replaced_coeffs.get(c, c)
 
+                if isinstance(c, backend.Function):
                     dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(c.function_space()))
                     dFdm = backend.assemble(dFdm)
 
@@ -137,7 +136,7 @@ class SolveBlock(Block):
 
                     block_output.add_adj_output(dFdm*adj_var.vector())
                 elif isinstance(c, backend.Constant):
-                    dFdm = -backend.derivative(F_form, c, backend.Constant(1))
+                    dFdm = -backend.derivative(F_form, c_rep, backend.Constant(1))
                     dFdm = backend.assemble(dFdm)
 
                     [bc.apply(dFdm) for bc in bcs]
@@ -150,11 +149,6 @@ class SolveBlock(Block):
 
                     block_output.add_adj_output(adj_output.vector())
                 elif isinstance(c, backend.Expression):
-                    if c in replaced_coeffs:
-                        c_rep = replaced_coeffs[c]
-                    else:
-                        c_rep = c
-                    
                     dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(V)) # TODO: What space to use?
                     dFdm = backend.assemble(dFdm)
 

@@ -16,6 +16,9 @@ class Block(object):
 
     def add_dependency(self, dep):
         """Adds object to the block dependencies if it has not already been added.
+        
+        Will also save the output if it has not been saved before. Which should only happen if the
+        BlockOutput was not created by a Block (but by the user).
 
         Args:
             dep (:class:`BlockOutput`): The object to be added.
@@ -37,10 +40,13 @@ class Block(object):
     def add_output(self, obj):
         """Adds object to the block output list.
 
+        Will also save the output.
+
         Args:
             obj (:class:`BlockOutput`): The object to be added.
 
         """
+        obj.save_output()
         self._outputs.append(obj)
 
     def get_outputs(self):

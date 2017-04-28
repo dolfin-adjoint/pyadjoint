@@ -7,23 +7,15 @@ class Constant(OverloadedType, backend.Constant):
         super(Constant, self).__init__(*args, **kwargs)
         backend.Constant.__init__(self, *args, **kwargs)
 
-    def get_derivative(self, project=False):
+    def get_derivative(self, options={}):
         return Constant(self.get_adj_output())
 
-    # TODO: Depending on re-computation approach, but as it stands:
-    #       - Make adj_update_value update saved output.
-    #       - Make checkpoints actually save a weak/deep copy.
-    #         (Probably weak unless someone knows a good deepcopy method for constants)
-    # If you fix one of these you must also fix the other, otherwise the ReducedFunctional won't work for constants.
     def adj_update_value(self, value):
-        if isinstance(value, backend.Constant):
-            self.assign(value)
-        else:
-            # Assume float/integer
-            self.assign(Constant(value))
+        self.assign(value)
+        self.original_block_output.save_output()
 
     def _ad_create_checkpoint(self):
-        return self
+        return Constant(self)
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
@@ -35,5 +27,4 @@ class Constant(OverloadedType, backend.Constant):
         return Constant(self+other)
 
     def _ad_dot(self, other):
-        # TODO: Can Constants have values arrays of size bigger than 1?
-        return self.values()[0]*other.values()[0]
+        return sum(self.values()*other.values())

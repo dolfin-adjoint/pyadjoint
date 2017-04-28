@@ -21,15 +21,22 @@ class Function(OverloadedType, backend.Function):
             block = AssignBlock(self, other)
             tape = get_working_tape()
             tape.add_block(block)
-        
-        return super(Function, self).assign(other, *args, **kwargs)
 
-    def get_derivative(self, project=False):
+        ret = super(Function, self).assign(other, *args, **kwargs)
+
+        if annotate_tape:
+            block.add_output(self.create_block_output())
+
+        return ret
+
+    def get_derivative(self, options={}):
         adj_value = self.get_adj_output()
-        if not project:
+        riesz_representation = options.pop("riesz_representation", "l2")
+
+        if riesz_representation == "l2":
             func = Function(self.function_space(), adj_value)
             return func
-        else:
+        elif riesz_representation == "L2":
             ret = Function(self.function_space())
             u = backend.TrialFunction(self.function_space())
             v = backend.TestFunction(self.function_space())
@@ -44,18 +51,8 @@ class Function(OverloadedType, backend.Function):
         return checkpoint
 
     def adj_update_value(self, value):
-        if isinstance(value, backend.Function):
-            super(Function, self).assign(value)
-            # TODO: Consider how recomputations are done.
-            #       i.e. if they use saved output or not.
-            self.original_block_output.save_output()
-        else:
-            # TODO: Do we want to remove this? Might be useful,
-            #       but the design of pyadjoint does not require
-            #       such an implementation.
-            
-            # Assuming vector
-            self.vector()[:] = value
+        super(Function, self).assign(value)
+        self.original_block_output.save_output()
 
     def _ad_mul(self, other):
         r = Function(self.function_space())
@@ -76,10 +73,6 @@ class AssignBlock(Block):
         super(AssignBlock, self).__init__()
         self.add_dependency(func.get_block_output())
         self.add_dependency(other.get_block_output())
-        func.get_block_output().save_output()
-        other.get_block_output().save_output()
-
-        self.add_output(func.create_block_output())
 
     def evaluate_adj(self):
         adj_input = self.get_outputs()[0].get_adj_output()

@@ -2,17 +2,17 @@ class BlockOutput(object):
     """References a block output variable.
 
     """
-    id_cnt = 0
 
     def __init__(self, output):
         self.output = output
-        self.adj_value = 0
+        self.adj_value = None
         self.checkpoint = None
-        BlockOutput.id_cnt += 1
-        self.id = BlockOutput.id_cnt
 
     def add_adj_output(self, val):
-        self.adj_value += val
+        if self.adj_value is None:
+            self.adj_value = val
+        else:
+            self.adj_value += val
 
     def get_adj_output(self):
         return self.adj_value
@@ -21,11 +21,7 @@ class BlockOutput(object):
         self.adj_value = value
 
     def reset_variables(self):
-        # TODO: Is this a good approach?
-        if type(self.adj_value) == list:
-            self.adj_value = []
-        else:
-            self.adj_value = 0
+        self.adj_value = None
 
     # TODO: Make this just an attribute. Extend with Property if needed later.
     def get_output(self):

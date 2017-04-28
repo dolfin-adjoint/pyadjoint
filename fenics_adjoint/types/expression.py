@@ -99,7 +99,6 @@ class OverloadedExpressionMetaClass(_backend_ExpressionMetaClass):
                 block = ExpressionBlock(self)
                 tape.add_block(block)
                 block.add_output(self.block_output)
-                self.block_output.adj_value = []
 
 
         dict_["__init__"] = __init__
@@ -166,7 +165,6 @@ def create_compiled_expression(original, cppcode, *args, **kwargs):
             block = ExpressionBlock(self)
             tape.add_block(block)
             block.add_output(self.block_output)
-            self.block_output.adj_value = []
 
     return type.__new__(OverloadedExpressionMetaClass,
                         "CompiledExpression",
@@ -203,7 +201,6 @@ class Expression(backend.Expression):
                 block = ExpressionBlock(self)
                 tape.add_block(block)
                 block.add_output(self.create_block_output())
-                self.block_output.adj_value = []
             else:
                 self._ad_attributes_dict[k] = v
         backend.Expression.__setattr__(self, k, v)
@@ -233,6 +230,10 @@ class ExpressionBlock(Block):
 
     def evaluate_adj(self):
         adj_inputs = self.get_outputs()[0].get_adj_output()
+
+        if adj_inputs is None:
+            # No adjoint inputs, so nothing to compute.
+            return
 
         for block_output in self.get_dependencies():
             c = block_output.output

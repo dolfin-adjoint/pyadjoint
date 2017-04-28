@@ -43,7 +43,7 @@ class OverloadedType(object):
     def reset_variables(self):
         self.original_block_output.reset_variables()
 
-    def get_derivative(self, project=False):
+    def get_derivative(self, options={}):
         # TODO: Decide on naming here.
         # Basically the method should implement a way to convert
         # the adj_output to the same type as `self`.

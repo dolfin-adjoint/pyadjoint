@@ -1,3 +1,9 @@
+import logging
+
+# Type dependencies
+import overloaded_type
+import reduced_functional
+
 
 def taylor_test(J, m, h):
     """Run a taylor test on the functional J around point m in direction h.
@@ -7,16 +13,16 @@ def taylor_test(J, m, h):
     returns the convergence rate.
 
     Args:
-        J (:obj:`ReducedFunctional`): The functional to evaluate the taylor remainders of.
+        J (reduced_functional.ReducedFunctional): The functional to evaluate the taylor remainders of.
             Must be an instance of :class:`ReducedFunctional`, or something with a similar
             interface.
-        m (:obj:`OverloadedType`): The point in control space. Must be of same type as the
+        m (overloaded_type.OverloadedType): The point in control space. Must be of same type as the
             control.
-        h (:obj:`OverloadedType`): The direction of perturbations. Must be of same type as
+        h (overloaded_type.OverloadedType): The direction of perturbations. Must be of same type as
             the control.
 
     Returns:
-        :obj:`float`: The smallest computed convergence rate of the tested perturbations.
+        float: The smallest computed convergence rate of the tested perturbations.
 
     """
 
@@ -33,10 +39,8 @@ def taylor_test(J, m, h):
         res = abs(Jp - Jm - eps*h._ad_dot(dJdm))
         residuals.append(res)
 
-    # TODO: A warning if residuals are close to machine precision.
-    # We would first need some error/warning messages.
-    # Old dolfin-adjoint uses backend for warning/info,
-    # but pyadjoint has no concept of the backend so it needs its own.
+    if min(residuals) < 1E-16:
+        logging.warning("The taylor remainder is close to machine precision.")
 
     return min(convergence_rates(residuals, epsilons))
 
