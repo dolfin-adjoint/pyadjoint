@@ -2,7 +2,7 @@ from fenics import *
 from fenics_adjoint import *
 
 # For asserts
-from pyadjoint.tape import OverloadedType
+from pyadjoint.overloaded_type import OverloadedType
 
 def test_subclass_expression():
     class MyExpression1(Expression):

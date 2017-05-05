@@ -1,4 +1,6 @@
-from .tape import OverloadedType, Block, get_working_tape
+from .tape import get_working_tape
+from .block import Block
+from .overloaded_type import OverloadedType
 
 
 class AdjFloat(OverloadedType, float):
@@ -22,7 +24,23 @@ class AdjFloat(OverloadedType, float):
         output = AdjFloat(output)
         block.add_output(output.get_block_output())
         
-        return output 
+        return output
+
+    def _ad_create_checkpoint(self):
+        # Floats are immutable.
+        return self
+
+    def _ad_restore_at_checkpoint(self, checkpoint):
+        return checkpoint
+
+    def _ad_mul(self, other):
+        return self*other
+
+    def _ad_add(self, other):
+        return self+other
+
+    def _ad_dot(self, other):
+        return float.__mul__(self, other)
 
 
 class MulBlock(Block):

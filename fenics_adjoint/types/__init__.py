@@ -1,3 +1,4 @@
+from pyadjoint.adjfloat import AdjFloat
 from .constant import Constant
 from .dirichletbc import DirichletBC
 from .expression import Expression

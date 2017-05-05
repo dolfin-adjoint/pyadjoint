@@ -1,5 +1,6 @@
 import backend
-from pyadjoint.tape import Block, get_working_tape
+from pyadjoint.tape import get_working_tape
+from pyadjoint.block import Block
 from .types import create_overloaded_object
 from .solving import SolveBlock
 
@@ -11,12 +12,12 @@ def project(*args, **kwargs):
 
     if annotate_tape:
         bcs = kwargs.pop("bcs", [])
-    	block = ProjectBlock(args[0], args[1], output, bcs)
+        block = ProjectBlock(args[0], args[1], output, bcs)
 
-    	tape = get_working_tape()
-    	tape.add_block(block)
+        tape = get_working_tape()
+        tape.add_block(block)
 
-    	block.add_output(output.get_block_output())
+        block.add_output(output.get_block_output())
 
     return output
 
@@ -29,3 +30,7 @@ class ProjectBlock(SolveBlock):
         L = backend.inner(w, v)*backend.dx
 
         super(ProjectBlock, self).__init__(a == L, output, bcs)
+
+    def recompute(self):
+        SolveBlock.recompute(self)
+

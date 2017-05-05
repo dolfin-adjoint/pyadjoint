@@ -1,18 +1,21 @@
 import backend
 import ufl
-from pyadjoint.tape import Tape, Block, get_working_tape
+from pyadjoint.tape import get_working_tape
+from pyadjoint.block import Block
 from .types import Function, DirichletBC
 
 
 def solve(*args, **kwargs):
     annotate_tape = kwargs.pop("annotate_tape", True)
-    output = backend.solve(*args, **kwargs)
 
     if annotate_tape:
         tape = get_working_tape()
         block = SolveBlock(*args, **kwargs)
         tape.add_block(block)
 
+    output = backend.solve(*args, **kwargs)
+
+    if annotate_tape:
         block_output = args[1].create_block_output()
         block.add_output(block_output)
 
@@ -92,7 +95,7 @@ class SolveBlock(Block):
         dJdu = fwd_block_output.get_adj_output()
 
         # TODO: It might make sense to move this so we don't have to do the computations above.
-        if isinstance(dJdu, (int, float)) and dJdu == 0:
+        if dJdu is None:
             return
 
         # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
@@ -113,12 +116,9 @@ class SolveBlock(Block):
         for block_output in self.get_dependencies():
             c = block_output.get_output()
             if c != self.func:
-                if isinstance(c, backend.Function):
-                    if c in replaced_coeffs:
-                        c_rep = replaced_coeffs[c]
-                    else:
-                        c_rep = c
+                c_rep = replaced_coeffs.get(c, c)
 
+                if isinstance(c, backend.Function):
                     dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(c.function_space()))
                     dFdm = backend.assemble(dFdm)
 
@@ -136,7 +136,7 @@ class SolveBlock(Block):
 
                     block_output.add_adj_output(dFdm*adj_var.vector())
                 elif isinstance(c, backend.Constant):
-                    dFdm = -backend.derivative(F_form, c, backend.Constant(1))
+                    dFdm = -backend.derivative(F_form, c_rep, backend.Constant(1))
                     dFdm = backend.assemble(dFdm)
 
                     [bc.apply(dFdm) for bc in bcs]
@@ -149,11 +149,6 @@ class SolveBlock(Block):
 
                     block_output.add_adj_output(adj_output.vector())
                 elif isinstance(c, backend.Expression):
-                    if c in replaced_coeffs:
-                        c_rep = replaced_coeffs[c]
-                    else:
-                        c_rep = c
-                    
                     dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(V)) # TODO: What space to use?
                     dFdm = backend.assemble(dFdm)
 
@@ -170,3 +165,31 @@ class SolveBlock(Block):
                     dFdm_mat.transpose(dFdm_mat)
 
                     block_output.add_adj_output([[dFdm*adj_var.vector(), V]])
+
+    def recompute(self):
+        func = self.func
+        replace_lhs_coeffs = {}
+        replace_rhs_coeffs = {}
+        for block_output in self.get_dependencies():
+            c = block_output.output
+            c_rep = block_output.get_saved_output()
+
+            if c != c_rep:
+                if c in self.lhs.coefficients():
+                    replace_lhs_coeffs[c] = c_rep
+                    if c == self.func:
+                        func = c_rep
+                
+                if self.linear and c in self.rhs.coefficients():
+                    replace_rhs_coeffs[c] = c_rep
+
+        lhs = backend.replace(self.lhs, replace_lhs_coeffs)
+        
+        rhs = 0
+        if self.linear:
+            rhs = backend.replace(self.rhs, replace_rhs_coeffs)
+
+        backend.solve(lhs == rhs, func, self.bcs)
+        # Save output for use in later re-computations.
+        # TODO: Consider redesigning the saving system so a new deepcopy isn't created on each forward replay.
+        self.get_outputs()[0].checkpoint = func._ad_create_checkpoint()
