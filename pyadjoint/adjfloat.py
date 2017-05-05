@@ -42,7 +42,7 @@ class AdjFloat(OverloadedType, float):
     def _ad_dot(self, other):
         return float.__mul__(self, other)
 
-
+# TODO: Not up to date. Low priority for now.
 class MulBlock(Block):
     def __init__(self, lfactor, rfactor):
         super(MulBlock, self).__init__()

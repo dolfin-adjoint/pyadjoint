@@ -74,6 +74,38 @@ class AssembleBlock(Block):
             output = backend.assemble(dform)
             block_output.add_adj_output(adj_input * output)
 
+    def evaluate_tlm(self):
+        replaced_coeffs = {}
+        for block_output in self.get_dependencies():
+            coeff = block_output.get_output()
+            replaced_coeffs[coeff] = block_output.get_saved_output()
+
+        form = backend.replace(self.form, replaced_coeffs)
+
+        for block_output in self.get_dependencies():
+            c = block_output.get_output()
+            c_rep = replaced_coeffs.get(c, c)
+            tlm_value = block_output.tlm_value
+
+            if tlm_value is None:
+                continue
+
+            if isinstance(c, backend.Function):
+                dc = backend.TestFunction(c.function_space())
+                dform = backend.derivative(form, c_rep, dc)
+                output = backend.assemble(dform)
+                self.get_outputs()[0].add_tlm_output(output.inner(tlm_value))
+
+            elif isinstance(c, backend.Constant):
+                dform = backend.derivative(form, c_rep, tlm_value)
+                output = backend.assemble(dform)
+                self.get_outputs()[0].add_tlm_output(output)
+
+            elif isinstance(c, backend.Expression):
+                dform = backend.derivative(form, c_rep, tlm_value)
+                output = backend.assemble(dform)
+                self.get_outputs()[0].add_tlm_output(output)
+
     def recompute(self):
         replaced_coeffs = {}
         for block_output in self.get_dependencies():

@@ -56,6 +56,10 @@ class Tape(object):
         for i in range(len(self._blocks)-1, last_block-1, -1):
             self._blocks[i].evaluate_adj()
 
+    def evaluate_tlm(self):
+        for i in range(len(self._blocks)):
+            self._blocks[i].evaluate_tlm()
+
     def reset_variables(self):
         for i in range(len(self._blocks)-1, -1, -1):
             self._blocks[i].reset_variables()

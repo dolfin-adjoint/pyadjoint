@@ -61,6 +61,9 @@ class DirichletBCBlock(Block):
     def evaluate_adj(self):
         adj_input = self.get_outputs()[0].get_adj_output()
 
+        if adj_input is None:
+            return
+
         for block_output in self.get_dependencies():
             c = block_output.output
             if isinstance(c, Constant):
@@ -74,6 +77,22 @@ class DirichletBCBlock(Block):
                 # For now we will just assume the FunctionSpace is the same for
                 # the BC and the Function.
                 block_output.add_adj_output(adj_input)
+
+    def evaluate_tlm(self):
+        output = self.get_outputs()[0]
+
+        for block_output in self.get_dependencies():
+            tlm_input = block_output.tlm_value
+            if tlm_input is None:
+                continue
+
+            if isinstance(block_output.output, backend.Function):
+                m = backend.Function(block_output.output.function_space(), tlm_input)
+            else:
+                m = tlm_input
+
+            m = backend.project(m, self.function_space)
+            output.add_tlm_output(m)
 
     def recompute(self):
         # There is nothing to be recomputed.

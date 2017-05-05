@@ -76,8 +76,11 @@ class AssignBlock(Block):
 
     def evaluate_adj(self):
         adj_input = self.get_outputs()[0].get_adj_output()
-        
         self.get_dependencies()[1].add_adj_output(adj_input)
+
+    def evaluate_tlm(self):
+        tlm_input = self.get_dependencies()[1].tlm_value
+        self.get_outputs()[0].add_tlm_output(tlm_input)
 
     def recompute(self):
         deps = self.get_dependencies()

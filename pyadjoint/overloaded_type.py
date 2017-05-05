@@ -40,6 +40,9 @@ class OverloadedType(object):
     def set_initial_adj_input(self, value):
         self.block_output.set_initial_adj_input(value)
 
+    def set_initial_tlm_input(self, value):
+        self.original_block_output.set_initial_tlm_input(value)
+
     def reset_variables(self):
         self.original_block_output.reset_variables()
 

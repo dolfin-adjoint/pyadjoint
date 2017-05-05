@@ -73,6 +73,12 @@ class Block(object):
         """
         raise NotImplementedError
 
+    def evaluate_tlm(self):
+        """This method must be overridden.
+        
+        """
+        raise NotImplementedError
+
     def recompute(self):
         """This method must be overriden.
 

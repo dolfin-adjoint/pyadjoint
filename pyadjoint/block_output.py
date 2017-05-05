@@ -6,6 +6,7 @@ class BlockOutput(object):
     def __init__(self, output):
         self.output = output
         self.adj_value = None
+        self.tlm_value = None
         self.checkpoint = None
 
     def add_adj_output(self, val):
@@ -14,11 +15,20 @@ class BlockOutput(object):
         else:
             self.adj_value += val
 
+    def add_tlm_output(self, val):
+        if self.tlm_value is None:
+            self.tlm_value = val
+        else:
+            self.tlm_value += val
+
     def get_adj_output(self):
         return self.adj_value
 
     def set_initial_adj_input(self, value):
         self.adj_value = value
+
+    def set_initial_tlm_input(self, value):
+        self.tlm_value = value
 
     def reset_variables(self):
         self.adj_value = None

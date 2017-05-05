@@ -4,6 +4,8 @@ from pyadjoint.tape import get_working_tape
 from pyadjoint.block import Block
 from .types import Function, DirichletBC
 
+# TODO: Clean up: some inaccurate comments. Reused code. Confusing naming with dFdm when denoting the control as c.
+
 
 def solve(*args, **kwargs):
     annotate_tape = kwargs.pop("annotate_tape", True)
@@ -165,6 +167,88 @@ class SolveBlock(Block):
                     dFdm_mat.transpose(dFdm_mat)
 
                     block_output.add_adj_output([[dFdm*adj_var.vector(), V]])
+
+    def evaluate_tlm(self):
+        fwd_block_output = self.get_outputs()[0]
+        u = fwd_block_output.get_output()
+        V = u.function_space()
+
+        if self.linear:
+            tmp_u = Function(self.func.function_space()) # Replace later? Maybe save function space on initialization.
+            F_form = backend.action(self.lhs, tmp_u) - self.rhs
+        else:
+            tmp_u = self.func
+            F_form = self.lhs
+
+        replaced_coeffs = {}
+        for block_output in self.get_dependencies():
+            coeff = block_output.get_output()
+            if coeff in F_form.coefficients():
+                replaced_coeffs[coeff] = block_output.get_saved_output()
+
+        replaced_coeffs[tmp_u] = fwd_block_output.get_saved_output()
+
+        F_form = backend.replace(F_form, replaced_coeffs)
+
+        # Obtain dFdu.
+        dFdu = backend.derivative(F_form, fwd_block_output.get_saved_output(), backend.TrialFunction(u.function_space()))
+
+        dFdu = backend.assemble(dFdu)
+
+        # Homogenize and apply boundary conditions on dFdu.
+        bcs = []
+        for bc in self.bcs:
+            if isinstance(bc, backend.DirichletBC):
+                bc = backend.DirichletBC(bc)
+                bc.homogenize()
+            bcs.append(bc)
+            bc.apply(dFdu)
+
+        for block_output in self.get_dependencies():
+            tlm_value = block_output.tlm_value
+            if tlm_value is None:
+                continue
+
+            c = block_output.get_output()
+            c_rep = replaced_coeffs.get(c, c)
+
+            if c == self.func:
+                continue
+
+            if isinstance(c, backend.Function):
+                dFdm = -backend.derivative(F_form, c_rep, backend.Function(V, tlm_value))
+                dFdm = backend.assemble(dFdm)
+
+                # Zero out boundary values from boundary conditions as they do not depend (directly) on c.
+                for bc in bcs:
+                    bc.apply(dFdm)
+
+            elif isinstance(c, backend.Constant):
+                dFdm = -backend.derivative(F_form, c_rep, tlm_value)
+                dFdm = backend.assemble(dFdm)
+
+                # Zero out boundary values from boundary conditions as they do not depend (directly) on c.
+                for bc in bcs:
+                    bc.apply(dFdm)
+
+            elif isinstance(c, backend.DirichletBC):
+                tmp_bc = backend.DirichletBC(V, tlm_value, c_rep.user_sub_domain())
+                dFdm = backend.Function(V).vector()
+                tmp_bc.apply(dFdm)
+
+            elif isinstance(c, backend.Expression):
+                dFdm = -backend.derivative(F_form, c_rep, tlm_value)
+                dFdm = backend.assemble(dFdm)
+
+                # Zero out boundary values from boundary conditions as they do not depend (directly) on c.
+                for bc in bcs:
+                    bc.apply(dFdm)
+
+            dudm = Function(V)
+            backend.solve(dFdu, dudm.vector(), dFdm)
+
+            fwd_block_output.add_tlm_output(dudm.vector())
+
 
     def recompute(self):
         func = self.func

@@ -256,6 +256,31 @@ class ExpressionBlock(Block):
 
                 block_output.add_adj_output(adj_output)
 
+    def evaluate_tlm(self):
+        output = self.get_outputs()[0]
+        # Restore _ad_attributes_dict.
+        output.get_saved_output()
+
+        for block_output in self.get_dependencies():
+            if block_output.tlm_value is None:
+                continue
+
+            c = block_output.output
+            for key in self.expression._ad_attributes_dict:
+                if (self.expression._ad_ignored_attributes is None
+                    or key not in self.expression._ad_ignored_attributes):
+
+                    setattr(self.expression.user_defined_derivatives[c], key, self.expression._ad_attributes_dict[key])
+
+            tlm_input = block_output.tlm_value
+
+            # TODO: This can be removed if we decide tlm deals with the actual types (Function, Constant etc)
+            #       instead of vectors/floats.
+            if isinstance(c, backend.Function):
+                tlm_input = backend.Function(c.function_space(), tlm_input)
+
+            output.add_tlm_output(tlm_input * self.expression.user_defined_derivatives[c])
+
     def recompute(self):
         checkpoint = self.get_outputs()[0].checkpoint
 
