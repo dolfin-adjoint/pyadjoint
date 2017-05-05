@@ -28,14 +28,14 @@ def test_tlm_assemble():
     solve(a == L, u_, bc)
 
     J = assemble(u_**2*dx)
+    Jhat = ReducedFunctional(J, f)
+
     h = Function(V)
     h.vector()[:] = rand(V.dim())
-    f.set_initial_tlm_input(h.vector())
+    g = f.copy(deepcopy=True)
+    f.set_initial_tlm_input(h)
     tape.evaluate_tlm()
-    J.set_initial_adj_input(1.0)
-    tape.evaluate()
-
-    assert abs(f.original_block_output.adj_value.inner(h.vector()) - J.block_output.tlm_value) < tol
+    assert (taylor_test(Jhat, g, h, dJdm=J.block_output.tlm_value) > 1.9)
 
 
 def test_tlm_bc():
@@ -56,14 +56,41 @@ def test_tlm_bc():
     solve(F == 0, u, bc)
 
     J = assemble(c ** 2 * u * dx)
+    Jhat = ReducedFunctional(J, c)
 
     c.set_initial_tlm_input(Constant(1))
     tape.evaluate_tlm()
-    J.set_initial_adj_input(1.0)
-    tape.evaluate()
 
-    assert abs(c.original_block_output.adj_value - J.block_output.tlm_value) < tol
+    assert (taylor_test(Jhat, Constant(c), Constant(1), dJdm=J.block_output.tlm_value) > 1.9)
 
+def test_tlm_func():
+    tape = Tape()
+    set_working_tape(tape)
+    mesh = IntervalMesh(10, 0, 1)
+    V = FunctionSpace(mesh, "Lagrange", 1)
+
+    c = Function(V)
+    c.vector()[:] = 1
+    f = Function(V)
+    f.vector()[:] = 1
+
+    u = Function(V)
+    v = TestFunction(V)
+    bc = DirichletBC(V, c, "on_boundary")
+
+    F = inner(grad(u), grad(v)) * dx - f ** 2 * v * dx
+    solve(F == 0, u, bc)
+
+    J = assemble(c ** 2 * u * dx)
+    Jhat = ReducedFunctional(J, c)
+
+    h = Function(V)
+    h.vector()[:] = rand(V.dim())
+    g = c.copy(deepcopy=True)
+    c.set_initial_tlm_input(h)
+    tape.evaluate_tlm()
+
+    assert (taylor_test(Jhat, g, h, dJdm=J.block_output.tlm_value) > 1.9)
 
 def test_time_dependent():
     tape = Tape()
@@ -97,6 +124,7 @@ def test_time_dependent():
 
     u_1 = Function(V)
     u_1.vector()[:] = 1
+    g = u_1.copy(deepcopy=True)
 
     a = u_1 * u * v * dx + dt * f * inner(grad(u), grad(v)) * dx
     L = u_1 * v * dx
@@ -110,14 +138,12 @@ def test_time_dependent():
 
     J = assemble(u_1 ** 2 * dx)
 
+    Jhat = ReducedFunctional(J, u_1)
     h = Function(V)
     h.vector()[:] = rand(V.dim())
-    u_1.set_initial_tlm_input(h.vector())
+    u_1.set_initial_tlm_input(h)
     tape.evaluate_tlm()
-    J.set_initial_adj_input(1.0)
-    tape.evaluate()
-
-    assert abs(u_1.original_block_output.adj_value.inner(h.vector()) - J.block_output.tlm_value) < tol
+    assert (taylor_test(Jhat, g, h, dJdm=J.block_output.tlm_value) > 1.9)
 
 
 def test_burgers():
@@ -163,14 +189,13 @@ def test_burgers():
 
     J = assemble(u_*u_*dx + ic*ic*dx)
 
+    Jhat = ReducedFunctional(J, ic)
     h = Function(V)
     h.vector()[:] = rand(V.dim())
-    ic.set_initial_tlm_input(h.vector())
+    g = ic.copy(deepcopy=True)
+    ic.set_initial_tlm_input(h)
     tape.evaluate_tlm()
-    J.set_initial_adj_input(1.0)
-    tape.evaluate()
-
-    assert abs(ic.original_block_output.adj_value.inner(h.vector()) - J.block_output.tlm_value) < tol
+    assert (taylor_test(Jhat, g, h, dJdm=J.block_output.tlm_value) > 1.9)
 
 
 def test_expression():
@@ -203,14 +228,13 @@ def test_expression():
 
     J = assemble(u**2*dx)
 
+    Jhat = ReducedFunctional(J, a)
     h = Function(V)
     h.vector()[:] = rand(V.dim())
-    a.set_initial_tlm_input(h.vector())
+    g = a.copy(deepcopy=True)
+    a.set_initial_tlm_input(h)
     tape.evaluate_tlm()
-    J.set_initial_adj_input(1.0)
-    tape.evaluate()
-
-    assert abs(a.original_block_output.adj_value.inner(h.vector()) - J.block_output.tlm_value) < tol
+    assert (taylor_test(Jhat, g, h, dJdm=J.block_output.tlm_value) > 1.9)
 
 
 def test_projection():
@@ -235,13 +259,11 @@ def test_projection():
     solve(a == L, u_, bc)
 
     J = assemble(u_**2*dx)
+    Jhat = ReducedFunctional(J, k)
 
     k.set_initial_tlm_input(Constant(1))
     tape.evaluate_tlm()
-    J.set_initial_adj_input(1.0)
-    tape.evaluate()
-
-    assert abs(k.original_block_output.adj_value - J.block_output.tlm_value) < tol
+    assert(taylor_test(Jhat, Constant(k), Constant(1), dJdm=J.block_output.tlm_value) > 1.9)
 
 
 def test_projection_function():
@@ -251,10 +273,10 @@ def test_projection_function():
     V = FunctionSpace(mesh, "CG", 1)
 
     bc = DirichletBC(V, Constant(1), "on_boundary")
-    g = Function(V)
-    g = project(Expression("sin(x[0])*sin(x[1])", degree=1, annotate_tape=False), V, annotate_tape=False)
-    expr = Expression("sin(g*x[0])", g=g, degree=1)
-    expr.user_defined_derivatives = {g: Expression("x[0]*cos(g*x[0])", g=g, degree=1, annotate_tape=False)}
+    #g = Function(V)
+    g = project(Expression("sin(x[0])*sin(x[1])", degree=5, annotate_tape=False), V, annotate_tape=False)
+    expr = Expression("sin(g*x[0])", g=g, degree=5)
+    expr.user_defined_derivatives = {g: Expression("x[0]*cos(g*x[0])", g=g, degree=5, annotate_tape=False)}
     f = project(expr, V)
 
     u = TrialFunction(V)
@@ -267,15 +289,16 @@ def test_projection_function():
     solve(a == L, u_, bc)
 
     J = assemble(u_**2*dx)
+    Jhat = ReducedFunctional(J, g)
 
     h = Function(V)
     h.vector()[:] = rand(V.dim())
-    g.set_initial_tlm_input(h.vector())
+    m = g.copy(deepcopy=True)
+    g.set_initial_tlm_input(h)
     tape.evaluate_tlm()
-    J.set_initial_adj_input(1.0)
-    tape.evaluate()
-
-    assert abs(g.original_block_output.adj_value.inner(h.vector()) - J.block_output.tlm_value) < 1E-4
+    print J.block_output.tlm_value
+    print Jhat.derivative().vector().inner(h.vector())
+    assert (taylor_test(Jhat, m, h, dJdm=J.block_output.tlm_value) > 1.9)
 
 
 def test_assemble_recompute():
@@ -296,14 +319,14 @@ def test_assemble_recompute():
     expr.user_defined_derivatives = {k: Expression("1", degree=1, annotate_tape=False)}
     J = assemble(expr**2*dx(domain=mesh))
 
+    Jhat = ReducedFunctional(J, f)
     h = Function(V)
     h.vector()[:] = rand(V.dim())
-    f.set_initial_tlm_input(h.vector())
+    g = f.copy(deepcopy=True)
+    f.set_initial_tlm_input(h)
     tape.evaluate_tlm()
-    J.set_initial_adj_input(1.0)
-    tape.evaluate()
+    assert (taylor_test(Jhat, g, h, dJdm=J.block_output.tlm_value) > 1.9)
 
-    assert abs(f.original_block_output.adj_value.inner(h.vector()) - J.block_output.tlm_value) < tol
 
 
 

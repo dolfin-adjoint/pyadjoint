@@ -247,7 +247,7 @@ class SolveBlock(Block):
             dudm = Function(V)
             backend.solve(dFdu, dudm.vector(), dFdm)
 
-            fwd_block_output.add_tlm_output(dudm.vector())
+            fwd_block_output.add_tlm_output(dudm)
 
 
     def recompute(self):

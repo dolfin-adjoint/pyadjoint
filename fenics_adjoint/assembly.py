@@ -91,10 +91,9 @@ class AssembleBlock(Block):
                 continue
 
             if isinstance(c, backend.Function):
-                dc = backend.TestFunction(c.function_space())
-                dform = backend.derivative(form, c_rep, dc)
+                dform = backend.derivative(form, c_rep, tlm_value)
                 output = backend.assemble(dform)
-                self.get_outputs()[0].add_tlm_output(output.inner(tlm_value))
+                self.get_outputs()[0].add_tlm_output(output)
 
             elif isinstance(c, backend.Constant):
                 dform = backend.derivative(form, c_rep, tlm_value)

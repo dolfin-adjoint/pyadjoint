@@ -5,7 +5,7 @@ import overloaded_type
 import reduced_functional
 
 
-def taylor_test(J, m, h):
+def taylor_test(J, m, h, dJdm=None):
     """Run a taylor test on the functional J around point m in direction h.
     
     Given a functional J, a point in control space m, and a direction in
@@ -27,7 +27,7 @@ def taylor_test(J, m, h):
     """
 
     Jm = J(m)
-    dJdm = J.derivative()
+    dJdm = h._ad_dot(J.derivative()) if dJdm is None else dJdm
 
     residuals = []
     epsilons = [0.01/2**i for i in range(4)]
@@ -36,7 +36,7 @@ def taylor_test(J, m, h):
         perturbation = h._ad_mul(eps)
         Jp = J(m._ad_add(perturbation))
 
-        res = abs(Jp - Jm - eps*h._ad_dot(dJdm))
+        res = abs(Jp - Jm - eps*dJdm)
         residuals.append(res)
 
     if min(residuals) < 1E-16:
