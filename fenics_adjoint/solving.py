@@ -249,6 +249,104 @@ class SolveBlock(Block):
 
             fwd_block_output.add_tlm_output(dudm)
 
+    def evaluate_hessian(self):
+        fwd_block_output = self.get_outputs()[0]
+        adj_input = fwd_block_output.adj_value
+        hessian_input = fwd_block_output.hessian_value
+        tlm_output = fwd_block_output.tlm_value
+        u = fwd_block_output.get_output()
+        V = u.function_space()
+
+        if self.linear:
+            tmp_u = Function(self.func.function_space()) # Replace later? Maybe save function space on initialization.
+            F_form = backend.action(self.lhs, tmp_u) - self.rhs
+        else:
+            tmp_u = self.func
+            F_form = self.lhs
+
+        replaced_coeffs = {}
+        for block_output in self.get_dependencies():
+            coeff = block_output.get_output()
+            if coeff in F_form.coefficients():
+                replaced_coeffs[coeff] = block_output.get_saved_output()
+
+        replaced_coeffs[tmp_u] = fwd_block_output.get_saved_output()
+
+        F_form = backend.replace(F_form, replaced_coeffs)
+
+        # Obtain dF/du.
+        dFdu_form = backend.derivative(F_form, fwd_block_output.get_saved_output(), backend.TrialFunction(u.function_space()))
+
+        dFdu = backend.assemble(dFdu_form)
+
+        # Obtain d^2F/du^2
+        d2Fdu2_form = backend.derivative(dFdu_form, fwd_block_output.get_saved_output(), tlm_output)
+
+        d2Fdu2 = backend.assemble(d2Fdu2_form)
+
+        # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
+        bcs = []
+        for bc in self.bcs:
+            if isinstance(bc, backend.DirichletBC):
+                bc = backend.DirichletBC(bc)
+                bc.homogenize()
+            bcs.append(bc)
+            bc.apply(dFdu)
+            bc.apply(d2Fdu2)
+
+        dFdu_mat = backend.as_backend_type(dFdu).mat()
+        dFdu_mat.transpose(dFdu_mat)
+
+        d2Fdu2_mat = backend.as_backend_type(d2Fdu2).mat()
+        d2Fdu2_mat.transpose(d2Fdu2_mat)
+
+        # TODO: First-order adjoint solution should be possible to obtain from the earlier adjoint computations.
+        adj_sol = Function(V)
+        # Solve the (first order) adjoint equation
+        backend.solve(dFdu, adj_sol.vector(), adj_input)
+
+        # Second-order adjoint solution
+        adj_sol2 = Function(V)
+
+        for bo1 in self.get_dependencies():
+            c1 = bo1.get_output()
+            c1_rep = replaced_coeffs.get(c1, c1)
+
+            if c1 == self.func:
+                continue
+
+            tlm_input = bo1.tlm_value
+
+            d2Fdudm_form = backend.derivative(dFdu_form, c1_rep, tlm_input)
+            d2Fdudm = backend.assemble(d2Fdudm_form)
+
+            backend.solve(dFdu, adj_sol2.vector(), hessian_input - d2Fdu2*adj_sol.vector() - d2Fdudm*adj_sol.vector())
+
+            dFdm_form = backend.derivative(F_form, c1_rep, backend.TrialFunction(V))
+            dFdm = backend.assemble(dFdm_form)
+
+            d2Fdm2_form = backend.derivative(dFdm_form, c1_rep, tlm_input)
+            d2Fdm2 = backend.assemble(d2Fdm2_form)
+
+            dFdm_mat = backend.as_backend_type(dFdm).mat()
+            d2Fdm2_mat = backend.as_backend_type(d2Fdm2).mat()
+
+            import numpy as np
+            bc_rows = []
+            for bc in bcs:
+                for key in bc.get_boundary_values():
+                    bc_rows.append(key)
+
+            dFdm.zero(np.array(bc_rows, dtype=np.intc))
+            d2Fdm2.zero(np.array(bc_rows, dtype=np.intc))
+
+            dFdm_mat.transpose(dFdm_mat)
+            d2Fdm2_mat.transpose(d2Fdm2_mat)
+
+            output = dFdm*adj_sol2.vector()
+            output += (d2Fdudm + d2Fdm2)*adj_sol.vector()
+            bo1.add_hessian_output(-output)
+
     def recompute(self):
         func = self.func
         replace_lhs_coeffs = {}
