@@ -308,44 +308,54 @@ class SolveBlock(Block):
         # Second-order adjoint solution
         adj_sol2 = Function(V)
 
-        for bo1 in self.get_dependencies():
-            c1 = bo1.get_output()
-            c1_rep = replaced_coeffs.get(c1, c1)
+        b = hessian_input
+        b -= d2Fdu2*adj_sol.vector()
 
-            if c1 == self.func:
+        for bo in self.get_dependencies():
+            c = bo.get_output()
+            c_rep = replaced_coeffs.get(c, c)
+
+            if c == self.func:
                 continue
 
-            tlm_input = bo1.tlm_value
+            tlm_input = bo.tlm_value
 
-            d2Fdudm_form = backend.derivative(dFdu_form, c1_rep, tlm_input)
+            d2Fdudm_form = backend.derivative(dFdu_form, c_rep, tlm_input)
             d2Fdudm = backend.assemble(d2Fdudm_form)
 
-            backend.solve(dFdu, adj_sol2.vector(), hessian_input - d2Fdu2*adj_sol.vector() - d2Fdudm*adj_sol.vector())
+            d2Fdudm_mat = backend.as_backend_type(d2Fdudm).mat()
+            d2Fdudm_mat.transpose(d2Fdudm_mat)
 
-            dFdm_form = backend.derivative(F_form, c1_rep, backend.TrialFunction(V))
+            b -= d2Fdudm*adj_sol.vector()
+
+        backend.solve(dFdu, adj_sol2.vector(), b)
+
+        for bo in self.get_dependencies():
+            c = bo.get_output()
+            c_rep = replaced_coeffs.get(c, c)
+
+            if c == self.func:
+                continue
+
+            dFdm_form = backend.derivative(F_form, c_rep, backend.TrialFunction(V))
             dFdm = backend.assemble(dFdm_form)
 
-            d2Fdm2_form = backend.derivative(dFdm_form, c1_rep, tlm_input)
-            d2Fdm2 = backend.assemble(d2Fdm2_form)
+            d2Fdudm_form = backend.derivative(dFdu_form, c_rep, tlm_output)
+            d2Fdudm = backend.assemble(d2Fdudm_form)
 
-            dFdm_mat = backend.as_backend_type(dFdm).mat()
-            d2Fdm2_mat = backend.as_backend_type(d2Fdm2).mat()
+            for bo2 in self.get_dependencies():
+                c2 = bo2.get_output()
+                c2_rep = replaced_coeffs.get(c2, c2)
 
-            import numpy as np
-            bc_rows = []
-            for bc in bcs:
-                for key in bc.get_boundary_values():
-                    bc_rows.append(key)
+                d2Fdm2_form = backend.derivative(dFdm_form, c2_rep, bo2.tlm_value)
+                d2Fdm2 = backend.assemble(d2Fdm2_form)
 
-            dFdm.zero(np.array(bc_rows, dtype=np.intc))
-            d2Fdm2.zero(np.array(bc_rows, dtype=np.intc))
+                output = d2Fdm2*adj_sol.vector()
+                bo.add_hessian_output(-output)
 
-            dFdm_mat.transpose(dFdm_mat)
-            d2Fdm2_mat.transpose(d2Fdm2_mat)
-
-            output = dFdm*adj_sol2.vector()
-            output += (d2Fdudm + d2Fdm2)*adj_sol.vector()
-            bo1.add_hessian_output(-output)
+            output = dFdm * adj_sol2.vector()
+            output += d2Fdudm*adj_sol.vector()
+            bo.add_hessian_output(-output)
 
     def recompute(self):
         func = self.func
