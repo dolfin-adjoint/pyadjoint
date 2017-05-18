@@ -370,6 +370,7 @@ class SolveBlock(Block):
                     replace_lhs_coeffs[c] = c_rep
                     if c == self.func:
                         func = c_rep
+                        block_output.checkpoint = c_rep._ad_create_checkpoint()
                 
                 if self.linear and c in self.rhs.coefficients():
                     replace_rhs_coeffs[c] = c_rep
