@@ -76,6 +76,9 @@ class Block(object):
     def evaluate_tlm(self):
         """This method must be overridden.
         
+        The method should implement a routine for computing the tangent linear model of the block.
+        Using BlockOutput.tlm_value to propagate TLM information.
+        
         """
         raise NotImplementedError
 

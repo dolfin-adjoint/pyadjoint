@@ -249,7 +249,6 @@ class SolveBlock(Block):
 
             fwd_block_output.add_tlm_output(dudm)
 
-
     def recompute(self):
         func = self.func
         replace_lhs_coeffs = {}
