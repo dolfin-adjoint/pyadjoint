@@ -122,6 +122,10 @@ class AssembleBlock(Block):
 
             if isinstance(c1, backend.Function):
                 dc = backend.TestFunction(c1.function_space())
+            elif isinstance(c1, backend.Constant):
+                dc = backend.Constant(1)
+            else:
+                continue
 
             dform = backend.derivative(form, c1_rep, dc)
 
@@ -130,10 +134,19 @@ class AssembleBlock(Block):
                 c2_rep = replaced_coeffs.get(c2, c2)
                 tlm_input = bo2.tlm_value
 
-                if isinstance(c2, backend.Function):
+                if tlm_input is None:
+                    continue
+
+                if isinstance(c1, backend.Function):
                     ddform = backend.derivative(dform, c2_rep, tlm_input)
                     output = backend.assemble(ddform)
                     bo1.add_hessian_output(adj_input*output)
+                elif isinstance(c1, backend.Constant):
+                    ddform = backend.derivative(dform, c2_rep, tlm_input)
+                    output = backend.assemble(ddform)
+                    bo1.add_hessian_output(adj_input*output)
+                else:
+                    continue
 
             output = backend.assemble(dform)
             bo1.add_hessian_output(hessian_input*output)

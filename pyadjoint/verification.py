@@ -40,9 +40,9 @@ def taylor_test(J, m, h, dJdm=None, Hm=None):
         res = abs(Jp - Jm - eps*dJdm - 0.5*eps**2*Hm)
         residuals.append(res)
 
-    if min(residuals) < 1E-16:
+    if min(residuals) < 1E-15:
         logging.warning("The taylor remainder is close to machine precision.")
-
+    print residuals
     return min(convergence_rates(residuals, epsilons))
 
 

@@ -82,6 +82,17 @@ class Block(object):
         """
         raise NotImplementedError
 
+    def evaluate_hessian(self):
+        """This method must be overridden.
+
+        The method should implement a routine for evaluating the hessian of the block.
+        It is preferable that a "Forward-over-Reverse" scheme is used. Thus the hessians
+        are evaluated in reverse (starting with the last block on the tape). Using the 
+        BlockOutput.hessian_value to propagate hessian information.
+
+        """
+        raise NotImplementedError
+
     def recompute(self):
         """This method must be overriden.
 
