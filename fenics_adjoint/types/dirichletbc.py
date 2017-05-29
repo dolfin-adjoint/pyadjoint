@@ -94,6 +94,22 @@ class DirichletBCBlock(Block):
             m = backend.project(m, self.function_space)
             output.add_tlm_output(m)
 
+    def evaluate_hessian(self):
+        # TODO: Implement
+        hessian_input = self.get_outputs()[0].hessian_value
+
+        if hessian_input is None:
+            return
+
+        for block_output in self.get_dependencies():
+            c = block_output.output
+            if isinstance(c, Constant):
+                block_output.add_hessian_output(hessian_input.sum())
+            elif isinstance(c, Function):
+                # TODO: This gets a little complicated.
+                #       See evalute_adj method above.
+                block_output.add_hessian_output(hessian_input)
+
     def recompute(self):
         # There is nothing to be recomputed.
         pass

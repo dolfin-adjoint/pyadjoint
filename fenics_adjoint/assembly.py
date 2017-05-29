@@ -105,6 +105,52 @@ class AssembleBlock(Block):
                 output = backend.assemble(dform)
                 self.get_outputs()[0].add_tlm_output(output)
 
+    def evaluate_hessian(self):
+        hessian_input = self.get_outputs()[0].hessian_value
+        adj_input = self.get_outputs()[0].adj_value
+
+        replaced_coeffs = {}
+        for block_output in self.get_dependencies():
+            coeff = block_output.get_output()
+            replaced_coeffs[coeff] = block_output.get_saved_output()
+
+        form = backend.replace(self.form, replaced_coeffs)
+
+        for bo1 in self.get_dependencies():
+            c1 = bo1.get_output()
+            c1_rep = replaced_coeffs.get(c1, c1)
+
+            if isinstance(c1, backend.Function):
+                dc = backend.TestFunction(c1.function_space())
+            elif isinstance(c1, backend.Constant):
+                dc = backend.Constant(1)
+            else:
+                continue
+
+            dform = backend.derivative(form, c1_rep, dc)
+
+            for bo2 in self.get_dependencies():
+                c2 = bo2.get_output()
+                c2_rep = replaced_coeffs.get(c2, c2)
+                tlm_input = bo2.tlm_value
+
+                if tlm_input is None:
+                    continue
+
+                if isinstance(c1, backend.Function):
+                    ddform = backend.derivative(dform, c2_rep, tlm_input)
+                    output = backend.assemble(ddform)
+                    bo1.add_hessian_output(adj_input*output)
+                elif isinstance(c1, backend.Constant):
+                    ddform = backend.derivative(dform, c2_rep, tlm_input)
+                    output = backend.assemble(ddform)
+                    bo1.add_hessian_output(adj_input*output)
+                else:
+                    continue
+
+            output = backend.assemble(dform)
+            bo1.add_hessian_output(hessian_input*output)
+
     def recompute(self):
         replaced_coeffs = {}
         for block_output in self.get_dependencies():

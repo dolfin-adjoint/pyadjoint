@@ -4,6 +4,9 @@ from pyadjoint.tape import get_working_tape
 from pyadjoint.block import Block
 from .types import Function, DirichletBC
 
+# Type dependencies
+import dolfin
+
 # TODO: Clean up: some inaccurate comments. Reused code. Confusing naming with dFdm when denoting the control as c.
 
 
@@ -117,7 +120,7 @@ class SolveBlock(Block):
 
         for block_output in self.get_dependencies():
             c = block_output.get_output()
-            if c != self.func:
+            if c != self.func or self.linear:
                 c_rep = replaced_coeffs.get(c, c)
 
                 if isinstance(c, backend.Function):
@@ -216,7 +219,8 @@ class SolveBlock(Block):
                 continue
 
             if isinstance(c, backend.Function):
-                dFdm = -backend.derivative(F_form, c_rep, backend.Function(V, tlm_value))
+                #dFdm = -backend.derivative(F_form, c_rep, backend.Function(V, tlm_value))
+                dFdm = -backend.derivative(F_form, c_rep, tlm_value)
                 dFdm = backend.assemble(dFdm)
 
                 # Zero out boundary values from boundary conditions as they do not depend (directly) on c.
@@ -249,6 +253,125 @@ class SolveBlock(Block):
 
             fwd_block_output.add_tlm_output(dudm)
 
+    def evaluate_hessian(self):
+        # First fetch all relevant values
+        fwd_block_output = self.get_outputs()[0]
+        adj_input = fwd_block_output.adj_value
+        hessian_input = fwd_block_output.hessian_value
+        tlm_output = fwd_block_output.tlm_value
+        u = fwd_block_output.get_output()
+        V = u.function_space()
+
+        # Process the equation forms, replacing values with checkpoints,
+        # and gathering lhs and rhs in one single form.
+        if self.linear:
+            tmp_u = Function(self.func.function_space()) # Replace later? Maybe save function space on initialization.
+            F_form = backend.action(self.lhs, tmp_u) - self.rhs
+        else:
+            tmp_u = self.func
+            F_form = self.lhs
+
+        replaced_coeffs = {}
+        for block_output in self.get_dependencies():
+            coeff = block_output.get_output()
+            if coeff in F_form.coefficients():
+                replaced_coeffs[coeff] = block_output.get_saved_output()
+
+        replaced_coeffs[tmp_u] = fwd_block_output.get_saved_output()
+        F_form = backend.replace(F_form, replaced_coeffs)
+
+        # Define the equation Form. This class is an initial step in refactoring
+        # the SolveBlock methods.
+        F = Form(F_form, transpose=True)
+        F.set_boundary_conditions(self.bcs, fwd_block_output.get_saved_output())
+
+        # Using the equation Form we derive dF/du, d^2F/du^2 * du/dm * direction.
+        dFdu = F.derivative(fwd_block_output.get_saved_output())
+        d2Fdu2 = dFdu.derivative(fwd_block_output.get_saved_output(), tlm_output)
+
+        # TODO: First-order adjoint solution should be possible to obtain from the earlier adjoint computations.
+        adj_sol = backend.Function(V).vector()
+        # Solve the (first order) adjoint equation
+        backend.solve(dFdu.data, adj_sol, adj_input)
+
+        # Second-order adjoint (soa) solution
+        adj_sol2 = backend.Function(V).vector()
+
+        # Start piecing together the rhs of the soa equation
+        b = hessian_input
+        b -= d2Fdu2*adj_sol
+
+        for bo in self.get_dependencies():
+            c = bo.get_output()
+            c_rep = replaced_coeffs.get(c, c)
+            tlm_input = bo.tlm_value
+
+            if c == self.func or tlm_input is None:
+                continue
+
+            if not isinstance(c, backend.DirichletBC):
+                d2Fdudm = dFdu.derivative(c_rep, tlm_input)
+                b -= d2Fdudm*adj_sol
+
+        # Solve the soa equation
+        backend.solve(dFdu.data, adj_sol2, b)
+
+        # Iterate through every dependency to evaluate and propagate the hessian information.
+        for bo in self.get_dependencies():
+            c = bo.get_output()
+            c_rep = replaced_coeffs.get(c, c)
+
+            if c == self.func and not self.linear:
+                continue
+
+            # If m = DirichletBC then d^2F(u,m)/dm^2 = 0 and d^2F(u,m)/dudm = 0,
+            # so we only have the term dF(u,m)/dm * adj_sol2
+            if isinstance(c, backend.DirichletBC):
+                tmp_bc = backend.DirichletBC(V, Function(V, adj_sol2), c.user_sub_domain())
+                adj_output = Function(V)
+                tmp_bc.apply(adj_output.vector())
+
+                bo.add_hessian_output(adj_output.vector())
+                continue
+
+            dFdm = F.derivative(c_rep, function_space=V)
+            d2Fdudm = dFdu.derivative(c_rep, tlm_output)
+
+            # We need to add terms from every other dependency
+            # i.e. the terms d^2F/dm_1dm_2
+            for bo2 in self.get_dependencies():
+                c2 = bo2.get_output()
+                c2_rep = replaced_coeffs.get(c2, c2)
+
+                if isinstance(c2, backend.DirichletBC):
+                    continue
+
+                tlm_input = bo2.tlm_value
+                if tlm_input is None:
+                    continue
+
+                if c2 == self.func and not self.linear:
+                    continue
+
+                d2Fdm2 = dFdm.derivative(c2_rep, tlm_input)
+                if d2Fdm2.data is None:
+                    continue
+
+                output = d2Fdm2*adj_sol
+
+                if isinstance(c, backend.Expression):
+                    bo.add_hessian_output([(-output, V)])
+                else:
+                    bo.add_hessian_output(-output)
+
+            output = dFdm * adj_sol2
+            output += d2Fdudm*adj_sol
+
+            if isinstance(c, backend.Expression):
+                bo.add_hessian_output([(-output, V)])
+            else:
+                bo.add_hessian_output(-output)
+
     def recompute(self):
         func = self.func
         replace_lhs_coeffs = {}
@@ -262,6 +385,7 @@ class SolveBlock(Block):
                     replace_lhs_coeffs[c] = c_rep
                     if c == self.func:
                         func = c_rep
+                        block_output.checkpoint = c_rep._ad_create_checkpoint()
                 
                 if self.linear and c in self.rhs.coefficients():
                     replace_rhs_coeffs[c] = c_rep
@@ -276,3 +400,114 @@ class SolveBlock(Block):
         # Save output for use in later re-computations.
         # TODO: Consider redesigning the saving system so a new deepcopy isn't created on each forward replay.
         self.get_outputs()[0].checkpoint = func._ad_create_checkpoint()
+
+
+class Form(object):
+    def __init__(self, form, transpose=False):
+        self.form = form
+        self.rank = len(form.arguments())
+        self.transpose = transpose
+        self._data = None
+
+        # Boundary conditions
+        self.bcs = None
+        self.bc_rows = None
+        self.sol_var = None
+        self.bc_type = 0
+
+    def derivative(self, coefficient, argument=None, function_space=None):
+        dc = argument
+        if dc is None:
+            if isinstance(coefficient, backend.Constant):
+                dc = backend.Constant(1)
+            elif isinstance(coefficient, backend.Expression):
+                dc = backend.TrialFunction(function_space)
+
+        diff_form = ufl.algorithms.expand_derivatives(backend.derivative(self.form, coefficient, dc))
+        ret = Form(diff_form, transpose=self.transpose)
+        ret.bcs = self.bcs
+        ret.bc_rows = self.bc_rows
+        ret.sol_var = self.sol_var
+
+        # Unintuitive way of solving this problem.
+        # TODO: Consider refactoring.
+        if coefficient == self.sol_var:
+            ret.bc_type = self.bc_type + 1
+        else:
+            ret.bc_type = self.bc_type + 2
+
+        return ret
+
+    def transpose(self):
+        transpose = False if self.transpose else True
+        return Form(self.form, transpose=transpose)
+
+    def set_boundary_conditions(self, bcs, sol_var):
+        self.bcs = []
+        self.bc_rows = []
+        self.sol_var = sol_var
+        for bc in bcs:
+            if isinstance(bc, backend.DirichletBC):
+                bc = backend.DirichletBC(bc)
+                bc.homogenize()
+            self.bcs.append(bc)
+
+            for key in bc.get_boundary_values():
+                self.bc_rows.append(key)
+
+    def apply_boundary_conditions(self, data):
+        import numpy
+        if self.bc_type >= 2:
+            if self.rank >= 2:
+                data.zero(numpy.array(self.bc_rows, dtype=numpy.intc))
+            else:
+                [bc.apply(data) for bc in self.bcs]
+        else:
+            [bc.apply(data) for bc in self.bcs]
+
+    @property
+    def data(self):
+        return self.compute()
+
+    def compute(self):
+        if self._data is not None:
+            return self._data
+
+        if self.form.empty():
+            return None
+
+        data = backend.assemble(self.form)
+
+        # Apply boundary conditions here!
+        if self.bcs:
+            self.apply_boundary_conditions(data)
+
+        # Transpose if needed
+        if self.transpose and self.rank >= 2:
+            matrix_mat = backend.as_backend_type(data).mat()
+            matrix_mat.transpose(matrix_mat)
+
+        self._data = data
+        return self._data
+
+    def __mul__(self, other):
+        if self.data is None:
+            return 0
+
+        if isinstance(other, Form):
+            return self.data*other
+
+        if isinstance(other, dolfin.cpp.la.GenericMatrix):
+            if self.rank >= 2:
+                return self.data*other
+            else:
+                # We (almost?) always want Matrix*Vector multiplication in this case.
+                return other*self.data
+        elif isinstance(other, dolfin.cpp.la.GenericVector):
+            if self.rank >= 2:
+                return self.data*other
+            else:
+                return self.data.inner(other)
+
+        # If it reaches this point I have done something wrong.
+        return 0

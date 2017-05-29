@@ -60,6 +60,10 @@ class Tape(object):
         for i in range(len(self._blocks)):
             self._blocks[i].evaluate_tlm()
 
+    def evaluate_hessian(self):
+        for i in range(len(self._blocks)-1, -1, -1):
+            self._blocks[i].evaluate_hessian()
+
     def reset_variables(self):
         for i in range(len(self._blocks)-1, -1, -1):
             self._blocks[i].reset_variables()

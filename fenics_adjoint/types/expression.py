@@ -269,17 +269,72 @@ class ExpressionBlock(Block):
             for key in self.expression._ad_attributes_dict:
                 if (self.expression._ad_ignored_attributes is None
                     or key not in self.expression._ad_ignored_attributes):
-
                     setattr(self.expression.user_defined_derivatives[c], key, self.expression._ad_attributes_dict[key])
 
             tlm_input = block_output.tlm_value
 
-            # TODO: This can be removed if we decide tlm deals with the actual types (Function, Constant etc)
-            #       instead of vectors/floats.
-            if isinstance(c, backend.Function):
-                tlm_input = backend.Function(c.function_space(), tlm_input)
-
             output.add_tlm_output(tlm_input * self.expression.user_defined_derivatives[c])
+
+    def evaluate_hessian(self):
+        hessian_inputs = self.get_outputs()[0].hessian_value
+        adj_inputs = self.get_outputs()[0].adj_value
+
+        if hessian_inputs is None:
+            return
+
+        for bo1 in self.get_dependencies():
+            c1 = bo1.output
+
+            if c1 not in self.expression.user_defined_derivatives:
+                continue
+
+            first_deriv = self.expression.user_defined_derivatives[c1]
+            for key in self.expression._ad_attributes_dict:
+                if (self.expression._ad_ignored_attributes is None
+                    or key not in self.expression._ad_ignored_attributes):
+                    setattr(first_deriv, key, self.expression._ad_attributes_dict[key])
+
+            for bo2 in self.get_dependencies():
+                c2 = bo2.output
+                tlm_input = bo2.tlm_value
+
+                if tlm_input is None:
+                    continue
+
+                if c2 not in first_deriv.user_defined_derivatives:
+                    continue
+
+                second_deriv = first_deriv.user_defined_derivatives[c2]
+                for key in self.expression._ad_attributes_dict:
+                    if (self.expression._ad_ignored_attributes is None
+                        or key not in self.expression._ad_ignored_attributes):
+                        setattr(second_deriv, key, self.expression._ad_attributes_dict[key])
+
+                for adj_pair in adj_inputs:
+                    adj_input = adj_pair[0]
+                    V = adj_pair[1]
+
+                    # TODO: Seems we can only project and not interpolate ufl.algebra.Product in dolfin.
+                    #       Consider the difference and which actually makes sense here.
+                    interp = backend.project(tlm_input*second_deriv, V)
+                    if isinstance(c1, (backend.Constant, AdjFloat)):
+                        hessian_output = adj_input.inner(interp.vector())
+                    else:
+                        hessian_output = adj_input * interp.vector()
+
+                    bo1.add_hessian_output(hessian_output)
+
+            for hessian_pair in hessian_inputs:
+                hessian_input = hessian_pair[0]
+                V = hessian_pair[1]
+
+                interp = backend.interpolate(first_deriv, V)
+                if isinstance(c1, (backend.Constant, AdjFloat)):
+                    hessian_output = hessian_input.inner(interp.vector())
+                else:
+                    hessian_output = hessian_input*interp.vector()
+
+                bo1.add_hessian_output(hessian_output)
 
     def recompute(self):
         checkpoint = self.get_outputs()[0].checkpoint

@@ -7,6 +7,7 @@ class BlockOutput(object):
         self.output = output
         self.adj_value = None
         self.tlm_value = None
+        self.hessian_value = None
         self.checkpoint = None
 
     def add_adj_output(self, val):
@@ -20,6 +21,12 @@ class BlockOutput(object):
             self.tlm_value = val
         else:
             self.tlm_value += val
+
+    def add_hessian_output(self, val):
+        if self.hessian_value is None:
+            self.hessian_value = val
+        else:
+            self.hessian_value += val
 
     def get_adj_output(self):
         return self.adj_value

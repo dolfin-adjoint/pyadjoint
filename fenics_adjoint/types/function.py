@@ -82,6 +82,10 @@ class AssignBlock(Block):
         tlm_input = self.get_dependencies()[1].tlm_value
         self.get_outputs()[0].add_tlm_output(tlm_input)
 
+    def evaluate_hessian(self):
+        hessian_input = self.get_outputs()[0].hessian_value
+        self.get_dependencies()[1].add_hessian_output(hessian_input)
+
     def recompute(self):
         deps = self.get_dependencies()
         other_bo = deps[1]
