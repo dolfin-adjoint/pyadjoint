@@ -6,7 +6,11 @@ pipelines:
     - step:
         script:
           - pip2 install -r requirements.txt
+          - pip3 install -r requirements.txt
           - pip2 install --no-cache-dir git+https://github.com/funsim/moola.git@master
+          - pip3 install --no-cache-dir git+https://github.com/funsim/moola.git@master
           - cd $BITBUCKET_CLONE_DIR
           - pip2 install --no-cache-dir --upgrade --prefix=$FENICS_PREFIX .
+          - pip3 install --no-cache-dir --upgrade --prefix=$FENICS_PREFIX .
           - python2 -m pytest -v tests/
+          - python3 -m pytest -v tests/

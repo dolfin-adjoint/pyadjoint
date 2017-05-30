@@ -1,7 +1,7 @@
 from .tape import get_working_tape
 
 # Type dependencies
-import overloaded_type
+from . import overloaded_type
 
 class ReducedFunctional(object):
     """Class representing the reduced functional.

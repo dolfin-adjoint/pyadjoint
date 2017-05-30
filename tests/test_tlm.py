@@ -296,8 +296,8 @@ def test_projection_function():
     m = g.copy(deepcopy=True)
     g.set_initial_tlm_input(h)
     tape.evaluate_tlm()
-    print J.block_output.tlm_value
-    print Jhat.derivative().vector().inner(h.vector())
+    print(J.block_output.tlm_value)
+    print(Jhat.derivative().vector().inner(h.vector()))
     assert (taylor_test(Jhat, m, h, dJdm=J.block_output.tlm_value) > 1.9)
 
 

@@ -18,7 +18,7 @@ def test_projection():
 	f = MyExpression1(degree=1)
 
 	u = project(f, V)
-	print type(u)
+	print(type(u))
 
 	J = assemble(u**2*dx)
 
@@ -27,4 +27,4 @@ def test_projection():
 
 	dJdf = f.get_adj_output()
 	# TODO: This test does nothing. Make it actually test projection.
-	#print dJdf.array()
+	#print(dJdf.array())

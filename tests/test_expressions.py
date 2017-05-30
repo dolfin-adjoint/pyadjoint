@@ -126,15 +126,15 @@ def test_inline_function_control():
 
     _test_adjoint(J, g)
 
-class UserDefinedExpr(Expression):
-    def __init__(self, m, t, **kwargs):
-        self.m = m
-        self.t = t
+#class UserDefinedExpr(Expression):
+#    def __init__(self, m, t, **kwargs):
+#        self.m = m
+#        self.t = t
+#
+#    def eval(self, value, x):
+#        value[0] = self.m*self.t
 
-    def eval(self, value, x):
-        value[0] = self.m*self.t
-
-def test_time_dependent_class():
+def xtest_time_dependent_class():
     # Defining the domain, 100 points from 0 to 1
     mesh = IntervalMesh(100, 0, 1)
 
@@ -259,14 +259,14 @@ def _test_adjoint_constant(J, c):
         tape.evaluate()
 
         dJdc = c.get_adj_output()
-        print dJdc
+        print(dJdc)
 
         residual = abs(Jp - Jm - eps*dJdc)
         residuals.append(residual)
 
-    print residuals
+    print(residuals)
     r = convergence_rates(residuals, eps_)
-    print r
+    print(r)
 
     tol = 1E-1
     assert( r[-1] > 2-tol )
@@ -296,9 +296,9 @@ def _test_adjoint(J, f):
         residual = abs(Jp - Jm - eps*dJdf.inner(h.vector()))
         residuals.append(residual)
 
-    print residuals
+    print(residuals)
     r = convergence_rates(residuals, eps_)
-    print r
+    print(r)
 
     tol = 1E-1
     assert( r[-1] > 2-tol )

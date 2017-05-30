@@ -1,7 +1,5 @@
-import backend
-
 # Type dependencies
-import block
+from . import block
 
 # TOOD: Save/checkpoint functions always. Not just on assign.
 
