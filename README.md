@@ -10,7 +10,7 @@ First install [FEniCS](http://fenicsproject.org) or [Firedrake](http://firedrake
 
 Then clone the repository:
 
-    git clone git@bitbucket.org:your-username/dolfin-adjoint/dolfin-adjoint2.git
+    git clone git@bitbucket.org:dolfin-adjoint/dolfin-adjoint2.git
 
 and install with
 
