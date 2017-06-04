@@ -57,6 +57,9 @@ def test_ignored_expression_attributes():
         # Attributes added in python3
         ignored_attrs.append("__dir__")
         ignored_attrs.append("__init_subclass__")
+    elif version_info.minor < 6:
+        # Attributes added in python3.6
+        ignored_attrs.append("__init_subclass__")
 
     from fenics_adjoint.types.expression import _IGNORED_EXPRESSION_ATTRIBUTES 
     assert(set(ignored_attrs) == set(_IGNORED_EXPRESSION_ATTRIBUTES))
@@ -132,15 +135,15 @@ def test_inline_function_control():
 
     _test_adjoint(J, g)
 
-#class UserDefinedExpr(Expression):
-#    def __init__(self, m, t, **kwargs):
-#        self.m = m
-#        self.t = t
-#
-#    def eval(self, value, x):
-#        value[0] = self.m*self.t
+class UserDefinedExpr(Expression):
+    def __init__(self, m, t, **kwargs):
+        self.m = m
+        self.t = t
 
-def xtest_time_dependent_class():
+    def eval(self, value, x):
+        value[0] = self.m*self.t
+
+def test_time_dependent_class():
     # Defining the domain, 100 points from 0 to 1
     mesh = IntervalMesh(100, 0, 1)
 
