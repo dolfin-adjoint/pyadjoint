@@ -52,6 +52,12 @@ def test_ignored_expression_attributes():
     tmp = Expression("1", degree=1, annotate_tape=False)
     ignored_attrs += dir(tmp)
 
+    from sys import version_info
+    if version_info.major < 3:
+        # Attributes added in python3
+        ignored_attrs.append("__dir__")
+        ignored_attrs.append("__init_subclass__")
+
     from fenics_adjoint.types.expression import _IGNORED_EXPRESSION_ATTRIBUTES 
     assert(set(ignored_attrs) == set(_IGNORED_EXPRESSION_ATTRIBUTES))
 
