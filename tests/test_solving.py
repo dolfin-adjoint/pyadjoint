@@ -399,7 +399,7 @@ def _test_adjoint_function_boundary(J, bc, f):
         residuals.append(residual)
 
     r = convergence_rates(residuals, eps_)
-    print r
+    print(r)
 
     tol = 1E-1
     assert( r[-1] > 2-tol )
@@ -429,7 +429,7 @@ def _test_adjoint_constant_boundary(J, bc):
         residuals.append(residual)
 
     r = convergence_rates(residuals, eps_)
-    print r
+    print(r)
 
     tol = 1E-1
     assert( r[-1] > 2-tol )
@@ -454,13 +454,13 @@ def _test_adjoint_constant(J, c):
         tape.evaluate()
 
         dJdc = c.get_adj_output()
-        print dJdc
+        print(dJdc)
 
         residual = abs(Jp - Jm - eps*dJdc)
         residuals.append(residual)
 
     r = convergence_rates(residuals, eps_)
-    print r
+    print(r)
 
     tol = 1E-1
     assert( r[-1] > 2-tol )
@@ -490,8 +490,8 @@ def _test_adjoint(J, f):
         residuals.append(residual)
 
     r = convergence_rates(residuals, eps_)
-    print r
-    print residuals
+    print(r)
+    print(residuals)
 
     tol = 1E-1
     assert( r[-1] > 2-tol )

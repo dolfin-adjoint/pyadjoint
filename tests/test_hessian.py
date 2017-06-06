@@ -341,7 +341,7 @@ def conv_mixed(J, f, g, m_1, m_2, h_1, h_2, dJdm, Hm):
 
         res = abs(Jp - Jm - eps * dJdm - 0.5 * eps ** 2 * Hm)
         residuals.append(res)
-    print residuals
+    print(residuals)
     return min(convergence_rates(residuals, epsilons))
 
 
@@ -350,6 +350,6 @@ def convergence_rates(E_values, eps_values):
     r = []
     for i in range(1, len(eps_values)):
         r.append(log(E_values[i] / E_values[i - 1]) / log(eps_values[i] / eps_values[i - 1]))
-    print r
+    print(r)
     return r
 

@@ -9,7 +9,6 @@ class AdjFloat(OverloadedType, float):
 
     def __init__(self, *args, **kwargs):
         super(AdjFloat, self).__init__(*args, **kwargs)
-        float.__init__(self, *args, **kwargs)
 
     def __mul__(self, other):
         output = float.__mul__(self, other)

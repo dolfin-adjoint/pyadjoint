@@ -1,7 +1,5 @@
-import backend
-
 # Type dependencies
-import block
+from . import block
 
 # TOOD: Save/checkpoint functions always. Not just on assign.
 
@@ -112,7 +110,7 @@ class Tape(object):
             pos = nx.spring_layout(G, pos=fixed_node_positions, fixed=fixed_node_positions.keys())
 
 
-            node_colors = nx.get_node_attributes(G, 'node_color').values()
+            node_colors = list(nx.get_node_attributes(G, 'node_color').values())
             nx.draw_networkx_nodes(G, pos,
                                    node_color=node_colors,
                                    node_size=500,

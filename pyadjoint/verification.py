@@ -1,8 +1,8 @@
 import logging
 
 # Type dependencies
-import overloaded_type
-import reduced_functional
+from . import overloaded_type
+from . import reduced_functional
 
 
 def taylor_test(J, m, h, dJdm=None, Hm=None):
@@ -42,7 +42,7 @@ def taylor_test(J, m, h, dJdm=None, Hm=None):
 
     if min(residuals) < 1E-15:
         logging.warning("The taylor remainder is close to machine precision.")
-    print residuals
+    print(residuals)
     return min(convergence_rates(residuals, epsilons))
 
 
@@ -51,6 +51,6 @@ def convergence_rates(E_values, eps_values):
     r = []
     for i in range(1, len(eps_values)):
         r.append(log(E_values[i]/E_values[i-1])/log(eps_values[i]/eps_values[i-1]))
-    print r
+    print(r)
     return r
 

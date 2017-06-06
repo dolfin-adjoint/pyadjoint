@@ -88,7 +88,7 @@ def _test_adjoint(J, f):
         residuals.append(residual)
 
     r = convergence_rates(residuals, eps_)
-    print r
+    print(r)
     #print residuals
 
     tol = 1E-1

@@ -52,6 +52,15 @@ def test_ignored_expression_attributes():
     tmp = Expression("1", degree=1, annotate_tape=False)
     ignored_attrs += dir(tmp)
 
+    from sys import version_info
+    if version_info.major < 3:
+        # Attributes added in python3
+        ignored_attrs.append("__dir__")
+        ignored_attrs.append("__init_subclass__")
+    elif version_info.minor < 6:
+        # Attributes added in python3.6
+        ignored_attrs.append("__init_subclass__")
+
     from fenics_adjoint.types.expression import _IGNORED_EXPRESSION_ATTRIBUTES 
     assert(set(ignored_attrs) == set(_IGNORED_EXPRESSION_ATTRIBUTES))
 
@@ -259,14 +268,14 @@ def _test_adjoint_constant(J, c):
         tape.evaluate()
 
         dJdc = c.get_adj_output()
-        print dJdc
+        print(dJdc)
 
         residual = abs(Jp - Jm - eps*dJdc)
         residuals.append(residual)
 
-    print residuals
+    print(residuals)
     r = convergence_rates(residuals, eps_)
-    print r
+    print(r)
 
     tol = 1E-1
     assert( r[-1] > 2-tol )
@@ -296,9 +305,9 @@ def _test_adjoint(J, f):
         residual = abs(Jp - Jm - eps*dJdf.inner(h.vector()))
         residuals.append(residual)
 
-    print residuals
+    print(residuals)
     r = convergence_rates(residuals, eps_)
-    print r
+    print(r)
 
     tol = 1E-1
     assert( r[-1] > 2-tol )
