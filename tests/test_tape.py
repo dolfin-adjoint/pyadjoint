@@ -1,3 +1,4 @@
+import pytest
 from fenics import *
 from fenics_adjoint import *
 
@@ -21,14 +22,8 @@ def test_tape_visualisation():
     tape = get_working_tape()
     tape.visualise(filename="graph.pdf")
 
-
+@pytest.mark.skipif_module_is_missing("pygraphviz")
 def test_tape_time():
-    try:
-        import pygraphviz
-    except ImportError:
-        # No need to run test if pygraphviz is not installed.
-        return False
-
     set_working_tape(Tape())
 
     mesh = IntervalMesh(10, 0, 1)
