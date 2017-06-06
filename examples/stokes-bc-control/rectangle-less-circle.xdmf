@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<Xdmf Version="3.0">
+  <Domain Name="Mesh produced by DOLFIN">
+    <Grid Name="mesh" GridType="Uniform">
+      <Topology NumberOfElements="3490" TopologyType="Triangle" NodesPerElement="3">
+        <DataItem Dimensions="3490 3" NumberType="UInt" Format="HDF">rectangle-less-circle.h5:/Mesh/mesh/topology</DataItem>
+      </Topology>
+      <Geometry GeometryType="XY">
+        <DataItem Dimensions="1851 2" Format="HDF">rectangle-less-circle.h5:/Mesh/mesh/geometry</DataItem>
+      </Geometry>
+    </Grid>
+  </Domain>
+</Xdmf>
