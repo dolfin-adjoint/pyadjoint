@@ -21,7 +21,13 @@ def solve(*args, **kwargs):
     output = backend.solve(*args, **kwargs)
 
     if annotate_tape:
-        block_output = args[1].create_block_output()
+        # TODO: Consider if this should be here or in the block constructor.
+        #       The immediate reason output isn't added in the block constructor is because it should happen after
+        #       the backend call, but the block must be constructed (add dependencies) before the backend call.
+        if hasattr(args[1], "create_block_output"):
+            block_output = args[1].create_block_output()
+        else:
+            block_output = args[1].function.create_block_output()
         block.add_output(block_output)
 
     return output
@@ -45,25 +51,32 @@ class SolveBlock(Block):
                     self.bcs = [args[2]]
             else:
                 self.bcs = []
-
-            if isinstance(self.lhs, ufl.Form) and isinstance(self.rhs, ufl.Form):
-                self.linear = True
-                # Add dependence on coefficients on the right hand side.
-                for c in self.rhs.coefficients():
-                    self.add_dependency(c.get_block_output())
-            else:
-                self.linear = False
-
-            for bc in self.bcs:
-                self.add_dependency(bc.get_block_output())
-
-            for c in self.lhs.coefficients():
-                self.add_dependency(c.get_block_output())
-
             #self.add_output(self.func.create_block_output())
         else:
             # Linear algebra problem.
-            raise NotImplementedError
+            # TODO: Consider checking if attributes exist.
+            A = args[0]
+            u = args[1]
+            b = args[2]
+
+            self.lhs = A.form
+            self.rhs = b.form
+            self.bcs = A.bcs
+            self.func = u.function
+
+        if isinstance(self.lhs, ufl.Form) and isinstance(self.rhs, ufl.Form):
+            self.linear = True
+            # Add dependence on coefficients on the right hand side.
+            for c in self.rhs.coefficients():
+                self.add_dependency(c.get_block_output())
+        else:
+            self.linear = False
+
+        for bc in self.bcs:
+            self.add_dependency(bc.get_block_output())
+
+        for c in self.lhs.coefficients():
+            self.add_dependency(c.get_block_output())
 
     def __str__(self):
         return "{} = {}".format(str(self.lhs), str(self.rhs))
@@ -125,9 +138,12 @@ class SolveBlock(Block):
 
                 if isinstance(c, backend.Function):
                     dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(c.function_space()))
+                    dFdm_prime = backend.adjoint(dFdm)
                     dFdm = backend.assemble(dFdm)
+                    dFdm_prime = backend.assemble(dFdm_prime)
 
                     dFdm_mat = backend.as_backend_type(dFdm).mat()
+                    dFdm_prime_mat = backend.as_backend_type(dFdm_prime).mat()
 
                     import numpy as np
                     bc_rows = []
@@ -137,9 +153,11 @@ class SolveBlock(Block):
 
                     dFdm.zero(np.array(bc_rows, dtype=np.intc))
 
-                    dFdm_mat.transpose(dFdm_mat)
+                    print dFdm_mat.size
+                    print dFdm_prime_mat.size
+                    dFdm_mat.transpose(dFdm_prime_mat)
 
-                    block_output.add_adj_output(dFdm*adj_var.vector())
+                    block_output.add_adj_output(dFdm_prime*adj_var.vector())
                 elif isinstance(c, backend.Constant):
                     dFdm = -backend.derivative(F_form, c_rep, backend.Constant(1))
                     dFdm = backend.assemble(dFdm)
@@ -148,11 +166,16 @@ class SolveBlock(Block):
 
                     block_output.add_adj_output(dFdm.inner(adj_var.vector()))
                 elif isinstance(c, backend.DirichletBC):
-                    tmp_bc = backend.DirichletBC(V, adj_var, c.user_sub_domain())
-                    adj_output = Function(V)
-                    tmp_bc.apply(adj_output.vector())
+                    #C, D = V.split()
+                    #tmp_adj_var = backend.Function(C.collapse())
+                    #noneed = backend.Function(D.collapse())
+                    #backend.assign([tmp_adj_var, noneed], adj_var)
+                    tmp_bc = backend.DirichletBC(c.function_space(), adj_var.sub(0), *c.domain_args)
+                    #adj_output = backend.Function(V)
+                    #tmp_bc.apply(adj_output.vector())
 
-                    block_output.add_adj_output(adj_output.vector())
+                    #backend.assign([tmp_adj_var, noneed], adj_output)
+                    block_output.add_adj_output([tmp_bc])
                 elif isinstance(c, backend.Expression):
                     dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(V)) # TODO: What space to use?
                     dFdm = backend.assemble(dFdm)
@@ -236,9 +259,9 @@ class SolveBlock(Block):
                     bc.apply(dFdm)
 
             elif isinstance(c, backend.DirichletBC):
-                tmp_bc = backend.DirichletBC(V, tlm_value, c_rep.user_sub_domain())
+                #tmp_bc = backend.DirichletBC(V, tlm_value, c_rep.user_sub_domain())
                 dFdm = backend.Function(V).vector()
-                tmp_bc.apply(dFdm)
+                tlm_value.apply(dFdm)
 
             elif isinstance(c, backend.Expression):
                 dFdm = -backend.derivative(F_form, c_rep, tlm_value)
@@ -327,15 +350,19 @@ class SolveBlock(Block):
             # If m = DirichletBC then d^2F(u,m)/dm^2 = 0 and d^2F(u,m)/dudm = 0,
             # so we only have the term dF(u,m)/dm * adj_sol2
             if isinstance(c, backend.DirichletBC):
-                tmp_bc = backend.DirichletBC(V, Function(V, adj_sol2), c.user_sub_domain())
-                adj_output = Function(V)
-                tmp_bc.apply(adj_output.vector())
+                tmp_bc = backend.DirichletBC(V, Function(V, adj_sol2), *c.domain_args)
+                #adj_output = Function(V)
+                #tmp_bc.apply(adj_output.vector())
 
-                bo.add_hessian_output(adj_output.vector())
+                bo.add_hessian_output([tmp_bc])
                 continue
 
             dFdm = F.derivative(c_rep, function_space=V)
-            d2Fdudm = dFdu.derivative(c_rep, tlm_output)
+            try:
+                d2Fdudm = dFdu.derivative(c_rep, tlm_output)
+            except ufl.log.UFLException:
+                continue
+
 
             # We need to add terms from every other dependency
             # i.e. the terms d^2F/dm_1dm_2

@@ -1,4 +1,5 @@
 from .tape import get_working_tape
+from .drivers import compute_gradient
 
 # Type dependencies
 from . import overloaded_type
@@ -19,7 +20,7 @@ class ReducedFunctional(object):
 
     """
     def __init__(self, functional, control):
-        self.functional_block_output = functional.block_output 
+        self.functional = functional
         self.control = control
         self.tape = get_working_tape()
 
@@ -44,11 +45,7 @@ class ReducedFunctional(object):
                 Should be an instance of the same type as the control.
 
         """
-        self.tape.reset_variables()
-        self.functional_block_output.set_initial_adj_input(1.0)
-        self.tape.evaluate(self.block_idx)
-
-        return self.control.get_derivative(options=options)
+        return compute_gradient(self.functional, self.control)
 
     def __call__(self, value):
         """Computes the reduced functional with supplied control value.
@@ -68,7 +65,7 @@ class ReducedFunctional(object):
         for i in range(self.block_idx, len(blocks)):
             blocks[i].recompute()
 
-        return self.functional_block_output.get_saved_output()
+        return self.functional.block_output.get_saved_output()
 
 
 

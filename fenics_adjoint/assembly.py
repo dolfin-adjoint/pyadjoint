@@ -21,6 +21,25 @@ def assemble(*args, **kwargs):
 
     return output
 
+def assemble_system(*args, **kwargs):
+    A_form = args[0]
+    b_form = args[1]
+
+    A, b = backend.assemble_system(*args, **kwargs)
+
+    if "bcs" in kwargs:
+        bcs = kwargs["bcs"]
+    elif len(args) > 2:
+        bcs = args[2]
+    else:
+        bcs = []
+
+    A.form = A_form
+    A.bcs = bcs
+    b.form = b_form
+    b.bcs = bcs
+
+    return A, b
 
 class AssembleBlock(Block):
     def __init__(self, form):
@@ -33,6 +52,7 @@ class AssembleBlock(Block):
         return str(self.form)
 
     def evaluate_adj(self):
+        print "Assemble"
         adj_input = self.get_outputs()[0].get_adj_output()
 
         replaced_coeffs = {}

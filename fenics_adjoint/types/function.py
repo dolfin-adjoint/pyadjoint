@@ -29,19 +29,27 @@ class Function(OverloadedType, backend.Function):
 
         return ret
 
+    def vector(self):
+        vec = backend.Function.vector(self)
+        vec.function = self
+        return vec
+
     def get_derivative(self, options={}):
         adj_value = self.get_adj_output()
+        return self._ad_convert_type(adj_value, options)
+
+    def _ad_convert_type(self, value, options={}):
         riesz_representation = options.pop("riesz_representation", "l2")
 
         if riesz_representation == "l2":
-            func = Function(self.function_space(), adj_value)
+            func = Function(self.function_space(), value)
             return func
         elif riesz_representation == "L2":
             ret = Function(self.function_space())
             u = backend.TrialFunction(self.function_space())
             v = backend.TestFunction(self.function_space())
-            M = backend.assemble(u*v*backend.dx)
-            backend.solve(M, ret.vector(), adj_value)
+            M = backend.assemble(u * v * backend.dx)
+            backend.solve(M, ret.vector(), value)
             return ret
 
     def _ad_create_checkpoint(self):
