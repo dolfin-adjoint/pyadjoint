@@ -3,6 +3,7 @@ import ufl
 from pyadjoint.tape import get_working_tape
 from pyadjoint.block import Block
 from .types import Function, DirichletBC
+from .types.function_space import extract_subfunction
 
 # Type dependencies
 import dolfin
@@ -82,6 +83,8 @@ class SolveBlock(Block):
         return "{} = {}".format(str(self.lhs), str(self.rhs))
 
     def evaluate_adj(self):
+        #t = backend.Timer("Solve:evaluate_adj")
+        #t4 = backend.Timer("Solve:adj:Prolog")
         fwd_block_output = self.get_outputs()[0]
         u = fwd_block_output.get_output()
         V = u.function_space()
@@ -104,9 +107,7 @@ class SolveBlock(Block):
 
         F_form = backend.replace(F_form, replaced_coeffs)
 
-        # Obtain (dFdu)^T.
         dFdu = backend.derivative(F_form, fwd_block_output.get_saved_output(), backend.TrialFunction(u.function_space()))
-
         dFdu = backend.assemble(dFdu)
 
         # Get dJdu from previous calculations.
@@ -128,7 +129,6 @@ class SolveBlock(Block):
         dFdu_mat = backend.as_backend_type(dFdu).mat()
         dFdu_mat.transpose(dFdu_mat)
 
-        # Solve the adjoint equations.
         backend.solve(dFdu, adj_var.vector(), dJdu)
 
         for block_output in self.get_dependencies():
@@ -137,27 +137,15 @@ class SolveBlock(Block):
                 c_rep = replaced_coeffs.get(c, c)
 
                 if isinstance(c, backend.Function):
-                    dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(c.function_space()))
-                    dFdm_prime = backend.adjoint(dFdm)
-                    dFdm = backend.assemble(dFdm)
-                    dFdm_prime = backend.assemble(dFdm_prime)
-
-                    dFdm_mat = backend.as_backend_type(dFdm).mat()
-                    dFdm_prime_mat = backend.as_backend_type(dFdm_prime).mat()
-
-                    import numpy as np
-                    bc_rows = []
+                    tmp_adj_var = adj_var.copy(deepcopy=True)
                     for bc in bcs:
-                        for key in bc.get_boundary_values():
-                            bc_rows.append(key)
+                        bc.apply(tmp_adj_var.vector())
+                    dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(c.function_space()))
+                    dFdm = backend.adjoint(dFdm)
+                    dFdm = dFdm*tmp_adj_var
+                    dFdm = backend.assemble(dFdm)
 
-                    dFdm.zero(np.array(bc_rows, dtype=np.intc))
-
-                    print dFdm_mat.size
-                    print dFdm_prime_mat.size
-                    dFdm_mat.transpose(dFdm_prime_mat)
-
-                    block_output.add_adj_output(dFdm_prime*adj_var.vector())
+                    block_output.add_adj_output(dFdm)
                 elif isinstance(c, backend.Constant):
                     dFdm = -backend.derivative(F_form, c_rep, backend.Constant(1))
                     dFdm = backend.assemble(dFdm)
@@ -166,15 +154,8 @@ class SolveBlock(Block):
 
                     block_output.add_adj_output(dFdm.inner(adj_var.vector()))
                 elif isinstance(c, backend.DirichletBC):
-                    #C, D = V.split()
-                    #tmp_adj_var = backend.Function(C.collapse())
-                    #noneed = backend.Function(D.collapse())
-                    #backend.assign([tmp_adj_var, noneed], adj_var)
-                    tmp_bc = backend.DirichletBC(c.function_space(), adj_var.sub(0), *c.domain_args)
-                    #adj_output = backend.Function(V)
-                    #tmp_bc.apply(adj_output.vector())
+                    tmp_bc = backend.DirichletBC(c.function_space(), extract_subfunction(adj_var, c.function_space()), *c.domain_args)
 
-                    #backend.assign([tmp_adj_var, noneed], adj_output)
                     block_output.add_adj_output([tmp_bc])
                 elif isinstance(c, backend.Expression):
                     dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(V)) # TODO: What space to use?
@@ -313,16 +294,16 @@ class SolveBlock(Block):
         d2Fdu2 = dFdu.derivative(fwd_block_output.get_saved_output(), tlm_output)
 
         # TODO: First-order adjoint solution should be possible to obtain from the earlier adjoint computations.
-        adj_sol = backend.Function(V).vector()
+        adj_sol = backend.Function(V)
         # Solve the (first order) adjoint equation
-        backend.solve(dFdu.data, adj_sol, adj_input)
+        backend.solve(dFdu.data, adj_sol.vector(), adj_input)
 
         # Second-order adjoint (soa) solution
-        adj_sol2 = backend.Function(V).vector()
+        adj_sol2 = backend.Function(V)
 
         # Start piecing together the rhs of the soa equation
         b = hessian_input
-        b -= d2Fdu2*adj_sol
+        b -= d2Fdu2*adj_sol.vector()
 
         for bo in self.get_dependencies():
             c = bo.get_output()
@@ -334,10 +315,10 @@ class SolveBlock(Block):
 
             if not isinstance(c, backend.DirichletBC):
                 d2Fdudm = dFdu.derivative(c_rep, tlm_input)
-                b -= d2Fdudm*adj_sol
+                b -= d2Fdudm*adj_sol.vector()
 
         # Solve the soa equation
-        backend.solve(dFdu.data, adj_sol2, b)
+        backend.solve(dFdu.data, adj_sol2.vector(), b)
 
         # Iterate through every dependency to evaluate and propagate the hessian information.
         for bo in self.get_dependencies():
@@ -350,7 +331,7 @@ class SolveBlock(Block):
             # If m = DirichletBC then d^2F(u,m)/dm^2 = 0 and d^2F(u,m)/dudm = 0,
             # so we only have the term dF(u,m)/dm * adj_sol2
             if isinstance(c, backend.DirichletBC):
-                tmp_bc = backend.DirichletBC(V, Function(V, adj_sol2), *c.domain_args)
+                tmp_bc = backend.DirichletBC(V, adj_sol2, *c.domain_args)
                 #adj_output = Function(V)
                 #tmp_bc.apply(adj_output.vector())
 
@@ -358,6 +339,7 @@ class SolveBlock(Block):
                 continue
 
             dFdm = F.derivative(c_rep, function_space=V)
+            # TODO: Actually implement split annotations properly.
             try:
                 d2Fdudm = dFdu.derivative(c_rep, tlm_output)
             except ufl.log.UFLException:
@@ -384,15 +366,15 @@ class SolveBlock(Block):
                 if d2Fdm2.data is None:
                     continue
 
-                output = d2Fdm2*adj_sol
+                output = d2Fdm2*adj_sol.vector()
 
                 if isinstance(c, backend.Expression):
                     bo.add_hessian_output([(-output, V)])
                 else:
                     bo.add_hessian_output(-output)
 
-            output = dFdm * adj_sol2
-            output += d2Fdudm*adj_sol
+            output = dFdm * adj_sol2.vector()
+            output += d2Fdudm*adj_sol.vector()
 
             if isinstance(c, backend.Expression):
                 bo.add_hessian_output([(-output, V)])

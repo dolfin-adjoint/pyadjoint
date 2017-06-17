@@ -26,8 +26,6 @@ class BlockOutput(object):
         if self.hessian_value is None:
             self.hessian_value = val
         else:
-            print val
-            print self.hessian_value
             self.hessian_value += val
 
     def get_adj_output(self):

@@ -52,7 +52,7 @@ class AssembleBlock(Block):
         return str(self.form)
 
     def evaluate_adj(self):
-        print "Assemble"
+        #t = backend.Timer("Assemble:evaluate_adj")
         adj_input = self.get_outputs()[0].get_adj_output()
 
         replaced_coeffs = {}

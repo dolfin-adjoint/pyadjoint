@@ -1,8 +1,7 @@
-from .tape import get_working_tape
+from .tape import get_working_tape, pause_annotation, continue_annotation
 from .drivers import compute_gradient
+from .overloaded_type import OverloadedType
 
-# Type dependencies
-from . import overloaded_type
 
 class ReducedFunctional(object):
     """Class representing the reduced functional.
@@ -15,19 +14,25 @@ class ReducedFunctional(object):
         functional (:obj:`OverloadedType`): An instance of an OverloadedType,
             usually :class:`AdjFloat`. This should be the return value of the
             functional you want to reduce.
-        control (:obj:`OverloadedType`): An instance of an OverloadedType,
-            which you want to map to the functional.
+        controls (OverloadedType): An instance of an OverloadedType,
+            which you want to map to the functional. You may also supply a list
+            of such instances if you have multiple controls.
 
     """
-    def __init__(self, functional, control):
+    def __init__(self, functional, controls):
         self.functional = functional
-        self.control = control
         self.tape = get_working_tape()
 
+        if isinstance(controls, OverloadedType):
+            self.controls = [controls]
+        else:
+            self.controls = controls
+
         for i, block in enumerate(self.tape.get_blocks()):
-            if self.control.original_block_output in block.get_dependencies():
-                self.block_idx = i
-                break
+            for control in self.controls:
+                if control.original_block_output in block.get_dependencies():
+                    self.block_idx = i
+                    return
 
     def derivative(self, options={}):
         """Returns the derivative of the functional w.r.t. the control.
@@ -37,21 +42,25 @@ class ReducedFunctional(object):
         is computed and returned.
         
         Args:
-            project (bool): If True returns the L^2 Riesz representation of the derivative. Otherwise the l^2 Riesz
-                representation. Default is False.
+            options (dict): A dictionary of options. To find a list of available options
+                have a look at the specific control type.
 
         Returns:
-            overloaded_type.OverloadedType: The derivative with respect to the control.
+            OverloadedType: The derivative with respect to the control.
                 Should be an instance of the same type as the control.
 
         """
-        return compute_gradient(self.functional, self.control)
+        derivatives = compute_gradient(self.functional, self.controls, options=options, tape=self.tape)
+        if len(derivatives) == 1:
+            return derivatives[0]
+        else:
+            return derivatives
 
-    def __call__(self, value):
+    def __call__(self, values):
         """Computes the reduced functional with supplied control value.
 
         Args:
-            value (:obj:`OverloadedType`): Should be an object of the same type
+            values (:obj:`OverloadedType`): Should be an object of the same type
                 as the control.
 
         Returns:
@@ -59,11 +68,17 @@ class ReducedFunctional(object):
                 of :class:`AdjFloat`.
 
         """
-        self.control.adj_update_value(value)
+        if isinstance(values, OverloadedType):
+            self.controls[0].adj_update_value(values)
+        else:
+            for i, value in enumerate(values):
+                self.controls[i].adj_update_value(value)
 
         blocks = self.tape.get_blocks()
+        pause_annotation()
         for i in range(self.block_idx, len(blocks)):
             blocks[i].recompute()
+        continue_annotation()
 
         return self.functional.block_output.get_saved_output()
 

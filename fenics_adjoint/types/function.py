@@ -84,6 +84,8 @@ class AssignBlock(Block):
 
     def evaluate_adj(self):
         adj_input = self.get_outputs()[0].get_adj_output()
+        if adj_input is None:
+            return
         self.get_dependencies()[1].add_adj_output(adj_input)
 
     def evaluate_tlm(self):
