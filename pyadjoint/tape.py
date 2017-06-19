@@ -4,6 +4,7 @@ from . import block
 # TOOD: Save/checkpoint functions always. Not just on assign.
 
 _working_tape = None
+_stop_annotating = False
 
 
 def get_working_tape():
@@ -13,6 +14,41 @@ def get_working_tape():
 def set_working_tape(tape):
     global _working_tape
     _working_tape = tape
+
+
+def pause_annotation():
+    global _stop_annotating
+    _stop_annotating = True
+
+
+def continue_annotation():
+    global _stop_annotating
+    _stop_annotating = False
+
+
+def annotate_tape(kwargs=None):
+    """Returns True if annotation flag is on, and False if not.
+
+    If kwargs is given, the function will try to extract the
+    annotate keyword. If the annotate keyword is not present it defaults to True.
+    If annotation has been paused, then it will always return False.
+
+    Args:
+        kwargs (dict): A dictionary of keyword arguments to extract from.
+            Note that this should be passed as a dictionary and not actual keyword arguments.
+
+    Returns: bool
+
+    """
+    # TODO: Consider if there is any scenario where one would want the keyword to have
+    # precedence over the global flag.
+    if _stop_annotating:
+        return False
+
+    if kwargs is None:
+        return True
+
+    return kwargs.get("annotate", True)
 
 
 class Tape(object):

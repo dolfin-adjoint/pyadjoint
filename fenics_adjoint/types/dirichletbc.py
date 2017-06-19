@@ -4,6 +4,7 @@ import ufl
 from .constant import Constant
 from .function import Function
 from .expression import Expression
+from .function_space import extract_subfunction
 
 from pyadjoint.tape import get_working_tape
 from pyadjoint.overloaded_type import OverloadedType
@@ -44,6 +45,9 @@ class DirichletBCBlock(Block):
         Block.__init__(self)
         self.bc = bc
         self.function_space = args[0]
+        self.parent_space = self.function_space
+        if hasattr(self.function_space, "_ad_parent_space"):
+            self.parent_space = self.function_space._ad_parent_space
 
         if len(args) >= 2 and isinstance(args[1], OverloadedType):
             self.add_dependency(args[1].block_output)
@@ -59,24 +63,40 @@ class DirichletBCBlock(Block):
             pass
 
     def evaluate_adj(self):
-        adj_input = self.get_outputs()[0].get_adj_output()
+        adj_inputs = self.get_outputs()[0].get_adj_output()
 
-        if adj_input is None:
+        if adj_inputs is None:
             return
 
-        for block_output in self.get_dependencies():
-            c = block_output.output
-            if isinstance(c, Constant):
-                # Constants have float adj values.
-                block_output.add_adj_output(adj_input.sum())
-            elif isinstance(c, Function):
-                # TODO: This gets a little complicated.
-                #       The function may belong to a different space,
-                #       and with `Function.set_allow_extrapolation(True)`
-                #       you can even use the Function outside its domain.
-                # For now we will just assume the FunctionSpace is the same for
-                # the BC and the Function.
-                block_output.add_adj_output(adj_input)
+        for adj_input in adj_inputs:
+            for block_output in self.get_dependencies():
+                c = block_output.output
+                if isinstance(c, Constant):
+                    # Constants have float adj values.
+                    component = self.bc.function_space().component()
+                    const_space = self.bc.function_space()
+                    if len(component) > 0:
+                        const_space = self.bc.function_space().collapse()
+                    assigner = backend.FunctionAssigner(const_space, self.bc.function_space())
+                    adj_output = backend.Function(const_space)
+                    adj_value = backend.Function(self.parent_space)
+                    adj_input.apply(adj_value.vector())
+                    assigner.assign(adj_output, extract_subfunction(adj_value, self.bc.function_space()))
+                    block_output.add_adj_output(adj_output.vector().sum())
+                elif isinstance(c, Function):
+                    # TODO: This gets a little complicated.
+                    #       The function may belong to a different space,
+                    #       and with `Function.set_allow_extrapolation(True)`
+                    #       you can even use the Function outside its domain.
+                    # For now we will just assume the FunctionSpace is the same for
+                    # the BC and the Function.
+                    assigner = backend.FunctionAssigner(c.function_space(), self.bc.function_space())
+                    adj_output = backend.Function(c.function_space())
+                    adj_value = backend.Function(self.parent_space)
+                    adj_input.apply(adj_value.vector())
+                    # TODO: This is not a general solution
+                    assigner.assign(adj_output, extract_subfunction(adj_value, self.bc.function_space()))
+                    block_output.add_adj_output(adj_output.vector())
 
     def evaluate_tlm(self):
         output = self.get_outputs()[0]
@@ -91,24 +111,41 @@ class DirichletBCBlock(Block):
             else:
                 m = tlm_input
 
-            m = backend.project(m, self.function_space)
+            #m = backend.project(m, self.function_space)
+            m = backend.DirichletBC(self.bc.function_space(), m, *self.bc.domain_args)
             output.add_tlm_output(m)
 
     def evaluate_hessian(self):
-        # TODO: Implement
-        hessian_input = self.get_outputs()[0].hessian_value
+        # TODO: This is the exact same as evaluate_adj for now. Consider refactoring for no duplicate code.
+        hessian_inputs = self.get_outputs()[0].hessian_value
 
-        if hessian_input is None:
+        if hessian_inputs is None:
             return
 
-        for block_output in self.get_dependencies():
-            c = block_output.output
-            if isinstance(c, Constant):
-                block_output.add_hessian_output(hessian_input.sum())
-            elif isinstance(c, Function):
-                # TODO: This gets a little complicated.
-                #       See evalute_adj method above.
-                block_output.add_hessian_output(hessian_input)
+        for hessian_input in hessian_inputs:
+            for block_output in self.get_dependencies():
+                c = block_output.output
+                if isinstance(c, Constant):
+                    component = self.bc.function_space().component()
+                    const_space = self.bc.function_space()
+                    if len(component) > 0:
+                        const_space = self.bc.function_space().collapse()
+                    assigner = backend.FunctionAssigner(const_space, self.bc.function_space())
+                    hessian_output = backend.Function(const_space)
+                    hessian_value = backend.Function(self.parent_space)
+                    hessian_input.apply(hessian_value.vector())
+                    assigner.assign(hessian_output, extract_subfunction(hessian_value, self.bc.function_space()))
+                    block_output.add_hessian_output(hessian_output.vector().sum())
+                elif isinstance(c, Function):
+                    # TODO: This gets a little complicated.
+                    #       See evalute_adj method above.
+                    assigner = backend.FunctionAssigner(c.function_space(), self.bc.function_space())
+                    hessian_output = backend.Function(c.function_space())
+                    hessian_value = backend.Function(self.parent_space)
+                    hessian_input.apply(hessian_value.vector())
+                    # TODO: This is not a general solution
+                    assigner.assign(hessian_output, extract_subfunction(hessian_value, self.bc.function_space()))
+                    block_output.add_hessian_output(hessian_output.vector())
 
     def recompute(self):
         # There is nothing to be recomputed.

@@ -3,5 +3,6 @@ from .constant import Constant
 from .dirichletbc import DirichletBC
 from .expression import Expression
 from .function import Function
+from .function_space import FunctionSpace
 
 from .types import create_overloaded_object

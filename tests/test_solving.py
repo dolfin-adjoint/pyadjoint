@@ -95,7 +95,7 @@ def test_mixed_boundary():
     _test_adjoint(J, f)
 
 
-def test_wrt_constant_dirichlet_boundary():
+def xtest_wrt_constant_dirichlet_boundary():
     mesh = UnitSquareMesh(10, 10)
     V = FunctionSpace(mesh, "Lagrange", 1)
 
@@ -135,7 +135,7 @@ def _test_wrt_function_dirichlet_boundary():
     _test_adjoint_function_boundary(J, bc, f)
 
 
-def test_wrt_function_dirichlet_boundary():
+def xtest_wrt_function_dirichlet_boundary():
     mesh = UnitSquareMesh(10,10)
 
     V = FunctionSpace(mesh,"CG",1)
