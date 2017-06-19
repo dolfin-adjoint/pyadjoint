@@ -1,11 +1,12 @@
 import backend
 import ufl
 
+from . import compat
 from .constant import Constant
 from .function import Function
 from .function_space import extract_subfunction
 
-from pyadjoint.tape import get_working_tape
+from pyadjoint.tape import get_working_tape, annotate_tape, no_annotations, stop_annotating
 from pyadjoint.overloaded_type import OverloadedType
 from pyadjoint.block import Block
 
@@ -18,9 +19,10 @@ class DirichletBC(OverloadedType, backend.DirichletBC):
         super(DirichletBC, self).__init__(*args, **kwargs)
 
         # Pop kwarg to pass the kwargs check in backend.DirichletBC.__init__.
-        self.annotate_tape = kwargs.pop("annotate_tape", True)
-        
-        backend.DirichletBC.__init__(self, *args, **kwargs)
+        self.annotate_tape = annotate_tape(kwargs)
+
+        with stop_annotating():
+            backend.DirichletBC.__init__(self, *args, **kwargs)
 
         if self.annotate_tape:
             tape = get_working_tape()
@@ -61,6 +63,7 @@ class DirichletBCBlock(Block):
             #         (Either by actually running our project or by "manually" inserting a project block).
             pass
 
+    @no_annotations
     def evaluate_adj(self):
         adj_inputs = self.get_outputs()[0].get_adj_output()
 
@@ -97,6 +100,7 @@ class DirichletBCBlock(Block):
                     assigner.assign(adj_output, extract_subfunction(adj_value, self.bc.function_space()))
                     block_output.add_adj_output(adj_output.vector())
 
+    @no_annotations
     def evaluate_tlm(self):
         output = self.get_outputs()[0]
 
@@ -106,7 +110,7 @@ class DirichletBCBlock(Block):
                 continue
 
             if isinstance(block_output.output, backend.Function):
-                m = backend.Function(block_output.output.function_space(), tlm_input)
+                m = compat.copy_function(tlm_input)
             else:
                 m = tlm_input
 
@@ -114,6 +118,7 @@ class DirichletBCBlock(Block):
             m = backend.DirichletBC(self.bc.function_space(), m, *self.bc.domain_args)
             output.add_tlm_output(m)
 
+    @no_annotations
     def evaluate_hessian(self):
         # TODO: This is the exact same as evaluate_adj for now. Consider refactoring for no duplicate code.
         hessian_inputs = self.get_outputs()[0].hessian_value
@@ -146,6 +151,7 @@ class DirichletBCBlock(Block):
                     assigner.assign(hessian_output, extract_subfunction(hessian_value, self.bc.function_space()))
                     block_output.add_hessian_output(hessian_output.vector())
 
+    @no_annotations
     def recompute(self):
         # There is nothing to be recomputed.
         pass

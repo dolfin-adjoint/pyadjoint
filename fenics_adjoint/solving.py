@@ -1,6 +1,6 @@
 import backend
 import ufl
-from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
+from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape, no_annotations
 from pyadjoint.block import Block
 from .types import Function, DirichletBC
 from .types.compat import MatrixType, VectorType, new_bc
@@ -83,6 +83,7 @@ class SolveBlock(Block):
     def __str__(self):
         return "{} = {}".format(str(self.lhs), str(self.rhs))
 
+    @no_annotations
     def evaluate_adj(self):
         #t = backend.Timer("Solve:evaluate_adj")
         #t4 = backend.Timer("Solve:adj:Prolog")
@@ -161,13 +162,7 @@ class SolveBlock(Block):
                     else:
                         block_output.add_adj_output(dFdm.vector().inner(adj_var.vector()))
                 elif isinstance(c, backend.DirichletBC):
-                    if backend.__name__ == "dolfin":
-                        tmp_bc = backend.DirichletBC(c.function_space(), extract_subfunction(adj_var, c.function_space()), *c.domain_args)
-                    else:
-                        tmp_bc = backend.DirichletBC(c.function_space(),
-                                                     extract_subfunction(adj_var, c.function_space()),
-                                                     c.sub_domain,
-                                                     method=c.method)
+                    tmp_bc = backend.DirichletBC(c.function_space(), extract_subfunction(adj_var, c.function_space()), *c.domain_args)
 
                     block_output.add_adj_output([tmp_bc])
                 elif isinstance(c, backend.Expression):
@@ -188,6 +183,7 @@ class SolveBlock(Block):
 
                     block_output.add_adj_output([[dFdm*adj_var.vector(), V]])
 
+    @no_annotations
     def evaluate_tlm(self):
         fwd_block_output = self.get_outputs()[0]
         u = fwd_block_output.get_output()
@@ -219,7 +215,7 @@ class SolveBlock(Block):
         bcs = []
         for bc in self.bcs:
             if isinstance(bc, backend.DirichletBC):
-                bc = backend.DirichletBC(bc)
+                bc = new_bc(bc)
                 bc.homogenize()
             bcs.append(bc)
             bc.apply(dFdu)
@@ -254,7 +250,10 @@ class SolveBlock(Block):
 
             elif isinstance(c, backend.DirichletBC):
                 #tmp_bc = backend.DirichletBC(V, tlm_value, c_rep.user_sub_domain())
-                dFdm = backend.Function(V).vector()
+                if backend.__name__ == "dolfin":
+                    dFdm = backend.Function(V).vector()
+                else:
+                    dFdm = backend.Function(V)
                 tlm_value.apply(dFdm)
 
             elif isinstance(c, backend.Expression):
@@ -270,6 +269,7 @@ class SolveBlock(Block):
 
             fwd_block_output.add_tlm_output(dudm)
 
+    @no_annotations
     def evaluate_hessian(self):
         # First fetch all relevant values
         fwd_block_output = self.get_outputs()[0]
@@ -394,6 +394,7 @@ class SolveBlock(Block):
             else:
                 bo.add_hessian_output(-output)
 
+    @no_annotations
     def recompute(self):
         func = self.func
         replace_lhs_coeffs = {}
