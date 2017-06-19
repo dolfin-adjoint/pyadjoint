@@ -51,6 +51,12 @@ class AdjFloat(OverloadedType, float):
             return NotImplemented
         return self._add(other, output)
 
+    def get_derivative(self, options={}):
+        return AdjFloat(self.get_adj_output())
+
+    def adj_update_value(self, value):
+        self.original_block_output.checkpoint = value
+
     def _ad_create_checkpoint(self):
         # Floats are immutable.
         return self
