@@ -49,7 +49,7 @@ def annotate_tape(kwargs=None):
     if kwargs is None:
         return True
 
-    return kwargs.get("annotate", True)
+    return kwargs.pop("annotate", True)
 
 
 class Tape(object):
