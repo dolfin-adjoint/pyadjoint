@@ -4,7 +4,7 @@ from . import block
 # TOOD: Save/checkpoint functions always. Not just on assign.
 
 _working_tape = None
-_stop_annotating = False
+_stop_annotating = 0
 
 
 def get_working_tape():
@@ -18,12 +18,13 @@ def set_working_tape(tape):
 
 def pause_annotation():
     global _stop_annotating
-    _stop_annotating = True
+    _stop_annotating += 1
 
 
 def continue_annotation():
     global _stop_annotating
-    _stop_annotating = False
+    _stop_annotating -= 1
+    return _stop_annotating <= 0
 
 
 def annotate_tape(kwargs=None):
@@ -42,7 +43,7 @@ def annotate_tape(kwargs=None):
     """
     # TODO: Consider if there is any scenario where one would want the keyword to have
     # precedence over the global flag.
-    if _stop_annotating:
+    if _stop_annotating > 0:
         return False
 
     if kwargs is None:

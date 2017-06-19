@@ -1,4 +1,5 @@
 import logging
+from .tape import pause_annotation, continue_annotation
 
 # Type dependencies
 from . import overloaded_type
@@ -25,7 +26,8 @@ def taylor_test(J, m, h, dJdm=None, Hm=None):
         float: The smallest computed convergence rate of the tested perturbations.
 
     """
-
+    print("Running Taylor test")
+    pause_annotation()
     Jm = J(m)
     dJdm = h._ad_dot(J.derivative()) if dJdm is None else dJdm
     Hm = 0 if Hm is None else Hm
@@ -42,7 +44,8 @@ def taylor_test(J, m, h, dJdm=None, Hm=None):
 
     if min(residuals) < 1E-15:
         logging.warning("The taylor remainder is close to machine precision.")
-    print(residuals)
+    print("Computed residuals: {}".format(residuals))
+    continue_annotation()
     return min(convergence_rates(residuals, epsilons))
 
 
@@ -76,6 +79,6 @@ def convergence_rates(E_values, eps_values):
     r = []
     for i in range(1, len(eps_values)):
         r.append(log(E_values[i]/E_values[i-1])/log(eps_values[i]/eps_values[i-1]))
-    print(r)
+    print("Computed convergence rates: {}".format(r))
     return r
 
