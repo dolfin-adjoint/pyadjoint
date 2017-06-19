@@ -5,8 +5,6 @@ timestep
 from firedrake import *
 from firedrake_adjoint import *
 
-parameters["pyop2_options"]["lazy_evaluation"] = False
-
 set_log_level(CRITICAL)
 
 n = 30
