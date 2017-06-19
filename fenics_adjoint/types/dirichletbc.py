@@ -3,7 +3,6 @@ import ufl
 
 from .constant import Constant
 from .function import Function
-from .expression import Expression
 from .function_space import extract_subfunction
 
 from pyadjoint.tape import get_working_tape
