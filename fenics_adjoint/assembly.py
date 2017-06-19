@@ -1,16 +1,17 @@
 import backend
 import ufl
-from pyadjoint.tape import get_working_tape
+from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
 from pyadjoint.block import Block
 from .types import create_overloaded_object
 
 
 def assemble(*args, **kwargs):
-    annotate_tape = kwargs.pop("annotate_tape", True)
-    output = backend.assemble(*args, **kwargs)
+    annotate = annotate_tape(kwargs)
+    with stop_annotating():
+        output = backend.assemble(*args, **kwargs)
     output = create_overloaded_object(output)
 
-    if annotate_tape:
+    if annotate:
         form = args[0]
         block = AssembleBlock(form)
 

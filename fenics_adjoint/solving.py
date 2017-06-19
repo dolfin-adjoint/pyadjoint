@@ -1,6 +1,6 @@
 import backend
 import ufl
-from pyadjoint.tape import get_working_tape
+from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
 from pyadjoint.block import Block
 from .types import Function, DirichletBC
 from .types.function_space import extract_subfunction
@@ -12,14 +12,15 @@ import dolfin
 
 
 def solve(*args, **kwargs):
-    annotate_tape = kwargs.pop("annotate_tape", True)
+    annotate = annotate_tape(kwargs)
 
     if annotate_tape:
         tape = get_working_tape()
         block = SolveBlock(*args, **kwargs)
         tape.add_block(block)
 
-    output = backend.solve(*args, **kwargs)
+    with stop_annotating():
+        output = backend.solve(*args, **kwargs)
 
     if annotate_tape:
         # TODO: Consider if this should be here or in the block constructor.

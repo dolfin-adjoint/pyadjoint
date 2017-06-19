@@ -1,5 +1,5 @@
 import backend
-from pyadjoint.tape import get_working_tape
+from pyadjoint.tape import get_working_tape, annotate_tape
 from pyadjoint.block import Block
 from pyadjoint.overloaded_type import OverloadedType
 
@@ -16,15 +16,15 @@ class Function(OverloadedType, backend.Function):
         return Function(c.function_space(), c.vector())
 
     def assign(self, other, *args, **kwargs):
-        annotate_tape = kwargs.pop("annotate_tape", True)
-        if annotate_tape:
+        annotate = annotate_tape(kwargs)
+        if annotate:
             block = AssignBlock(self, other)
             tape = get_working_tape()
             tape.add_block(block)
 
         ret = super(Function, self).assign(other, *args, **kwargs)
 
-        if annotate_tape:
+        if annotate:
             block.add_output(self.create_block_output())
 
         return ret
