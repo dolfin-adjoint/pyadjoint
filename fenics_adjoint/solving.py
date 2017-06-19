@@ -3,10 +3,10 @@ import ufl
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
 from pyadjoint.block import Block
 from .types import Function, DirichletBC
+from .types.compat import MatrixType, VectorType, new_bc
 from .types.function_space import extract_subfunction
 
 # Type dependencies
-import dolfin
 
 # TODO: Clean up: some inaccurate comments. Reused code. Confusing naming with dFdm when denoting the control as c.
 
@@ -122,7 +122,7 @@ class SolveBlock(Block):
         bcs = []
         for bc in self.bcs:
             if isinstance(bc, backend.DirichletBC):
-                bc = backend.DirichletBC(bc)
+                bc = new_bc(bc)
                 bc.homogenize()
             bcs.append(bc)
             bc.apply(dFdu)
@@ -140,7 +140,10 @@ class SolveBlock(Block):
                 if isinstance(c, backend.Function):
                     tmp_adj_var = adj_var.copy(deepcopy=True)
                     for bc in bcs:
-                        bc.apply(tmp_adj_var.vector())
+                        if backend.__name__ == "dolfin":
+                            bc.apply(tmp_adj_var.vector())
+                        else:
+                            bc.apply(tmp_adj_var)
                     dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(c.function_space()))
                     dFdm = backend.adjoint(dFdm)
                     dFdm = dFdm*tmp_adj_var
@@ -153,9 +156,18 @@ class SolveBlock(Block):
 
                     [bc.apply(dFdm) for bc in bcs]
 
-                    block_output.add_adj_output(dFdm.inner(adj_var.vector()))
+                    if backend.__name__ == "dolfin":
+                        block_output.add_adj_output(dFdm.inner(adj_var.vector()))
+                    else:
+                        block_output.add_adj_output(dFdm.vector().inner(adj_var.vector()))
                 elif isinstance(c, backend.DirichletBC):
-                    tmp_bc = backend.DirichletBC(c.function_space(), extract_subfunction(adj_var, c.function_space()), *c.domain_args)
+                    if backend.__name__ == "dolfin":
+                        tmp_bc = backend.DirichletBC(c.function_space(), extract_subfunction(adj_var, c.function_space()), *c.domain_args)
+                    else:
+                        tmp_bc = backend.DirichletBC(c.function_space(),
+                                                     extract_subfunction(adj_var, c.function_space()),
+                                                     c.sub_domain,
+                                                     method=c.method)
 
                     block_output.add_adj_output([tmp_bc])
                 elif isinstance(c, backend.Expression):
@@ -507,13 +519,13 @@ class Form(object):
         if isinstance(other, Form):
             return self.data*other
 
-        if isinstance(other, dolfin.cpp.la.GenericMatrix):
+        if isinstance(other, MatrixType):
             if self.rank >= 2:
                 return self.data*other
             else:
                 # We (almost?) always want Matrix*Vector multiplication in this case.
                 return other*self.data
-        elif isinstance(other, dolfin.cpp.la.GenericVector):
+        elif isinstance(other, VectorType):
             if self.rank >= 2:
                 return self.data*other
             else:
