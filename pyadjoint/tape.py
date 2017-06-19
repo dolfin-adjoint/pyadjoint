@@ -1,5 +1,6 @@
 # Type dependencies
 from . import block
+from contextlib import contextmanager
 
 # TOOD: Save/checkpoint functions always. Not just on assign.
 
@@ -25,6 +26,14 @@ def continue_annotation():
     global _stop_annotating
     _stop_annotating -= 1
     return _stop_annotating <= 0
+
+
+@contextmanager
+def stop_annotating():
+    """Context manager that pauses annotation for the duration of the block."""
+    pause_annotation()
+    yield
+    continue_annotation()
 
 
 def annotate_tape(kwargs=None):
