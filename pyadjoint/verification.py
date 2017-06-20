@@ -1,5 +1,5 @@
 import logging
-from .tape import pause_annotation, continue_annotation
+from .tape import stop_annotating
 
 # Type dependencies
 from . import overloaded_type
@@ -27,25 +27,24 @@ def taylor_test(J, m, h, dJdm=None, Hm=None):
 
     """
     print("Running Taylor test")
-    pause_annotation()
-    Jm = J(m)
-    dJdm = h._ad_dot(J.derivative()) if dJdm is None else dJdm
-    Hm = 0 if Hm is None else Hm
+    with stop_annotating():
+        Jm = J(m)
+        dJdm = h._ad_dot(J.derivative()) if dJdm is None else dJdm
+        Hm = 0 if Hm is None else Hm
 
-    residuals = []
-    epsilons = [0.01/2**i for i in range(4)]
-    for eps in epsilons:
+        residuals = []
+        epsilons = [0.01/2**i for i in range(4)]
+        for eps in epsilons:
 
-        perturbation = h._ad_mul(eps)
-        Jp = J(m._ad_add(perturbation))
+            perturbation = h._ad_mul(eps)
+            Jp = J(m._ad_add(perturbation))
 
-        res = abs(Jp - Jm - eps*dJdm - 0.5*eps**2*Hm)
-        residuals.append(res)
+            res = abs(Jp - Jm - eps*dJdm - 0.5*eps**2*Hm)
+            residuals.append(res)
 
-    if min(residuals) < 1E-15:
-        logging.warning("The taylor remainder is close to machine precision.")
-    print("Computed residuals: {}".format(residuals))
-    continue_annotation()
+        if min(residuals) < 1E-15:
+            logging.warning("The taylor remainder is close to machine precision.")
+        print("Computed residuals: {}".format(residuals))
     return min(convergence_rates(residuals, epsilons))
 
 
