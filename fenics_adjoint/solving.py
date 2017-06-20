@@ -254,7 +254,7 @@ class SolveBlock(Block):
                     dFdm = backend.Function(V).vector()
                 else:
                     dFdm = backend.Function(V)
-                tlm_value.apply(dFdm)
+                tlm_value.apply(dFdu, dFdm)
 
             elif isinstance(c, backend.Expression):
                 dFdm = -backend.derivative(F_form, c_rep, tlm_value)
