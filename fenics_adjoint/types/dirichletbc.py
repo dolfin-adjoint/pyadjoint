@@ -47,7 +47,7 @@ class DirichletBCBlock(Block):
         self.bc = bc
         self.function_space = args[0]
         self.parent_space = self.function_space
-        if hasattr(self.function_space, "_ad_parent_space"):
+        if hasattr(self.function_space, "_ad_parent_space") and self.function_space._ad_parent_space is not None:
             self.parent_space = self.function_space._ad_parent_space
 
         if len(args) >= 2 and isinstance(args[1], OverloadedType):
@@ -74,17 +74,23 @@ class DirichletBCBlock(Block):
             for block_output in self.get_dependencies():
                 c = block_output.output
                 if isinstance(c, Constant):
-                    # Constants have float adj values.
-                    component = self.bc.function_space().component()
-                    const_space = self.bc.function_space()
-                    if len(component) > 0:
-                        const_space = self.bc.function_space().collapse()
-                    assigner = backend.FunctionAssigner(const_space, self.bc.function_space())
-                    adj_output = backend.Function(const_space)
-                    adj_value = backend.Function(self.parent_space)
-                    adj_input.apply(adj_value.vector())
-                    assigner.assign(adj_output, extract_subfunction(adj_value, self.bc.function_space()))
-                    block_output.add_adj_output(adj_output.vector().sum())
+                    if backend.__name__ == "firedrake":
+                        component = self.bc.function_space().component
+                        adj_value = backend.Function(self.parent_space)
+                        adj_input.apply(adj_value)
+                        block_output.add_adj_output(adj_value.vector().sum())
+                    else:
+                        # Constants have float adj values.
+                        component = self.bc.function_space().component()
+                        const_space = self.bc.function_space()
+                        if len(component) > 0:
+                            const_space = self.bc.function_space().collapse()
+                        assigner = backend.FunctionAssigner(const_space, self.bc.function_space())
+                        adj_output = backend.Function(const_space)
+                        adj_value = backend.Function(self.parent_space)
+                        adj_input.apply(adj_value.vector())
+                        assigner.assign(adj_output, extract_subfunction(adj_value, self.bc.function_space()))
+                        block_output.add_adj_output(adj_output.vector().sum())
                 elif isinstance(c, Function):
                     # TODO: This gets a little complicated.
                     #       The function may belong to a different space,
@@ -92,13 +98,23 @@ class DirichletBCBlock(Block):
                     #       you can even use the Function outside its domain.
                     # For now we will just assume the FunctionSpace is the same for
                     # the BC and the Function.
-                    assigner = backend.FunctionAssigner(c.function_space(), self.bc.function_space())
-                    adj_output = backend.Function(c.function_space())
-                    adj_value = backend.Function(self.parent_space)
-                    adj_input.apply(adj_value.vector())
-                    # TODO: This is not a general solution
-                    assigner.assign(adj_output, extract_subfunction(adj_value, self.bc.function_space()))
-                    block_output.add_adj_output(adj_output.vector())
+                    if backend.__name__ == "firedrake":
+                        adj_value = backend.Function(self.parent_space)
+                        adj_input.apply(adj_value)
+                        output = adj_value
+                        V = self.bc.function_space()
+                        while V.component:
+                            output = output.sub(V.component)
+                            V = V.parent
+                        block_output.add_adj_output(output)
+                    else:
+                        assigner = backend.FunctionAssigner(c.function_space(), self.bc.function_space())
+                        adj_output = backend.Function(c.function_space())
+                        adj_value = backend.Function(self.parent_space)
+                        adj_input.apply(adj_value.vector())
+                        # TODO: This is not a general solution
+                        assigner.assign(adj_output, extract_subfunction(adj_value, self.bc.function_space()))
+                        block_output.add_adj_output(adj_output.vector())
 
     @no_annotations
     def evaluate_tlm(self):
