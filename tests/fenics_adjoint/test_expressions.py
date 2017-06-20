@@ -50,9 +50,9 @@ def test_ignored_expression_attributes():
         def eval(self, value, x):
             pass
 
-    tmp = _DummyExpressionClass(degree=1, annotate_tape=False)
+    tmp = _DummyExpressionClass(degree=1, annotate=False)
     ignored_attrs += dir(tmp)
-    tmp = Expression("1", degree=1, annotate_tape=False)
+    tmp = Expression("1", degree=1, annotate=False)
     ignored_attrs += dir(tmp)
 
     from sys import version_info
@@ -116,7 +116,7 @@ def test_cpp_inline():
 def test_inline_function_control():
     mesh = IntervalMesh(100, 0, 1)
     V = FunctionSpace(mesh, "Lagrange", 1)
-    g = project(Expression("sin(x[0])", degree=1, annotate_tape=False), V, annotate_tape=False)
+    g = project(Expression("sin(x[0])", degree=1, annotate=False), V, annotate=False)
 
     u = TrialFunction(V)
     v = TestFunction(V)
@@ -179,7 +179,7 @@ def test_time_dependent_class():
         u_1 = Function(V)
         u_1.vector()[:] = 1 
         expr = UserDefinedExpr(m=f, t=dt, degree=1)
-        expr_deriv = UserDefinedExpr(m=1.0, t=dt, degree=1, annotate_tape=False)
+        expr_deriv = UserDefinedExpr(m=1.0, t=dt, degree=1, annotate=False)
         expr._ad_ignored_attributes = ["m"]
         expr.user_defined_derivatives = {f: expr_deriv}
 
@@ -231,7 +231,7 @@ def test_time_dependent_inline():
         u_1 = Function(V)
         u_1.vector()[:] = 1 
         expr = Expression("f*t", f=f, t=dt, degree=1)
-        expr_deriv = Expression("t", t=dt, degree=1, annotate_tape=False)
+        expr_deriv = Expression("t", t=dt, degree=1, annotate=False)
         expr.user_defined_derivatives = {f: expr_deriv}
 
         a = u_1*u*v*dx + dt*expr*inner(grad(u),grad(v))*dx

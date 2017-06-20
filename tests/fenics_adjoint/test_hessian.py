@@ -230,8 +230,8 @@ def test_expression():
     v = TestFunction(V)
     c = Constant(1)
     f = Expression("c*c*c", c=c, degree=1)
-    first_deriv = Expression("3*c*c", c=c, degree=1, annotate_tape=False)
-    second_deriv = Expression("6*c", c=c, degree=1, annotate_tape=False)
+    first_deriv = Expression("3*c*c", c=c, degree=1, annotate=False)
+    second_deriv = Expression("6*c", c=c, degree=1, annotate=False)
     f.user_defined_derivatives = {c: first_deriv}
     first_deriv.user_defined_derivatives = {c: second_deriv}
     bc = DirichletBC(V, Constant(1), "on_boundary")
@@ -271,7 +271,7 @@ def test_burgers():
     def Dt(u, u_, timestep):
         return (u - u_)/timestep
 
-    pr = project(Expression("sin(2*pi*x[0])", degree=1, annotate_tape=False), V, annotate_tape=False)
+    pr = project(Expression("sin(2*pi*x[0])", degree=1, annotate=False), V, annotate=False)
     ic = Function(V)
     ic.vector()[:] = pr.vector()[:]
 
