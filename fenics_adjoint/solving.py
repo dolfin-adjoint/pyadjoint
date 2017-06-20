@@ -110,6 +110,7 @@ class SolveBlock(Block):
         F_form = backend.replace(F_form, replaced_coeffs)
 
         dFdu = backend.derivative(F_form, fwd_block_output.get_saved_output(), backend.TrialFunction(u.function_space()))
+        dFdu = backend.adjoint(dFdu)
         dFdu = backend.assemble(dFdu)
 
         # Get dJdu from previous calculations.
@@ -119,6 +120,9 @@ class SolveBlock(Block):
         if dJdu is None:
             return
 
+        dJdu_copy = dJdu.copy()
+        dFdu_copy = dFdu.copy()
+
         # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
         bcs = []
         for bc in self.bcs:
@@ -126,12 +130,12 @@ class SolveBlock(Block):
                 bc = new_bc(bc)
                 bc.homogenize()
             bcs.append(bc)
-            bc.apply(dFdu)
-
-        dFdu_mat = backend.as_backend_type(dFdu).mat()
-        dFdu_mat.transpose(dFdu_mat)
+            bc.apply(dFdu, dJdu)
 
         backend.solve(dFdu, adj_var.vector(), dJdu)
+
+        adj_var_bdy = Function(V)
+        adj_var_bdy.vector()[:] = dJdu_copy - dFdu_copy*adj_var.vector()
 
         for block_output in self.get_dependencies():
             c = block_output.get_output()
@@ -139,15 +143,9 @@ class SolveBlock(Block):
                 c_rep = replaced_coeffs.get(c, c)
 
                 if isinstance(c, backend.Function):
-                    tmp_adj_var = adj_var.copy(deepcopy=True)
-                    for bc in bcs:
-                        if backend.__name__ == "dolfin":
-                            bc.apply(tmp_adj_var.vector())
-                        else:
-                            bc.apply(tmp_adj_var)
                     dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(c.function_space()))
                     dFdm = backend.adjoint(dFdm)
-                    dFdm = dFdm*tmp_adj_var
+                    dFdm = dFdm*adj_var
                     dFdm = backend.assemble(dFdm)
 
                     block_output.add_adj_output(dFdm)
@@ -162,7 +160,7 @@ class SolveBlock(Block):
                     else:
                         block_output.add_adj_output(dFdm.vector().inner(adj_var.vector()))
                 elif isinstance(c, backend.DirichletBC):
-                    tmp_bc = backend.DirichletBC(c.function_space(), extract_subfunction(adj_var, c.function_space()), *c.domain_args)
+                    tmp_bc = backend.DirichletBC(c.function_space(), extract_subfunction(adj_var_bdy, c.function_space()), *c.domain_args)
 
                     block_output.add_adj_output([tmp_bc])
                 elif isinstance(c, backend.Expression):
