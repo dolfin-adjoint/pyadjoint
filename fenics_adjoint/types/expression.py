@@ -3,7 +3,7 @@ import ufl
 from six import add_metaclass
 
 from pyadjoint.overloaded_type import OverloadedType
-from pyadjoint.tape import get_working_tape
+from pyadjoint.tape import get_working_tape, annotate_tape
 from pyadjoint.block import Block
 from pyadjoint.adjfloat import AdjFloat
 
@@ -127,7 +127,7 @@ else:
 
                 self._ad_initialized = True
 
-                self.annotate_tape = kwargs.pop("annotate_tape", True)
+                self.annotate_tape = annotate_tape(kwargs)
                 if self.annotate_tape:
                     tape = get_working_tape()
                     block = ExpressionBlock(self)
@@ -193,7 +193,7 @@ else:
 
             self._ad_initialized = True
 
-            self.annotate_tape = kwargs.pop("annotate_tape", True)
+            self.annotate_tape = annotate_tape(kwargs)
             if self.annotate_tape:            
                 tape = get_working_tape()
                 block = ExpressionBlock(self)

@@ -249,7 +249,7 @@ def test_projection():
     bc = DirichletBC(V, Constant(1), "on_boundary")
     k = Constant(2.0)
     expr = Expression("sin(k*x[0])", k=k, degree=1)
-    expr.user_defined_derivatives = {k: Expression("x[0]*cos(k*x[0])", k=k, degree=1, annotate_tape=False)}
+    expr.user_defined_derivatives = {k: Expression("x[0]*cos(k*x[0])", k=k, degree=1, annotate=False)}
     f = project(expr, V)
 
     u = TrialFunction(V)
@@ -277,9 +277,9 @@ def test_projection_function():
 
     bc = DirichletBC(V, Constant(1), "on_boundary")
     #g = Function(V)
-    g = project(Expression("sin(x[0])*sin(x[1])", degree=5, annotate_tape=False), V, annotate_tape=False)
+    g = project(Expression("sin(x[0])*sin(x[1])", degree=5, annotate_tape=False), V, annotate=False)
     expr = Expression("sin(g*x[0])", g=g, degree=5)
-    expr.user_defined_derivatives = {g: Expression("x[0]*cos(g*x[0])", g=g, degree=5, annotate_tape=False)}
+    expr.user_defined_derivatives = {g: Expression("x[0]*cos(g*x[0])", g=g, degree=5, annotate=False)}
     f = project(expr, V)
 
     u = TrialFunction(V)
