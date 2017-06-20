@@ -133,11 +133,11 @@ class SolveBlock(Block):
 
         backend.solve(dFdu, adj_var.vector(), dJdu)
 
-        if backend.__name__ == "dolfin":
+        if backend.__name__ == "firedrake":
+            adj_var_bdy = backend.assemble(dJdu_copy - backend.assemble(backend.action(dFdu_form, adj_var)))
+        else:
             adj_var_bdy = Function(V)
             adj_var_bdy.vector()[:] = dJdu_copy - backend.assemble(backend.action(dFdu_form, adj_var))
-        else:
-            adj_var_bdy = backend.assemble(dJdu_copy - backend.assemble(backend.action(dFdu_form, adj_var)))
 
         for block_output in self.get_dependencies():
             c = block_output.get_output()
@@ -157,10 +157,10 @@ class SolveBlock(Block):
 
                     [bc.apply(dFdm) for bc in bcs]
 
-                    if backend.__name__ == "dolfin":
-                        block_output.add_adj_output(dFdm.inner(adj_var.vector()))
-                    else:
+                    if backend.__name__ == "firedrake":
                         block_output.add_adj_output(dFdm.vector().inner(adj_var.vector()))
+                    else:
+                        block_output.add_adj_output(dFdm.inner(adj_var.vector()))
                 elif isinstance(c, backend.DirichletBC):
                     tmp_bc = backend.DirichletBC(c.function_space(), extract_subfunction(adj_var_bdy, c.function_space()), *c.domain_args)
 
@@ -250,10 +250,10 @@ class SolveBlock(Block):
 
             elif isinstance(c, backend.DirichletBC):
                 #tmp_bc = backend.DirichletBC(V, tlm_value, c_rep.user_sub_domain())
-                if backend.__name__ == "dolfin":
-                    dFdm = backend.Function(V).vector()
-                else:
+                if backend.__name__ == "firedrake":
                     dFdm = backend.Function(V)
+                else:
+                    dFdm = backend.Function(V).vector()
                 tlm_value.apply(dFdu, dFdm)
 
             elif isinstance(c, backend.Expression):

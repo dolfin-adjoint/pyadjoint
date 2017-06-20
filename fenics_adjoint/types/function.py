@@ -46,7 +46,7 @@ class Function(OverloadedType, backend.Function):
         riesz_representation = options.pop("riesz_representation", "l2")
 
         if riesz_representation == "l2":
-            return compat.copy_function(value)
+            return Function(self.function_space(), value)
         elif riesz_representation == "L2":
             ret = Function(self.function_space())
             u = backend.TrialFunction(self.function_space())

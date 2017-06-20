@@ -1,32 +1,7 @@
 from fenics_adjoint import backend
 
 
-if backend.__name__ == "dolfin":
-    MatrixType = (backend.cpp.Matrix, backend.GenericMatrix)
-    VectorType = backend.cpp.la.GenericVector
-    FunctionType = backend.cpp.Function
-    FunctionSpaceType = backend.cpp.FunctionSpace
-
-    class FunctionSpace(FunctionSpaceType):
-        def sub(self, i):
-            V = backend.FunctionSpace.sub(self, i)
-            V._ad_parent_space = self
-            return V
-
-    def extract_subfunction(u, V):
-        component = V.component()
-        r = u
-        for idx in component:
-            r = r.sub(int(idx))
-        return r
-
-    def new_bc(bc):
-        return backend.DirichletBC(bc)
-
-    def copy_function(function):
-        return backend.Function(function.function_space(), function)
-
-else:
+if backend.__name__ == "firedrake":
     MatrixType = backend.matrix.MatrixBase
     VectorType = backend.vector.Vector
     FunctionType = backend.Function
@@ -51,3 +26,27 @@ else:
 
     def copy_function(function):
         return backend.Function(function)
+else:
+    MatrixType = (backend.cpp.Matrix, backend.GenericMatrix)
+    VectorType = backend.cpp.la.GenericVector
+    FunctionType = backend.cpp.Function
+    FunctionSpaceType = backend.cpp.FunctionSpace
+
+    class FunctionSpace(backend.FunctionSpace):
+        def sub(self, i):
+            V = backend.FunctionSpace.sub(self, i)
+            V._ad_parent_space = self
+            return V
+
+    def extract_subfunction(u, V):
+        component = V.component()
+        r = u
+        for idx in component:
+            r = r.sub(int(idx))
+        return r
+
+    def new_bc(bc):
+        return backend.DirichletBC(bc)
+
+    def copy_function(function):
+        return backend.Function(function.function_space(), function)
