@@ -110,8 +110,8 @@ class SolveBlock(Block):
         F_form = backend.replace(F_form, replaced_coeffs)
 
         dFdu = backend.derivative(F_form, fwd_block_output.get_saved_output(), backend.TrialFunction(u.function_space()))
-        dFdu = backend.adjoint(dFdu)
-        dFdu = backend.assemble(dFdu)
+        dFdu_form = backend.adjoint(dFdu)
+        dFdu = backend.assemble(dFdu_form)
 
         # Get dJdu from previous calculations.
         dJdu = fwd_block_output.get_adj_output()
@@ -121,7 +121,6 @@ class SolveBlock(Block):
             return
 
         dJdu_copy = dJdu.copy()
-        dFdu_copy = dFdu.copy()
 
         # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
         bcs = []
@@ -134,8 +133,11 @@ class SolveBlock(Block):
 
         backend.solve(dFdu, adj_var.vector(), dJdu)
 
-        adj_var_bdy = Function(V)
-        adj_var_bdy.vector()[:] = dJdu_copy - dFdu_copy*adj_var.vector()
+        if backend.__name__ == "dolfin":
+            adj_var_bdy = Function(V)
+            adj_var_bdy.vector()[:] = dJdu_copy - backend.assemble(backend.action(dFdu_form, adj_var))
+        else:
+            adj_var_bdy = backend.assemble(dJdu_copy - backend.assemble(backend.action(dFdu_form, adj_var)))
 
         for block_output in self.get_dependencies():
             c = block_output.get_output()
