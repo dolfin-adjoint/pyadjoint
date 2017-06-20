@@ -2,6 +2,9 @@
 Implementation of Burger's equation with nonlinear solve in each
 timestep
 """
+import pytest
+pytest.importorskip("firedrake")
+
 from firedrake import *
 from firedrake_adjoint import *
 

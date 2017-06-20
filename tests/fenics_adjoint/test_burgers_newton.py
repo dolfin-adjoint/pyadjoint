@@ -2,6 +2,9 @@
 Implementation of Burger's equation with nonlinear solve in each
 timestep
 """
+import pytest
+pytest.importorskip("fenics")
+
 from fenics import *
 from fenics_adjoint import *
 
