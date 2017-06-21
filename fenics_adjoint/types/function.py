@@ -1,5 +1,6 @@
 import backend
 from . import compat
+from pyadjoint.adjfloat import AdjFloat
 from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, no_annotations
 from pyadjoint.block import Block
 from pyadjoint.overloaded_type import OverloadedType
@@ -19,6 +20,8 @@ class Function(OverloadedType, backend.Function):
     def assign(self, other, *args, **kwargs):
         annotate = annotate_tape(kwargs)
         if annotate:
+            from .types import create_overloaded_object
+            other = create_overloaded_object(other)
             block = AssignBlock(self, other)
             tape = get_working_tape()
             tape.add_block(block)
@@ -93,6 +96,8 @@ class AssignBlock(Block):
         adj_input = self.get_outputs()[0].get_adj_output()
         if adj_input is None:
             return
+        if isinstance(self.get_dependencies()[1], AdjFloat):
+            adj_input = adj_input.sum()
         self.get_dependencies()[1].add_adj_output(adj_input)
 
     @no_annotations
