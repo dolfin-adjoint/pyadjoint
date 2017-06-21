@@ -56,6 +56,8 @@ class AssembleBlock(Block):
     def evaluate_adj(self):
         #t = backend.Timer("Assemble:evaluate_adj")
         adj_input = self.get_outputs()[0].get_adj_output()
+        if adj_input is None:
+            return
 
         replaced_coeffs = {}
         for block_output in self.get_dependencies():
