@@ -146,26 +146,47 @@ class DirichletBCBlock(Block):
             for block_output in self.get_dependencies():
                 c = block_output.output
                 if isinstance(c, Constant):
-                    component = self.bc.function_space().component()
-                    const_space = self.bc.function_space()
-                    if len(component) > 0:
-                        const_space = self.bc.function_space().collapse()
-                    assigner = backend.FunctionAssigner(const_space, self.bc.function_space())
-                    hessian_output = backend.Function(const_space)
-                    hessian_value = backend.Function(self.parent_space)
-                    hessian_input.apply(hessian_value.vector())
-                    assigner.assign(hessian_output, extract_subfunction(hessian_value, self.bc.function_space()))
-                    block_output.add_hessian_output(hessian_output.vector().sum())
+                    if backend.__name__ == "firedrake":
+                        component = self.bc.function_space().component
+                        hessian_value = backend.Function(self.parent_space)
+                        hessian_input.apply(hessian_value)
+                        block_output.add_hessian_output(hessian_value.vector().sum())
+                    else:
+                        # Constants have float adj values.
+                        component = self.bc.function_space().component()
+                        const_space = self.bc.function_space()
+                        if len(component) > 0:
+                            const_space = self.bc.function_space().collapse()
+                        assigner = backend.FunctionAssigner(const_space, self.bc.function_space())
+                        hessian_output = backend.Function(const_space)
+                        hessian_value = backend.Function(self.parent_space)
+                        hessian_input.apply(hessian_value.vector())
+                        assigner.assign(hessian_output, extract_subfunction(hessian_value, self.bc.function_space()))
+                        block_output.add_hessian_output(hessian_output.vector().sum())
                 elif isinstance(c, Function):
                     # TODO: This gets a little complicated.
-                    #       See evalute_adj method above.
-                    assigner = backend.FunctionAssigner(c.function_space(), self.bc.function_space())
-                    hessian_output = backend.Function(c.function_space())
-                    hessian_value = backend.Function(self.parent_space)
-                    hessian_input.apply(hessian_value.vector())
-                    # TODO: This is not a general solution
-                    assigner.assign(hessian_output, extract_subfunction(hessian_value, self.bc.function_space()))
-                    block_output.add_hessian_output(hessian_output.vector())
+                    #       The function may belong to a different space,
+                    #       and with `Function.set_allow_extrapolation(True)`
+                    #       you can even use the Function outside its domain.
+                    # For now we will just assume the FunctionSpace is the same for
+                    # the BC and the Function.
+                    if backend.__name__ == "firedrake":
+                        hessian_value = backend.Function(self.parent_space)
+                        hessian_input.apply(hessian_value)
+                        output = hessian_value
+                        V = self.bc.function_space()
+                        while V.component:
+                            output = output.sub(V.component)
+                            V = V.parent
+                        block_output.add_hessian_output(output)
+                    else:
+                        assigner = backend.FunctionAssigner(c.function_space(), self.bc.function_space())
+                        hessian_output = backend.Function(c.function_space())
+                        hessian_value = backend.Function(self.parent_space)
+                        hessian_input.apply(hessian_value.vector())
+                        # TODO: This is not a general solution
+                        assigner.assign(hessian_output, extract_subfunction(hessian_value, self.bc.function_space()))
+                        block_output.add_hessian_output(hessian_output.vector())
 
     @no_annotations
     def recompute(self):

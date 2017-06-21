@@ -50,8 +50,8 @@ def test_simple_solve():
     tape.evaluate_hessian()
 
     m = f.copy(deepcopy=True)
-    dJdm = f.original_block_output.adj_value.inner(h.vector())
-    Hm = f.original_block_output.hessian_value.inner(h.vector())
+    dJdm = f.original_block_output.adj_value.vector().inner(h.vector())
+    Hm = f.original_block_output.hessian_value.vector().inner(h.vector())
     assert taylor_test(Jhat, m, h, dJdm=dJdm, Hm=Hm) > 2.9
 
 
@@ -91,7 +91,7 @@ def test_mixed_derivatives():
     tape.evaluate_hessian()
 
     dJdm = J.block_output.tlm_value
-    Hm = f.original_block_output.hessian_value.inner(h.vector()) + g.original_block_output.hessian_value.inner(h.vector())
+    Hm = f.original_block_output.hessian_value.vector().inner(h.vector()) + g.original_block_output.hessian_value.vector().inner(h.vector())
 
     m_1 = f.copy(deepcopy=True)
     m_2 = g.copy(deepcopy=True)
@@ -136,7 +136,7 @@ def test_function():
     g = f.copy(deepcopy=True)
 
     dJdm = J.block_output.tlm_value
-    Hm = f.original_block_output.hessian_value.inner(h.vector()) + c.original_block_output.hessian_value
+    Hm = f.original_block_output.hessian_value.vector().inner(h.vector()) + c.original_block_output.hessian_value
 
     assert conv_mixed(J, f, c, g, Constant(4), h, Constant(1), dJdm=dJdm, Hm=Hm) > 2.9
 
@@ -176,7 +176,7 @@ def test_nonlinear():
     g = f.copy(deepcopy=True)
 
     dJdm = J.block_output.tlm_value
-    Hm = f.original_block_output.hessian_value.inner(h.vector())
+    Hm = f.original_block_output.hessian_value.vector().inner(h.vector())
     assert taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9
 
 
@@ -218,7 +218,7 @@ def test_dirichlet():
 
     dJdm = J.block_output.tlm_value
 
-    Hm = c.original_block_output.hessian_value.inner(h.vector())
+    Hm = c.original_block_output.hessian_value.vector().inner(h.vector())
     assert taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9
 
 
@@ -268,7 +268,7 @@ def test_expression():
 def test_burgers():
     tape = Tape()
     set_working_tape(tape)
-    n = 30
+    n = 100
     mesh = UnitIntervalMesh(n)
     V = FunctionSpace(mesh, "CG", 2)
 
@@ -322,7 +322,7 @@ def test_burgers():
     tape.evaluate_hessian()
 
     dJdm = J.block_output.tlm_value
-    Hm = ic.original_block_output.hessian_value.inner(h.vector())
+    Hm = ic.original_block_output.hessian_value.vector().inner(h.vector())
     assert taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9
 
 
