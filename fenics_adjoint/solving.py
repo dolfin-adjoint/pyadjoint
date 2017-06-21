@@ -352,7 +352,10 @@ class SolveBlock(Block):
         backend.solve(dFdu, adj_sol2.vector(), b)
 
         adj_sol2_bdy = Function(V)
-        adj_sol2_bdy.vector()[:] = b_copy - backend.assemble(backend.action(dFdu_form, adj_sol2))
+        if backend.__name__ == "firedrake":
+            adj_sol2_bdy.assign(b_copy - backend.assemble(backend.action(dFdu_form, adj_sol2)))
+        else:
+            adj_sol2_bdy.vector()[:] = b_copy - backend.assemble(backend.action(dFdu_form, adj_sol2))
 
         # Iterate through every dependency to evaluate and propagate the hessian information.
         for bo in self.get_dependencies():
@@ -410,12 +413,12 @@ class SolveBlock(Block):
                     d2Fdm2 = backend.adjoint(d2Fdm2)
 
                 output = backend.action(d2Fdm2, adj_sol)
-                output = backend.assemble(output)
+                output = backend.assemble(-output)
 
                 if isinstance(c, backend.Expression):
-                    bo.add_hessian_output([(-output, V)])
+                    bo.add_hessian_output([(output, V)])
                 else:
-                    bo.add_hessian_output(-output)
+                    bo.add_hessian_output(output)
 
             print "Coeff type: ", type(c)
             if len(dFdm.arguments()) >= 2:
@@ -428,12 +431,12 @@ class SolveBlock(Block):
                 output += backend.action(d2Fdudm, adj_sol)
 
             print "Jaja: ", type(c)
-            output = backend.assemble(output)
+            output = backend.assemble(-output)
 
             if isinstance(c, backend.Expression):
-                bo.add_hessian_output([(-output, V)])
+                bo.add_hessian_output([(output, V)])
             else:
-                bo.add_hessian_output(-output)
+                bo.add_hessian_output(output)
 
     @no_annotations
     def recompute(self):
@@ -512,12 +515,12 @@ class Form(object):
         self.sol_var = sol_var
         for bc in bcs:
             if isinstance(bc, backend.DirichletBC):
-                bc = backend.DirichletBC(bc)
+                bc = new_bc(bc)
                 bc.homogenize()
             self.bcs.append(bc)
 
-            for key in bc.get_boundary_values():
-                self.bc_rows.append(key)
+            # for key in bc.get_boundary_values():
+            #     self.bc_rows.append(key)
 
     def apply_boundary_conditions(self, data):
         import numpy
