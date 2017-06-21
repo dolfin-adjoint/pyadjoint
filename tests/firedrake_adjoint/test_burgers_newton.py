@@ -17,7 +17,7 @@ V = FunctionSpace(mesh, "CG", 2)
 def Dt(u, u_, timestep):
     return (u - u_)/timestep
 
-def J(ic):
+def J(ic, solve_type):
     u_ = Function(V)
     u = Function(V)
     v = TestFunction(V)
@@ -31,7 +31,12 @@ def J(ic):
     bc = DirichletBC(V, 0.0, "on_boundary")
 
     t = 0.0
-    solve(F == 0, u, bc)
+    if solve_type == "NLVS":
+        problem = NonlinearVariationalProblem(F, u, bcs=bc)
+        solver = NonlinearVariationalSolver(problem)
+        solver.solve()
+    else:
+        solve(F == 0, u, bc)
     u_.assign(u)
     t += float(timestep)
 
@@ -40,7 +45,10 @@ def J(ic):
 
     end = 0.2
     while (t <= end):
-        solve(F == 0, u, bc)
+        if solve_type == "NLVS":
+            solver.solve()
+        else:
+            solve(F == 0, u, bc)
         u_.assign(u)
 
         t += float(timestep)
@@ -48,11 +56,13 @@ def J(ic):
     return assemble(u_*u_*dx + ic*ic*dx)
 
 
-def test_burgers_newton():
+@pytest.mark.parametrize("solve_type",
+                         ["solve", "NLVS"])
+def test_burgers_newton(solve_type):
     x, = SpatialCoordinate(mesh)
     ic = project(sin(2*pi*x),  V)
 
-    val = J(ic)
+    val = J(ic, solve_type)
 
     Jhat = ReducedFunctional(val, ic)
 
