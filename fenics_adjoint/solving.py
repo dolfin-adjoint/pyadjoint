@@ -14,7 +14,7 @@ from .types.function_space import extract_subfunction
 def solve(*args, **kwargs):
     annotate = annotate_tape(kwargs)
 
-    if annotate_tape:
+    if annotate:
         tape = get_working_tape()
         block = SolveBlock(*args, **kwargs)
         tape.add_block(block)
@@ -22,7 +22,7 @@ def solve(*args, **kwargs):
     with stop_annotating():
         output = backend.solve(*args, **kwargs)
 
-    if annotate_tape:
+    if annotate:
         # TODO: Consider if this should be here or in the block constructor.
         #       The immediate reason output isn't added in the block constructor is because it should happen after
         #       the backend call, but the block must be constructed (add dependencies) before the backend call.
