@@ -26,6 +26,7 @@ class Function(function.Function):
     def split(self):
         """Extract any sub :class:`Function`\s defined on the component spaces
         of this this :class:`Function`'s :class:`.FunctionSpace`."""
+        # TODO: This should produce some kind of annotation.
         if self._split is None:
             self._split = tuple(Function(fs, dat, name="%s[%d]" % (self.name(), i))
                                 for i, (fs, dat) in
