@@ -302,21 +302,29 @@ class SolveBlock(Block):
         F = Form(F_form, transpose=True)
         F.set_boundary_conditions(self.bcs, fwd_block_output.get_saved_output())
 
+        bcs = F.bcs
+
         # Using the equation Form we derive dF/du, d^2F/du^2 * du/dm * direction.
-        dFdu = F.derivative(fwd_block_output.get_saved_output())
-        d2Fdu2 = dFdu.derivative(fwd_block_output.get_saved_output(), tlm_output)
+        dFdu_form = backend.derivative(F_form, fwd_block_output.get_saved_output())
+        d2Fdu2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdu_form, fwd_block_output.get_saved_output(), tlm_output))
+
+        dFdu = backend.adjoint(dFdu_form)
+        dFdu = backend.assemble(dFdu)
+
+        for bc in bcs:
+            bc.apply(dFdu, adj_input)
 
         # TODO: First-order adjoint solution should be possible to obtain from the earlier adjoint computations.
         adj_sol = backend.Function(V)
         # Solve the (first order) adjoint equation
-        backend.solve(dFdu.data, adj_sol.vector(), adj_input)
+        backend.solve(dFdu, adj_sol.vector(), adj_input)
 
         # Second-order adjoint (soa) solution
         adj_sol2 = backend.Function(V)
 
         # Start piecing together the rhs of the soa equation
         b = hessian_input
-        b -= d2Fdu2*adj_sol.vector()
+        b_form = d2Fdu2
 
         for bo in self.get_dependencies():
             c = bo.get_output()
@@ -327,11 +335,24 @@ class SolveBlock(Block):
                 continue
 
             if not isinstance(c, backend.DirichletBC):
-                d2Fdudm = dFdu.derivative(c_rep, tlm_input)
-                b -= d2Fdudm*adj_sol.vector()
+                d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdu_form, c_rep, tlm_input))
+                b_form += d2Fdudm
+
+        if len(b_form.integrals()) > 0:
+            b_form = backend.adjoint(b_form)
+            b -= backend.assemble(backend.action(b_form, adj_sol))
+        b_copy = b.copy()
+
+        for bc in bcs:
+            bc.apply(dFdu, b)
+
+        print "hessian_input: ", type(hessian_input)
 
         # Solve the soa equation
-        backend.solve(dFdu.data, adj_sol2.vector(), b)
+        backend.solve(dFdu, adj_sol2.vector(), b)
+
+        adj_sol2_bdy = Function(V)
+        adj_sol2_bdy.vector()[:] = b_copy - backend.assemble(backend.action(dFdu_form, adj_sol2))
 
         # Iterate through every dependency to evaluate and propagate the hessian information.
         for bo in self.get_dependencies():
@@ -344,17 +365,23 @@ class SolveBlock(Block):
             # If m = DirichletBC then d^2F(u,m)/dm^2 = 0 and d^2F(u,m)/dudm = 0,
             # so we only have the term dF(u,m)/dm * adj_sol2
             if isinstance(c, backend.DirichletBC):
-                tmp_bc = backend.DirichletBC(V, adj_sol2, *c.domain_args)
+                tmp_bc = backend.DirichletBC(V, adj_sol2_bdy, *c.domain_args)
                 #adj_output = Function(V)
                 #tmp_bc.apply(adj_output.vector())
 
                 bo.add_hessian_output([tmp_bc])
                 continue
 
-            dFdm = F.derivative(c_rep, function_space=V)
+            dc = None
+            if isinstance(c_rep, backend.Constant):
+                dc = backend.Constant(1)
+                # TODO: should this be a TrialFunction?
+            else:
+                dc = backend.TrialFunction(V)
+            dFdm = backend.derivative(F_form, c_rep, dc)
             # TODO: Actually implement split annotations properly.
             try:
-                d2Fdudm = dFdu.derivative(c_rep, tlm_output)
+                d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdm, fwd_block_output.get_saved_output(), tlm_output))
             except ufl.log.UFLException:
                 continue
 
@@ -375,19 +402,33 @@ class SolveBlock(Block):
                 if c2 == self.func and not self.linear:
                     continue
 
-                d2Fdm2 = dFdm.derivative(c2_rep, tlm_input)
-                if d2Fdm2.data is None:
+                d2Fdm2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdm, c2_rep, tlm_input))
+                if d2Fdm2.empty():
                     continue
 
-                output = d2Fdm2*adj_sol.vector()
+                if len(d2Fdm2.arguments()) >= 2:
+                    d2Fdm2 = backend.adjoint(d2Fdm2)
+
+                output = backend.action(d2Fdm2, adj_sol)
+                output = backend.assemble(output)
 
                 if isinstance(c, backend.Expression):
                     bo.add_hessian_output([(-output, V)])
                 else:
                     bo.add_hessian_output(-output)
 
-            output = dFdm * adj_sol2.vector()
-            output += d2Fdudm*adj_sol.vector()
+            print "Coeff type: ", type(c)
+            if len(dFdm.arguments()) >= 2:
+                dFdm = backend.adjoint(dFdm)
+            output = backend.action(dFdm, adj_sol2)
+            if not d2Fdudm.empty():
+                if len(d2Fdudm.arguments()) >= 2:
+                    d2Fdudm = backend.adjoint(d2Fdudm)
+                # from IPython import embed; embed()t
+                output += backend.action(d2Fdudm, adj_sol)
+
+            print "Jaja: ", type(c)
+            output = backend.assemble(output)
 
             if isinstance(c, backend.Expression):
                 bo.add_hessian_output([(-output, V)])
