@@ -162,7 +162,7 @@ def test_nonlinear():
     Jhat = ReducedFunctional(J, f)
 
     h = Function(V)
-    h.vector()[:] = rand(V.dim())
+    h.vector()[:] = 10*rand(V.dim())
 
     J.set_initial_adj_input(1.0)
     f.set_initial_tlm_input(h)
