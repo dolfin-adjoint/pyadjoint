@@ -343,8 +343,6 @@ class SolveBlock(Block):
         for bc in bcs:
             bc.apply(dFdu, b)
 
-        print "hessian_input: ", type(hessian_input)
-
         # Solve the soa equation
         backend.solve(dFdu, adj_sol2.vector(), b)
 
@@ -417,17 +415,14 @@ class SolveBlock(Block):
                 else:
                     bo.add_hessian_output(output)
 
-            print "Coeff type: ", type(c)
             if len(dFdm.arguments()) >= 2:
                 dFdm = backend.adjoint(dFdm)
             output = backend.action(dFdm, adj_sol2)
             if not d2Fdudm.empty():
                 if len(d2Fdudm.arguments()) >= 2:
                     d2Fdudm = backend.adjoint(d2Fdudm)
-                # from IPython import embed; embed()t
                 output += backend.action(d2Fdudm, adj_sol)
 
-            print "Jaja: ", type(c)
             output = backend.assemble(-output)
 
             if isinstance(c, backend.Expression):
