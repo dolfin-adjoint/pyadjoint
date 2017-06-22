@@ -3,7 +3,7 @@ import ufl
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape, no_annotations
 from pyadjoint.block import Block
 from .types import Function, DirichletBC
-from .types.compat import MatrixType, VectorType, new_bc
+from .types import compat
 from .types.function_space import extract_subfunction
 
 # Type dependencies
@@ -126,8 +126,7 @@ class SolveBlock(Block):
         bcs = []
         for bc in self.bcs:
             if isinstance(bc, backend.DirichletBC):
-                bc = new_bc(bc)
-                bc.homogenize()
+                bc = compat.create_bc(bc, homogenize=True)
             bcs.append(bc)
             bc.apply(dFdu, dJdu)
 
@@ -162,8 +161,7 @@ class SolveBlock(Block):
                     else:
                         block_output.add_adj_output(dFdm.inner(adj_var.vector()))
                 elif isinstance(c, backend.DirichletBC):
-                    tmp_bc = backend.DirichletBC(c.function_space(), extract_subfunction(adj_var_bdy, c.function_space()), *c.domain_args)
-
+                    tmp_bc = compat.create_bc(c, value=extract_subfunction(adj_var_bdy, c.function_space()))
                     block_output.add_adj_output([tmp_bc])
                 elif isinstance(c, backend.Expression):
                     dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(V)) # TODO: What space to use?
@@ -215,8 +213,7 @@ class SolveBlock(Block):
         bcs = []
         for bc in self.bcs:
             if isinstance(bc, backend.DirichletBC):
-                bc = new_bc(bc)
-                bc.homogenize()
+                bc = compat.create_bc(bc, homogenize=True)
             bcs.append(bc)
             bc.apply(dFdu)
 
@@ -368,7 +365,7 @@ class SolveBlock(Block):
             # If m = DirichletBC then d^2F(u,m)/dm^2 = 0 and d^2F(u,m)/dudm = 0,
             # so we only have the term dF(u,m)/dm * adj_sol2
             if isinstance(c, backend.DirichletBC):
-                tmp_bc = backend.DirichletBC(V, adj_sol2_bdy, *c.domain_args)
+                tmp_bc = compat.create_bc(c, value=adj_sol2_bdy)
                 #adj_output = Function(V)
                 #tmp_bc.apply(adj_output.vector())
 
@@ -515,8 +512,7 @@ class Form(object):
         self.sol_var = sol_var
         for bc in bcs:
             if isinstance(bc, backend.DirichletBC):
-                bc = new_bc(bc)
-                bc.homogenize()
+                bc = compat.create_bc(bc, homogenize=True)
             self.bcs.append(bc)
 
             # for key in bc.get_boundary_values():
@@ -564,13 +560,13 @@ class Form(object):
         if isinstance(other, Form):
             return self.data*other
 
-        if isinstance(other, MatrixType):
+        if isinstance(other, compat.MatrixType):
             if self.rank >= 2:
                 return self.data*other
             else:
                 # We (almost?) always want Matrix*Vector multiplication in this case.
                 return other*self.data
-        elif isinstance(other, VectorType):
+        elif isinstance(other, compat.VectorType):
             if self.rank >= 2:
                 return self.data*other
             else:

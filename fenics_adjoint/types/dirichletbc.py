@@ -126,12 +126,12 @@ class DirichletBCBlock(Block):
                 continue
 
             if isinstance(block_output.output, backend.Function):
-                m = compat.copy_function(tlm_input)
+                m = compat.function_from_vector(block_output.output.function_space(), tlm_input)
             else:
                 m = tlm_input
 
             #m = backend.project(m, self.function_space)
-            m = backend.DirichletBC(self.bc.function_space(), m, *self.bc.domain_args)
+            m = compat.create_bc(self.bc, value=m)
             output.add_tlm_output(m)
 
     @no_annotations

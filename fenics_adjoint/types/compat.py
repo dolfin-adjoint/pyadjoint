@@ -20,12 +20,33 @@ if backend.__name__ == "firedrake":
             V = V.parent
         return r
 
-    def new_bc(bc):
-        return type(bc)(bc.function_space(), bc.function_arg, bc.sub_domain,
-                        method=bc.method)
+    def create_bc(bc, value=None, homogenize=None):
+        """Create a new bc object from an existing one.
 
-    def copy_function(function):
-        return backend.Function(function)
+        :arg bc: The :class:`~.DirichletBC` to clone.
+        :arg value: A new value to use.
+        :arg homogenize: If True, return a homogeneous version of the bc.
+
+        One cannot provide both ``value`` and ``homogenize``, but
+        should provide at least one.
+        """
+        if value is None and homogenize is None:
+            raise ValueError("No point cloning a bc if you're not changing its values")
+        if value is not None and homogenize is not None:
+            raise ValueError("Cannot provide both value and homogenize")
+        if homogenize:
+            value = 0
+        return backend.DirichletBC(bc.function_space(),
+                                   value,
+                                   bc.sub_domain, method=bc.method)
+
+    def function_from_vector(V, vector):
+        """Create a new Function sharing data.
+
+        :arg V: The function space
+        :arg vector: The data to share.
+        """
+        return backend.Function(V, val=vector)
 else:
     MatrixType = (backend.cpp.Matrix, backend.GenericMatrix)
     VectorType = backend.cpp.la.GenericVector
@@ -45,8 +66,32 @@ else:
             r = r.sub(int(idx))
         return r
 
-    def new_bc(bc):
-        return backend.DirichletBC(bc)
+    def create_bc(bc, value=None, homogenize=None):
+        """Create a new bc object from an existing one.
 
-    def copy_function(function):
-        return backend.Function(function.function_space(), function)
+        :arg bc: The :class:`~.DirichletBC` to clone.
+        :arg value: A new value to use.
+        :arg homogenize: If True, return a homogeneous version of the bc.
+
+        One cannot provide both ``value`` and ``homogenize``, but
+        should provide at least one.
+        """
+        if value is None and homogenize is None:
+            raise ValueError("No point cloning a bc if you're not changing its values")
+        if value is not None and homogenize is not None:
+            raise ValueError("Cannot provide both value and homogenize")
+        if homogenize:
+            bc = backend.DirichletBC(bc)
+            bc.homogenize()
+            return bc
+        return backend.DirichletBC(bc.function_space(),
+                                   value,
+                                   *bc.domain_args, method=bc.method())
+
+    def function_from_vector(V, vector):
+        """Create a new Function sharing data.
+
+        :arg V: The function space
+        :arg vector: The data to share.
+        """
+        return backend.Function(V, vector)
