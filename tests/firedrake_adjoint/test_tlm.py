@@ -97,7 +97,9 @@ def test_tlm_func():
     assert (taylor_test(Jhat, g, h, dJdm=J.block_output.tlm_value) > 1.9)
 
 
-def test_time_dependent():
+@pytest.mark.parametrize("solve_type",
+                         ["solve", "LVS"])
+def test_time_dependent(solve_type):
     tape = Tape()
     set_working_tape(tape)
     # Defining the domain, 100 points from 0 to 1
@@ -127,10 +129,16 @@ def test_time_dependent():
     a = u_1 * u * v * dx + dt * f * inner(grad(u), grad(v)) * dx
     L = u_1 * v * dx
 
+    if solve_type == "LVS":
+        problem = LinearVariationalProblem(a, L, u_, bcs=bc, constant_jacobian=False)
+        solver = LinearVariationalSolver(problem)
     # Time loop
     t = dt
     while t <= T:
-        solve(a == L, u_, bc)
+        if solve_type == "LVS":
+            solver.solve()
+        else:
+            solve(a == L, u_, bc)
         u_1.assign(u_)
         t += dt
 
