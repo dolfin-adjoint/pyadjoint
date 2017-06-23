@@ -84,23 +84,10 @@ class DirichletBCBlock(Block):
                     #       you can even use the Function outside its domain.
                     # For now we will just assume the FunctionSpace is the same for
                     # the BC and the Function.
-                    if backend.__name__ == "firedrake":
-                        adj_value = backend.Function(self.parent_space)
-                        adj_input.apply(adj_value)
-                        output = adj_value
-                        V = self.bc.function_space()
-                        while V.component:
-                            output = output.sub(V.component)
-                            V = V.parent
-                        block_output.add_adj_output(output)
-                    else:
-                        assigner = backend.FunctionAssigner(c.function_space(), self.bc.function_space())
-                        adj_output = backend.Function(c.function_space())
-                        adj_value = backend.Function(self.parent_space)
-                        adj_input.apply(adj_value.vector())
-                        # TODO: This is not a general solution
-                        assigner.assign(adj_output, extract_subfunction(adj_value, self.bc.function_space()))
-                        block_output.add_adj_output(adj_output.vector())
+                    adj_value = backend.Function(self.parent_space)
+                    adj_input.apply(adj_value.vector())
+                    adj_output = compat.extract_bc_subvector(adj_value, c.function_space(), self.bc)
+                    block_output.add_adj_output(adj_output)
 
     @no_annotations
     def evaluate_tlm(self):
@@ -142,23 +129,10 @@ class DirichletBCBlock(Block):
                     #       you can even use the Function outside its domain.
                     # For now we will just assume the FunctionSpace is the same for
                     # the BC and the Function.
-                    if backend.__name__ == "firedrake":
-                        hessian_value = backend.Function(self.parent_space)
-                        hessian_input.apply(hessian_value)
-                        output = hessian_value
-                        V = self.bc.function_space()
-                        while V.component:
-                            output = output.sub(V.component)
-                            V = V.parent
-                        block_output.add_hessian_output(output)
-                    else:
-                        assigner = backend.FunctionAssigner(c.function_space(), self.bc.function_space())
-                        hessian_output = backend.Function(c.function_space())
-                        hessian_value = backend.Function(self.parent_space)
-                        hessian_input.apply(hessian_value.vector())
-                        # TODO: This is not a general solution
-                        assigner.assign(hessian_output, extract_subfunction(hessian_value, self.bc.function_space()))
-                        block_output.add_hessian_output(hessian_output.vector())
+                    hessian_value = backend.Function(self.parent_space)
+                    hessian_input.apply(hessian_value.vector())
+                    hessian_output = compat.extract_bc_subvector(hessian_value, c.function_space(), self.bc)
+                    block_output.add_hessian_output(hessian_output)
 
     @no_annotations
     def recompute(self):

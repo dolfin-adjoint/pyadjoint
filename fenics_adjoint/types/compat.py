@@ -61,6 +61,16 @@ if backend.__name__ == "firedrake":
         :arg b: a Vector.
         """
         return a.vector().inner(b)
+
+    def extract_bc_subvector(value, Vtarget, bc):
+        """Extract from value (a function in a mixed space), the sub
+        function corresponding to the part of the space bc applies
+        to.  Vtarget is the target (collapsed) space."""
+        r = value
+        for idx in bc._indices:
+            r = r.sub(idx)
+        assert Vtarget == r.function_space()
+        return r
 else:
     MatrixType = (backend.cpp.Matrix, backend.GenericMatrix)
     VectorType = backend.cpp.la.GenericVector
@@ -122,3 +132,13 @@ else:
         :arg b: a Vector.
         """
         return a.inner(b)
+
+    def extract_bc_subvector(value, Vtarget, bc):
+        """Extract from value (a function in a mixed space), the sub
+        function corresponding to the part of the space bc applies
+        to.  Vtarget is the target (collapsed) space."""
+        assigner = backend.FunctionAssigner(Vtarget, bc.function_space())
+        output = backend.Function(Vtarget)
+        # TODO: This is not a general solution
+        assigner.assign(output, extract_subfunction(value, bc.function_space()))
+        return output.vector()
