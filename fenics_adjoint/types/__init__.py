@@ -1,7 +1,10 @@
+import backend
 from pyadjoint.adjfloat import AdjFloat
 from .constant import Constant
 from .dirichletbc import DirichletBC
-from .expression import Expression
+if backend.__name__ != "firedrake":
+    # Currently not implemented.
+    from .expression import Expression
 from .function import Function
 from .function_space import FunctionSpace
 

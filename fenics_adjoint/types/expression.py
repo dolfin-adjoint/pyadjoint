@@ -19,234 +19,202 @@ from pyadjoint.adjfloat import AdjFloat
 # Might also consider moving this to a separate file if it ruins this file.
 _IGNORED_EXPRESSION_ATTRIBUTES = ['_ufl_is_evaluation_', '__lt__', '__mul__', '_ufl_terminal_modifiers_', '_ufl_num_typecodes_', '__disown__', '_ufl_obj_init_counts_', '_ad_restore_at_checkpoint', 'ufl_shape', 'tape', '__dir__', '__call__', '_ufl_shape', '_ufl_is_differential_', '__init__', '_count', '__doc__', '__sizeof__', 'ufl_free_indices', '__sub__', 'ufl_enable_profiling', '__add__', '__module__', 'cppcode', 'thisown', '__init_subclass__', '__bool__', 'id', '__radd__', '__ne__', '_ufl_function_space', '__swig_destroy__', 'ufl_evaluate', '__rpow__', 'annotate_tape', 'value_shape', '_ufl_evaluate_scalar_', '_ufl_is_shaping_', '__slots__', '__neg__', 'ufl_domain', '_ufl_is_restriction_', '__reduce__', 'name', '_ufl_compute_hash_', '_ufl_obj_del_counts_', '_ufl_required_methods_', '__gt__', '_ufl_typecode_', 'label', '_ufl_regular__del__', 'eval_cell', '_ufl_is_literal_', '_ufl_language_operators_', 'get_adj_output', '__rtruediv__', '__setattr__', '__floordiv__', 'ufl_domains', '__new__', 'value_size', '__getitem__', 'value_dimension', '_ufl_profiling__init__', '__subclasshook__', 'ufl_index_dimensions', '_ufl_class_', '_ufl_is_abstract_', 'create_block_output', '__pow__', 'get_block_output', '__getnewargs__', '__rsub__', '_ufl_err_str_', 'ufl_element', '__repr__', 'geometric_dimension', 'block_output', '__delattr__', '_repr', '_ufl_is_scalar_', 'str', '__abs__', '_ufl_is_index_free_', '_ad_ignored_attributes', 'this', '__float__', '__del__', '_ufl_is_terminal_', '__len__', 'ufl_function_space', '_ad_dot', '__rdiv__', 'is_cellwise_constant', 'value_rank', '_ufl_regular__init__', 'evaluate', '__dict__', '__eq__', '__unicode__', 'reset_variables', 'rename', 'user_defined_derivatives', '_repr_png_', 'count', 'user_parameters', '__truediv__', '__reduce_ex__', '_ad_initialized', '_repr_latex_', 'parameters', '__hash__', 'restrict', 'original_block_output', '_ad_attributes_dict', 'ufl_operands', '__iter__', '_globalcount', '_ufl_expr_reconstruct_', '_ufl_all_classes_', 'eval', 'set_initial_adj_input', '_ufl_required_properties_', '_ufl_signature_data_', 'get_derivative', 'set_block_output', 'update', '__getattribute__', '_ad_create_checkpoint', '_function_space', '__weakref__', '__format__', '_ad_add', '__pos__', '_ufl_profiling__del__', '__rmul__', '_hash', 'adj_update_value', 'compute_vertex_values', 'T', '__class__', '_ufl_is_terminal_modifier_', 'ufl_disable_profiling', '__div__', '__le__', '_ufl_handler_name_', '_value_shape', '__round__', '_ufl_is_in_reference_frame_', 'dx', '_ufl_all_handler_names_', '__str__', '__xor__', '_ufl_coerce_', '_ufl_num_ops_', '__ge__', '__nonzero__', 'set_initial_tlm_input', '_ad_mul', '_ufl_noslots_']
 
-if backend.__name__ == "firedrake":
-    class Expression(backend.Expression):
+_backend_ExpressionMetaClass = backend.functions.expression.ExpressionMetaClass
 
-        def __init__(self, *args, **kwargs):
-            raise NotImplementedError("Expression annotation not supported")
-            self._ad_attributes_dict = {}
-            self._ad_ignored_attributes = None
-            self.user_defined_derivatives = {}
+class OverloadedExpressionMetaClass(_backend_ExpressionMetaClass):
+    """Overloads the ExpressionMetaClass so that we can create overloaded 
+    Expression types.
 
-        def __setattr__(self, k, v):
-            if k not in _IGNORED_EXPRESSION_ATTRIBUTES:
-                if self._ad_initialized and self.annotate_tape:
-                    self.block_output.save_output()
-                    self._ad_attributes_dict[k] = v
-
-                    tape = get_working_tape()
-                    block = ExpressionBlock(self)
-                    tape.add_block(block)
-                    block.add_output(self.create_block_output())
-                else:
-                    self._ad_attributes_dict[k] = v
-            backend.Expression.__setattr__(self, k, v)
-
-        def _ad_create_checkpoint(self):
-            return self._ad_attributes_dict.copy()
-
-        def _ad_restore_at_checkpoint(self, checkpoint):
-            for k in checkpoint:
-                self._ad_attributes_dict[k] = checkpoint[k]
-                backend.Expression.__setattr__(self, k, checkpoint[k])
-            return self
-else:
-    _backend_ExpressionMetaClass = backend.functions.expression.ExpressionMetaClass
-
-    class OverloadedExpressionMetaClass(_backend_ExpressionMetaClass):
-        """Overloads the ExpressionMetaClass so that we can create overloaded 
-        Expression types.
+    """
+    def __new__(mcs, class_name, bases, dict_):
+        """Handles creation of new Expression classes.
 
         """
-        def __new__(mcs, class_name, bases, dict_):
-            """Handles creation of new Expression classes.
-
-            """
-            if class_name == "Expression" or class_name == "CompiledExpression":
-                if len(bases) >= 1 and bases[0] == backend.Expression:
-                    # If this is our own overloaded Expression/CompiledExpression, then we only want to use
-                    # our own definition, and not call ExpressionMetaClass.__new__.
-                    return type.__new__(mcs, class_name, bases, dict_)
-
-
-            if (len(bases) >= 4
-                and bases[0] == Expression
-                and bases[1] == ufl.Coefficient
-                and issubclass(bases[2], backend.cpp.Expression)
-                and bases[3] == OverloadedType):
-
+        if class_name == "Expression" or class_name == "CompiledExpression":
+            if len(bases) >= 1 and bases[0] == backend.Expression:
+                # If this is our own overloaded Expression/CompiledExpression, then we only want to use
+                # our own definition, and not call ExpressionMetaClass.__new__.
                 return type.__new__(mcs, class_name, bases, dict_)
 
-            # Now we need to remove our overloaded Expression from bases,
-            # and add the backend Expression type.
-            bases = list(bases)
-            bases.remove(Expression)
-            bases.append(backend.Expression)
 
-            # The if-test might be redundant as users should never define
-            # Expression subclasses which inherit from OverloadedType.
-            # In fact it might just be better to raise an error if it does.
-            if OverloadedType not in bases:
-                # Time to add our OverloadedType as a baseclass,
-                # as well as its constructor to the
-                # new class constructor.
-                bases.append(OverloadedType)
+        if (len(bases) >= 4
+            and bases[0] == Expression
+            and bases[1] == ufl.Coefficient
+            and issubclass(bases[2], backend.cpp.Expression)
+            and bases[3] == OverloadedType):
 
-                user_init = dict_.get("__init__", None)
+            return type.__new__(mcs, class_name, bases, dict_)
 
-                if user_init is None:
-                    def __init__(self, *args, **kwargs):
-                        """Overloaded init method of user-defined Expression classes.
+        # Now we need to remove our overloaded Expression from bases,
+        # and add the backend Expression type.
+        bases = list(bases)
+        bases.remove(Expression)
+        bases.append(backend.Expression)
 
-                        Workaround for the kwargs check done with no user_init.
+        # The if-test might be redundant as users should never define
+        # Expression subclasses which inherit from OverloadedType.
+        # In fact it might just be better to raise an error if it does.
+        if OverloadedType not in bases:
+            # Time to add our OverloadedType as a baseclass,
+            # as well as its constructor to the
+            # new class constructor.
+            bases.append(OverloadedType)
 
-                        """
-                        pass
-                    dict_["__init__"] = __init__
+            user_init = dict_.get("__init__", None)
 
+            if user_init is None:
+                def __init__(self, *args, **kwargs):
+                    """Overloaded init method of user-defined Expression classes.
 
-            bases = tuple(bases)
+                    Workaround for the kwargs check done with no user_init.
 
-            # Pass everything along to the backend metaclass.
-            # This should return a new user-defined Expression 
-            # subclass that inherit from OverloadedType.
-            original = _backend_ExpressionMetaClass.__new__(mcs, class_name, bases, dict_)
-
-            original_init = original.__dict__["__init__"]
-
-            bases = list(original.__bases__)
-            bases[0] = Expression # Replace backend.Expression with our overloaded expression.
-
-            def __init__(self, *args, **kwargs):
-                self._ad_initialized = False
-
-                Expression.__init__(self, *args, **kwargs)
-
-                OverloadedType.__init__(self, *args, **kwargs)
-                original_init(self, *args, **kwargs)
-
-                self._ad_initialized = True
-
-                self.annotate_tape = annotate_tape(kwargs)
-                if self.annotate_tape:
-                    tape = get_working_tape()
-                    block = ExpressionBlock(self)
-                    tape.add_block(block)
-                    block.add_output(self.block_output)
+                    """
+                    pass
+                dict_["__init__"] = __init__
 
 
-            dict_["__init__"] = __init__
-            bases = tuple(bases)
+        bases = tuple(bases)
 
-            overloaded = type(class_name, bases, dict_)
+        # Pass everything along to the backend metaclass.
+        # This should return a new user-defined Expression 
+        # subclass that inherit from OverloadedType.
+        original = _backend_ExpressionMetaClass.__new__(mcs, class_name, bases, dict_)
 
-            return overloaded
+        original_init = original.__dict__["__init__"]
 
-        def __call__(cls, *args, **kwargs):
-            """Handles instantiation and initialization of Expression instances.
+        bases = list(original.__bases__)
+        bases[0] = Expression # Replace backend.Expression with our overloaded expression.
 
-            """
-            # Calls type.__call__ as normal (backend does not override __call__).
-            # Thus __new__ of cls is invoked.
-            out = _backend_ExpressionMetaClass.__call__(cls, *args, **kwargs)
-
-            # Since the class we create is not a subclass of our overloaded Expression 
-            # (where __new__ was invoked), type.__call__ will not initialize
-            # the newly created instance. Hence we must do so "manually".
-            if not isinstance(out, cls):
-                out.__init__(*args, **kwargs)
-            return out
-
-
-    def create_compiled_expression(original, cppcode, *args, **kwargs):
-        """Creates an overloaded CompiledExpression type from the supplied 
-        CompiledExpression instance.
-
-        The argument `original` will be an (uninitialized) CompiledExpression instance,
-        which we extract the type from to build our own corresponding overloaded
-        CompiledExpression type.
-
-        Args:
-            original (:obj:`CompiledExpression`): The original CompiledExpression instance.
-            cppcode (:obj:`str`): The cppcode used to define the Expression.
-            *args: Extra arguments are just passed along to the backend handlers.
-            **kwargs: Keyword arguments are also just passed to backend handlers.
-
-        Returns:
-            :obj:`type`: An overloaded CompiledExpression type.
-
-        """
-        original_bases = type(original).__bases__
-        bases = (Expression, original_bases[1], original_bases[2], OverloadedType)
-
-        original_init = type(original).__dict__["__init__"]
-
-        def __init__(self, cppcode, *args, **kwargs):
-            """Init method of our overloaded CompiledExpression classes.
-
-            """
+        def __init__(self, *args, **kwargs):
             self._ad_initialized = False
+
             Expression.__init__(self, *args, **kwargs)
 
             OverloadedType.__init__(self, *args, **kwargs)
-            original_init(self, cppcode, *args, **kwargs)
+            original_init(self, *args, **kwargs)
 
             self._ad_initialized = True
 
             self.annotate_tape = annotate_tape(kwargs)
-            if self.annotate_tape:            
+            if self.annotate_tape:
                 tape = get_working_tape()
                 block = ExpressionBlock(self)
                 tape.add_block(block)
                 block.add_output(self.block_output)
 
-        return type.__new__(OverloadedExpressionMetaClass,
-                            "CompiledExpression",
-                            bases,
-                            {"__init__": __init__ })
 
+        dict_["__init__"] = __init__
+        bases = tuple(bases)
 
-    @add_metaclass(OverloadedExpressionMetaClass)
-    class Expression(backend.Expression):
-        """Overloaded Expression class.
+        overloaded = type(class_name, bases, dict_)
 
-        This class acts as a base class where backend.Expression would be a base class.
+        return overloaded
+
+    def __call__(cls, *args, **kwargs):
+        """Handles instantiation and initialization of Expression instances.
 
         """
-        def __new__(cls, cppcode=None, *args, **kwargs):
-            if cls.__name__ != "Expression":
-                return object.__new__(cls)
+        # Calls type.__call__ as normal (backend does not override __call__).
+        # Thus __new__ of cls is invoked.
+        out = _backend_ExpressionMetaClass.__call__(cls, *args, **kwargs)
 
-            original = backend.Expression.__new__(cls, cppcode, *args, **kwargs)
-            return object.__new__(create_compiled_expression(original, cppcode, *args, **kwargs))
+        # Since the class we create is not a subclass of our overloaded Expression 
+        # (where __new__ was invoked), type.__call__ will not initialize
+        # the newly created instance. Hence we must do so "manually".
+        if not isinstance(out, cls):
+            out.__init__(*args, **kwargs)
+        return out
 
-        def __init__(self, *args, **kwargs):
-            self._ad_attributes_dict = {}
-            self._ad_ignored_attributes = None
-            self.user_defined_derivatives = {}
 
-        def __setattr__(self, k, v):    
-            if k not in _IGNORED_EXPRESSION_ATTRIBUTES:
-                if self._ad_initialized and self.annotate_tape:
-                    self.block_output.save_output()
-                    self._ad_attributes_dict[k] = v
+def create_compiled_expression(original, cppcode, *args, **kwargs):
+    """Creates an overloaded CompiledExpression type from the supplied 
+    CompiledExpression instance.
 
-                    tape = get_working_tape()
-                    block = ExpressionBlock(self)
-                    tape.add_block(block)
-                    block.add_output(self.create_block_output())
-                else:
-                    self._ad_attributes_dict[k] = v
-            backend.Expression.__setattr__(self, k, v)
+    The argument `original` will be an (uninitialized) CompiledExpression instance,
+    which we extract the type from to build our own corresponding overloaded
+    CompiledExpression type.
 
-        def _ad_create_checkpoint(self):
-            return self._ad_attributes_dict.copy()
+    Args:
+        original (:obj:`CompiledExpression`): The original CompiledExpression instance.
+        cppcode (:obj:`str`): The cppcode used to define the Expression.
+        *args: Extra arguments are just passed along to the backend handlers.
+        **kwargs: Keyword arguments are also just passed to backend handlers.
 
-        def _ad_restore_at_checkpoint(self, checkpoint):
-            for k in checkpoint:
-                self._ad_attributes_dict[k] = checkpoint[k]
-                backend.Expression.__setattr__(self, k, checkpoint[k])
-            return self
+    Returns:
+        :obj:`type`: An overloaded CompiledExpression type.
+
+    """
+    original_bases = type(original).__bases__
+    bases = (Expression, original_bases[1], original_bases[2], OverloadedType)
+
+    original_init = type(original).__dict__["__init__"]
+
+    def __init__(self, cppcode, *args, **kwargs):
+        """Init method of our overloaded CompiledExpression classes.
+
+        """
+        self._ad_initialized = False
+        Expression.__init__(self, *args, **kwargs)
+
+        OverloadedType.__init__(self, *args, **kwargs)
+        original_init(self, cppcode, *args, **kwargs)
+
+        self._ad_initialized = True
+
+        self.annotate_tape = annotate_tape(kwargs)
+        if self.annotate_tape:            
+            tape = get_working_tape()
+            block = ExpressionBlock(self)
+            tape.add_block(block)
+            block.add_output(self.block_output)
+
+    return type.__new__(OverloadedExpressionMetaClass,
+                        "CompiledExpression",
+                        bases,
+                        {"__init__": __init__ })
+
+
+@add_metaclass(OverloadedExpressionMetaClass)
+class Expression(backend.Expression):
+    """Overloaded Expression class.
+
+    This class acts as a base class where backend.Expression would be a base class.
+
+    """
+    def __new__(cls, cppcode=None, *args, **kwargs):
+        if cls.__name__ != "Expression":
+            return object.__new__(cls)
+
+        original = backend.Expression.__new__(cls, cppcode, *args, **kwargs)
+        return object.__new__(create_compiled_expression(original, cppcode, *args, **kwargs))
+
+    def __init__(self, *args, **kwargs):
+        self._ad_attributes_dict = {}
+        self._ad_ignored_attributes = None
+        self.user_defined_derivatives = {}
+
+    def __setattr__(self, k, v):    
+        if k not in _IGNORED_EXPRESSION_ATTRIBUTES:
+            if self._ad_initialized and self.annotate_tape:
+                self.block_output.save_output()
+                self._ad_attributes_dict[k] = v
+
+                tape = get_working_tape()
+                block = ExpressionBlock(self)
+                tape.add_block(block)
+                block.add_output(self.create_block_output())
+            else:
+                self._ad_attributes_dict[k] = v
+        backend.Expression.__setattr__(self, k, v)
+
+    def _ad_create_checkpoint(self):
+        return self._ad_attributes_dict.copy()
+
+    def _ad_restore_at_checkpoint(self, checkpoint):
+        for k in checkpoint:
+            self._ad_attributes_dict[k] = checkpoint[k]
+            backend.Expression.__setattr__(self, k, checkpoint[k])
+        return self
 
 
 class ExpressionBlock(Block):
