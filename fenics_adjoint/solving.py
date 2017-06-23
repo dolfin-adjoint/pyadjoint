@@ -132,12 +132,10 @@ class SolveBlock(Block):
 
         backend.solve(dFdu, adj_var.vector(), dJdu)
 
-        if backend.__name__ == "firedrake":
-            adj_var_bdy = backend.assemble(dJdu_copy - backend.assemble(backend.action(dFdu_form, adj_var)))
-        else:
-            adj_var_bdy = Function(V)
-            adj_var_bdy.vector()[:] = dJdu_copy - backend.assemble(backend.action(dFdu_form, adj_var))
-
+        adj_var_bdy = Function(V)
+        adj_var_bdy = compat.evaluate_algebra_expression(dJdu_copy -
+                                                         backend.assemble(backend.action(dFdu_form, adj_var)),
+                                                         adj_var_bdy)
         for block_output in self.get_dependencies():
             c = block_output.get_output()
             if c != self.func or self.linear:
@@ -156,10 +154,7 @@ class SolveBlock(Block):
 
                     [bc.apply(dFdm) for bc in bcs]
 
-                    if backend.__name__ == "firedrake":
-                        block_output.add_adj_output(dFdm.vector().inner(adj_var.vector()))
-                    else:
-                        block_output.add_adj_output(dFdm.inner(adj_var.vector()))
+                    block_output.add_adj_output(compat.inner(dFdm, adj_var.vector()))
                 elif isinstance(c, backend.DirichletBC):
                     tmp_bc = compat.create_bc(c, value=extract_subfunction(adj_var_bdy, c.function_space()))
                     block_output.add_adj_output([tmp_bc])
@@ -247,10 +242,7 @@ class SolveBlock(Block):
 
             elif isinstance(c, backend.DirichletBC):
                 #tmp_bc = backend.DirichletBC(V, tlm_value, c_rep.user_sub_domain())
-                if backend.__name__ == "firedrake":
-                    dFdm = backend.Function(V)
-                else:
-                    dFdm = backend.Function(V).vector()
+                dFdm = backend.Function(V).vector()
                 tlm_value.apply(dFdu, dFdm)
 
             elif isinstance(c, backend.Expression):
@@ -347,10 +339,9 @@ class SolveBlock(Block):
         backend.solve(dFdu, adj_sol2.vector(), b)
 
         adj_sol2_bdy = Function(V)
-        if backend.__name__ == "firedrake":
-            adj_sol2_bdy.assign(b_copy - backend.assemble(backend.action(dFdu_form, adj_sol2)))
-        else:
-            adj_sol2_bdy.vector()[:] = b_copy - backend.assemble(backend.action(dFdu_form, adj_sol2))
+        adj_sol2_bdy = compat.evaluate_algebra_expression(b_copy -
+                                                          backend.assemble(backend.action(dFdu_form, adj_sol2)),
+                                                          adj_sol2_bdy)
 
         # Iterate through every dependency to evaluate and propagate the hessian information.
         for bo in self.get_dependencies():

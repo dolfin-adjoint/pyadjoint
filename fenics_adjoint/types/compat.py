@@ -40,6 +40,8 @@ if backend.__name__ == "firedrake":
                                    value,
                                    bc.sub_domain, method=bc.method)
 
+    # Most of this is to deal with Firedrake assembly returning
+    # Function whereas Dolfin returns Vector.
     def function_from_vector(V, vector):
         """Create a new Function sharing data.
 
@@ -47,6 +49,18 @@ if backend.__name__ == "firedrake":
         :arg vector: The data to share.
         """
         return backend.Function(V, val=vector)
+
+    def evaluate_algebra_expression(expr, f):
+        """Assemble an expression into f."""
+        return f.assign(backend.assemble(expr))
+
+    def inner(a, b):
+        """Compute the l2 inner product of a and b.
+
+        :arg a: a Function.
+        :arg b: a Vector.
+        """
+        return a.vector().inner(b)
 else:
     MatrixType = (backend.cpp.Matrix, backend.GenericMatrix)
     VectorType = backend.cpp.la.GenericVector
@@ -95,3 +109,16 @@ else:
         :arg vector: The data to share.
         """
         return backend.Function(V, vector)
+
+    def evaluate_algebra_expression(expr, f):
+        """Assemble an expression into f."""
+        f.vector()[:] = expr
+        return f
+
+    def inner(a, b):
+        """Compute the l2 inner product of a and b.
+
+        :arg a: a Vector.
+        :arg b: a Vector.
+        """
+        return a.inner(b)

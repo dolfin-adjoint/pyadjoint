@@ -30,7 +30,7 @@ class DirichletBC(OverloadedType, backend.DirichletBC):
             # Since DirichletBC behaves differently based on number of
             # args and arg types, we pass all args to block
             block = DirichletBCBlock(self, *args)
-            
+
             tape.add_block(block)
             block.add_output(self.block_output)
 
@@ -74,23 +74,9 @@ class DirichletBCBlock(Block):
             for block_output in self.get_dependencies():
                 c = block_output.output
                 if isinstance(c, Constant):
-                    if backend.__name__ == "firedrake":
-                        component = self.bc.function_space().component
-                        adj_value = backend.Function(self.parent_space)
-                        adj_input.apply(adj_value)
-                        block_output.add_adj_output(adj_value.vector().sum())
-                    else:
-                        # Constants have float adj values.
-                        component = self.bc.function_space().component()
-                        const_space = self.bc.function_space()
-                        if len(component) > 0:
-                            const_space = self.bc.function_space().collapse()
-                        assigner = backend.FunctionAssigner(const_space, self.bc.function_space())
-                        adj_output = backend.Function(const_space)
-                        adj_value = backend.Function(self.parent_space)
-                        adj_input.apply(adj_value.vector())
-                        assigner.assign(adj_output, extract_subfunction(adj_value, self.bc.function_space()))
-                        block_output.add_adj_output(adj_output.vector().sum())
+                    adj_value = backend.Function(self.parent_space)
+                    adj_input.apply(adj_value.vector())
+                    block_output.add_adj_output(adj_value.vector().sum())
                 elif isinstance(c, Function):
                     # TODO: This gets a little complicated.
                     #       The function may belong to a different space,
@@ -146,23 +132,9 @@ class DirichletBCBlock(Block):
             for block_output in self.get_dependencies():
                 c = block_output.output
                 if isinstance(c, Constant):
-                    if backend.__name__ == "firedrake":
-                        component = self.bc.function_space().component
-                        hessian_value = backend.Function(self.parent_space)
-                        hessian_input.apply(hessian_value)
-                        block_output.add_hessian_output(hessian_value.vector().sum())
-                    else:
-                        # Constants have float adj values.
-                        component = self.bc.function_space().component()
-                        const_space = self.bc.function_space()
-                        if len(component) > 0:
-                            const_space = self.bc.function_space().collapse()
-                        assigner = backend.FunctionAssigner(const_space, self.bc.function_space())
-                        hessian_output = backend.Function(const_space)
-                        hessian_value = backend.Function(self.parent_space)
-                        hessian_input.apply(hessian_value.vector())
-                        assigner.assign(hessian_output, extract_subfunction(hessian_value, self.bc.function_space()))
-                        block_output.add_hessian_output(hessian_output.vector().sum())
+                    hessian_value = backend.Function(self.parent_space)
+                    hessian_input.apply(hessian_value.vector())
+                    block_output.add_hessian_output(hessian_value.vector().sum())
                 elif isinstance(c, Function):
                     # TODO: This gets a little complicated.
                     #       The function may belong to a different space,
