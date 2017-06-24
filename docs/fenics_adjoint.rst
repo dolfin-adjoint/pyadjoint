@@ -1,5 +1,5 @@
-fenics_adjoint package
-======================
+fenics\_adjoint package
+=======================
 
 Subpackages
 -----------
@@ -11,32 +11,32 @@ Subpackages
 Submodules
 ----------
 
-fenics_adjoint.assembly module
-------------------------------
+fenics\_adjoint\.assembly module
+--------------------------------
 
 .. automodule:: fenics_adjoint.assembly
     :members:
     :undoc-members:
     :show-inheritance:
 
-fenics_adjoint.projection module
---------------------------------
+fenics\_adjoint\.projection module
+----------------------------------
 
 .. automodule:: fenics_adjoint.projection
     :members:
     :undoc-members:
     :show-inheritance:
 
-fenics_adjoint.solving module
------------------------------
+fenics\_adjoint\.solving module
+-------------------------------
 
 .. automodule:: fenics_adjoint.solving
     :members:
     :undoc-members:
     :show-inheritance:
 
-fenics_adjoint.ui module
-------------------------
+fenics\_adjoint\.ui module
+--------------------------
 
 .. automodule:: fenics_adjoint.ui
     :members:
