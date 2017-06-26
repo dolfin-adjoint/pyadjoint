@@ -2,6 +2,9 @@
 Implementation of Burger's equation with nonlinear solve in each
 timestep
 """
+import pytest
+pytest.importorskip("fenics")
+
 from fenics import *
 from fenics_adjoint import *
 
@@ -14,7 +17,7 @@ V = FunctionSpace(mesh, "CG", 2)
 def Dt(u, u_, timestep):
     return (u - u_)/timestep
 
-def J(ic):
+def J(ic, solve_type):
     u_ = Function(V)
     u = Function(V)
     v = TestFunction(V)
@@ -28,7 +31,12 @@ def J(ic):
     bc = DirichletBC(V, 0.0, "on_boundary")
 
     t = 0.0
-    solve(F == 0, u, bc)
+    if solve_type == "NLVS":
+        problem = NonlinearVariationalProblem(F, u, bcs=bc, J=derivative(F, u))
+        solver = NonlinearVariationalSolver(problem)
+        solver.solve()
+    else:
+        solve(F == 0, u, bc)
     u_.assign(u)
     t += float(timestep)
 
@@ -37,7 +45,10 @@ def J(ic):
 
     end = 0.2
     while (t <= end):
-        solve(F == 0, u, bc)
+        if solve_type == "NLVS":
+            solver.solve()
+        else:
+            solve(F == 0, u, bc)
         u_.assign(u)
 
         t += float(timestep)
@@ -52,14 +63,16 @@ def convergence_rates(E_values, eps_values):
 
     return r
 
-def test_burgers_newton():
+@pytest.mark.parametrize("solve_type",
+                         ["solve", "NLVS"])
+def test_burgers_newton(solve_type):
     pr = project(Expression("sin(2*pi*x[0])", degree=1),  V)
     ic = Function(V)
     ic.vector()[:] = pr.vector()[:]
 
-    _test_adjoint(J, ic)
+    _test_adjoint(J, ic, solve_type)
 
-def _test_adjoint(J, f):
+def _test_adjoint(J, f, solve_type):
     import numpy.random
     tape = Tape()
     set_working_tape(tape)
@@ -75,9 +88,9 @@ def _test_adjoint(J, f):
 
         pertubed_ic.vector()[:] = f.vector()[:]
         pertubed_ic.vector()[:] += eps*h.vector()[:]
-        Jp = J(pertubed_ic)
+        Jp = J(pertubed_ic, solve_type)
         tape.clear_tape()
-        Jm = J(f)
+        Jm = J(f, solve_type)
         Jm.set_initial_adj_input(1.0)
         tape.evaluate()
 

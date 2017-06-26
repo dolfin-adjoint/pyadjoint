@@ -27,6 +27,21 @@ def continue_annotation():
     return _stop_annotating <= 0
 
 
+class stop_annotating(object):
+    def __enter__(self):
+        pause_annotation()
+
+    def __exit__(self, *args):
+        continue_annotation()
+
+def no_annotations(function):
+    """Decorator to turn off annotation for the decorated function."""
+    def wrapper(*args, **kwargs):
+        with stop_annotating():
+            return function(*args, **kwargs)
+    return wrapper
+
+
 def annotate_tape(kwargs=None):
     """Returns True if annotation flag is on, and False if not.
 
@@ -49,7 +64,7 @@ def annotate_tape(kwargs=None):
     if kwargs is None:
         return True
 
-    return kwargs.get("annotate", True)
+    return kwargs.pop("annotate", True)
 
 
 class Tape(object):

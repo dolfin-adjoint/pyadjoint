@@ -1,5 +1,8 @@
-from fenics import *
-from fenics_adjoint import *
+import pytest
+pytest.importorskip("firedrake")
+
+from firedrake import *
+from firedrake_adjoint import *
 
 
 def test_constant():
@@ -19,7 +22,7 @@ def test_constant():
 
     J = assemble(c**2*u*dx)
     Jhat = ReducedFunctional(J, c)
-    assert(taylor_test(Jhat, Constant(5), Constant(1)) > 1.9)
+    assert taylor_test(Jhat, Constant(5), Constant(1)) > 1.9
 
 
 def test_function():
@@ -42,16 +45,17 @@ def test_function():
     
     h = Function(V)
     from numpy.random import rand
-    h.vector()[:] = rand(V.dim())
+    h.vector()[:] = rand(V.dof_dset.size)
     # Note that if you use f directly, it will not work
     # as expected since f is the control and thus the initial point in control
     # space is changed as you do the test. (Since f.vector is also assigned new values on pertubations)
     g = f.copy(deepcopy=True)
 
-    assert(taylor_test(Jhat, g, h) > 1.9)
+    assert taylor_test(Jhat, g, h) > 1.9
 
 
-def test_wrt_function_dirichlet_boundary():
+@pytest.mark.parametrize("control", ["dirichlet", "neumann"])
+def test_wrt_function_dirichlet_boundary(control):
     mesh = UnitSquareMesh(10,10)
 
     V = FunctionSpace(mesh,"CG",1)
@@ -59,36 +63,10 @@ def test_wrt_function_dirichlet_boundary():
     u_ = Function(V)
     v = TestFunction(V)
 
-    class Up(SubDomain):
-        def inside(self, x, on_boundary):
-            return near(x[1], 1)
-
-    class Down(SubDomain):
-        def inside(self, x, on_boundary):
-            return near(x[1], 0)
-
-    class Left(SubDomain):
-        def inside(self, x, on_boundary):
-            return near(x[0], 0)
-
-    class Right(SubDomain):
-        def inside(self, x, on_boundary):
-            return near(x[0], 1)
-
-    left = Left()
-    right = Right()
-    up = Up()
-    down = Down()
-
-    boundary = FacetFunction("size_t", mesh)
-    boundary.set_all(0)
-    up.mark(boundary, 1)
-    down.mark(boundary,2)
-    ds = Measure("ds", subdomain_data=boundary)
-
-    bc_func = project(Expression("sin(x[1])", degree=1), V)
-    bc1 = DirichletBC(V,bc_func,left)
-    bc2 = DirichletBC(V,2,right)
+    x, y = SpatialCoordinate(mesh)
+    bc_func = project(sin(y), V)
+    bc1 = DirichletBC(V, bc_func, 1)
+    bc2 = DirichletBC(V, 2, 2)
     bc = [bc1,bc2]
 
     g1 = Constant(2)
@@ -97,19 +75,23 @@ def test_wrt_function_dirichlet_boundary():
     f.vector()[:] = 10
 
     a = inner(grad(u), grad(v))*dx
-    L = inner(f,v)*dx + inner(g1,v)*ds(1) + inner(g2,v)*ds(2)
+    L = inner(f,v)*dx + inner(g1,v)*ds(4) + inner(g2,v)*ds(3)
 
     solve(a==L,u_,bc)
 
     J = assemble(u_**2*dx)
 
-    Jhat = ReducedFunctional(J, bc_func)
-    h = Function(V)
-    h.vector()[:] = 1
+    if control == "dirichlet":
+        Jhat = ReducedFunctional(J, bc_func)
+        g = bc_func.copy(deepcopy=True)
+        h = Function(V)
+        h.vector()[:] = 1
+    else:
+        Jhat = ReducedFunctional(J, g1)
+        g = Constant(2)
+        h = Constant(1)
 
-    g = bc_func.copy(deepcopy=True)
-
-    assert(taylor_test(Jhat, g, h) > 1.9)
+    assert taylor_test(Jhat, g, h) > 1.9
 
 
 def test_time_dependent():
@@ -122,16 +104,9 @@ def test_time_dependent():
     u_ = Function(V)
     v = TestFunction(V)
 
-    # Marking the boundaries
-    def left(x, on_boundary):
-        return near(x[0],0)
-
-    def right(x, on_boundary):
-        return near(x[0],1)
-
     # Dirichlet boundary conditions
-    bc_left = DirichletBC(V, 1, left)
-    bc_right = DirichletBC(V, 2, right)
+    bc_left = DirichletBC(V, 1, 1)
+    bc_right = DirichletBC(V, 2, 2)
     bc = [bc_left, bc_right]
 
     # Some variables
@@ -160,55 +135,41 @@ def test_time_dependent():
     h = Function(V)
     h.vector()[:] = 1
     g = f.copy(deepcopy=True)
-    assert(taylor_test(Jhat, g, h) > 1.9)
+    assert taylor_test(Jhat, g, h) > 1.9
 
-def test_burgers():
-    n = 30
-    mesh = UnitIntervalMesh(n)
-    V = FunctionSpace(mesh, "CG", 2)
 
-    def Dt(u, u_, timestep):
-        return (u - u_)/timestep
+def test_mixed_boundary():
+    mesh = UnitSquareMesh(10,10)
 
-    pr = project(Expression("sin(2*pi*x[0])", degree=1), V)
-    ic = Function(V)
-    ic.vector()[:] = pr.vector()[:]
-
+    V = FunctionSpace(mesh,"CG",1)
+    u = TrialFunction(V)
     u_ = Function(V)
-    u = Function(V)
     v = TestFunction(V)
 
-    nu = Constant(0.0001)
+    x, y = SpatialCoordinate(mesh)
+    bc1 = DirichletBC(V, y**2, 1)
+    bc2 = DirichletBC(V, 2, 2)
+    bc = [bc1,bc2]
+    g1 = Constant(2)
+    g2 = Constant(1)
+    f = Function(V)
+    f.vector()[:] = 10
 
-    timestep = Constant(1.0/n)
+    a = f*inner(grad(u), grad(v))*dx
+    L = inner(f,v)*dx + inner(g1,v)*ds(4) + inner(g2,v)*ds(3)
 
-    F = (Dt(u, ic, timestep)*v
-         + u*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*dx
-    bc = DirichletBC(V, 0.0, "on_boundary")
+    solve(a==L,u_,bc)
 
-    t = 0.0
-    solve(F == 0, u, bc)
-    u_.assign(u)
-    t += float(timestep)
+    J = assemble(u_**2*dx)
 
-    F = (Dt(u, u_, timestep)*v
-         + u*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*dx
-
-    end = 0.2
-    while (t <= end):
-        solve(F == 0, u, bc)
-        u_.assign(u)
-
-        t += float(timestep)
-
-    J = assemble(u_*u_*dx + ic*ic*dx)
-    Jhat = ReducedFunctional(J, ic)
-
+    Jhat = ReducedFunctional(J, f)
+    g = Function(f)
     h = Function(V)
     h.vector()[:] = 1
-    g = ic.copy(deepcopy=True)
-    assert(taylor_test(Jhat, g, h) > 1.9)
+    assert taylor_test(Jhat, g, h) > 1.9
 
+
+@pytest.mark.xfail(reason="Expression not implemented yet")
 def test_expression():
     mesh = IntervalMesh(10, 0, 1)
     V = FunctionSpace(mesh, "CG", 1)
@@ -239,8 +200,10 @@ def test_expression():
     h = Function(V)
     h.vector()[:] = 1
     g = a.copy(deepcopy=True)
-    assert(taylor_test(Jhat, g, h) > 1.9)
+    assert taylor_test(Jhat, g, h) > 1.9
 
+
+@pytest.mark.xfail(reason="Expression not implemented yet")
 def test_projection():
     mesh = UnitSquareMesh(10, 10)
     V = FunctionSpace(mesh, "CG", 1)
@@ -265,8 +228,10 @@ def test_projection():
 
     m = Constant(2.0)
     h = Constant(1.0)
-    assert(taylor_test(Jhat, m, h) > 1.9)
+    assert taylor_test(Jhat, m, h) > 1.9
 
+
+@pytest.mark.xfail(reason="Expression not implemented yet")
 def test_projection_function():
     mesh = UnitSquareMesh(10, 10)
     V = FunctionSpace(mesh, "CG", 1)
@@ -293,8 +258,10 @@ def test_projection_function():
     m = g.copy(deepcopy=True)
     h = Function(V)
     h.vector()[:] = 1
-    assert(taylor_test(Jhat, m, h) > 1.9)
+    assert taylor_test(Jhat, m, h) > 1.9
 
+
+@pytest.mark.xfail(reason="Constant annotation not yet quite right")
 def test_assemble_recompute():
     mesh = UnitSquareMesh(10, 10)
     V = FunctionSpace(mesh, "CG", 1)
@@ -306,14 +273,11 @@ def test_assemble_recompute():
     bc = DirichletBC(V, Constant(1), "on_boundary")
     f = Function(V)
     f.vector()[:] = 2
-    k = assemble(f**2*dx)
-    expr = Expression("k", k=k, degree=1)
-    expr.user_defined_derivatives = {k: Expression("1", degree=1, annotate_tape=False)}
+    expr = Constant(assemble(f**2*dx))
     J = assemble(expr**2*dx(domain=mesh))
     Jhat = ReducedFunctional(J, f)
 
     m = f.copy(deepcopy=True)
     h = Function(V)
     h.vector()[:] = 1
-    assert(taylor_test(Jhat, m, h) > 1.9)
-
+    assert taylor_test(Jhat, m, h) > 1.9
