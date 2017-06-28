@@ -1,0 +1,443 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Topology optimisation of heat conduction problems governed by the Poisson equation</title>
+    
+    <link rel="stylesheet" href="../../_static/fenics.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2017.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+<link rel="stylesheet" href="../../_static/featured.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="../../_static/slides.min.jquery.js"></script>
+  <script>
+	$(function(){
+		$('#products').slides({
+			preload: true,
+			preloadImage: 'img/loading.gif',
+			effect: 'slide, fade',
+			crossfade: true,
+			slideSpeed: 350,
+			fadeSpeed: 500,
+			generateNextPrev: false,
+			generatePagination: false,
+	                play: 5000,
+                        hoverPause: false,
+                        animationStart: function(current){
+				$('.caption').animate({
+					bottom:-35
+				},100);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationStart on slide: ', current);
+				};
+			},
+			animationComplete: function(current){
+				$('.caption').animate({
+					bottom:0
+				},200);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationComplete on slide: ', current);
+				};
+			},
+			slidesLoaded: function() {
+				$('.caption').animate({
+					bottom:0
+				},200);
+			}
+		});
+	});
+  </script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-31806773-1']);
+  _gaq.push(['_setDomainName', 'dolfin-adjoint.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<!-- Load the flex slider library -->
+<link rel="stylesheet" href="_static/flexslider/flexslider.css" type="text/css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="_static/flexslider/jquery.flexslider.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+  $(window).load(function() {
+  $('.flexslider').flexslider();
+  });
+</script>
+
+<!-- Load the code highlight library -->
+<link rel="stylesheet" href="_static/highlight/styles/zenburn.css">
+<script src="_static/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<link rel="shortcut icon" href="../../_static/icon.ico" />
+
+
+  </head>
+  <body>
+<div class="wrapper">
+  <a href="../../"><img src="../../_static/banner.png" width="900px" alt="dolfin-adjoint Project Banner" /></a>
+  <div id="access">
+    <div class="menu">
+      <ul>
+          <li class="page_item"><a href="../../about/index.html" title="Find out more about dolfin-adjoint">About</a></li>
+          <li class="page_item"><a href="../../features/index.html" title="Features of dolfin-adjoint">Features</a></li>
+          <li class="page_item"><a href="../index.html" title="Learn how to use dolfin-adjoint">Documentation</a></li>
+          <li class="page_item"><a href="../../download/index.html" title="Obtain the dolfin-adjoint code">Download</a></li>
+          <li class="page_item"><a href="../../citing/index.html" title="Learn how to cite the dolfin-adjoint project">Citing</a></li>
+          <li class="page_item"><a href="../../support/index.html" title="Where to go for more help">Support</a></li>
+      </ul>
+    </div><!-- .menu -->
+  </div><!-- #access -->
+</div><!-- #wrapper -->
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="topology-optimisation-of-heat-conduction-problems-governed-by-the-poisson-equation">
+<span id="poisson-topology-example"></span><h1>Topology optimisation of heat conduction problems governed by the Poisson equation<a class="headerlink" href="#topology-optimisation-of-heat-conduction-problems-governed-by-the-poisson-equation" title="Permalink to this headline">¶</a></h1>
+<p><em>Section author: Patrick E. Farrell &lt;<a class="reference external" href="mailto:patrick&#46;farrell&#37;&#52;&#48;maths&#46;ox&#46;ac&#46;uk">patrick<span>&#46;</span>farrell<span>&#64;</span>maths<span>&#46;</span>ox<span>&#46;</span>ac<span>&#46;</span>uk</a>&gt;</em></p>
+<p>This demo solves example 1 of <a class="reference internal" href="#gersborg2006" id="id1">[3E-GHBS06]</a>.</p>
+<div class="section" id="problem-definition">
+<h2>Problem definition<a class="headerlink" href="#problem-definition" title="Permalink to this headline">¶</a></h2>
+<p>This problem is to minimise the compliance</p>
+<div class="math">
+\[\int_{\Omega} fT + \alpha \int_{\Omega} \nabla a \cdot \nabla a\]</div>
+<p>subject to the Poisson equation with mixed Dirichlet–Neumann
+conditions</p>
+<div class="math">
+\[\begin{split}-\mathrm{div}(k(a) \nabla T) &amp;= f  \qquad \mathrm{in} \ \Omega           \\
+                  T &amp;= 0  \qquad \mathrm{on} \ \delta \Omega_D  \\
+    (k(a) \nabla T) &amp;= 0  \qquad \mathrm{on} \ \delta \Omega_N  \\\end{split}\]</div>
+<p>and to the control constraints</p>
+<div class="math">
+\[\begin{split}0 \le a(x) &amp;\le 1  \qquad \forall x \in \Omega \\
+\int_{\Omega} a &amp;\le V\end{split}\]</div>
+<p>where <span class="math">\(\Omega\)</span> is the unit square, <span class="math">\(T\)</span> is the temperature,
+<span class="math">\(a\)</span> is the control (<span class="math">\(a(x) = 1\)</span> means material, <span class="math">\(a(x)
+= 0\)</span> means no material), <span class="math">\(f\)</span> is a prescribed source term (here
+the constant <span class="math">\(10^{-2}\)</span>), <span class="math">\(k(a)\)</span> is the Solid Isotropic
+Material with Penalisation parameterisation <a class="reference internal" href="#bendsoe2003" id="id2">[3E-BendseS03]</a>
+<span class="math">\(\epsilon + (1 - \epsilon) a^p\)</span> with <span class="math">\(\epsilon\)</span> and
+<span class="math">\(p\)</span> prescribed constants, <span class="math">\(\alpha\)</span> is a regularisation
+term, and <span class="math">\(V\)</span> is the volume bound on the control.</p>
+<p>Physically, the problem is to finding the material distribution
+<span class="math">\(a(x)\)</span> that minimises the integral of the temperature when the amount of highly
+conducting material is limited. This code makes several approximations to
+this physical problem. Instead of solving an integer optimisation problem (at each
+location, we either have conducting material or we do not), a continuous relaxation
+is performed; this is standard in topology optimisation <a class="reference internal" href="#bendsoe2003" id="id3">[3E-BendseS03]</a>. Furthermore,
+the discrete solution varies as the mesh is refined: the continuous solution exhibits
+features at all scales, and these must be carefully handled in a discretisation
+of the problem. In this example we merely add a fixed <span class="math">\(H^1\)</span> regularisation
+term; a better approach is to add a mesh-dependent Helmholtz filter (see for example
+<a class="reference internal" href="#lazarov2011" id="id4">[3E-LS11]</a>).</p>
+<p>This example demonstrates how to implement general control
+constraints, and how to use IPOPT <a class="reference internal" href="#wachter2006" id="id5">[3E-WB06]</a> to solve the
+optimisation problem.</p>
+</div>
+<div class="section" id="implementation">
+<h2>Implementation<a class="headerlink" href="#implementation" title="Permalink to this headline">¶</a></h2>
+<p>First, the <code class="xref py py-mod docutils literal"><span class="pre">dolfin</span></code> and <code class="xref py py-mod docutils literal"><span class="pre">dolfin_adjoint</span></code> modules are
+imported:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">dolfin</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">dolfin_adjoint</span> <span class="k">import</span> <span class="o">*</span>
+</pre></div>
+</div>
+<p>Next we import the Python interface to IPOPT. If IPOPT is
+unavailable on your system, we strongly <a class="reference internal" href="../../download/index.html"><span class="doc">suggest you install it</span></a>; IPOPT is a well-established open-source
+optimisation algorithm.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">pyipopt</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">info_red</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;This example depends on IPOPT and pyipopt. </span><span class="se">\</span>
+<span class="s2">  When compiling IPOPT, make sure to link against HSL, as it </span><span class="se">\</span>
+<span class="s2">  is a necessity for practical problems.&quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="k">raise</span>
+
+<span class="c1"># turn off redundant output in parallel</span>
+<span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;std_out_all_processes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+</pre></div>
+</div>
+<p>Next we define some constants, and the Solid Isotropic Material with
+Penalisation (SIMP) rule.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">V</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">0.4</span><span class="p">)</span>      <span class="c1"># volume bound on the control</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>        <span class="c1"># power used in the solid isotropic material</span>
+                       <span class="c1"># with penalisation (SIMP) rule, to encourage the control</span>
+                       <span class="c1"># solution to attain either 0 or 1</span>
+<span class="n">eps</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">1.0e-3</span><span class="p">)</span> <span class="c1"># epsilon used in the solid isotropic material</span>
+<span class="n">alpha</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">1.0e-8</span><span class="p">)</span> <span class="c1"># regularisation coefficient in functional</span>
+
+
+<span class="k">def</span> <span class="nf">k</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Solid isotropic material with penalisation (SIMP) conductivity</span>
+<span class="sd">  rule, equation (11).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">eps</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">eps</span><span class="p">)</span> <span class="o">*</span> <span class="n">a</span><span class="o">**</span><span class="n">p</span>
+</pre></div>
+</div>
+<p>Next we define the mesh (a unit square) and the function spaces to be
+used for the control <span class="math">\(a\)</span> and forward solution <span class="math">\(T\)</span>.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">n</span> <span class="o">=</span> <span class="mi">250</span>
+<span class="n">mesh</span> <span class="o">=</span> <span class="n">UnitSquareMesh</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+<span class="n">A</span> <span class="o">=</span> <span class="n">FunctionSpace</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="s2">&quot;CG&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># function space for control</span>
+<span class="n">P</span> <span class="o">=</span> <span class="n">FunctionSpace</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="s2">&quot;CG&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># function space for solution</span>
+</pre></div>
+</div>
+<p>Next we define the forward boundary condition and source term.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="k">class</span> <span class="nc">WestNorth</span><span class="p">(</span><span class="n">SubDomain</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The top and left boundary of the unitsquare, used to enforce the Dirichlet boundary condition.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">inside</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">on_boundary</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">)</span> <span class="ow">and</span> <span class="n">on_boundary</span>
+
+<span class="c1"># the Dirichlet BC; the Neumann BC will be implemented implicitly by</span>
+<span class="c1"># dropping the surface integral after integration by parts</span>
+<span class="n">bc</span> <span class="o">=</span> <span class="p">[</span><span class="n">DirichletBC</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">WestNorth</span><span class="p">())]</span>
+<span class="n">f</span> <span class="o">=</span> <span class="n">interpolate</span><span class="p">(</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0e-2</span><span class="p">),</span> <span class="n">P</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;SourceTerm&quot;</span><span class="p">)</span> <span class="c1"># the volume source term for the PDE</span>
+</pre></div>
+</div>
+<p>Next we define a function that given a control <span class="math">\(a\)</span> solves the
+forward PDE for the temperature <span class="math">\(T\)</span>. (The advantage of
+formulating it in this manner is that it makes it easy to conduct
+<a class="reference internal" href="../verification.html"><span class="doc">Taylor remainder convergence tests</span></a>.)</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Solve the forward problem for a given material distribution a(x).&quot;&quot;&quot;</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Temperature&quot;</span><span class="p">)</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">TestFunction</span><span class="p">(</span><span class="n">P</span><span class="p">)</span>
+
+    <span class="n">F</span> <span class="o">=</span> <span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">k</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="o">*</span><span class="n">grad</span><span class="p">(</span><span class="n">T</span><span class="p">))</span><span class="o">*</span><span class="n">dx</span> <span class="o">-</span> <span class="n">f</span><span class="o">*</span><span class="n">v</span><span class="o">*</span><span class="n">dx</span>
+    <span class="n">solve</span><span class="p">(</span><span class="n">F</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">bc</span><span class="p">,</span> <span class="n">solver_parameters</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;newton_solver&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;absolute_tolerance&quot;</span><span class="p">:</span> <span class="mf">1.0e-7</span><span class="p">,</span>
+                                                              <span class="s2">&quot;maximum_iterations&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">}})</span>
+
+    <span class="k">return</span> <span class="n">T</span>
+</pre></div>
+</div>
+<p>Now we define the <code class="docutils literal"><span class="pre">__main__</span></code> section. We define the initial guess
+for the control and use it to solve the forward PDE. In order to
+ensure feasibility of the initial control guess, we interpolate the
+volume bound; this ensures that the integral constraint and the
+bound constraint are satisfied.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">interpolate</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Control&quot;</span><span class="p">)</span> <span class="c1"># initial guess.</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="n">forward</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>                        <span class="c1"># solve the forward problem once.</span>
+</pre></div>
+</div>
+<p>With the forward problem solved once, <code class="xref py py-mod docutils literal"><span class="pre">dolfin_adjoint</span></code> has
+built a <em>tape</em> of the forward model; it will use this tape to drive
+the optimisation, by repeatedly solving the forward model and the
+adjoint model for varying control inputs.</p>
+<p>A common task when solving optimisation problems is to implement a
+callback that gets executed at every functional evaluation. (For
+example, this might be to record the value of the functional so that
+it can be plotted as a function of iteration, or to record statistics
+about the controls suggested by the optimisation algorithm.) The
+following callback outputs each evaluation to VTK format, for
+visualisation in paraview. Note that the callback will output each
+<em>evaluation</em>; this means that it will be called more often than the
+number of iterations the optimisation algorithm reports, due to line
+searches. It is also possible to implement <a class="reference internal" href="../optimisation.html"><span class="doc">callbacks that are
+executed on every functional derivative calculation</span></a>.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">controls</span> <span class="o">=</span> <span class="n">File</span><span class="p">(</span><span class="s2">&quot;output/control_iterations.pvd&quot;</span><span class="p">)</span>
+<span class="n">a_viz</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ControlVisualisation&quot;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">eval_cb</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+    <span class="n">a_viz</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">controls</span> <span class="o">&lt;&lt;</span> <span class="n">a_viz</span>
+</pre></div>
+</div>
+<p>Now we define the functional, compliance with a weak regularisation
+term on the gradient of the material</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">J</span> <span class="o">=</span> <span class="n">Functional</span><span class="p">(</span><span class="n">f</span><span class="o">*</span><span class="n">T</span><span class="o">*</span><span class="n">dx</span> <span class="o">+</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">grad</span><span class="p">(</span><span class="n">a</span><span class="p">))</span><span class="o">*</span><span class="n">dx</span><span class="p">)</span>
+<span class="n">m</span> <span class="o">=</span> <span class="n">Control</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<span class="n">Jhat</span> <span class="o">=</span> <span class="n">ReducedFunctional</span><span class="p">(</span><span class="n">J</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">eval_cb_post</span><span class="o">=</span><span class="n">eval_cb</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This <code class="xref py py-class docutils literal"><span class="pre">ReducedFunctional</span></code> object solves the forward PDE using
+dolfin-adjoint’s tape each time the functional is to be evaluated, and
+derives and solves the adjoint equation each time the functional
+gradient is to be evaluated. The <code class="xref py py-class docutils literal"><span class="pre">ReducedFunctional</span></code> object
+takes in high-level Dolfin objects (i.e. the input to the evaluation
+<code class="docutils literal"><span class="pre">Jhat(a)</span></code> would be a <code class="xref py py-class docutils literal"><span class="pre">dolfin.Function</span></code>).</p>
+<p>Now let us configure the control constraints. The bound constraints
+are easy:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">lb</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">ub</span> <span class="o">=</span> <span class="mf">1.0</span>
+</pre></div>
+</div>
+<p>The volume constraint involves a little bit more work. Following
+<a class="reference internal" href="#nocedal2006" id="id6">[3E-NW06]</a>, inequality constraints are represented as
+(possibly vector) functions <span class="math">\(g\)</span> defined such that <span class="math">\(g(a)
+\ge 0\)</span>. The constraint is implemented by subclassing the
+<code class="xref py py-class docutils literal"><span class="pre">InequalityConstraint</span></code> class. (To implement equality
+constraints, see the documentation for
+<code class="xref py py-class docutils literal"><span class="pre">EqualityConstraint</span></code>.)  In this case, our <span class="math">\(g(a) = V -
+\int_{\Omega} a\)</span>. In order to implement the constraint, we have to
+implement three methods: one to compute the constraint value, one to
+compute its Jacobian, and one to return the number of components in
+the constraint.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="k">class</span> <span class="nc">VolumeConstraint</span><span class="p">(</span><span class="n">InequalityConstraint</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A class that enforces the volume constraint g(a) = V - a*dx &gt;= 0.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">V</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">V</span>  <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The derivative of the constraint g(x) is constant (it is the
+diagonal of the lumped mass matrix for the control function space),
+so let’s assemble it here once.  This is also useful in rapidly
+calculating the integral each time without re-assembling.</p>
+<div class="highlight-default"><div class="highlight"><pre>    <span class="bp">self</span><span class="o">.</span><span class="n">smass</span>  <span class="o">=</span> <span class="n">assemble</span><span class="p">(</span><span class="n">TestFunction</span><span class="p">(</span><span class="n">A</span><span class="p">)</span> <span class="o">*</span> <span class="n">Constant</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">dx</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">tmpvec</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+    <span class="n">reduced_functional_numpy</span><span class="o">.</span><span class="n">set_local</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tmpvec</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Compute the integral of the control over the domain</p>
+<div class="highlight-default"><div class="highlight"><pre>    <span class="n">integral</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">smass</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tmpvec</span><span class="o">.</span><span class="n">vector</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">MPI</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">mpi_comm_world</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Current control integral: &quot;</span><span class="p">,</span> <span class="n">integral</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">V</span> <span class="o">-</span> <span class="n">integral</span><span class="p">]</span>
+
+<span class="k">def</span> <span class="nf">jacobian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">smass</span><span class="p">]</span>
+
+<span class="k">def</span> <span class="nf">output_workspace</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span>
+
+<span class="k">def</span> <span class="nf">length</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the number of components in the constraint vector (here, one).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="mi">1</span>
+</pre></div>
+</div>
+<p>Now that all the ingredients are in place, we can perform the
+optimisation.  The <code class="xref py py-class docutils literal"><span class="pre">MinimizationProblem</span></code> class
+represents the optimisation problem to be solved. We instantiate
+this and pass it to <code class="xref py py-mod docutils literal"><span class="pre">pyipopt</span></code> to solve:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">problem</span> <span class="o">=</span> <span class="n">MinimizationProblem</span><span class="p">(</span><span class="n">Jhat</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="n">lb</span><span class="p">,</span> <span class="n">ub</span><span class="p">),</span> <span class="n">constraints</span><span class="o">=</span><span class="n">VolumeConstraint</span><span class="p">(</span><span class="n">V</span><span class="p">))</span>
+
+<span class="n">parameters</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;acceptable_tol&quot;</span><span class="p">:</span> <span class="mf">1.0e-3</span><span class="p">,</span> <span class="s2">&quot;maximum_iterations&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">}</span>
+<span class="n">solver</span> <span class="o">=</span> <span class="n">IPOPTSolver</span><span class="p">(</span><span class="n">problem</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
+<span class="n">a_opt</span> <span class="o">=</span> <span class="n">solver</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>
+
+<span class="n">xdmf_filename</span> <span class="o">=</span> <span class="n">XDMFFile</span><span class="p">(</span><span class="n">mpi_comm_world</span><span class="p">(),</span> <span class="s2">&quot;output/final_solution.xdmf&quot;</span><span class="p">)</span>
+<span class="n">xdmf_filename</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">a_opt</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The example code can be found in <code class="docutils literal"><span class="pre">examples/poisson-topology/</span></code> in the
+<code class="docutils literal"><span class="pre">dolfin-adjoint</span></code> source tree, and executed as follows:</p>
+<div class="highlight-bash"><div class="highlight"><pre>$ mpiexec -n <span class="m">4</span> python poisson-topology.py
+...
+Number of Iterations....: 30
+
+                                 <span class="o">(</span>scaled<span class="o">)</span>                 <span class="o">(</span>unscaled<span class="o">)</span>
+Objective...............:   1.3911443093658383e-04    1.3911443093658383e-04
+Dual infeasibility......:   5.5344657856725436e-08    5.5344657856725436e-08
+Constraint violation....:   0.0000000000000000e+00    0.0000000000000000e+00
+Complementarity.........:   3.7713488091294136e-09    3.7713488091294136e-09
+Overall NLP error.......:   5.5344657856725436e-08    5.5344657856725436e-08
+
+
+Number of objective <span class="k">function</span> <span class="nv">evaluations</span>             <span class="o">=</span> 31
+Number of objective gradient <span class="nv">evaluations</span>             <span class="o">=</span> 31
+Number of equality constraint <span class="nv">evaluations</span>            <span class="o">=</span> 0
+Number of inequality constraint <span class="nv">evaluations</span>          <span class="o">=</span> 31
+Number of equality constraint Jacobian <span class="nv">evaluations</span>   <span class="o">=</span> 0
+Number of inequality constraint Jacobian <span class="nv">evaluations</span> <span class="o">=</span> 31
+Number of Lagrangian Hessian <span class="nv">evaluations</span>             <span class="o">=</span> 0
+Total CPU secs in IPOPT <span class="o">(</span>w/o <span class="k">function</span> evaluations<span class="o">)</span>   <span class="o">=</span>      5.012
+Total CPU secs in NLP <span class="k">function</span> <span class="nv">evaluations</span>           <span class="o">=</span>     47.108
+
+EXIT: Solved To Acceptable Level.
+</pre></div>
+</div>
+<p>The optimisation iterations can be visualised by opening
+<code class="docutils literal"><span class="pre">output/control_iterations.pvd</span></code> in paraview. The resulting solution
+exhibits fascinating dendritic structures, similar to the reference
+solution found in <a class="reference internal" href="#gersborg2006" id="id7">[3E-GHBS06]</a>.</p>
+<a class="reference internal image-reference" href="../../_images/poisson-topology.png"><img alt="../../_images/poisson-topology.png" class="align-center" src="../../_images/poisson-topology.png" style="width: 717.6px; height: 717.6px;" /></a>
+<p>See also <code class="docutils literal"><span class="pre">examples/poisson-topology/poisson-topology-3d.py</span></code> for a 3-dimensional
+generalisation of this example, with the following solution:</p>
+<a class="reference internal image-reference" href="../../_images/poisson-topology-3d.png"><img alt="../../_images/poisson-topology-3d.png" class="align-center" src="../../_images/poisson-topology-3d.png" style="width: 760.5px; height: 511.2px;" /></a>
+<p class="rubric">References</p>
+<p id="bibtex-bibliography-documentation/poisson-topology/poisson-topology-0"><table class="docutils citation" frame="void" id="bendsoe2003" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[3E-BendseS03]</td><td><em>(<a class="fn-backref" href="#id2">1</a>, <a class="fn-backref" href="#id3">2</a>)</em> M.&nbsp;P. Bendsøe and O.&nbsp;Sigmund. <em>Topology Optimization: Theory, Methods and Applications</em>. Springer, 2003.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="gersborg2006" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[3E-GHBS06]</td><td><em>(<a class="fn-backref" href="#id1">1</a>, <a class="fn-backref" href="#id7">2</a>)</em> A.&nbsp;Gersborg-Hansen, M.P. Bendsøe, and O.&nbsp;Sigmund. Topology optimization of heat conduction problems using the finite volume method. <em>Structural and Multidisciplinary Optimization</em>, 31(4):251–259, 2006. <a class="reference external" href="https://doi.org/10.1007/s00158-005-0584-3">doi:10.1007/s00158-005-0584-3</a>.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="lazarov2011" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id4">[3E-LS11]</a></td><td>B.&nbsp;S. Lazarov and O.&nbsp;Sigmund. Filters in topology optimization based on Helmholtz-type differential equations. <em>International Journal for Numerical Methods in Engineering</em>, 86(6):765–781, 2011. <a class="reference external" href="https://doi.org/10.1002/nme.3072">doi:10.1002/nme.3072</a>.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="nocedal2006" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id6">[3E-NW06]</a></td><td>J.&nbsp;Nocedal and S.&nbsp;J Wright. <em>Numerical Optimization</em>. Springer Verlag, 2006.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="wachter2006" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id5">[3E-WB06]</a></td><td>A.&nbsp;Wächter and L.&nbsp;T. Biegler. On the implementation of an interior-point filter line-search algorithm for large-scale nonlinear programming. <em>Mathematical Programming</em>, 106(1):25–57, 2006. <a class="reference external" href="https://doi.org/10.1007/s10107-004-0559-y">doi:10.1007/s10107-004-0559-y</a>.</td></tr>
+</tbody>
+</table>
+</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, The dolfin-adjoint team.
+    </div>
+  </body>
+</html>

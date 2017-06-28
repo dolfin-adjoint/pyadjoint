@@ -1,0 +1,244 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>dolfin-adjoint about</title>
+    
+    <link rel="stylesheet" href="../_static/fenics.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '2017.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+<link rel="stylesheet" href="../_static/featured.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="../_static/slides.min.jquery.js"></script>
+  <script>
+	$(function(){
+		$('#products').slides({
+			preload: true,
+			preloadImage: 'img/loading.gif',
+			effect: 'slide, fade',
+			crossfade: true,
+			slideSpeed: 350,
+			fadeSpeed: 500,
+			generateNextPrev: false,
+			generatePagination: false,
+	                play: 5000,
+                        hoverPause: false,
+                        animationStart: function(current){
+				$('.caption').animate({
+					bottom:-35
+				},100);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationStart on slide: ', current);
+				};
+			},
+			animationComplete: function(current){
+				$('.caption').animate({
+					bottom:0
+				},200);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationComplete on slide: ', current);
+				};
+			},
+			slidesLoaded: function() {
+				$('.caption').animate({
+					bottom:0
+				},200);
+			}
+		});
+	});
+  </script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-31806773-1']);
+  _gaq.push(['_setDomainName', 'dolfin-adjoint.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<!-- Load the flex slider library -->
+<link rel="stylesheet" href="_static/flexslider/flexslider.css" type="text/css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="_static/flexslider/jquery.flexslider.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+  $(window).load(function() {
+  $('.flexslider').flexslider();
+  });
+</script>
+
+<!-- Load the code highlight library -->
+<link rel="stylesheet" href="_static/highlight/styles/zenburn.css">
+<script src="_static/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<link rel="shortcut icon" href="../_static/icon.ico" />
+
+
+  </head>
+  <body>
+<div class="wrapper">
+  <a href="../"><img src="../_static/banner.png" width="900px" alt="dolfin-adjoint Project Banner" /></a>
+  <div id="access">
+    <div class="menu">
+      <ul>
+          <li class="page_item"><a href="#" title="Find out more about dolfin-adjoint">About</a></li>
+          <li class="page_item"><a href="../features/index.html" title="Features of dolfin-adjoint">Features</a></li>
+          <li class="page_item"><a href="../documentation/index.html" title="Learn how to use dolfin-adjoint">Documentation</a></li>
+          <li class="page_item"><a href="../download/index.html" title="Obtain the dolfin-adjoint code">Download</a></li>
+          <li class="page_item"><a href="../citing/index.html" title="Learn how to cite the dolfin-adjoint project">Citing</a></li>
+          <li class="page_item"><a href="../support/index.html" title="Where to go for more help">Support</a></li>
+      </ul>
+    </div><!-- .menu -->
+  </div><!-- #access -->
+</div><!-- #wrapper -->
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="about">
+<span id="dolfin-adjoint-about"></span><h1>About<a class="headerlink" href="#about" title="Permalink to this headline">¶</a></h1>
+<p>The dolfin-adjoint project automatically <strong>derives the discrete
+adjoint and tangent linear models</strong> from a forward model written in
+the Python interface to <a class="reference external" href="http://fenicsproject.org">DOLFIN</a>.</p>
+<p>These adjoint and tangent linear models are key ingredients in many
+important algorithms, such as data assimilation, optimal control,
+sensitivity analysis, design optimisation, and error estimation.  Such
+models have made an enormous impact in fields such as meteorology and
+oceanography, but their use in other scientific fields has been
+hampered by the great practical difficulty of their derivation and
+implementation. In <a class="reference external" href="http://dx.doi.org/10.1137/1.9781611972078">his recent book</a>, Naumann (2011) states that</p>
+<blockquote>
+<div>[T]he automatic generation of optimal (in terms of robustness and
+efficiency) adjoint versions of large-scale simulation code is <strong>one
+of the great open challenges in the field of High-Performance
+Scientific Computing</strong>.</div></blockquote>
+<p><strong>The dolfin-adjoint project aims to solve this problem</strong> for the case
+where the model is implemented in the Python interface to DOLFIN.</p>
+<div class="section" id="news">
+<h2>News<a class="headerlink" href="#news" title="Permalink to this headline">¶</a></h2>
+<p><strong>31.05.2017</strong>: dolfin-adjoint 2017.1 released (compatible with FEniCS 2017.1) <a class="reference external" href="https://bitbucket.org/dolfin-adjoint/dolfin-adjoint/raw/master/ChangeLog">ChangeLog</a>.</p>
+<p><strong>21.02.2017</strong>: dolfin-adjoint 2016.2 is now available as Conda package.</p>
+<p><strong>20.12.2016</strong>: dolfin-adjoint 2016.2 released (compatible with FEniCS 2016.2) <a class="reference external" href="https://bitbucket.org/dolfin-adjoint/dolfin-adjoint/raw/master/ChangeLog">Changelog</a>.</p>
+<p><strong>08.9.2016</strong>: We now offer Docker images to simplify the installation procedure.</p>
+<p><strong>30.8.2016</strong>: dolfin-adjoint 2016.1 released (compatible with FEniCS 2016.1) <a class="reference external" href="https://bitbucket.org/dolfin-adjoint/dolfin-adjoint/raw/master/ChangeLog">Changelog</a>.</p>
+<p><strong>20.8.2015</strong>: dolfin-adjoint 1.6 released (compatible with FEniCS 1.6) <a class="reference external" href="https://bitbucket.org/dolfin-adjoint/dolfin-adjoint/raw/master/ChangeLog">Changelog</a>.</p>
+<p><strong>11.6.2015</strong>: P. E. Farrell, S. W. Funke, D. A. Ham and M. E. Rognes were awarded the 2015 <a class="reference external" href="http://www.nag.co.uk/other/WilkinsonPrize.html">Wilkinson prize for numerical software</a> for dolfin-adjoint.</p>
+</div>
+<div class="section" id="features">
+<h2>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h2>
+<p>dolfin-adjoint has the following features:</p>
+<ul class="simple">
+<li>Works for both steady and <strong>time-dependent problems</strong> and for both linear and <strong>nonlinear problems</strong>.</li>
+<li>Using it is very <strong>easy</strong>: given a differentiable forward model, employing dolfin-adjoint involves
+changing on the order of ten lines of code.</li>
+<li>The adjoint and tangent linear models exhibit <strong>optimal theoretical efficiency</strong>. If every forward
+variable is stored, the adjoint takes 0.2-1.0x the runtime of the forward model, depending on the
+precise details of the structure of the forward problem.</li>
+<li>If the forward model runs in parallel, the adjoint and tangent linear models also <strong>run in parallel</strong>
+with no modification.</li>
+<li>If instructed, the adjoint model can automatically employ <strong>optimal checkpointing</strong> schemes to
+mitigate storage requirements for long nonlinear runs.</li>
+<li><strong>Rigorous verification</strong> routines are provided, so that users can easily verify for themselves
+the correctness of the derived models.</li>
+<li>Solves <strong>optimisation problems</strong> constrained by partial differential equations by interfacing to powerful optimisation algorithms</li>
+</ul>
+<p>For more details, <a class="reference internal" href="../features/index.html"><span class="doc">see the features page</span></a>.</p>
+</div>
+<div class="section" id="limitations">
+<h2>Limitations<a class="headerlink" href="#limitations" title="Permalink to this headline">¶</a></h2>
+<p>To do all this, dolfin-adjoint requires some cooperation from the
+model developer:</p>
+<ul class="simple">
+<li>Works only with the Python interface of DOLFIN.</li>
+<li>For the adjoint to be consistent, the discretisation must be differentiable.</li>
+<li>All changes to object values (matrices, vectors, functions) must happen through the DOLFIN interface.</li>
+</ul>
+</div>
+<div class="section" id="how-it-works">
+<h2>How it works<a class="headerlink" href="#how-it-works" title="Permalink to this headline">¶</a></h2>
+<p>The traditional approach to deriving adjoint and tangent linear models
+is called <a class="reference external" href="http://www.autodiff.org">algorithmic differentiation</a> (also called automatic
+differentiation). The fundamental idea of algorithmic differentiation
+is to <em>treat the model as a sequence of elementary instructions</em>. An
+elementary instruction is a simple operation such as addition,
+multiplication, or exponentiation. Each one of these operations is
+differentiated individually, and the derivative of the whole model is
+then composed with the chain rule.</p>
+<p>The dolfin-adjoint project is instead based on a very different
+approach.  The model is considered as <em>a sequence of equation
+solves</em>. This abstraction is similar to the fundamental abstraction of
+algorithmic differentiation, but operates at a much higher level of
+abstraction. This idea is implemented in a software library,
+<a class="reference external" href="http://bitbucket.org/dolfin-adjoint/libadjoint">libadjoint</a>. When this new idea is combined with the high-level
+abstraction of the FEniCS system, many of the difficult problems
+associated with algorithmic differentiation dissolve.</p>
+<p>For more technical details on libadjoint and dolfin-adjoint, <a class="reference internal" href="../citing/index.html"><span class="doc">see
+the papers</span></a>.</p>
+</div>
+<div class="section" id="contributors">
+<h2>Contributors<a class="headerlink" href="#contributors" title="Permalink to this headline">¶</a></h2>
+<p>The dolfin-adjoint project is developed and maintained by the
+following authors:</p>
+<ul class="simple">
+<li><a class="reference external" href="http://pefarrell.org">Patrick E. Farrell</a> (Mathematical Institute, University of Oxford)</li>
+<li><a class="reference external" href="http://simonfunke.com">Simon W. Funke</a> (Center for Biomedical Computing, Simula Research Laboratory)</li>
+<li><a class="reference external" href="http://www.ic.ac.uk/people/david.ham">David A. Ham</a> (Department of Mathematics and Department of Computing, Imperial College London)</li>
+<li><a class="reference external" href="http://home.simula.no/~meg/">Marie E. Rognes</a> (Center for Biomedical Computing, Simula Research Laboratory)</li>
+<li><a class="reference external" href="http://www.maths.ed.ac.uk/people/show?person-364">James R. Maddison</a> (School of Mathematics, University of Edinburgh)</li>
+</ul>
+</div>
+<div class="section" id="license">
+<h2>License<a class="headerlink" href="#license" title="Permalink to this headline">¶</a></h2>
+<p>Like the <a class="reference external" href="http://fenicsproject.org/about/">core FEniCS components</a>, The dolfin-adjoint software is
+freely available under the <a class="reference external" href="http://www.gnu.org/licenses/lgpl.html">GNU LGPL</a>, version 3.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, The dolfin-adjoint team.
+    </div>
+  </body>
+</html>

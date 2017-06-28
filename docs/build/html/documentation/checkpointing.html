@@ -1,0 +1,303 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Checkpointing</title>
+    
+    <link rel="stylesheet" href="../_static/fenics.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '2017.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+<link rel="stylesheet" href="../_static/featured.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="../_static/slides.min.jquery.js"></script>
+  <script>
+	$(function(){
+		$('#products').slides({
+			preload: true,
+			preloadImage: 'img/loading.gif',
+			effect: 'slide, fade',
+			crossfade: true,
+			slideSpeed: 350,
+			fadeSpeed: 500,
+			generateNextPrev: false,
+			generatePagination: false,
+	                play: 5000,
+                        hoverPause: false,
+                        animationStart: function(current){
+				$('.caption').animate({
+					bottom:-35
+				},100);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationStart on slide: ', current);
+				};
+			},
+			animationComplete: function(current){
+				$('.caption').animate({
+					bottom:0
+				},200);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationComplete on slide: ', current);
+				};
+			},
+			slidesLoaded: function() {
+				$('.caption').animate({
+					bottom:0
+				},200);
+			}
+		});
+	});
+  </script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-31806773-1']);
+  _gaq.push(['_setDomainName', 'dolfin-adjoint.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<!-- Load the flex slider library -->
+<link rel="stylesheet" href="_static/flexslider/flexslider.css" type="text/css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="_static/flexslider/jquery.flexslider.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+  $(window).load(function() {
+  $('.flexslider').flexslider();
+  });
+</script>
+
+<!-- Load the code highlight library -->
+<link rel="stylesheet" href="_static/highlight/styles/zenburn.css">
+<script src="_static/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<link rel="shortcut icon" href="../_static/icon.ico" />
+
+
+  </head>
+  <body>
+<div class="wrapper">
+  <a href="../"><img src="../_static/banner.png" width="900px" alt="dolfin-adjoint Project Banner" /></a>
+  <div id="access">
+    <div class="menu">
+      <ul>
+          <li class="page_item"><a href="../about/index.html" title="Find out more about dolfin-adjoint">About</a></li>
+          <li class="page_item"><a href="../features/index.html" title="Features of dolfin-adjoint">Features</a></li>
+          <li class="page_item"><a href="index.html" title="Learn how to use dolfin-adjoint">Documentation</a></li>
+          <li class="page_item"><a href="../download/index.html" title="Obtain the dolfin-adjoint code">Download</a></li>
+          <li class="page_item"><a href="../citing/index.html" title="Learn how to cite the dolfin-adjoint project">Citing</a></li>
+          <li class="page_item"><a href="../support/index.html" title="Where to go for more help">Support</a></li>
+      </ul>
+    </div><!-- .menu -->
+  </div><!-- #access -->
+</div><!-- #wrapper -->
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="checkpointing">
+<h1>Checkpointing<a class="headerlink" href="#checkpointing" title="Permalink to this headline">¶</a></h1>
+<p>As discussed in the <a class="reference internal" href="maths/index.html"><span class="doc">mathematical background</span></a>,
+the adjoint model is a <em>linearisation</em> of the forward model. If the
+forward model is nonlinear, then the solution of that forward model
+must be available to <em>linearise</em> the forward model. By default,
+dolfin-adjoint stores every variable computed in memory, as this is
+the fastest and most straightforward option; however, this may not be
+feasible for large runs, or for runs with very many timesteps.</p>
+<p>The solution to this problem is to employ a <em>checkpointing
+scheme</em>. Rather than store every variable during the forward run,
+checkpoints are stored at strategically chosen intervals, from which
+the model may recompute the missing solutions. During the adjoint run,
+if a forward variable is necessary and unavailable, the forward model
+is restarted from the nearest available checkpoint to compute the
+missing solutions; once these are available, the adjoint run
+continues.</p>
+<p>Thus, to employ a checkpointing scheme, the control flow of the
+adjoint run must seamlessly jump between assembling and solving the
+adjoint equations, and assembling and solving parts of the forward
+run. Coding a checkpointing scheme is quite complicated, and so most
+hand-coded adjoint models do not use them. However, the
+<a class="reference internal" href="../citing/index.html"><span class="doc">libadjoint library underlying dolfin-adjoint</span></a>
+embeds the excellent <a class="reference external" href="http://www2.math.uni-paderborn.de/index.php?id=12067&amp;L=1">revolve library</a> of <a class="reference external" href="http://dx.doi.org/10.1145/347837.347846">Griewank and Walther</a>,
+and can automatically employ optimal checkpointing schemes for almost
+no marginal user effort.</p>
+<p>Activating checkpointing is very straightforward: two calls to
+dolfin-adjoint functions are necessary. Firstly, before any equations
+are solved, the user must call the <code class="xref py py-func docutils literal"><span class="pre">adj_checkpointing</span></code> function, which activates and
+configures the checkpointing scheme.  Secondly, the user must place a
+call to <code class="xref py py-func docutils literal"><span class="pre">adj_inc_timestep</span></code>
+at the end of the time loop, which indicates to libadjoint that a
+timestep has ended. (Internally, the checkpointing scheme relies on
+the concept of timesteps, but dolfin-adjoint has no way of
+automatically determining when a timestep has ended, and so the user
+must help out.) For example, to activate checkpointing for the
+Burgers’ equation:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">dolfin</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">dolfin_adjoint</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="hll"><span class="n">adj_checkpointing</span><span class="p">(</span><span class="n">strategy</span><span class="o">=</span><span class="s1">&#39;multistage&#39;</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+</span><span class="hll">                  <span class="n">snaps_on_disk</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">snaps_in_ram</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span>
+<span class="n">n</span> <span class="o">=</span> <span class="mi">30</span>
+<span class="n">mesh</span> <span class="o">=</span> <span class="n">UnitSquareMesh</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+<span class="n">V</span> <span class="o">=</span> <span class="n">VectorFunctionSpace</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="s2">&quot;CG&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+<span class="n">ic</span> <span class="o">=</span> <span class="n">project</span><span class="p">(</span><span class="n">Expression</span><span class="p">((</span><span class="s2">&quot;sin(2*pi*x[0])&quot;</span><span class="p">,</span> <span class="s2">&quot;cos(2*pi*x[1])&quot;</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>  <span class="n">V</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">nu</span><span class="p">):</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">ic</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">deepcopy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">u_next</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">TestFunction</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+
+    <span class="n">timestep</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+
+    <span class="n">F</span> <span class="o">=</span> <span class="p">(</span><span class="n">inner</span><span class="p">((</span><span class="n">u_next</span> <span class="o">-</span> <span class="n">u</span><span class="p">)</span><span class="o">/</span><span class="n">timestep</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+       <span class="o">+</span> <span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">u_next</span><span class="p">)</span><span class="o">*</span><span class="n">u_next</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+       <span class="o">+</span> <span class="n">nu</span><span class="o">*</span><span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">u_next</span><span class="p">),</span> <span class="n">grad</span><span class="p">(</span><span class="n">v</span><span class="p">)))</span><span class="o">*</span><span class="n">dx</span>
+
+    <span class="n">bc</span> <span class="o">=</span> <span class="n">DirichletBC</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="s2">&quot;on_boundary&quot;</span><span class="p">)</span>
+
+    <span class="n">t</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="mf">0.1</span>
+    <span class="k">while</span> <span class="p">(</span><span class="n">t</span> <span class="o">&lt;=</span> <span class="n">end</span><span class="p">):</span>
+        <span class="n">solve</span><span class="p">(</span><span class="n">F</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">u_next</span><span class="p">,</span> <span class="n">bc</span><span class="p">)</span>
+        <span class="n">u</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">u_next</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">timestep</span><span class="p">)</span>
+<span class="hll">        <span class="n">adj_inc_timestep</span><span class="p">()</span>
+</span>
+    <span class="k">return</span> <span class="n">u</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">nu</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">)</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">main</span><span class="p">(</span><span class="n">nu</span><span class="p">)</span>
+
+    <span class="n">J</span> <span class="o">=</span> <span class="n">Functional</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="o">*</span><span class="n">dt</span><span class="p">[</span><span class="n">FINISH_TIME</span><span class="p">])</span>
+    <span class="n">dJdnu</span> <span class="o">=</span> <span class="n">compute_gradient</span><span class="p">(</span><span class="n">J</span><span class="p">,</span> <span class="n">Control</span><span class="p">(</span><span class="n">nu</span><span class="p">))</span>
+
+    <span class="n">Jnu</span> <span class="o">=</span> <span class="n">assemble</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="p">)</span>
+
+    <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;adjoint&quot;</span><span class="p">][</span><span class="s2">&quot;stop_annotating&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">def</span> <span class="nf">Jhat</span><span class="p">(</span><span class="n">nu</span><span class="p">):</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">main</span><span class="p">(</span><span class="n">nu</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">assemble</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="p">)</span>
+
+    <span class="n">conv_rate</span> <span class="o">=</span> <span class="n">taylor_test</span><span class="p">(</span><span class="n">Jhat</span><span class="p">,</span> <span class="n">Control</span><span class="p">(</span><span class="n">nu</span><span class="p">),</span> <span class="n">Jnu</span><span class="p">,</span> <span class="n">dJdnu</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><img alt="more info" class="align-middle" src="../_images/more.png" /> Download the <a class="reference external" href="../_static/tutorial5.py">checkpointed adjoint code</a>.</p>
+<p>The adjoint is <a class="reference internal" href="verification.html"><span class="doc">still correct</span></a>:</p>
+<div class="highlight-none"><div class="highlight"><pre>$ python tutorial5.py
+...
+Convergence orders for Taylor remainder with adjoint information (should all be 2):
+  [1.9581779061731224, 1.9787032981594719, 1.9892527501829258, 1.994601330422228]
+</pre></div>
+</div>
+<p>To see what the checkpointing scheme does, pass <code class="xref py py-data docutils literal"><span class="pre">verbose=True</span></code>:</p>
+<div class="highlight-none"><div class="highlight"><pre>$ python tutorial5.py | grep Revolve
+Revolve: Checkpoint statistics:
+Revolve: Checkpoint timestep 0 on disk.
+Revolve: Advance from timestep 0 to timestep 3.
+Revolve: Checkpoint timestep 3 on disk.
+Revolve: Advance from timestep 3 to timestep 5.
+Revolve: Checkpoint timestep 5 in memory.
+Revolve: Advance from timestep 5 to timestep 7.
+Revolve: Solve last timestep 7.
+====== Revolve: Replay from equation 13 (first equation of timestep 7)
+         to equation 14 (last equation of timestep 7). ======
+Revolve: Replaying equation 13.
+Revolve: Checkpoint equation 13 in memory.
+Revolve: Replaying equation 14.
+Revolve: Solving adjoint equation 14.
+Revolve: Solving adjoint equation 13.
+Revolve: Delete checkpoint equation 13.
+...
+====== Revolve: Replay from equation 2 (first equation of timestep 1)
+       to equation 2 (last equation of timestep 1). ======
+Revolve: No need to replay equation 2.
+Revolve: Checkpoint equation 2 in memory.
+Revolve: Solving adjoint equation 2.
+Revolve: Delete checkpoint equation 2.
+====== Revolve: Replay from equation 0 (first equation of timestep 0)
+       to equation 1 (last equation of timestep 0). ======
+Revolve: Replaying equation 0.
+Revolve: No need to replay equation 1.
+Revolve: Solving adjoint equation 1.
+Revolve: Solving adjoint equation 0.
+Revolve: Delete checkpoint equation 0.
+</pre></div>
+</div>
+<p>There are two categories of checkpointing algorithms: <strong>offline</strong>
+algorithms and <strong>online</strong> algorithms.  In the offline case, the number
+of timesteps is known in advance, and so the optimal distribution of
+checkpoints may be computed a priori (and hence “offline”), while in
+the online case, the number of timesteps is not known in advance, and
+so the distribution of checkpoints must be computed during the run
+itself. Both the offline and online algorithms in revolve only use
+disk checkpoints; however, revolve also offers a <strong>multistage</strong>
+algorithm, which is a variant of the offline algorithm that uses both
+checkpoints in memory and checkpoints on disk.</p>
+<p>At present, only the offline and multistage algorithms are
+implemented, and so the number of timesteps must be known in
+advance. Contributions to interfacing with the online algorithm are
+very welcome.</p>
+<p>To use checkpointing, the user must specify how many checkpoint slots
+are available in memory and on disk. When libadjoint informs
+dolfin-adjoint to checkpoint, dolfin-adjoint <strong>records the values of
+all variables at that time</strong>. Therefore, <em>each checkpoint slot is
+equivalent to the whole state of memory</em>. In the above example, both
+<code class="xref py py-data docutils literal"><span class="pre">u</span></code> and <code class="xref py py-data docutils literal"><span class="pre">u_next</span></code> will be checkpointed, and so each
+checkpoint will store <code class="xref py py-data docutils literal"><span class="pre">2*V.dim()</span></code> floating point
+numbers. Keep this in mind when estimating how many checkpoints your
+machine can fit.</p>
+<p>If you wish to perform large or long computations, you may be
+interested in <a class="reference internal" href="parallel.html"><span class="doc">running the adjoint in parallel</span></a>.</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, The dolfin-adjoint team.
+    </div>
+  </body>
+</html>

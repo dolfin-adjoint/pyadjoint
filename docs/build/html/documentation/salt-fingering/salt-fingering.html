@@ -1,0 +1,512 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Generalised stability analysis of double-diffusive salt fingering</title>
+    
+    <link rel="stylesheet" href="../../_static/fenics.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2017.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+<link rel="stylesheet" href="../../_static/featured.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="../../_static/slides.min.jquery.js"></script>
+  <script>
+	$(function(){
+		$('#products').slides({
+			preload: true,
+			preloadImage: 'img/loading.gif',
+			effect: 'slide, fade',
+			crossfade: true,
+			slideSpeed: 350,
+			fadeSpeed: 500,
+			generateNextPrev: false,
+			generatePagination: false,
+	                play: 5000,
+                        hoverPause: false,
+                        animationStart: function(current){
+				$('.caption').animate({
+					bottom:-35
+				},100);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationStart on slide: ', current);
+				};
+			},
+			animationComplete: function(current){
+				$('.caption').animate({
+					bottom:0
+				},200);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationComplete on slide: ', current);
+				};
+			},
+			slidesLoaded: function() {
+				$('.caption').animate({
+					bottom:0
+				},200);
+			}
+		});
+	});
+  </script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-31806773-1']);
+  _gaq.push(['_setDomainName', 'dolfin-adjoint.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<!-- Load the flex slider library -->
+<link rel="stylesheet" href="_static/flexslider/flexslider.css" type="text/css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="_static/flexslider/jquery.flexslider.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+  $(window).load(function() {
+  $('.flexslider').flexslider();
+  });
+</script>
+
+<!-- Load the code highlight library -->
+<link rel="stylesheet" href="_static/highlight/styles/zenburn.css">
+<script src="_static/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<link rel="shortcut icon" href="../../_static/icon.ico" />
+
+
+  </head>
+  <body>
+<div class="wrapper">
+  <a href="../../"><img src="../../_static/banner.png" width="900px" alt="dolfin-adjoint Project Banner" /></a>
+  <div id="access">
+    <div class="menu">
+      <ul>
+          <li class="page_item"><a href="../../about/index.html" title="Find out more about dolfin-adjoint">About</a></li>
+          <li class="page_item"><a href="../../features/index.html" title="Features of dolfin-adjoint">Features</a></li>
+          <li class="page_item"><a href="../index.html" title="Learn how to use dolfin-adjoint">Documentation</a></li>
+          <li class="page_item"><a href="../../download/index.html" title="Obtain the dolfin-adjoint code">Download</a></li>
+          <li class="page_item"><a href="../../citing/index.html" title="Learn how to cite the dolfin-adjoint project">Citing</a></li>
+          <li class="page_item"><a href="../../support/index.html" title="Where to go for more help">Support</a></li>
+      </ul>
+    </div><!-- .menu -->
+  </div><!-- #access -->
+</div><!-- #wrapper -->
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="generalised-stability-analysis-of-double-diffusive-salt-fingering">
+<span id="salt-fingering-example"></span><h1>Generalised stability analysis of double-diffusive salt fingering<a class="headerlink" href="#generalised-stability-analysis-of-double-diffusive-salt-fingering" title="Permalink to this headline">¶</a></h1>
+<p><em>Section author: Patrick E. Farrell &lt;<a class="reference external" href="mailto:patrick&#46;farrell&#37;&#52;&#48;maths&#46;ox&#46;ac&#46;uk">patrick<span>&#46;</span>farrell<span>&#64;</span>maths<span>&#46;</span>ox<span>&#46;</span>ac<span>&#46;</span>uk</a>&gt;</em></p>
+<p>This demo solves example 4.2 of <a class="reference internal" href="#farrell2012c" id="id1">[6E-FCF14]</a>.</p>
+<div class="section" id="background">
+<h2>Background<a class="headerlink" href="#background" title="Permalink to this headline">¶</a></h2>
+<p>In the ocean, the diffusivity coefficient of temperature is approximately two
+orders of magnitude larger than the diffusivity coefficient of salinity.
+Suppose warm salty water lies above colder, less salty water. If a parcel of
+warm salty water sinks downwards into the colder region, the heat of the
+parcel will diffuse away much faster than its salt, thus making the parcel
+denser, and causing it to sink further. Similarly, if a parcel of cold, less
+salty water rises into the warmer region, it will gain heat from its
+surroundings much faster than it will gain salinity, making the parcel more
+buoyant. This phenomenon is referred to as ”salt fingering”
+<a class="reference internal" href="#stern1960" id="id2">[6E-Ste60]</a> and has been observed in many real-world oceanographic
+contexts <a class="reference internal" href="#turner1985" id="id3">[6E-Tur85]</a>.</p>
+<p>Ozgokmen and Esenkov <a class="reference internal" href="#ozgokmen1998b" id="id4">[6E-OE98]</a> used a numerical model to
+investigate asymmetry in the growth of salt fingers caused by nonlinearities
+in the equation of state. In this work, we investigate the stability of the
+proposed configuration to small perturbations. Generalised stability theory
+is an extension of asymptotic linear stability theory to finite time horizons,
+and requires computing the singular value decomposition of the model
+<em>propagator</em>, whose action requires the solution of the tangent linear and
+adjoint models.</p>
+</div>
+<div class="section" id="problem-definition">
+<h2>Problem definition<a class="headerlink" href="#problem-definition" title="Permalink to this headline">¶</a></h2>
+<p>The equations describing the system are the two-dimensional
+vorticity-streamfunction formulation of the time-dependent Navier–Stokes
+equations, coupled to two advection equations for temperature and salinity:</p>
+<div class="math">
+\[\begin{split}\frac{\partial \zeta}{\partial t} + \nabla^{\perp} \psi \cdot \nabla \zeta &amp;= \frac{\textrm{Ra}}{\textrm{Pr}}\left(\frac{\partial T}{\partial x} - \frac{1}{R_{\rho}^0} \frac{\partial S}{\partial x}\right) + \nabla^2 \zeta, \\
+\frac{\partial T}{\partial t} + \nabla^{\perp} \psi \cdot \nabla T &amp;= \frac{1}{\textrm{Pr}} \nabla^2 T, \\
+\frac{\partial S}{\partial t} + \nabla^{\perp} \psi \cdot \nabla S &amp;= \frac{1}{\textrm{Sc}} \nabla^2 S, \\
+\nabla^2 \psi &amp;= \zeta,\end{split}\]</div>
+<p>where <span class="math">\(\zeta\)</span> is the vorticity, <span class="math">\(\psi\)</span> is the streamfunction,
+<span class="math">\(T\)</span> is the temperature, <span class="math">\(S\)</span> is the salinity, and <span class="math">\(\textrm{Ra}\)</span>,
+<span class="math">\(\textrm{Sc}\)</span>, <span class="math">\(\textrm{Pr}\)</span> and <span class="math">\({R_{\rho}^0}\)</span> are nondimensional parameters.
+Periodic boundary conditions are applied on the left and right boundaries.
+The configuration consists of two well-mixed layers (i.e., of homogeneous
+temperature and salinity) separated by an interface. To activate the
+instability, <a class="reference internal" href="#ozgokmen1998b" id="id5">[6E-OE98]</a> add a sinusoidal perturbation to the initial
+salinity field.</p>
+</div>
+<div class="section" id="implementation">
+<h2>Implementation<a class="headerlink" href="#implementation" title="Permalink to this headline">¶</a></h2>
+<p>We start our implementation by importing the <code class="xref py py-mod docutils literal"><span class="pre">dolfin</span></code> and
+<code class="xref py py-mod docutils literal"><span class="pre">dolfin_adjoint</span></code> modules</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">dolfin</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">dolfin_adjoint</span> <span class="k">import</span> <span class="o">*</span>
+</pre></div>
+</div>
+<p>Next we create a 50 x 50 regular mesh of the rectangle <span class="math">\([0, 1] \times
+[0, 2]\)</span>.  This mesh is quite coarse so that the demo runs in approximately ten
+minutes; for production computations, this might be run at 300 x 300 or 500 x
+500.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">mesh</span> <span class="o">=</span> <span class="n">RectangleMesh</span><span class="p">(</span><span class="n">Point</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">Point</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Computing the singular value decomposition of the propagator requires many
+actions of the propagator, the operator that maps perturbations in the input
+to perturbations in the output at some finite time later.  (The propagator is
+typically dense, and so the SVD is computed matrix-free.) Each action requires
+the solution of the tangent linear and adjoint systems. Since the same
+equations are solved over and over for each action, dolfin-adjoint can
+optionally cache the LU factorizations to greatly speed up subsequent
+propagator actions.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;adjoint&quot;</span><span class="p">][</span><span class="s2">&quot;cache_factorizations&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+</pre></div>
+</div>
+<p>Here we enforce the periodic boundary conditions that map the right-hand
+boundary to the left-hand boundary. The <code class="xref py py-func docutils literal"><span class="pre">inside</span></code> function indicates
+which boundary is to be mapped <em>to</em> (here the left); the <code class="xref py py-func docutils literal"><span class="pre">map</span></code>
+function maps from the right-hand boundary to the left-hand boundary.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="k">class</span> <span class="nc">PeriodicBoundary</span><span class="p">(</span><span class="n">SubDomain</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">inside</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">on_boundary</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="n">on_boundary</span>
+
+    <span class="k">def</span> <span class="nf">map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+<span class="n">pbc</span> <span class="o">=</span> <span class="n">PeriodicBoundary</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Now we declare our function spaces. Since the vorticity-streamfunction
+formulation no longer has a divergence constraint, we can use piecewise linear
+Galerkin finite elements for every prognostic field, without concern for
+inf-sup stability conditions.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">Vh</span> <span class="o">=</span> <span class="n">FiniteElement</span><span class="p">(</span><span class="s2">&quot;CG&quot;</span><span class="p">,</span> <span class="n">mesh</span><span class="o">.</span><span class="n">ufl_cell</span><span class="p">(),</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">Ph</span> <span class="o">=</span> <span class="n">FiniteElement</span><span class="p">(</span><span class="s2">&quot;CG&quot;</span><span class="p">,</span> <span class="n">mesh</span><span class="o">.</span><span class="n">ufl_cell</span><span class="p">(),</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">Th</span> <span class="o">=</span> <span class="n">FiniteElement</span><span class="p">(</span><span class="s2">&quot;CG&quot;</span><span class="p">,</span> <span class="n">mesh</span><span class="o">.</span><span class="n">ufl_cell</span><span class="p">(),</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">Sh</span> <span class="o">=</span> <span class="n">FiniteElement</span><span class="p">(</span><span class="s2">&quot;CG&quot;</span><span class="p">,</span> <span class="n">mesh</span><span class="o">.</span><span class="n">ufl_cell</span><span class="p">(),</span> <span class="mi">1</span><span class="p">)</span>
+
+<span class="n">Z</span> <span class="o">=</span> <span class="n">FunctionSpace</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="n">MixedElement</span><span class="p">((</span><span class="n">Vh</span><span class="p">,</span> <span class="n">Ph</span><span class="p">,</span> <span class="n">Th</span><span class="p">,</span> <span class="n">Sh</span><span class="p">)),</span> <span class="n">constrained_domain</span><span class="o">=</span><span class="n">pbc</span><span class="p">)</span>
+<span class="n">V</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">S</span> <span class="o">=</span> <span class="n">Z</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+<span class="n">V</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">S</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">collapse</span><span class="p">(),</span> <span class="n">P</span><span class="o">.</span><span class="n">collapse</span><span class="p">(),</span> <span class="n">T</span><span class="o">.</span><span class="n">collapse</span><span class="p">(),</span> <span class="n">S</span><span class="o">.</span><span class="n">collapse</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>We impose that the streamfunction is zero on the top and bottom.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">streamfunction_bc_top</span> <span class="o">=</span> <span class="n">DirichletBC</span><span class="p">(</span><span class="n">Z</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;on_boundary &amp;&amp; near(x[1], 2.0)&quot;</span><span class="p">)</span>
+<span class="n">streamfunction_bc_bot</span> <span class="o">=</span> <span class="n">DirichletBC</span><span class="p">(</span><span class="n">Z</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;on_boundary &amp;&amp; near(x[1], 0.0)&quot;</span><span class="p">)</span>
+<span class="n">bcs</span> <span class="o">=</span> <span class="p">[</span><span class="n">streamfunction_bc_top</span><span class="p">,</span> <span class="n">streamfunction_bc_bot</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Set parameters for the timestepping (implicit midpoint) and
+values of the nondimensional parameters.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">dt</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">0.001</span><span class="p">)</span>
+<span class="n">endT</span> <span class="o">=</span> <span class="mf">0.05</span>
+<span class="n">theta</span> <span class="o">=</span> <span class="mf">0.5</span>
+
+<span class="n">Ra</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mi">1</span><span class="o">*</span><span class="mi">10</span><span class="o">**</span><span class="mi">6</span><span class="p">)</span>
+<span class="n">Pr</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
+<span class="n">Sc</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mi">700</span><span class="p">)</span>
+<span class="n">Rrho</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">1.8</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now we configure the initial conditions of <a class="reference internal" href="#ozgokmen1998b" id="id6">[6E-OE98]</a>.
+Since we want to investigate the stability of perturbations to
+salinity, we will configure the model so that it propagates a
+scalar field called “InitialSalinity” to a scalar field called
+“FinalSalinity”. Therefore the steps involved in setting up the
+initial condition are:</p>
+<ol class="arabic simple">
+<li>Project the initial salinity field to the salinity function space</li>
+<li>Project that field and the initial conditions for vorticity and
+temperature into the mixed function space, while simultaneously
+solving for the streamfunction.</li>
+</ol>
+<div class="highlight-default"><div class="highlight"><pre><span class="k">def</span> <span class="nf">get_ic</span><span class="p">():</span>
+
+    <span class="k">class</span> <span class="nc">InitialSalinity</span><span class="p">(</span><span class="n">Expression</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">eval</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+            <span class="c1"># salinity initial condition: salty on top, fresh on the bottom, and a wavy</span>
+            <span class="c1"># interface in between</span>
+            <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">1.1</span> <span class="o">+</span> <span class="mf">0.016</span><span class="o">*</span><span class="n">cos</span><span class="p">(</span><span class="mi">10</span><span class="o">*</span><span class="n">pi</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+            <span class="k">elif</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.9</span> <span class="o">+</span> <span class="mf">0.016</span><span class="o">*</span><span class="n">cos</span><span class="p">(</span><span class="mi">10</span><span class="o">*</span><span class="n">pi</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">5</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="mf">0.016</span><span class="o">*</span><span class="n">cos</span><span class="p">(</span><span class="mi">10</span><span class="o">*</span><span class="n">pi</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> <span class="o">-</span> <span class="mf">4.5</span>
+
+    <span class="k">class</span> <span class="nc">InitialTemperature</span><span class="p">(</span><span class="n">Expression</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">eval</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+            <span class="c1"># temperature initial condition: warm on top, cool on bottom</span>
+            <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">1.1</span><span class="p">:</span>
+                <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+            <span class="k">elif</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.9</span><span class="p">:</span>
+                <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">5</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mf">4.5</span>
+
+    <span class="n">salinity_ic</span> <span class="o">=</span> <span class="n">interpolate</span><span class="p">(</span><span class="n">InitialSalinity</span><span class="p">(),</span> <span class="n">S</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;InitialSalinity&quot;</span><span class="p">)</span>
+    <span class="n">zeta</span>        <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="c1"># initially at rest</span>
+    <span class="n">t</span>           <span class="o">=</span> <span class="n">InitialTemperature</span><span class="p">()</span>
+    <span class="n">s</span>           <span class="o">=</span> <span class="n">salinity_ic</span>
+
+    <span class="n">z_test</span> <span class="o">=</span> <span class="n">TestFunction</span><span class="p">(</span><span class="n">Z</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">zeta_test</span><span class="p">,</span> <span class="n">p_test</span><span class="p">,</span> <span class="n">t_test</span><span class="p">,</span> <span class="n">s_test</span><span class="p">)</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">z_test</span><span class="p">)</span>
+
+    <span class="n">z</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">Z</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;State&quot;</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">zeta_trial</span><span class="p">,</span> <span class="n">p_trial</span><span class="p">,</span> <span class="n">t_trial</span><span class="p">,</span> <span class="n">s_trial</span><span class="p">)</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+
+    <span class="c1"># project zeta, t, s; solve for the streamfunction p</span>
+
+    <span class="n">a</span> <span class="o">=</span> <span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">zeta_test</span><span class="p">,</span> <span class="n">zeta_trial</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span> <span class="o">+</span>
+         <span class="n">inner</span><span class="p">(</span><span class="n">t_test</span><span class="p">,</span> <span class="n">t_trial</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span>       <span class="o">+</span>
+         <span class="n">inner</span><span class="p">(</span><span class="n">s_test</span><span class="p">,</span> <span class="n">s_trial</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span>       <span class="o">+</span>
+         <span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">p_test</span><span class="p">),</span> <span class="n">grad</span><span class="p">(</span><span class="n">p_trial</span><span class="p">))</span><span class="o">*</span><span class="n">dx</span><span class="p">)</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">zeta_test</span><span class="p">,</span> <span class="n">zeta</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span>       <span class="o">+</span>
+         <span class="n">inner</span><span class="p">(</span><span class="n">t_test</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span>             <span class="o">+</span>
+         <span class="n">inner</span><span class="p">(</span><span class="n">s_test</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span>             <span class="o">-</span>
+         <span class="n">inner</span><span class="p">(</span><span class="n">p_test</span><span class="p">,</span> <span class="n">zeta</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="p">)</span>
+    <span class="n">F</span> <span class="o">=</span> <span class="n">a</span> <span class="o">-</span> <span class="n">L</span>
+
+    <span class="n">solve</span><span class="p">(</span><span class="n">F</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">bcs</span><span class="p">,</span> <span class="n">solver_parameters</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;newton_solver&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;linear_solver&quot;</span><span class="p">:</span> <span class="s2">&quot;lu&quot;</span><span class="p">}})</span>
+    <span class="k">return</span> <span class="n">z</span>
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="../../_images/salinity-ic.png"><img alt="../../_images/salinity-ic.png" class="align-center" src="../../_images/salinity-ic.png" style="width: 283.0px; height: 283.0px;" /></a>
+<p>Finally, once we have the mixed function state (zeta, p, t, s) at the end of
+the run, we need to project out the salinity. dolfin-adjoint considers whole
+functions, not parts of mixed function spaces, and hence the final salinity
+component must be projected to the salinity space to ensure that the model is
+seen as a map from the initial salinity to the final salinity.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="k">def</span> <span class="nf">project_salinity</span><span class="p">(</span><span class="n">z_final</span><span class="p">):</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">project</span><span class="p">(</span><span class="n">split</span><span class="p">(</span><span class="n">z_final</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">S</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;FinalSalinity&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">s</span>
+</pre></div>
+</div>
+<p>The main loop of the forward model. Compute the initial conditions, advance
+the equations forward in time, and then compute the final salinity.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+
+    <span class="c1"># This function takes the theta-weighted average of the old</span>
+    <span class="c1"># and new values at a timestep. This is used in the timestepping</span>
+    <span class="c1"># later.</span>
+
+    <span class="k">def</span> <span class="nf">cn</span><span class="p">(</span><span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">theta</span><span class="p">)</span><span class="o">*</span><span class="n">old</span> <span class="o">+</span> <span class="n">theta</span><span class="o">*</span><span class="n">new</span>
+
+    <span class="c1"># Define the :math:`\nabla^\perp` operator (the 2D equivalent of</span>
+    <span class="c1"># the cross product) and advection flux operators.</span>
+
+    <span class="k">def</span> <span class="nf">grad_perp</span><span class="p">(</span><span class="n">field</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">grad</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">as_vector</span><span class="p">([</span><span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+
+    <span class="k">def</span> <span class="nf">J</span><span class="p">(</span><span class="n">test</span><span class="p">,</span> <span class="n">stream</span><span class="p">,</span> <span class="n">tracer</span><span class="p">):</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">test</span><span class="p">),</span> <span class="n">tracer</span><span class="o">*</span><span class="p">(</span><span class="n">grad_perp</span><span class="p">(</span><span class="n">stream</span><span class="p">)))</span><span class="o">*</span><span class="n">dx</span>
+
+    <span class="n">z_old</span> <span class="o">=</span> <span class="n">get_ic</span><span class="p">()</span>
+    <span class="p">(</span><span class="n">zeta_old</span><span class="p">,</span> <span class="n">p_old</span><span class="p">,</span> <span class="n">t_old</span><span class="p">,</span> <span class="n">s_old</span><span class="p">)</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">z_old</span><span class="p">)</span>
+
+    <span class="n">store</span><span class="p">(</span><span class="n">z_old</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+
+    <span class="n">z_test</span> <span class="o">=</span> <span class="n">TestFunction</span><span class="p">(</span><span class="n">Z</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">zeta_test</span><span class="p">,</span> <span class="n">p_test</span><span class="p">,</span> <span class="n">t_test</span><span class="p">,</span> <span class="n">s_test</span><span class="p">)</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">z_test</span><span class="p">)</span>
+
+    <span class="n">z</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">Z</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;NextState&quot;</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">zeta</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+
+    <span class="n">t_cn</span> <span class="o">=</span> <span class="n">cn</span><span class="p">(</span><span class="n">t_old</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+    <span class="n">s_cn</span> <span class="o">=</span> <span class="n">cn</span><span class="p">(</span><span class="n">s_old</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+    <span class="n">zeta_cn</span> <span class="o">=</span> <span class="n">cn</span><span class="p">(</span><span class="n">zeta_old</span><span class="p">,</span> <span class="n">zeta</span><span class="p">)</span>
+
+    <span class="n">time</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">while</span> <span class="n">time</span> <span class="o">&lt;</span> <span class="n">endT</span><span class="p">:</span>
+        <span class="n">F</span> <span class="o">=</span> <span class="p">(</span><span class="n">inner</span><span class="p">((</span><span class="n">zeta</span> <span class="o">-</span> <span class="n">zeta_old</span><span class="p">)</span><span class="o">/</span><span class="n">dt</span><span class="p">,</span> <span class="n">zeta_test</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span>
+          <span class="o">+</span>  <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">theta</span><span class="p">)</span><span class="o">*</span> <span class="n">J</span><span class="p">(</span><span class="n">zeta_test</span><span class="p">,</span> <span class="n">p_old</span><span class="p">,</span> <span class="n">zeta_old</span><span class="p">)</span>
+          <span class="o">+</span>  <span class="p">(</span><span class="n">theta</span><span class="p">)</span>  <span class="o">*</span> <span class="n">J</span><span class="p">(</span><span class="n">zeta_test</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">zeta</span><span class="p">)</span>
+          <span class="o">-</span>  <span class="n">Ra</span><span class="o">*</span><span class="p">(</span><span class="mf">1.0</span><span class="o">/</span><span class="n">Pr</span><span class="p">)</span> <span class="o">*</span> <span class="n">inner</span><span class="p">(</span><span class="n">zeta_test</span><span class="p">,</span> <span class="n">grad</span><span class="p">(</span><span class="n">t_cn</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="mf">1.0</span><span class="o">/</span><span class="n">Rrho</span><span class="p">)</span><span class="o">*</span><span class="n">grad</span><span class="p">(</span><span class="n">s_cn</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span><span class="o">*</span><span class="n">dx</span>
+          <span class="o">+</span>  <span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">zeta_test</span><span class="p">),</span> <span class="n">grad</span><span class="p">(</span><span class="n">zeta_cn</span><span class="p">))</span><span class="o">*</span><span class="n">dx</span>
+          <span class="o">+</span>  <span class="n">inner</span><span class="p">((</span><span class="n">t</span> <span class="o">-</span> <span class="n">t_old</span><span class="p">)</span><span class="o">/</span><span class="n">dt</span><span class="p">,</span> <span class="n">t_test</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span>
+          <span class="o">+</span>  <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">theta</span><span class="p">)</span><span class="o">*</span> <span class="n">J</span><span class="p">(</span><span class="n">t_test</span><span class="p">,</span> <span class="n">p_old</span><span class="p">,</span> <span class="n">t_old</span><span class="p">)</span>
+          <span class="o">+</span>  <span class="p">(</span><span class="n">theta</span><span class="p">)</span>  <span class="o">*</span> <span class="n">J</span><span class="p">(</span><span class="n">t_test</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+          <span class="o">+</span>  <span class="p">(</span><span class="mf">1.0</span><span class="o">/</span><span class="n">Pr</span><span class="p">)</span> <span class="o">*</span> <span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">t_test</span><span class="p">),</span> <span class="n">grad</span><span class="p">(</span><span class="n">t_cn</span><span class="p">))</span><span class="o">*</span><span class="n">dx</span>
+          <span class="o">+</span>  <span class="n">inner</span><span class="p">((</span><span class="n">s</span> <span class="o">-</span> <span class="n">s_old</span><span class="p">)</span><span class="o">/</span><span class="n">dt</span><span class="p">,</span> <span class="n">s_test</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span>
+          <span class="o">+</span>  <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">theta</span><span class="p">)</span><span class="o">*</span> <span class="n">J</span><span class="p">(</span><span class="n">s_test</span><span class="p">,</span> <span class="n">p_old</span><span class="p">,</span> <span class="n">s_old</span><span class="p">)</span>
+          <span class="o">+</span>  <span class="p">(</span><span class="n">theta</span><span class="p">)</span>  <span class="o">*</span> <span class="n">J</span><span class="p">(</span><span class="n">s_test</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+          <span class="o">+</span>  <span class="p">(</span><span class="mf">1.0</span><span class="o">/</span><span class="n">Sc</span><span class="p">)</span> <span class="o">*</span> <span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">s_test</span><span class="p">),</span> <span class="n">grad</span><span class="p">(</span><span class="n">s_cn</span><span class="p">))</span><span class="o">*</span><span class="n">dx</span>
+          <span class="o">+</span>  <span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">p_test</span><span class="p">),</span> <span class="n">grad</span><span class="p">(</span><span class="n">p</span><span class="p">))</span><span class="o">*</span><span class="n">dx</span>
+          <span class="o">+</span>  <span class="n">inner</span><span class="p">(</span><span class="n">p_test</span><span class="p">,</span> <span class="n">zeta</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="p">)</span>
+
+        <span class="n">solve</span><span class="p">(</span><span class="n">F</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">bcs</span><span class="o">=</span><span class="n">bcs</span><span class="p">,</span> <span class="n">J</span><span class="o">=</span><span class="n">derivative</span><span class="p">(</span><span class="n">F</span><span class="p">,</span> <span class="n">z</span><span class="p">),</span> <span class="n">solver_parameters</span><span class="o">=</span>
+        <span class="p">{</span><span class="s2">&quot;newton_solver&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;maximum_iterations&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span> <span class="s2">&quot;linear_solver&quot;</span><span class="p">:</span> <span class="s2">&quot;mumps&quot;</span><span class="p">}})</span>
+
+        <span class="n">z_old</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+
+        <span class="n">time</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+        <span class="n">store</span><span class="p">(</span><span class="n">z_old</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">time</span><span class="p">)</span>
+
+    <span class="n">s</span> <span class="o">=</span> <span class="n">project_salinity</span><span class="p">(</span><span class="n">z_old</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>I/O functions for the forward and stability runs.  First, define a function to
+perform the I/O during the forward run.  These PVD files store the forward
+simulation results for visualisation in paraview.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">zeta_pvd</span> <span class="o">=</span> <span class="n">File</span><span class="p">(</span><span class="s2">&quot;results/velocity.pvd&quot;</span><span class="p">)</span>
+<span class="n">p_pvd</span> <span class="o">=</span> <span class="n">File</span><span class="p">(</span><span class="s2">&quot;results/streamfunction.pvd&quot;</span><span class="p">)</span>
+<span class="n">t_pvd</span> <span class="o">=</span> <span class="n">File</span><span class="p">(</span><span class="s2">&quot;results/temperature.pvd&quot;</span><span class="p">)</span>
+<span class="n">s_pvd</span> <span class="o">=</span> <span class="n">File</span><span class="p">(</span><span class="s2">&quot;results/salinity.pvd&quot;</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">store</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">time</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">MPI</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">mpi_comm_world</span><span class="p">())</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">info_blue</span><span class="p">(</span><span class="s2">&quot;Storing variables at t=</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">time</span><span class="p">)</span>
+
+    <span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+
+    <span class="n">u</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">&quot;Velocity&quot;</span><span class="p">,</span> <span class="s2">&quot;u&quot;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">&quot;Pressure&quot;</span><span class="p">,</span> <span class="s2">&quot;p&quot;</span><span class="p">)</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">&quot;Temperature&quot;</span><span class="p">,</span> <span class="s2">&quot;t&quot;</span><span class="p">)</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">&quot;Salinity&quot;</span><span class="p">,</span> <span class="s2">&quot;s&quot;</span><span class="p">)</span>
+    <span class="n">zeta_pvd</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">time</span><span class="p">)</span>
+    <span class="n">p_pvd</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">time</span><span class="p">)</span>
+    <span class="n">t_pvd</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">time</span><span class="p">)</span>
+    <span class="n">s_pvd</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">time</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Next, the I/O function for the output of the generalised stability analysis
+(gst stands for generalised stability theory).</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">s_in_pvd</span> <span class="o">=</span> <span class="n">File</span><span class="p">(</span><span class="s2">&quot;results/gst_input_s.pvd&quot;</span><span class="p">)</span>
+<span class="n">s_out_pvd</span> <span class="o">=</span> <span class="n">File</span><span class="p">(</span><span class="s2">&quot;results/gst_output_s.pvd&quot;</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">store_gst</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">io</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">io</span> <span class="o">==</span> <span class="s2">&quot;input&quot;</span><span class="p">:</span>
+        <span class="n">z</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">&quot;SalinityIn</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="s2">&quot;gst_in_</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">i</span><span class="p">)</span>
+        <span class="n">s_in_pvd</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+
+        <span class="n">filexdmf</span> <span class="o">=</span> <span class="n">XDMFFile</span><span class="p">(</span><span class="n">mpi_comm_world</span><span class="p">(),</span> <span class="s2">&quot;results/gst_input_</span><span class="si">%s</span><span class="s2">.xdmf&quot;</span> <span class="o">%</span> <span class="n">i</span><span class="p">)</span>
+        <span class="n">filexdmf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">io</span> <span class="o">==</span> <span class="s2">&quot;output&quot;</span><span class="p">:</span>
+        <span class="n">z</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">&quot;SalinityOut</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="s2">&quot;gst_out_</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">i</span><span class="p">)</span>
+        <span class="n">s_out_pvd</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+
+        <span class="n">filexdmf</span> <span class="o">=</span> <span class="n">XDMFFile</span><span class="p">(</span><span class="n">mpi_comm_world</span><span class="p">(),</span> <span class="s2">&quot;results/gst_output_</span><span class="si">%s</span><span class="s2">.xdmf&quot;</span> <span class="o">%</span> <span class="n">i</span><span class="p">)</span>
+        <span class="n">filexdmf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+<span class="c1"># First, run the forward model, building the graph:</span>
+
+    <span class="n">z</span> <span class="o">=</span> <span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Now take the singular value decomposition of the propagator that maps
+perturbations to initial salinity forwards in time to perturbations in final
+salinity. This requires that libadjoint was compiled with support for SLEPc:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">gst</span> <span class="o">=</span> <span class="n">compute_gst</span><span class="p">(</span><span class="s2">&quot;InitialSalinity&quot;</span><span class="p">,</span> <span class="s2">&quot;FinalSalinity&quot;</span><span class="p">,</span> <span class="n">nsv</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now fetch the results of the SVD:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">gst</span><span class="o">.</span><span class="n">ncv</span><span class="p">):</span>
+    <span class="p">(</span><span class="n">sigma</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="o">=</span> <span class="n">gst</span><span class="o">.</span><span class="n">get_gst</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">return_vectors</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Singular value: &quot;</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>
+
+    <span class="n">store_gst</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+    <span class="n">store_gst</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The example code can be found in <code class="docutils literal"><span class="pre">examples/salt-fingering</span></code> in the <code class="docutils literal"><span class="pre">dolfin-adjoint</span></code>
+source tree, and executed as follows:</p>
+<div class="highlight-bash"><div class="highlight"><pre>$ mpiexec -n <span class="m">4</span> python salt-fingering.py
+...
+<span class="m">1</span> EPS <span class="nv">nconv</span><span class="o">=</span><span class="m">2</span> Values <span class="o">(</span>Errors<span class="o">)</span> 1.13047e+06GST calculation took <span class="m">17</span> multiplications of L^*L.
+GST calculation took <span class="m">17</span> multiplications of L^*L.
+Singular value:  1063.23627036
+Singular value:  1062.77728405
+</pre></div>
+</div>
+<p>The fact that the singular values are greater than 1 indicates that the system
+is unstable to the perturbations identified.</p>
+<p>This image shows the leading initial perturbation and the arising final perturbation.
+The perturbation selectively promotes the growth of some fingers, and retards the
+growth of others.</p>
+<a class="reference internal image-reference" href="../../_images/salinity-combined.png"><img alt="../../_images/salinity-combined.png" class="align-center" src="../../_images/salinity-combined.png" style="width: 566.0px; height: 283.0px;" /></a>
+<p class="rubric">References</p>
+<p id="bibtex-bibliography-documentation/salt-fingering/salt-fingering-0"><table class="docutils citation" frame="void" id="farrell2012c" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[6E-FCF14]</a></td><td>P.&nbsp;E. Farrell, C.&nbsp;J. Cotter, and S.&nbsp;W. Funke. A framework for the automation of generalised stability theory. <em>SIAM Journal on Scientific Computing</em>, 2014. <a class="reference external" href="https://doi.org/10.1137/120900745">doi:10.1137/120900745</a>.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="stern1960" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id2">[6E-Ste60]</a></td><td>M.&nbsp;E. Stern. The “salt-fountain” and thermohaline convection. <em>Tellus</em>, 12(2):172–175, 1960. <a class="reference external" href="https://doi.org/10.1111/j.2153-3490.1960.tb01295.x">doi:10.1111/j.2153-3490.1960.tb01295.x</a>.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="turner1985" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id3">[6E-Tur85]</a></td><td>J.&nbsp;S. Turner. Multicomponent convection. <em>Annual Review of Fluid Mechanics</em>, 17(1):11–44, 1985. <a class="reference external" href="https://doi.org/10.1146/annurev.fl.17.010185.000303">doi:10.1146/annurev.fl.17.010185.000303</a>.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="ozgokmen1998b" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[6E-OE98]</td><td><em>(<a class="fn-backref" href="#id4">1</a>, <a class="fn-backref" href="#id5">2</a>, <a class="fn-backref" href="#id6">3</a>)</em> T.&nbsp;M. Özgökmen and O.&nbsp;E. Esenkov. Asymmetric salt fingers induced by a nonlinear equation of state. <em>Physics of Fluids</em>, 10(8):1882–1890, 1998. <a class="reference external" href="https://doi.org/10.1063/1.869705">doi:10.1063/1.869705</a>.</td></tr>
+</tbody>
+</table>
+</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, The dolfin-adjoint team.
+    </div>
+  </body>
+</html>

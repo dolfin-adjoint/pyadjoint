@@ -1,0 +1,379 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Time-dependent optimal control of the linear scalar wave equation</title>
+    
+    <link rel="stylesheet" href="../../_static/fenics.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2017.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+<link rel="stylesheet" href="../../_static/featured.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="../../_static/slides.min.jquery.js"></script>
+  <script>
+	$(function(){
+		$('#products').slides({
+			preload: true,
+			preloadImage: 'img/loading.gif',
+			effect: 'slide, fade',
+			crossfade: true,
+			slideSpeed: 350,
+			fadeSpeed: 500,
+			generateNextPrev: false,
+			generatePagination: false,
+	                play: 5000,
+                        hoverPause: false,
+                        animationStart: function(current){
+				$('.caption').animate({
+					bottom:-35
+				},100);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationStart on slide: ', current);
+				};
+			},
+			animationComplete: function(current){
+				$('.caption').animate({
+					bottom:0
+				},200);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationComplete on slide: ', current);
+				};
+			},
+			slidesLoaded: function() {
+				$('.caption').animate({
+					bottom:0
+				},200);
+			}
+		});
+	});
+  </script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-31806773-1']);
+  _gaq.push(['_setDomainName', 'dolfin-adjoint.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<!-- Load the flex slider library -->
+<link rel="stylesheet" href="_static/flexslider/flexslider.css" type="text/css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="_static/flexslider/jquery.flexslider.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+  $(window).load(function() {
+  $('.flexslider').flexslider();
+  });
+</script>
+
+<!-- Load the code highlight library -->
+<link rel="stylesheet" href="_static/highlight/styles/zenburn.css">
+<script src="_static/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<link rel="shortcut icon" href="../../_static/icon.ico" />
+
+
+  </head>
+  <body>
+<div class="wrapper">
+  <a href="../../"><img src="../../_static/banner.png" width="900px" alt="dolfin-adjoint Project Banner" /></a>
+  <div id="access">
+    <div class="menu">
+      <ul>
+          <li class="page_item"><a href="../../about/index.html" title="Find out more about dolfin-adjoint">About</a></li>
+          <li class="page_item"><a href="../../features/index.html" title="Features of dolfin-adjoint">Features</a></li>
+          <li class="page_item"><a href="../index.html" title="Learn how to use dolfin-adjoint">Documentation</a></li>
+          <li class="page_item"><a href="../../download/index.html" title="Obtain the dolfin-adjoint code">Download</a></li>
+          <li class="page_item"><a href="../../citing/index.html" title="Learn how to cite the dolfin-adjoint project">Citing</a></li>
+          <li class="page_item"><a href="../../support/index.html" title="Where to go for more help">Support</a></li>
+      </ul>
+    </div><!-- .menu -->
+  </div><!-- #access -->
+</div><!-- #wrapper -->
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="time-dependent-optimal-control-of-the-linear-scalar-wave-equation">
+<h1>Time-dependent optimal control of the linear scalar wave equation<a class="headerlink" href="#time-dependent-optimal-control-of-the-linear-scalar-wave-equation" title="Permalink to this headline">¶</a></h1>
+<p><em>Section author: Steven Vandekerckhove</em></p>
+<div class="section" id="problem-definition">
+<h2>Problem definition<a class="headerlink" href="#problem-definition" title="Permalink to this headline">¶</a></h2>
+<p>The problem is to minimise the following tracking-type functional</p>
+<div class="math">
+\[J(y, u) =
+   \frac{1}{2} \int_{0}^T | u(L, t) - u_\text{obs}(L, t) |^2 \, \, \mathrm{d}t,\]</div>
+<p>subjected to the time-dependent scalar wave equation equation</p>
+<div class="math">
+\[\begin{split}u_{tt} - c^2 u_{xx} &amp;= 0 \qquad \mathrm{in} \, \Omega \times (0, T), \\
+u(x, 0) &amp;= 0, \\
+u(0, t) &amp;= s(t), \\
+u(L, t) &amp;= 0,\end{split}\]</div>
+<p>where <span class="math">\(c\)</span> is the wave speed and <span class="math">\(\Omega = \left[0, L\right]\)</span> is a one dimensional domain,  for a given source function <span class="math">\(s(t) = \sin(\omega t)\)</span>:</p>
+<p>In particular, we aim to</p>
+<div class="math">
+\[\min J(u, \omega) \textrm{ over } (u, \omega).\]</div>
+</div>
+<div class="section" id="discretization">
+<h2>Discretization<a class="headerlink" href="#discretization" title="Permalink to this headline">¶</a></h2>
+<p>Using a classic central difference for discretizing in time, with time step
+<span class="math">\(\Delta t\)</span>, the time-discretized differential equation reads:
+for a given <span class="math">\(s^n\)</span>, for each time step <span class="math">\(n\)</span>, find
+<span class="math">\(u^{n+1}\)</span> such that</p>
+<div class="math">
+\[ \begin{align}\begin{aligned}\begin{split} \frac{u^{n+1} - 2 u^n + u^{n-1}}{\Delta t^2} - c^2 u^n_{xx} &amp;= 0, \\\end{split}\\u(0, t^n) = s(t^n) &amp;= s^n.\end{aligned}\end{align} \]</div>
+<p>Let <span class="math">\(U\)</span> be the space of continuous piecewise linear functions.
+Multiplying by test functions <span class="math">\(v \in U\)</span>, integrating by parts over
+<span class="math">\(\Omega\)</span>, the problem reads: find <span class="math">\(u_h^{n} \in U\)</span> such that</p>
+<div class="math">
+\[\langle \frac{u^{n+1} - 2 u^n + u^{n-1}}{\Delta t^2}, v \rangle
++ \langle c^2 u^n_x, v_x \rangle &amp;= 0,\]</div>
+<p>hold for all <span class="math">\(v \in U\)</span>.</p>
+</div>
+<div class="section" id="implementation">
+<h2>Implementation<a class="headerlink" href="#implementation" title="Permalink to this headline">¶</a></h2>
+<p>We start our implementation by importing the <code class="xref py py-mod docutils literal"><span class="pre">dolfin</span></code> and <code class="xref py py-mod docutils literal"><span class="pre">dolfin_adjoint</span></code> modules,
+together with the numpy and sys modules, for handeling storage and ui:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">dolfin</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">dolfin_adjoint</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</pre></div>
+</div>
+<p>Next, we prepare the mesh,</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="c1"># Prepare a mesh</span>
+</pre></div>
+</div>
+<p>and set a time step size:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="c1"># Choose a time step size</span>
+</pre></div>
+</div>
+<p>Since we want to add boundary conditions only on the left hand side,
+and make observations on the left hand side, we have to identify both sides
+separately:</p>
+<div class="highlight-default"><div class="highlight"><pre>
+<span class="c1"># Compile sub domains for boundaries</span>
+<span class="n">left</span>  <span class="o">=</span> <span class="n">CompiledSubDomain</span><span class="p">(</span><span class="s2">&quot;near(x[0], 0.)&quot;</span><span class="p">)</span>
+<span class="n">right</span> <span class="o">=</span> <span class="n">CompiledSubDomain</span><span class="p">(</span><span class="s2">&quot;near(x[0], 1.)&quot;</span><span class="p">)</span>
+
+<span class="c1"># Label boundaries, required for the objective</span>
+<span class="n">boundary_parts</span> <span class="o">=</span> <span class="n">MeshFunction</span><span class="p">(</span><span class="s2">&quot;size_t&quot;</span><span class="p">,</span> <span class="n">mesh</span><span class="p">,</span> <span class="n">mesh</span><span class="o">.</span><span class="n">topology</span><span class="p">()</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">left</span><span class="o">.</span><span class="n">mark</span><span class="p">(</span><span class="n">boundary_parts</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="n">right</span><span class="o">.</span><span class="n">mark</span><span class="p">(</span><span class="n">boundary_parts</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Then, an expression is built for the time dependent source term.
+We need to provide member functions for evaluating the function and its derivative.</p>
+<div class="highlight-default"><div class="highlight"><pre>
+<span class="k">class</span> <span class="nc">Source</span><span class="p">(</span><span class="n">Expression</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">omega</span><span class="o">=</span><span class="n">Constant</span><span class="p">(</span><span class="mi">2</span><span class="n">e2</span><span class="p">),</span> <span class="n">Source</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">derivative</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Construct the source function &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">omega</span> <span class="o">=</span> <span class="n">omega</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">derivative</span> <span class="o">=</span> <span class="n">derivative</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">Source</span> <span class="c1"># needed to get the matching time instant</span>
+        
+    <span class="k">def</span> <span class="nf">eval</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Evaluate the source function and it&#39;s derivative&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">derivative</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>        
+            <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">15</span><span class="p">:</span>
+                <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">derivative</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">15</span><span class="p">:</span>
+                <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">t</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">omega</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">t</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+</pre></div>
+</div>
+<p>Before the inverse problem can be solved, we have to implement the forward problem:</p>
+<div class="highlight-default"><div class="highlight"><pre>
+<span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">excitation</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.</span><span class="p">),</span> <span class="n">record</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">annotate</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; The forward problem &quot;&quot;&quot;</span>
+    
+    <span class="c1"># Define function space</span>
+    <span class="n">U</span> <span class="o">=</span> <span class="n">FunctionSpace</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="s2">&quot;Lagrange&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Set up initial values</span>
+    <span class="n">u0</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;u0&quot;</span><span class="p">,</span> <span class="n">annotate</span> <span class="o">=</span> <span class="n">annotate</span><span class="p">)</span>
+    <span class="n">u1</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;u1&quot;</span><span class="p">,</span> <span class="n">annotate</span> <span class="o">=</span> <span class="n">annotate</span><span class="p">)</span>
+
+    <span class="c1"># Define test and trial functions</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">TestFunction</span><span class="p">(</span><span class="n">U</span><span class="p">)</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">TrialFunction</span><span class="p">(</span><span class="n">U</span><span class="p">)</span>
+
+    <span class="c1"># Define variational formulation</span>
+    <span class="n">udot</span> <span class="o">=</span> <span class="p">(</span><span class="n">u</span> <span class="o">-</span> <span class="mf">2.</span><span class="o">*</span><span class="n">u1</span> <span class="o">+</span> <span class="n">u0</span><span class="p">)</span>
+    <span class="n">uold</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.25</span><span class="o">*</span><span class="n">u</span> <span class="o">+</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">u1</span> <span class="o">+</span><span class="mf">0.25</span><span class="o">*</span><span class="n">u0</span><span class="p">)</span>
+    <span class="n">F</span> <span class="o">=</span> <span class="p">(</span><span class="n">udot</span><span class="o">*</span><span class="n">v</span><span class="o">+</span><span class="n">k</span><span class="o">*</span><span class="n">k</span><span class="o">*</span><span class="n">c</span><span class="o">*</span><span class="n">c</span><span class="o">*</span><span class="n">uold</span><span class="o">.</span><span class="n">dx</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">*</span><span class="n">v</span><span class="o">.</span><span class="n">dx</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">*</span><span class="n">dx</span> <span class="o">-</span> <span class="n">u</span><span class="o">*</span><span class="n">v</span><span class="o">*</span><span class="n">ds</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">excitation</span><span class="o">*</span><span class="n">v</span><span class="o">*</span><span class="n">ds</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">lhs</span><span class="p">(</span><span class="n">F</span><span class="p">)</span>
+    <span class="n">L</span> <span class="o">=</span> <span class="n">rhs</span><span class="p">(</span><span class="n">F</span><span class="p">)</span>
+
+    <span class="c1"># Prepare solution</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;u&quot;</span><span class="p">,</span> <span class="n">annotate</span> <span class="o">=</span> <span class="n">annotate</span><span class="p">)</span>
+
+    <span class="c1"># The actual timestepping</span>
+    <span class="k">if</span> <span class="n">record</span><span class="p">:</span> <span class="n">rec</span> <span class="o">=</span> <span class="p">[</span><span class="n">u1</span><span class="p">(</span><span class="mf">1.</span><span class="p">),]</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="mf">0.0</span>        <span class="c1"># Initial time</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="mf">3.e-1</span>      <span class="c1"># Final time</span>
+    <span class="n">times</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">,]</span>
+    <span class="k">if</span> <span class="n">annotate</span><span class="p">:</span> <span class="n">adj_start_timestep</span><span class="p">()</span>
+    <span class="k">while</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">T</span> <span class="o">-</span> <span class="o">.</span><span class="mi">5</span><span class="o">*</span><span class="nb">float</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
+        <span class="n">excitation</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="n">t</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="n">solve</span><span class="p">(</span><span class="n">a</span> <span class="o">==</span> <span class="n">L</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">annotate</span> <span class="o">=</span> <span class="n">annotate</span><span class="p">)</span>
+        <span class="n">u0</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">u1</span><span class="p">,</span> <span class="n">annotate</span> <span class="o">=</span> <span class="n">annotate</span><span class="p">)</span>
+        <span class="n">u1</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">annotate</span> <span class="o">=</span> <span class="n">annotate</span><span class="p">)</span>
+
+        <span class="n">t</span> <span class="o">=</span> <span class="n">i</span><span class="o">*</span><span class="nb">float</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="n">times</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">record</span><span class="p">:</span>
+            <span class="n">rec</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">u1</span><span class="p">(</span><span class="mf">1.0</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">annotate</span><span class="p">:</span> <span class="n">adj_inc_timestep</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">t</span> <span class="o">&gt;</span> <span class="n">T</span> <span class="o">-</span> <span class="o">.</span><span class="mi">5</span><span class="o">*</span><span class="nb">float</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">record</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="s2">&quot;recorded.txt&quot;</span><span class="p">,</span> <span class="n">rec</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">u1</span><span class="p">,</span> <span class="n">times</span>
+</pre></div>
+</div>
+<p>Note that the forward solver has been implemented as straight forward as possible,
+with litte attention for efficiency. E.g., a significant speed-up could be realized
+by re-using the factorization of linear system.</p>
+<p>Also a function is defined to assemble the objective</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="c1"># Prepare the objective function</span>
+<span class="k">def</span> <span class="nf">objective</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">observations</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; The objective &quot;&quot;&quot;</span>
+    
+    <span class="n">combined</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">observations</span><span class="p">)</span>
+    <span class="n">area</span> <span class="o">=</span> <span class="n">times</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">times</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)</span>
+    <span class="n">I</span> <span class="o">=</span> <span class="n">area</span><span class="o">/</span><span class="n">M</span><span class="o">*</span><span class="nb">sum</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">u</span> <span class="o">-</span> <span class="n">u_obs</span><span class="p">,</span> <span class="n">u</span> <span class="o">-</span> <span class="n">u_obs</span><span class="p">)</span><span class="o">*</span><span class="n">ds</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">dt</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+                   <span class="k">for</span> <span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">u_obs</span><span class="p">)</span> <span class="ow">in</span> <span class="n">combined</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now we can have a look at the optimization procedure</p>
+<div class="highlight-default"><div class="highlight"><pre>
+<span class="k">def</span> <span class="nf">optimize</span><span class="p">(</span><span class="n">dbg</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; The optimization routine &quot;&quot;&quot;</span>
+    
+    <span class="c1"># Define the control</span>
+    <span class="n">Omega</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mi">190</span><span class="p">)</span>
+    <span class="n">source</span> <span class="o">=</span> <span class="n">Source</span><span class="p">(</span><span class="n">Omega</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;source&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># provide the coefficient on which this expression depends and its derivative</span>
+    <span class="n">source</span><span class="o">.</span><span class="n">dependencies</span> <span class="o">=</span> <span class="p">[</span><span class="n">Omega</span><span class="p">]</span>
+    <span class="n">source</span><span class="o">.</span><span class="n">user_defined_derivatives</span> <span class="o">=</span> <span class="p">{</span><span class="n">Omega</span><span class="p">:</span> <span class="n">Source</span><span class="p">(</span><span class="n">Omega</span><span class="p">,</span> <span class="n">Source</span> <span class="o">=</span> <span class="n">source</span><span class="p">,</span> <span class="n">derivative</span><span class="o">=</span><span class="n">Omega</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">)}</span>
+
+    <span class="c1"># Execute first time to annotate and record the tape</span>
+    <span class="n">u</span><span class="p">,</span> <span class="n">times</span> <span class="o">=</span> <span class="n">forward</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">DOLFIN_PI</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dbg</span><span class="p">:</span>
+        <span class="c1"># Check the recorded tape</span>
+        <span class="n">success</span> <span class="o">=</span> <span class="n">replay_dolfin</span><span class="p">(</span><span class="n">tol</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">stop</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;replay: &quot;</span><span class="p">,</span> <span class="n">success</span><span class="p">)</span>
+
+        <span class="c1"># for the equations recorded on the forward run</span>
+        <span class="n">adj_html</span><span class="p">(</span><span class="s2">&quot;forward.html&quot;</span><span class="p">,</span> <span class="s2">&quot;forward&quot;</span><span class="p">)</span>
+        <span class="c1"># for the equations to be assembled on the adjoint run</span>
+        <span class="n">adj_html</span><span class="p">(</span><span class="s2">&quot;adjoint.html&quot;</span><span class="p">,</span> <span class="s2">&quot;adjoint&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Load references</span>
+    <span class="n">refs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="s2">&quot;recorded.txt&quot;</span><span class="p">)</span>
+
+    <span class="c1"># create noise to references</span>
+    <span class="n">gamma</span> <span class="o">=</span> <span class="mf">1.e-5</span>
+    <span class="k">if</span> <span class="n">gamma</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">refs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="c1"># add noise to the refs</span>
+        <span class="n">refs</span> <span class="o">+=</span> <span class="n">noise</span>
+
+    <span class="c1"># map refs to be constant</span>
+    <span class="n">refs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">Constant</span><span class="p">,</span> <span class="n">refs</span><span class="p">))</span>
+
+    <span class="c1"># Define the control</span>
+    <span class="n">control</span> <span class="o">=</span> <span class="n">Control</span><span class="p">(</span><span class="n">Omega</span><span class="p">)</span>
+
+    <span class="n">Jform</span> <span class="o">=</span> <span class="n">objective</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">refs</span><span class="p">)</span>
+    <span class="n">J</span> <span class="o">=</span> <span class="n">Functional</span><span class="p">(</span><span class="n">Jform</span><span class="p">)</span>
+    
+    <span class="c1"># compute the gradient</span>
+    <span class="n">dJd0</span> <span class="o">=</span> <span class="n">compute_gradient</span><span class="p">(</span><span class="n">J</span><span class="p">,</span> <span class="n">control</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;gradient = &quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">dJd0</span><span class="p">))</span>
+    
+    <span class="c1"># Prepare the reduced functional</span>
+    <span class="n">reduced_functional</span> <span class="o">=</span> <span class="n">ReducedFunctional</span><span class="p">(</span><span class="n">J</span><span class="p">,</span> <span class="n">control</span><span class="p">,</span> <span class="n">eval_cb_post</span> <span class="o">=</span> <span class="n">eval_cb</span><span class="p">)</span>
+
+    <span class="c1"># Run the optimisation</span>
+    <span class="n">omega_opt</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">reduced_functional</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s2">&quot;L-BFGS-B&quot;</span><span class="p">,</span>\
+</pre></div>
+</div>
+<p>The code can be run as follows:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="sd">&quot;&quot;&quot; Compute  a reference solution (once) &quot;&quot;&quot;</span>
+<span class="n">Source</span> <span class="o">=</span> <span class="n">source</span><span class="p">(</span><span class="n">omega</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">2e2</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">forward</span><span class="p">(</span><span class="n">Source</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">DOLFIN_PI</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span>
+
+<span class="sd">&quot;&quot;&quot; Start the optimization procedure &quot;&quot;&quot;</span>
+<span class="n">optimize</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The complete code can be downloaded <a class="reference external" href="../../_static/time-dependent-wave.py">here</a>.</p>
+</div>
+<div class="section" id="comments">
+<h2>Comments<a class="headerlink" href="#comments" title="Permalink to this headline">¶</a></h2>
+<p>Running the code results in an approximation for the optimal value which is correct up to the noise level will be obtained.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, The dolfin-adjoint team.
+    </div>
+  </body>
+</html>

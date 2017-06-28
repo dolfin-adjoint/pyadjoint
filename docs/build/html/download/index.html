@@ -1,0 +1,305 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Downloading dolfin-adjoint</title>
+    
+    <link rel="stylesheet" href="../_static/fenics.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '2017.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+<link rel="stylesheet" href="../_static/featured.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="../_static/slides.min.jquery.js"></script>
+  <script>
+	$(function(){
+		$('#products').slides({
+			preload: true,
+			preloadImage: 'img/loading.gif',
+			effect: 'slide, fade',
+			crossfade: true,
+			slideSpeed: 350,
+			fadeSpeed: 500,
+			generateNextPrev: false,
+			generatePagination: false,
+	                play: 5000,
+                        hoverPause: false,
+                        animationStart: function(current){
+				$('.caption').animate({
+					bottom:-35
+				},100);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationStart on slide: ', current);
+				};
+			},
+			animationComplete: function(current){
+				$('.caption').animate({
+					bottom:0
+				},200);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationComplete on slide: ', current);
+				};
+			},
+			slidesLoaded: function() {
+				$('.caption').animate({
+					bottom:0
+				},200);
+			}
+		});
+	});
+  </script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-31806773-1']);
+  _gaq.push(['_setDomainName', 'dolfin-adjoint.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<!-- Load the flex slider library -->
+<link rel="stylesheet" href="_static/flexslider/flexslider.css" type="text/css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="_static/flexslider/jquery.flexslider.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+  $(window).load(function() {
+  $('.flexslider').flexslider();
+  });
+</script>
+
+<!-- Load the code highlight library -->
+<link rel="stylesheet" href="_static/highlight/styles/zenburn.css">
+<script src="_static/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<link rel="shortcut icon" href="../_static/icon.ico" />
+
+
+  </head>
+  <body>
+<div class="wrapper">
+  <a href="../"><img src="../_static/banner.png" width="900px" alt="dolfin-adjoint Project Banner" /></a>
+  <div id="access">
+    <div class="menu">
+      <ul>
+          <li class="page_item"><a href="../about/index.html" title="Find out more about dolfin-adjoint">About</a></li>
+          <li class="page_item"><a href="../features/index.html" title="Features of dolfin-adjoint">Features</a></li>
+          <li class="page_item"><a href="../documentation/index.html" title="Learn how to use dolfin-adjoint">Documentation</a></li>
+          <li class="page_item"><a href="#" title="Obtain the dolfin-adjoint code">Download</a></li>
+          <li class="page_item"><a href="../citing/index.html" title="Learn how to cite the dolfin-adjoint project">Citing</a></li>
+          <li class="page_item"><a href="../support/index.html" title="Where to go for more help">Support</a></li>
+      </ul>
+    </div><!-- .menu -->
+  </div><!-- #access -->
+</div><!-- #wrapper -->
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="downloading-dolfin-adjoint">
+<span id="download"></span><h1>Downloading dolfin-adjoint<a class="headerlink" href="#downloading-dolfin-adjoint" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="docker-images-all-platforms">
+<h2>Docker images (all platforms)<a class="headerlink" href="#docker-images-all-platforms" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="https://www.docker.com">Docker</a> allows us to build and ship
+consistent high-performance dolfin-adjoint installations with FEniCS for almost any
+platform. To get started, follow these 2 steps:</p>
+<ol class="arabic">
+<li><p class="first">Install Docker. Mac and Windows users should install the <a class="reference external" href="https://www.docker.com/products/docker-toolbox">Docker
+Toolbox</a> (this is
+a simple one-click install) and Linux users should <a class="reference external" href="https://docs.docker.com/linux/step_one/">follow these
+instructions</a>.</p>
+</li>
+<li><p class="first">Install the FEniCS Docker script:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">curl</span> <span class="o">-</span><span class="n">s</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">get</span><span class="o">.</span><span class="n">fenicsproject</span><span class="o">.</span><span class="n">org</span> <span class="o">|</span> <span class="n">bash</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<p>If running on Mac or Windows, make sure you run this and other
+commands inside the Docker Quickstart Terminal.</p>
+<div class="section" id="stable-version">
+<h3>Stable version:<a class="headerlink" href="#stable-version" title="Permalink to this headline">¶</a></h3>
+<p>Once both Docker and the FEniCS Docker script have been installed, you can
+easily start a FEniCS session with dolfin-adjoint by running the following
+command:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">fenicsproject</span> <span class="n">run</span> <span class="n">quay</span><span class="o">.</span><span class="n">io</span><span class="o">/</span><span class="n">dolfinadjoint</span><span class="o">/</span><span class="n">dolfin</span><span class="o">-</span><span class="n">adjoint</span>
+</pre></div>
+</div>
+<p>A Jupyter notebook instance with a user defined name (here myproject) can be started with:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">fenicsproject</span> <span class="n">notebook</span> <span class="n">myproject</span> <span class="n">quay</span><span class="o">.</span><span class="n">io</span><span class="o">/</span><span class="n">dolfinadjoint</span><span class="o">/</span><span class="n">dolfin</span><span class="o">-</span><span class="n">adjoint</span>
+<span class="n">fenicsproject</span> <span class="n">start</span> <span class="n">myproject</span>
+</pre></div>
+</div>
+<p>The FEniCS Docker script can also be used to create persistent sessions:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">fenicsproject</span> <span class="n">create</span> <span class="n">myproject</span> <span class="n">quay</span><span class="o">.</span><span class="n">io</span><span class="o">/</span><span class="n">dolfinadjoint</span><span class="o">/</span><span class="n">dolfin</span><span class="o">-</span><span class="n">adjoint</span>
+<span class="n">fenicsproject</span> <span class="n">start</span> <span class="n">myproject</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="development-version">
+<h3>Development version:<a class="headerlink" href="#development-version" title="Permalink to this headline">¶</a></h3>
+<p>The development version of dolfin-adjoint and FEniCS is available with:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">fenicsproject</span> <span class="n">run</span> <span class="n">quay</span><span class="o">.</span><span class="n">io</span><span class="o">/</span><span class="n">dolfinadjoint</span><span class="o">/</span><span class="n">dev</span><span class="o">-</span><span class="n">dolfin</span><span class="o">-</span><span class="n">adjoint</span>
+</pre></div>
+</div>
+<p>To update the development container, run:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">fenicsproject</span> <span class="n">pull</span> <span class="n">quay</span><span class="o">.</span><span class="n">io</span><span class="o">/</span><span class="n">dolfinadjoint</span><span class="o">/</span><span class="n">dev</span><span class="o">-</span><span class="n">dolfin</span><span class="o">-</span><span class="n">adjoint</span>
+</pre></div>
+</div>
+<p>To see all the options run:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">fenicsproject</span> <span class="n">help</span>
+</pre></div>
+</div>
+<p>For more details and tips on how to work with FEniCS and Docker, see
+our <a class="reference external" href="http://fenics-containers.readthedocs.org/en/latest/">FEniCS Docker page</a>.</p>
+</div>
+</div>
+<div class="section" id="conda-package-mac-linux">
+<h2>Conda package (Mac/Linux)<a class="headerlink" href="#conda-package-mac-linux" title="Permalink to this headline">¶</a></h2>
+<p>For people who have an <a class="reference external" href="https://www.continuum.io/downloads">Anaconda distribution</a> installed,
+you can install dolfin-adjoint and all its dependencies with:</p>
+<div class="highlight-bash"><div class="highlight"><pre>conda install -c conda-forge dolfin-adjoint<span class="o">=</span>2017.1.0
+</pre></div>
+</div>
+</div>
+<div class="section" id="binary-packages-ubuntu">
+<h2>Binary packages (Ubuntu)<a class="headerlink" href="#binary-packages-ubuntu" title="Permalink to this headline">¶</a></h2>
+<p>Binary packages are currently available for Ubuntu users through the
+<a class="reference external" href="https://launchpad.net/~libadjoint/+archive/ppa">launchpad PPA</a>.  To install dolfin-adjoint, do</p>
+<div class="highlight-bash"><div class="highlight"><pre>sudo apt-add-repository ppa:libadjoint/ppa
+sudo apt-get update
+sudo apt-get install python-dolfin-adjoint
+</pre></div>
+</div>
+<p>which should install the latest stable version on your system.
+Once that’s done, why not try out the <a class="reference internal" href="../documentation/tutorial.html"><span class="doc">tutorial</span></a>?</p>
+</div>
+<div class="section" id="from-source">
+<h2>From source<a class="headerlink" href="#from-source" title="Permalink to this headline">¶</a></h2>
+<p>The latest stable release of dolfin-adjoint and libadjoint is <strong>version 2017.1</strong> which is compatible with FEniCS 2017.1. Download links:</p>
+<ul class="simple">
+<li>libadjoint:</li>
+</ul>
+<div class="highlight-bash"><div class="highlight"><pre>git clone -b libadjoint-2017.1.0 https://bitbucket.org/dolfin-adjoint/libadjoint
+</pre></div>
+</div>
+<ul class="simple">
+<li>dolfin-adjoint:</li>
+</ul>
+<div class="highlight-bash"><div class="highlight"><pre>git clone -b dolfin-adjoint-2017.1.0 https://bitbucket.org/dolfin-adjoint/dolfin-adjoint
+</pre></div>
+</div>
+<p>The <strong>development version</strong> is available with the following
+command:</p>
+<div class="highlight-bash"><div class="highlight"><pre>git clone https://bitbucket.org/dolfin-adjoint/libadjoint
+git clone https://bitbucket.org/dolfin-adjoint/dolfin-adjoint
+</pre></div>
+</div>
+<p>As dolfin-adjoint is a pure Python module, once its dependencies are
+installed the development version can be used without system-wide
+installation via</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nb">export</span> <span class="nv">PYTHONPATH</span><span class="o">=</span>&lt;path to dolfin-adjoint&gt;:$PYTHONPATH
+</pre></div>
+</div>
+<p>libadjoint needs to be compiled with:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nb">cd</span> libadjoint
+mkdir build<span class="p">;</span> <span class="nb">cd</span> build
+cmake -DCMAKE_INSTALL_PREFIX<span class="o">=</span>&lt;install directory&gt; ..
+make install
+</pre></div>
+</div>
+<p>Contributions (such as handling new features of FEniCS, or new test
+cases or examples) are very welcome.</p>
+</div>
+<div class="section" id="dependencies">
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="mandatory-dependencies">
+<h3>Mandatory dependencies:<a class="headerlink" href="#mandatory-dependencies" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><a class="reference external" href="http://fenicsproject.org">FEniCS</a>. For installation instructions for FEniCS, see <a class="reference external" href="http://fenicsproject.org/download">their installation instructions</a>.</li>
+<li><a class="reference external" href="http://bitbucket.org/dolfin-adjoint/libadjoint">libadjoint</a>. This is a library written in C that manipulates the tape of the forward model to derive the associated adjoint equations.</li>
+</ul>
+</div>
+<div class="section" id="optional-dependencies">
+<h3>Optional dependencies:<a class="headerlink" href="#optional-dependencies" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><a class="reference external" href="http://www.grycap.upv.es/slepc/">SLEPc</a>. This is necessary if you want to conduct <a class="reference internal" href="../documentation/gst.html"><span class="doc">generalised stability analyses</span></a>.</li>
+<li><a class="reference external" href="https://projects.coin-or.org/Ipopt">IPOPT</a> and <a class="reference external" href="https://github.com/xuy/pyipopt">pyipopt</a>: This is the best available open-source optimisation algorithm. Strongly recommended if you wish to solve <a class="reference internal" href="../documentation/optimisation.html"><span class="doc">PDE-constrained optimisation problems</span></a>. Make sure to compile IPOPT against the <a class="reference external" href="http://www.hsl.rl.ac.uk/ipopt/">Harwell Subroutine Library</a>.</li>
+<li><a class="reference external" href="https://github.com/funsim/moola">Moola</a>: A set of optimisation algorithms specifically designed for <a class="reference internal" href="../documentation/optimisation.html"><span class="doc">PDE-constrained optimisation problems</span></a>. Install with <cite>pip install moola</cite>. Note: still experimental.</li>
+</ul>
+</div>
+</div>
+<div class="section" id="virtual-machine-outdated">
+<h2>Virtual machine (outdated)<a class="headerlink" href="#virtual-machine-outdated" title="Permalink to this headline">¶</a></h2>
+<p>If you’d like to try dolfin-adjoint out without any installation headaches,
+try out <a class="reference external" href="http://fenicsproject.org/pub/virtual/fenics-latest.ova">the FENICS VirtualBox virtual machine with FEniCS and dolfin-adjoint pre-installed</a>. Here are
+the instructions:</p>
+<ul class="simple">
+<li>Download and install VirtualBox from <a class="reference external" href="https://www.virtualbox.org">https://www.virtualbox.org</a>, or from your operating system.</li>
+<li>Download the <a class="reference external" href="http://fenicsproject.org/pub/virtual/fenics-latest.ova">virtual machine</a>.</li>
+<li>Start VirtualBox, click on “File -&gt; Import Appliance”, select the virtual machine image and click on “Import”.</li>
+<li>Select the “dolfin-adjoint VM” and click on “Start” to boot the machine.</li>
+<li>For installing new software you need the login credentials:<ul>
+<li>Username: fenics</li>
+<li>Password: fenics</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="older-versions">
+<h2>Older versions<a class="headerlink" href="#older-versions" title="Permalink to this headline">¶</a></h2>
+<p>An older version compatible with FEniCS 1.6 can be downloaded with:</p>
+<div class="highlight-bash"><div class="highlight"><pre>git clone -b dolfin-adjoint-1.6 https://bitbucket.org/dolfin-adjoint/dolfin-adjoint
+git clone -b libadjoint-1.6 https://bitbucket.org/dolfin-adjoint/libadjoint
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, The dolfin-adjoint team.
+    </div>
+  </body>
+</html>

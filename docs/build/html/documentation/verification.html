@@ -1,0 +1,300 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Verification</title>
+    
+    <link rel="stylesheet" href="../_static/fenics.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '2017.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+<link rel="stylesheet" href="../_static/featured.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="../_static/slides.min.jquery.js"></script>
+  <script>
+	$(function(){
+		$('#products').slides({
+			preload: true,
+			preloadImage: 'img/loading.gif',
+			effect: 'slide, fade',
+			crossfade: true,
+			slideSpeed: 350,
+			fadeSpeed: 500,
+			generateNextPrev: false,
+			generatePagination: false,
+	                play: 5000,
+                        hoverPause: false,
+                        animationStart: function(current){
+				$('.caption').animate({
+					bottom:-35
+				},100);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationStart on slide: ', current);
+				};
+			},
+			animationComplete: function(current){
+				$('.caption').animate({
+					bottom:0
+				},200);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationComplete on slide: ', current);
+				};
+			},
+			slidesLoaded: function() {
+				$('.caption').animate({
+					bottom:0
+				},200);
+			}
+		});
+	});
+  </script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-31806773-1']);
+  _gaq.push(['_setDomainName', 'dolfin-adjoint.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<!-- Load the flex slider library -->
+<link rel="stylesheet" href="_static/flexslider/flexslider.css" type="text/css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="_static/flexslider/jquery.flexslider.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+  $(window).load(function() {
+  $('.flexslider').flexslider();
+  });
+</script>
+
+<!-- Load the code highlight library -->
+<link rel="stylesheet" href="_static/highlight/styles/zenburn.css">
+<script src="_static/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<link rel="shortcut icon" href="../_static/icon.ico" />
+
+
+  </head>
+  <body>
+<div class="wrapper">
+  <a href="../"><img src="../_static/banner.png" width="900px" alt="dolfin-adjoint Project Banner" /></a>
+  <div id="access">
+    <div class="menu">
+      <ul>
+          <li class="page_item"><a href="../about/index.html" title="Find out more about dolfin-adjoint">About</a></li>
+          <li class="page_item"><a href="../features/index.html" title="Features of dolfin-adjoint">Features</a></li>
+          <li class="page_item"><a href="index.html" title="Learn how to use dolfin-adjoint">Documentation</a></li>
+          <li class="page_item"><a href="../download/index.html" title="Obtain the dolfin-adjoint code">Download</a></li>
+          <li class="page_item"><a href="../citing/index.html" title="Learn how to cite the dolfin-adjoint project">Citing</a></li>
+          <li class="page_item"><a href="../support/index.html" title="Where to go for more help">Support</a></li>
+      </ul>
+    </div><!-- .menu -->
+  </div><!-- #access -->
+</div><!-- #wrapper -->
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="verification">
+<h1>Verification<a class="headerlink" href="#verification" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="taylor-remainder-convergence-test">
+<h2>Taylor remainder convergence test<a class="headerlink" href="#taylor-remainder-convergence-test" title="Permalink to this headline">¶</a></h2>
+<p>The fundamental tool used in verification of gradients is the
+<em>Taylor remainder convergence test</em>. Let <span class="math">\(\widehat{J}(m)\)</span> be the functional, considered
+as a pure function of the parameter of interest,
+let <span class="math">\(\nabla \widehat{J}\)</span> be its gradient, and let <span class="math">\(\delta m\)</span> be a perturbation to
+<span class="math">\(m\)</span>. This test is based on the observation that</p>
+<div class="math">
+\[\left|\widehat{J}(m + h\delta m) - \widehat{J}(m)\right| \rightarrow 0 \quad \mathrm{at} \ O(h),\]</div>
+<p>but that</p>
+<div class="math">
+\[\left|\widehat{J}(m + h\delta m) - \widehat{J}(m) - h\nabla \widehat{J} \cdot \delta m\right| \rightarrow 0 \quad \mathrm{at} \ O(h^2),\]</div>
+<p>by Taylor’s theorem. The quantity <span class="math">\(\left|\widehat{J}(m + h\delta m) - \widehat{J}(m)\right|\)</span> is called the <em>first-order
+Taylor remainder</em> (because it’s supposed to be first-order), and the quantity <span class="math">\(\left|\widehat{J}(m + h\delta m) - \widehat{J}(m) - h\nabla \widehat{J} \cdot \delta m\right|\)</span>
+is called the <em>second-order Taylor remainder</em>.</p>
+<p>Suppose someone gives you two functions <span class="math">\(\widehat{J}\)</span> and <span class="math">\(d\widehat{J}\)</span>, and claims that <span class="math">\(d\widehat{J}\)</span> is the gradient of
+<span class="math">\(\widehat{J}\)</span>. Then their claim can be rigorously verified by computing the second-order Taylor remainder for some
+choice of <span class="math">\(h\)</span> and <span class="math">\(\delta m\)</span>, then repeatedly halving <span class="math">\(h\)</span> and checking that the result decreases
+by a factor of 4.</p>
+</div>
+<div class="section" id="applying-this-in-fenics-adjoint">
+<h2>Applying this in fenics-adjoint<a class="headerlink" href="#applying-this-in-fenics-adjoint" title="Permalink to this headline">¶</a></h2>
+<p>In the case of PDE-constrained optimisation, computing <span class="math">\(\widehat{J}(m)\)</span> involves solving the PDE
+for that choice of <span class="math">\(m\)</span> to compute the solution <span class="math">\(u\)</span>, and then evaluating the functional <span class="math">\(J\)</span>.
+The main function in fenics-adjoint for applying the Taylor remainder convergence test is <a class="reference internal" href="api.html#dolfin_adjoint.taylor_test" title="dolfin_adjoint.taylor_test"><code class="xref py py-func docutils literal"><span class="pre">taylor_test</span></code></a>.
+To see how this works, let’s restructure our forward model so that we can run it as a pure function of
+the diffusivity <span class="math">\(\nu\)</span>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">dolfin</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">fenics_adjoint</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="n">n</span> <span class="o">=</span> <span class="mi">30</span>
+<span class="n">mesh</span> <span class="o">=</span> <span class="n">UnitSquareMesh</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+<span class="n">V</span> <span class="o">=</span> <span class="n">VectorFunctionSpace</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="s2">&quot;CG&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+<span class="n">ic</span> <span class="o">=</span> <span class="n">project</span><span class="p">(</span><span class="n">Expression</span><span class="p">((</span><span class="s2">&quot;sin(2*pi*x[0])&quot;</span><span class="p">,</span> <span class="s2">&quot;cos(2*pi*x[1])&quot;</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>  <span class="n">V</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">nu</span><span class="p">):</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">ic</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">deepcopy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">u_next</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">TestFunction</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+
+    <span class="n">timestep</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+
+    <span class="n">F</span> <span class="o">=</span> <span class="p">(</span><span class="n">inner</span><span class="p">((</span><span class="n">u_next</span> <span class="o">-</span> <span class="n">u</span><span class="p">)</span><span class="o">/</span><span class="n">timestep</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+       <span class="o">+</span> <span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">u_next</span><span class="p">)</span><span class="o">*</span><span class="n">u_next</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+       <span class="o">+</span> <span class="n">nu</span><span class="o">*</span><span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">u_next</span><span class="p">),</span> <span class="n">grad</span><span class="p">(</span><span class="n">v</span><span class="p">)))</span><span class="o">*</span><span class="n">dx</span>
+
+    <span class="n">bc</span> <span class="o">=</span> <span class="n">DirichletBC</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="s2">&quot;on_boundary&quot;</span><span class="p">)</span>
+
+    <span class="n">t</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="mf">0.1</span>
+    <span class="k">while</span> <span class="p">(</span><span class="n">t</span> <span class="o">&lt;=</span> <span class="n">end</span><span class="p">):</span>
+        <span class="n">solve</span><span class="p">(</span><span class="n">F</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">u_next</span><span class="p">,</span> <span class="n">bc</span><span class="p">)</span>
+        <span class="n">u</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">u_next</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">timestep</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">u</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">nu</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">)</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">main</span><span class="p">(</span><span class="n">nu</span><span class="p">)</span>
+
+    <span class="n">J</span> <span class="o">=</span> <span class="n">assemble</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="p">)</span>
+    <span class="n">dJdnu</span> <span class="o">=</span> <span class="n">compute_gradient</span><span class="p">(</span><span class="n">J</span><span class="p">,</span> <span class="n">nu</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>As you can see, we’ve taken the action part of the model into a function <code class="xref py py-data docutils literal"><span class="pre">main</span></code>, so that we
+can drive the forward model several times for verification. Now let’s see how to use <a class="reference internal" href="api.html#dolfin_adjoint.taylor_test" title="dolfin_adjoint.taylor_test"><code class="xref py py-func docutils literal"><span class="pre">taylor_test</span></code></a>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">dolfin</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">fenics_adjoint</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="n">n</span> <span class="o">=</span> <span class="mi">30</span>
+<span class="n">mesh</span> <span class="o">=</span> <span class="n">UnitSquareMesh</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+<span class="n">V</span> <span class="o">=</span> <span class="n">VectorFunctionSpace</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="s2">&quot;CG&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+<span class="n">ic</span> <span class="o">=</span> <span class="n">project</span><span class="p">(</span><span class="n">Expression</span><span class="p">((</span><span class="s2">&quot;sin(2*pi*x[0])&quot;</span><span class="p">,</span> <span class="s2">&quot;cos(2*pi*x[1])&quot;</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>  <span class="n">V</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">nu</span><span class="p">):</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">ic</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">deepcopy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">u_next</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">TestFunction</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+
+    <span class="n">timestep</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+
+    <span class="n">F</span> <span class="o">=</span> <span class="p">(</span><span class="n">inner</span><span class="p">((</span><span class="n">u_next</span> <span class="o">-</span> <span class="n">u</span><span class="p">)</span><span class="o">/</span><span class="n">timestep</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+       <span class="o">+</span> <span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">u_next</span><span class="p">)</span><span class="o">*</span><span class="n">u_next</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+       <span class="o">+</span> <span class="n">nu</span><span class="o">*</span><span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">u_next</span><span class="p">),</span> <span class="n">grad</span><span class="p">(</span><span class="n">v</span><span class="p">)))</span><span class="o">*</span><span class="n">dx</span>
+
+    <span class="n">bc</span> <span class="o">=</span> <span class="n">DirichletBC</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="s2">&quot;on_boundary&quot;</span><span class="p">)</span>
+
+    <span class="n">t</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="mf">0.1</span>
+    <span class="k">while</span> <span class="p">(</span><span class="n">t</span> <span class="o">&lt;=</span> <span class="n">end</span><span class="p">):</span>
+        <span class="n">solve</span><span class="p">(</span><span class="n">F</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">u_next</span><span class="p">,</span> <span class="n">bc</span><span class="p">)</span>
+        <span class="n">u</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">u_next</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">timestep</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">u</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">nu</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">)</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">main</span><span class="p">(</span><span class="n">nu</span><span class="p">)</span>
+
+    <span class="n">J</span> <span class="o">=</span> <span class="n">assemble</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="p">)</span>
+    <span class="n">dJdnu</span> <span class="o">=</span> <span class="n">compute_gradient</span><span class="p">(</span><span class="n">J</span><span class="p">,</span> <span class="n">nu</span><span class="p">)</span>
+    
+    <span class="n">h</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="c1">#the direction of the perturbation</span>
+    
+    <span class="n">Jhat</span> <span class="o">=</span> <span class="n">ReducedFunctional</span><span class="p">(</span><span class="n">J</span><span class="p">,</span><span class="n">nu</span><span class="p">)</span> <span class="c1">#the functional as a pure function of nu</span>
+
+    <span class="n">conv_rate</span> <span class="o">=</span> <span class="n">taylor_test</span><span class="p">(</span><span class="n">Jhat</span><span class="p">,</span> <span class="n">Constant</span><span class="p">(</span><span class="n">nu</span><span class="p">),</span> <span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The h must be the same type as what we are differentiating with respect to, so in this case since nu is a constant h must be a constant.
+Also note that calling Jhat with a new constant for example Jhat(nu + h) changes nu to nu + h. For this reason we pass Constant(nu) to the taylor test rather than nu.
+<img alt="more info" class="align-middle" src="../_images/more.png" /> Download the <a class="reference external" href="../_static/tutorial4.py">adjoint code with verification</a>.</p>
+<p>Running this program yields the following output (well, not really!!!):</p>
+<div class="highlight-none"><div class="highlight"><pre>$ python tutorial4.py
+...
+Taylor remainder without gradient information:
+  [0.0023634768826859553, 0.001219686435181555, 0.0006197555788530762,
+  0.0003124116082189321, 0.0001568463925042951]
+</pre></div>
+</div>
+<p>The first line gives the values computed for the first-order Taylor remainder. As you can see, each value is approximately half the previous one.</p>
+<div class="highlight-none"><div class="highlight"><pre>Convergence orders for Taylor remainder without gradient information (should all be 1):
+  [0.9544004555219242, 0.9767390399645689, 0.9882512926546192, 0.9940957131087177]
+</pre></div>
+</div>
+<p>The second line shows the convergence orders of the first-order Taylor remainders: these should
+always be 1. (If they are not, try decreasing h to
+use a smaller perturbation.)</p>
+<div class="highlight-none"><div class="highlight"><pre>Taylor remainder with gradient information:
+  [0.00015639195264909554, 4.0247982485970384e-05, 1.0211629980686528e-05,
+  2.5719961979492594e-06, 6.454097041455739e-07]
+</pre></div>
+</div>
+<p>The third line gives the values computed for the second-order Taylor remainder. These values should be much smaller than those on
+the first line.</p>
+<div class="highlight-none"><div class="highlight"><pre>Convergence orders for Taylor remainder with gradient information (should all be 2):
+  [1.9581779067535698, 1.9787032993204938, 1.9892527525050359, 1.9946013350664813]
+</pre></div>
+</div>
+<p>The fourth line shows the convergence orders of the second-order Taylor remainders: if the gradient has been computed correctly with the adjoint, then
+these numbers should be 2.</p>
+<p>As can be seen, the second-order Taylor remainders do indeed converge at second order, and so the gradient <code class="xref py py-data docutils literal"><span class="pre">dJdnu</span></code> is correct.</p>
+<p>So, what if the Taylor remainders are not correct? Such a situation could occur if the model
+manually modifies <a class="reference internal" href="api.html#dolfin_adjoint.Function" title="dolfin_adjoint.Function"><code class="xref py py-class docutils literal"><span class="pre">Function</span></code></a> values, or if the model modifies the entries of assembled matrices and
+vectors, or if the model is not differentiable, or if there is a bug in fenics-adjoint. fenics-adjoint offers many ways to pinpoint
+precisely where an error might lie; these are discussed in the <a class="reference internal" href="debugging.html"><span class="doc">next section on debugging</span></a>.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, The dolfin-adjoint team.
+    </div>
+  </body>
+</html>

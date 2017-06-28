@@ -1,0 +1,437 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Mathematical Programs with Equilibrium Constraints</title>
+    
+    <link rel="stylesheet" href="../../_static/fenics.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2017.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+<link rel="stylesheet" href="../../_static/featured.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="../../_static/slides.min.jquery.js"></script>
+  <script>
+	$(function(){
+		$('#products').slides({
+			preload: true,
+			preloadImage: 'img/loading.gif',
+			effect: 'slide, fade',
+			crossfade: true,
+			slideSpeed: 350,
+			fadeSpeed: 500,
+			generateNextPrev: false,
+			generatePagination: false,
+	                play: 5000,
+                        hoverPause: false,
+                        animationStart: function(current){
+				$('.caption').animate({
+					bottom:-35
+				},100);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationStart on slide: ', current);
+				};
+			},
+			animationComplete: function(current){
+				$('.caption').animate({
+					bottom:0
+				},200);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationComplete on slide: ', current);
+				};
+			},
+			slidesLoaded: function() {
+				$('.caption').animate({
+					bottom:0
+				},200);
+			}
+		});
+	});
+  </script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-31806773-1']);
+  _gaq.push(['_setDomainName', 'dolfin-adjoint.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<!-- Load the flex slider library -->
+<link rel="stylesheet" href="_static/flexslider/flexslider.css" type="text/css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="_static/flexslider/jquery.flexslider.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+  $(window).load(function() {
+  $('.flexslider').flexslider();
+  });
+</script>
+
+<!-- Load the code highlight library -->
+<link rel="stylesheet" href="_static/highlight/styles/zenburn.css">
+<script src="_static/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<link rel="shortcut icon" href="../../_static/icon.ico" />
+
+
+  </head>
+  <body>
+<div class="wrapper">
+  <a href="../../"><img src="../../_static/banner.png" width="900px" alt="dolfin-adjoint Project Banner" /></a>
+  <div id="access">
+    <div class="menu">
+      <ul>
+          <li class="page_item"><a href="../../about/index.html" title="Find out more about dolfin-adjoint">About</a></li>
+          <li class="page_item"><a href="../../features/index.html" title="Features of dolfin-adjoint">Features</a></li>
+          <li class="page_item"><a href="../index.html" title="Learn how to use dolfin-adjoint">Documentation</a></li>
+          <li class="page_item"><a href="../../download/index.html" title="Obtain the dolfin-adjoint code">Download</a></li>
+          <li class="page_item"><a href="../../citing/index.html" title="Learn how to cite the dolfin-adjoint project">Citing</a></li>
+          <li class="page_item"><a href="../../support/index.html" title="Where to go for more help">Support</a></li>
+      </ul>
+    </div><!-- .menu -->
+  </div><!-- #access -->
+</div><!-- #wrapper -->
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="mathematical-programs-with-equilibrium-constraints">
+<h1>Mathematical Programs with Equilibrium Constraints<a class="headerlink" href="#mathematical-programs-with-equilibrium-constraints" title="Permalink to this headline">¶</a></h1>
+<p><em>Section author: Simon W. Funke &lt;<a class="reference external" href="mailto:simon&#37;&#52;&#48;simula&#46;no">simon<span>&#64;</span>simula<span>&#46;</span>no</a>&gt;</em></p>
+<p>This demo solves example 5.2 of <a class="reference internal" href="#hintermueller2011" id="id1">[5E-HintermullerK11]</a>.</p>
+<div class="section" id="problem-definition">
+<h2>Problem definition<a class="headerlink" href="#problem-definition" title="Permalink to this headline">¶</a></h2>
+<p>This problem is to minimise</p>
+<div class="math">
+\[\min_{y, u} \frac{1}{2} || y - y_d ||^2_{\Omega} + \frac{\nu}{2} || u ||^2_{\Omega}\]</div>
+<p>subject to the variational inequality</p>
+<div class="math">
+\[\begin{split}( \nabla y, \nabla (v - y) )_\Omega &amp;\ge (f + u, v - y)_\Omega \qquad \forall v \ge 0, v = 0 \ \mathrm{on}\ \delta \Omega, \\
+y &amp;\ge 0, \\
+y &amp;= 0 \quad \mathrm{on}\ \delta \Omega,\end{split}\]</div>
+<p>and control constraints</p>
+<div class="math">
+\[a \le u \le b \qquad \forall x \in \Omega,\]</div>
+<p>where <span class="math">\(u\)</span> is the control, <span class="math">\(y\)</span> is the solution of the
+variational inequality, <span class="math">\(y_d\)</span> is data to be matched, <span class="math">\(f\)</span>
+is a prescribed source term, <span class="math">\(\nu\)</span> is a regularisation
+parameter and <span class="math">\(a, b\)</span> are upper and lower bounds for the
+control.</p>
+<p>This problem is fundamentally different to a PDE-constrained
+optimisation problem in that the constraint is not a PDE, but a
+variational inequality.  Such problems are called Mathematical
+Programs with Equilibrium Constraints (MPECs) and have applications
+in engineering design (e.g. to determine optimal trajectories for
+robots <a class="reference internal" href="#yunt2005" id="id2">[5E-YG05]</a> or process optimisation in chemical
+engineering <a class="reference internal" href="#baumrucker2008" id="id3">[5E-BRB08]</a>) and in economics (e.g. in
+leader-follower games <a class="reference internal" href="#leyffer2005" id="id4">[5E-LM05]</a> and optimal pricing
+<a class="reference internal" href="#lawphongpanich2004" id="id5">[5E-LH04]</a>).</p>
+<p>Even though it is known that the above problem admits a unique
+solution, there are some difficulties to be considered when solving
+MPECs:</p>
+<blockquote>
+<div><ul class="simple">
+<li>the set of feasible points is in general not necessarly convex or connected, and</li>
+<li>the reduced problem is not Fréchet-differentiable.</li>
+</ul>
+</div></blockquote>
+<p>Following <a class="reference internal" href="#hintermueller2011" id="id6">[5E-HintermullerK11]</a>, we will overcome these issues
+in the next section with a penalisation approach.  For a more
+thorough discussion on MPECs, see <a class="reference internal" href="#luo1996" id="id7">[5E-ZQJSD96]</a> and the references
+therein.</p>
+</div>
+<div class="section" id="penalisation-technique">
+<h2>Penalisation technique<a class="headerlink" href="#penalisation-technique" title="Permalink to this headline">¶</a></h2>
+<p>A common approach for solving variational inequalities is to
+approximate them by a sequence of nonlinear PDEs with a penalisation
+term.  We transform the above problem into a sequence of
+PDE-constrained optimisation problems, which can be solved with
+<code class="docutils literal"><span class="pre">dolfin-adjoint</span></code>.</p>
+<p>For the above problem we use the approximation</p>
+<div class="math">
+\[\begin{split}(\nabla y, \nabla v)_\Omega + \frac{1}{\alpha} (\pi(y), v)_\Omega = (f + u, v)_\Omega \qquad \forall v, \\\end{split}\]</div>
+<p>where <span class="math">\(\alpha &gt; 0\)</span> is the penalty parameter and the penalty term
+is defined as</p>
+<div class="math">
+\[\pi(y) = -\max(0, y).\]</div>
+<p>This approximation yields solutions which converge to the solution of
+the variational inequality as <span class="math">\(\alpha \to 0\)</span> (see chapter IV of
+<a class="reference internal" href="#kinderlehrer2000" id="id8">[5E-KS00]</a>).</p>
+<p>In order to be able to apply a gradient-based optimisation method, we
+need differentiabilty of the above equation.  The <span class="math">\(\max\)</span>
+operator is not differentiable at the origin, and hence it is replaced
+by a smooth (<span class="math">\(C^1\)</span>) approximation (plot modified from
+<a class="reference internal" href="#hintermueller2011" id="id9">[5E-HintermullerK11]</a>):</p>
+<div class="math">
+\[\begin{split}{\max}_{\epsilon}(0, y) =
+\begin{cases}
+y - \frac{\epsilon}{2} &amp; \mbox{if } y \ge \epsilon, \\
+              \frac{y^2}{2\epsilon}  &amp; \mbox{if } y \in (0, \epsilon), \\
+              0                  &amp; \mbox{if } y \le 0.
+\end{cases}\end{split}\]</div>
+<a class="reference internal image-reference" href="../../_images/mpec-smoothmax.jpg"><img alt="../../_images/mpec-smoothmax.jpg" class="align-center" src="../../_images/mpec-smoothmax.jpg" style="width: 437.5px; height: 339.5px;" /></a>
+<p>The domain for the example problem is the unit square <span class="math">\(\Omega =
+(0, 1)^2\)</span>.  The data and the source term are given as <span class="math">\(y_d(x, y)
+= f(x, y) = -|xy - 0.5| + 0.25\)</span>.  The remaining parameters are
+<span class="math">\(a = 0.01\)</span>, <span class="math">\(b = 0.03\)</span> and <span class="math">\(\nu = 0.01\)</span>.</p>
+</div>
+<div class="section" id="implementation">
+<h2>Implementation<a class="headerlink" href="#implementation" title="Permalink to this headline">¶</a></h2>
+<p>First, the <code class="xref py py-mod docutils literal"><span class="pre">dolfin</span></code> and <code class="xref py py-mod docutils literal"><span class="pre">dolfin_adjoint</span></code> modules are
+imported. We also tell DOLFIN to only print error messages to keep the
+output comprehensible:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">dolfin</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">dolfin_adjoint</span> <span class="k">import</span> <span class="o">*</span>
+<span class="n">set_log_level</span><span class="p">(</span><span class="n">ERROR</span><span class="p">)</span>
+
+<span class="c1"># Needed to have a nested conditional</span>
+<span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;form_compiler&quot;</span><span class="p">][</span><span class="s2">&quot;representation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;uflacs&quot;</span>
+</pre></div>
+</div>
+<p>Next, we define the smooth approximation <span class="math">\(\max_{\epsilon}\)</span> of
+the maximum operator:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="k">def</span> <span class="nf">smoothmax</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">4</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">conditional</span><span class="p">(</span><span class="n">gt</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">eps</span><span class="p">),</span> <span class="n">r</span> <span class="o">-</span> <span class="n">eps</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">conditional</span><span class="p">(</span><span class="n">lt</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">r</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">eps</span><span class="p">)))</span>
+</pre></div>
+</div>
+<p>Now, we are ready to mesh the domain and define the discrete function
+spaces.  For this example we use piecewise linear, continuous finite
+elements for both the solution and control.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">mesh</span> <span class="o">=</span> <span class="n">UnitSquareMesh</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">)</span>
+<span class="n">V</span> <span class="o">=</span> <span class="n">FunctionSpace</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="s2">&quot;CG&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># The function space for the solution and control functions</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Solution&quot;</span><span class="p">)</span>
+<span class="n">u</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Control&quot;</span><span class="p">)</span>
+<span class="n">w</span> <span class="o">=</span> <span class="n">TestFunction</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Next, we define and solve the variational formulation of the PDE
+constraint with the penalisation parameter set to
+<span class="math">\(\alpha=10^{-2}\)</span>.  This initial value of <span class="math">\(\alpha\)</span> will
+then be iteratively reduced to better approximate the underlying MPEC.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">alpha</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+<span class="c1"># The source term</span>
+<span class="n">f</span> <span class="o">=</span> <span class="n">interpolate</span><span class="p">(</span><span class="n">Expression</span><span class="p">(</span><span class="s2">&quot;-std::abs(x[0]*x[1] - 0.5) + 0.25&quot;</span><span class="p">),</span> <span class="n">V</span><span class="p">)</span>
+<span class="n">F</span> <span class="o">=</span> <span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">grad</span><span class="p">(</span><span class="n">w</span><span class="p">))</span><span class="o">*</span><span class="n">dx</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">inner</span><span class="p">(</span><span class="n">smoothmax</span><span class="p">(</span><span class="o">-</span><span class="n">y</span><span class="p">),</span> <span class="n">w</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span> <span class="o">-</span> <span class="n">inner</span><span class="p">(</span><span class="n">f</span> <span class="o">+</span> <span class="n">u</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span>
+<span class="n">bc</span> <span class="o">=</span> <span class="n">DirichletBC</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;on_boundary&quot;</span><span class="p">)</span>
+<span class="n">solve</span><span class="p">(</span><span class="n">F</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">bcs</span><span class="o">=</span><span class="n">bc</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>With the forward problem solved once, <code class="xref py py-mod docutils literal"><span class="pre">dolfin_adjoint</span></code> has
+built a <em>tape</em> of the forward model; it will use this tape to drive
+the optimisation, by repeatedly solving the forward model and the
+adjoint model for varying control inputs.</p>
+<p>We finish the initialisation part by defining the functional of
+interest, the optimisation parameter and creating the <a class="reference internal" href="../maths/2-problem.html"><span class="doc">reduced
+functional</span></a> object:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">yd</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">deepcopy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Data&quot;</span><span class="p">)</span>
+<span class="n">nu</span> <span class="o">=</span> <span class="mf">0.01</span>
+<span class="n">J</span> <span class="o">=</span> <span class="n">Functional</span><span class="p">(</span><span class="mf">0.5</span><span class="o">*</span><span class="n">inner</span><span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">yd</span><span class="p">,</span> <span class="n">y</span> <span class="o">-</span> <span class="n">yd</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span> <span class="o">+</span> <span class="n">nu</span><span class="o">/</span><span class="mi">2</span><span class="o">*</span><span class="n">inner</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="p">)</span>
+
+<span class="c1"># Formulate the reduced problem</span>
+<span class="n">m</span> <span class="o">=</span> <span class="n">Control</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>  <span class="c1"># Create a parameter from u, as it is the variable we want to optimise</span>
+<span class="n">alpha_m</span> <span class="o">=</span> <span class="n">Control</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>  <span class="c1"># Also tell dolfin-adjoint that alpha is a parameter,</span>
+                          <span class="c1"># this will allow us to modify its value on the tape</span>
+<span class="n">Jhat</span> <span class="o">=</span> <span class="n">ReducedFunctional</span><span class="p">(</span><span class="n">J</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span>
+
+<span class="c1"># Create output files</span>
+<span class="n">ypvd</span> <span class="o">=</span> <span class="n">File</span><span class="p">(</span><span class="s2">&quot;output/y_opt.pvd&quot;</span><span class="p">)</span>
+<span class="n">upvd</span> <span class="o">=</span> <span class="n">File</span><span class="p">(</span><span class="s2">&quot;output/u_opt.pvd&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Next, we implement the main loop of the algorithm. In every iteration
+we will halve the penalisation parameter and (re-)solve the
+optimisation problem. The optimised control value will then be used as
+an initial guess for the next optimisation problem.</p>
+<p>We begin by defining the loop and updating the <span class="math">\(\alpha\)</span> value.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+    <span class="c1"># Update the penalisation value</span>
+    <span class="n">alpha</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">info_green</span><span class="p">(</span><span class="s2">&quot;Set alpha to </span><span class="si">%f</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="nb">float</span><span class="p">(</span><span class="n">alpha</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>We rely on a useful property of dolfin-adjoint here: if a <code class="docutils literal"><span class="pre">Constant</span></code>
+object is used as a control (here achieved by creating the
+<code class="xref py py-class docutils literal"><span class="pre">Control</span></code> object
+above), dolfin-adjoint does not copy that <code class="docutils literal"><span class="pre">Constant</span></code> object, but
+keeps a reference to it instead.  That means that assigning a new
+value to <code class="docutils literal"><span class="pre">alpha</span></code> has the effect that the optimisation routine will
+automatically use that new value.</p>
+<p>Next we solve the optimisation problem for the current <code class="docutils literal"><span class="pre">alpha</span></code>.  We
+use the <code class="docutils literal"><span class="pre">L-BFGS-B</span></code> optimisation algorithm here <a class="reference internal" href="#zhu1997b" id="id10">[5E-ZBLN97]</a> and
+select a set of sensible stopping criteria:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">u_opt</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">Jhat</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;L-BFGS-B&quot;</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">),</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;gtol&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">12</span><span class="p">,</span> <span class="s2">&quot;ftol&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">100</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>The following step is optional and implements a performance
+improvement. The idea is to use the optimised state solution as an
+initial guess for the Newton solver in the next optimisation round.
+It demonstrates how one can access and modify variables on the
+<code class="docutils literal"><span class="pre">dolfin-adjoint</span></code> tape.</p>
+<p>First, we extract the optimised state (the <code class="docutils literal"><span class="pre">y</span></code> function) from the
+tape. This is done with the <code class="docutils literal"><span class="pre">DolfinAdjointVariable.tape_value()</span></code>
+function. By default it returns the last known iteration of that
+function on the tape, which is exactly what we want here:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">y_opt</span> <span class="o">=</span> <span class="n">DolfinAdjointVariable</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">tape_value</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The next line modifies the tape such that the initial guess for <code class="docutils literal"><span class="pre">y</span></code>
+(to be used in the Newton solver in the forward problem) is set to
+<code class="docutils literal"><span class="pre">y_opt</span></code>.  This is achieved with the
+<code class="xref py py-func docutils literal"><span class="pre">FunctionControl.update</span></code> function:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">Control</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">y_opt</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Finally, we store the optimal state and control to disk and print some
+statistics:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="n">ypvd</span> <span class="o">&lt;&lt;</span> <span class="n">y_opt</span>
+<span class="n">upvd</span> <span class="o">&lt;&lt;</span> <span class="n">u_opt</span>
+<span class="n">feasibility</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">assemble</span><span class="p">(</span><span class="n">inner</span><span class="p">((</span><span class="n">Max</span><span class="p">(</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span> <span class="o">-</span><span class="n">y_opt</span><span class="p">)),</span> <span class="p">(</span><span class="n">Max</span><span class="p">(</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span> <span class="o">-</span><span class="n">y_opt</span><span class="p">)))</span><span class="o">*</span><span class="n">dx</span><span class="p">))</span>
+<span class="n">info_green</span><span class="p">(</span><span class="s2">&quot;Feasibility: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">feasibility</span><span class="p">)</span>
+<span class="n">info_green</span><span class="p">(</span><span class="s2">&quot;Norm of y: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">assemble</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">y_opt</span><span class="p">,</span> <span class="n">y_opt</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="p">)))</span>
+<span class="n">info_green</span><span class="p">(</span><span class="s2">&quot;Norm of u_opt: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">assemble</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">u_opt</span><span class="p">,</span> <span class="n">u_opt</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="p">)))</span>
+</pre></div>
+</div>
+<p>The example code can be found in <code class="docutils literal"><span class="pre">examples/mpec/</span></code> in the
+<code class="docutils literal"><span class="pre">dolfin-adjoint</span></code> source tree, and executed as follows:</p>
+<div class="highlight-bash"><div class="highlight"><pre>$ python mpec.py
+Set alpha to 0.005000.
+...
+Feasibility: 0.000350169305795
+Norm of y: 0.0022809992669
+Norm of u_opt: 0.021222354644
+
+...
+
+<span class="nv">Tit</span>   <span class="o">=</span> total number of iterations
+<span class="nv">Tnf</span>   <span class="o">=</span> total number of <span class="k">function</span> evaluations
+<span class="nv">Tnint</span> <span class="o">=</span> total number of segments explored during Cauchy searches
+<span class="nv">Skip</span>  <span class="o">=</span> number of BFGS updates skipped
+<span class="nv">Nact</span>  <span class="o">=</span> number of active bounds at final generalized Cauchy point
+<span class="nv">Projg</span> <span class="o">=</span> norm of the final projected gradient
+<span class="nv">F</span>     <span class="o">=</span> final <span class="k">function</span> value
+
+           * * *
+
+   N    Tit     Tnf  Tnint  Skip  Nact     Projg        F
+<span class="m">16641</span>      <span class="m">7</span>      <span class="m">8</span>     <span class="m">85</span>     <span class="m">0</span> <span class="m">15982</span>   6.192D-13   1.206D-02
+  <span class="nv">F</span> <span class="o">=</span>   1.2064186622885919E-002
+
+CONVERGENCE: NORM_OF_PROJECTED_GRADIENT_&lt;<span class="o">=</span>_PGTOL
+
+ Cauchy                <span class="nb">time</span> 1.320E-03 seconds.
+ Subspace minimization <span class="nb">time</span> 9.575E-04 seconds.
+ Line search           <span class="nb">time</span> 8.612E+00 seconds.
+
+ Total User <span class="nb">time</span> 9.847E+00 seconds.
+
+Feasibility: 8.56988113345e-05
+Norm of y: 0.00232945325255
+Norm of u_opt: 0.0217167930891
+</pre></div>
+</div>
+<p>The optimal control and state can be visualised by opening
+<code class="docutils literal"><span class="pre">output/u.pvd</span></code> and <code class="docutils literal"><span class="pre">output/y.pvd</span></code> in paraview. The optimal control
+should look like the image on the left and the optimal state like the
+image on the right:</p>
+<a class="reference internal image-reference" href="../../_images/mpec.png"><img alt="../../_images/mpec.png" class="align-center" src="../../_images/mpec.png" style="width: 805.5px; height: 412.5px;" /></a>
+<p class="rubric">References</p>
+<p id="bibtex-bibliography-documentation/mpec/mpec-0"><table class="docutils citation" frame="void" id="baumrucker2008" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id3">[5E-BRB08]</a></td><td>B.T. Baumrucker, J.G. Renfro, and L.T. Biegler. MPEC problem formulations and solution strategies with chemical engineering applications. <em>Computers &amp; Chemical Engineering</em>, 32(12):2903 – 2913, 2008. <a class="reference external" href="https://doi.org/http://dx.doi.org/10.1016/j.compchemeng.2008.02.010">doi:http://dx.doi.org/10.1016/j.compchemeng.2008.02.010</a>.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="hintermueller2011" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[5E-HintermullerK11]</td><td><em>(<a class="fn-backref" href="#id1">1</a>, <a class="fn-backref" href="#id6">2</a>, <a class="fn-backref" href="#id9">3</a>)</em> M.&nbsp;Hintermüller and I.&nbsp;Kopacka. A smooth penalty approach and a nonlinear multigrid algorithm for elliptic MPECs. <em>Computational Optimization and Applications</em>, 50(1):111–145, 2011. URL: <a class="reference external" href="http://dx.doi.org/10.1007/s10589-009-9307-9">http://dx.doi.org/10.1007/s10589-009-9307-9</a>, <a class="reference external" href="https://doi.org/10.1007/s10589-009-9307-9">doi:10.1007/s10589-009-9307-9</a>.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="kinderlehrer2000" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id8">[5E-KS00]</a></td><td>D.&nbsp;Kinderlehrer and G.&nbsp;Stampacchia. <em>An introduction to variational inequalities and their applications</em>. Volume&nbsp;31 of Classics in Applied Mathematics. SIAM, 2000.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="lawphongpanich2004" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id5">[5E-LH04]</a></td><td>S.&nbsp;Lawphongpanich and D.W. Hearn. An MPEC approach to second-best toll pricing. <em>Mathematical Programming</em>, 101(1):33–55, 2004. <a class="reference external" href="https://doi.org/10.1007/s10107-004-0536-5">doi:10.1007/s10107-004-0536-5</a>.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="leyffer2005" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id4">[5E-LM05]</a></td><td>S.&nbsp;Leyffer and T.&nbsp;Munson. Solving multi-leader-follower games. <em>Preprint ANL/MCS-P1243-0405</em>, 4:04, 2005.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="yunt2005" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id2">[5E-YG05]</a></td><td>K.&nbsp;Yunt and C.&nbsp;Glocker. Time-optimal trajectories of a differential-drive robot. In <em>Proceedings of the Fifth Euromech Nonlinear Dynamics Conference</em>, 1589–1596. 2005.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="luo1996" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id7">[5E-ZQJSD96]</a></td><td>Luo Z.-Q., Pang J.-S., and Ralph D. <em>Mathematical programs with equilibrium constraints</em>. Cambridge University Press, 1996.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="zhu1997b" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id10">[5E-ZBLN97]</a></td><td>C.&nbsp;Zhu, R.&nbsp;H. Byrd, P.&nbsp;Lu, and J.&nbsp;Nocedal. Algorithm 778: L-BFGS-B: Fortran subroutines for large-scale bound-constrained optimization. <em>ACM Transactions on Mathematical Software</em>, 23(4):550–560, 1997. <a class="reference external" href="https://doi.org/10.1145/279232.279236">doi:10.1145/279232.279236</a>.</td></tr>
+</tbody>
+</table>
+</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, The dolfin-adjoint team.
+    </div>
+  </body>
+</html>

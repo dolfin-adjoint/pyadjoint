@@ -1,0 +1,254 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Generalised stability analysis</title>
+    
+    <link rel="stylesheet" href="../_static/fenics.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '2017.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+<link rel="stylesheet" href="../_static/featured.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="../_static/slides.min.jquery.js"></script>
+  <script>
+	$(function(){
+		$('#products').slides({
+			preload: true,
+			preloadImage: 'img/loading.gif',
+			effect: 'slide, fade',
+			crossfade: true,
+			slideSpeed: 350,
+			fadeSpeed: 500,
+			generateNextPrev: false,
+			generatePagination: false,
+	                play: 5000,
+                        hoverPause: false,
+                        animationStart: function(current){
+				$('.caption').animate({
+					bottom:-35
+				},100);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationStart on slide: ', current);
+				};
+			},
+			animationComplete: function(current){
+				$('.caption').animate({
+					bottom:0
+				},200);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationComplete on slide: ', current);
+				};
+			},
+			slidesLoaded: function() {
+				$('.caption').animate({
+					bottom:0
+				},200);
+			}
+		});
+	});
+  </script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-31806773-1']);
+  _gaq.push(['_setDomainName', 'dolfin-adjoint.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<!-- Load the flex slider library -->
+<link rel="stylesheet" href="_static/flexslider/flexslider.css" type="text/css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="_static/flexslider/jquery.flexslider.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+  $(window).load(function() {
+  $('.flexslider').flexslider();
+  });
+</script>
+
+<!-- Load the code highlight library -->
+<link rel="stylesheet" href="_static/highlight/styles/zenburn.css">
+<script src="_static/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<link rel="shortcut icon" href="../_static/icon.ico" />
+
+
+  </head>
+  <body>
+<div class="wrapper">
+  <a href="../"><img src="../_static/banner.png" width="900px" alt="dolfin-adjoint Project Banner" /></a>
+  <div id="access">
+    <div class="menu">
+      <ul>
+          <li class="page_item"><a href="../about/index.html" title="Find out more about dolfin-adjoint">About</a></li>
+          <li class="page_item"><a href="../features/index.html" title="Features of dolfin-adjoint">Features</a></li>
+          <li class="page_item"><a href="index.html" title="Learn how to use dolfin-adjoint">Documentation</a></li>
+          <li class="page_item"><a href="../download/index.html" title="Obtain the dolfin-adjoint code">Download</a></li>
+          <li class="page_item"><a href="../citing/index.html" title="Learn how to cite the dolfin-adjoint project">Citing</a></li>
+          <li class="page_item"><a href="../support/index.html" title="Where to go for more help">Support</a></li>
+      </ul>
+    </div><!-- .menu -->
+  </div><!-- #access -->
+</div><!-- #wrapper -->
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="generalised-stability-analysis">
+<h1>Generalised stability analysis<a class="headerlink" href="#generalised-stability-analysis" title="Permalink to this headline">¶</a></h1>
+<p>Generalised stability analysis is a powerful tool for investigating
+the stability of physical systems.  For an introduction to the
+mathematics, see <a class="reference internal" href="maths/A-gst.html"><span class="doc">the chapter in the mathematical background</span></a>.</p>
+<div class="section" id="computing-the-gst">
+<h2>Computing the GST<a class="headerlink" href="#computing-the-gst" title="Permalink to this headline">¶</a></h2>
+<p>Once the record of the simulation has been created, it is possible to
+perform generalised stability analysis with one line of code:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">gst</span> <span class="o">=</span> <span class="n">compute_gst</span><span class="p">(</span><span class="n">initial</span><span class="p">,</span> <span class="n">final</span><span class="p">,</span> <span class="n">nsv</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <code class="xref py py-data docutils literal"><span class="pre">initial</span></code> and <code class="xref py py-data docutils literal"><span class="pre">final</span></code> variables define the input
+and output of the propagator <span class="math">\(L\)</span> respectively, while
+<code class="xref py py-data docutils literal"><span class="pre">nsv</span></code> is the number of singular vectors requested. By
+default, the mass matrices of the input and output spaces are used to
+define the norms on the input and output spaces. Optionally, the user
+can specify other matrices to change the norms used for either of
+these spaces. For example, to replicate the default behaviour, one
+could write</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">gst</span> <span class="o">=</span> <span class="n">compute_gst</span><span class="p">(</span><span class="n">initial</span><span class="p">,</span> <span class="n">final</span><span class="p">,</span> <span class="n">nsv</span><span class="p">,</span> <span class="n">ic_norm</span><span class="o">=</span><span class="n">inner</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>where <code class="xref py py-data docutils literal"><span class="pre">u</span></code> and <code class="xref py py-data docutils literal"><span class="pre">v</span></code> are instances of the
+<code class="xref py py-class docutils literal"><span class="pre">TrialFunction</span></code> and <code class="xref py py-class docutils literal"><span class="pre">TestFunction</span></code> classes on the
+appropriate input function space.</p>
+<p>This one call will derive the tangent linear and adjoint systems,
+construct a matrix-free representation of the propagator, and use this
+inside a Krylov-Schur iteration to solve the GST singular value
+problem. This computation may take many iterations of the tangent
+linear and adjoint systems. The solution of the singular value problem
+is achieved with the <a class="reference external" href="http://www.grycap.upv.es/slepc/">SLEPc</a>
+library.</p>
+</div>
+<div class="section" id="using-the-gst">
+<h2>Using the GST<a class="headerlink" href="#using-the-gst" title="Permalink to this headline">¶</a></h2>
+<p>Once the GST has been computed, it may be used as follows:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">gst</span><span class="o">.</span><span class="n">ncv</span><span class="p">):</span>
+  <span class="p">(</span><span class="n">sigma</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">residual</span><span class="p">)</span> <span class="o">=</span> <span class="n">gst</span><span class="o">.</span><span class="n">get_gst</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">return_vectors</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">return_residual</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <code class="xref py py-data docutils literal"><span class="pre">ncv</span></code> member of the <code class="xref py py-data docutils literal"><span class="pre">gst</span></code> contains the number of
+converged singular vectors. This may be less than, equal to, or
+greater than the requested number of singular vectors.</p>
+<p>By default, <code class="xref py py-meth docutils literal"><span class="pre">get_gst</span></code> only returns the growth rate
+<span class="math">\(\sigma\)</span> associated with the computed singular triplet. To fetch
+the singular vectors, pass <code class="xref py py-data docutils literal"><span class="pre">return_vectors=True</span></code>. To compute
+the residual of the eigenvalue computation, pass
+<code class="xref py py-data docutils literal"><span class="pre">return_residual=True</span></code>.</p>
+</div>
+<div class="section" id="example">
+<h2>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h2>
+<p>A complete example of a generalised stability analysis of the tutorial
+example is presented below.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">dolfin</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">dolfin_adjoint</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="n">n</span> <span class="o">=</span> <span class="mi">30</span>
+<span class="n">mesh</span> <span class="o">=</span> <span class="n">UnitSquareMesh</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+<span class="n">V</span> <span class="o">=</span> <span class="n">VectorFunctionSpace</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="s2">&quot;CG&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+<span class="n">ic</span> <span class="o">=</span> <span class="n">project</span><span class="p">(</span><span class="n">Expression</span><span class="p">((</span><span class="s2">&quot;sin(2*pi*x[0])&quot;</span><span class="p">,</span> <span class="s2">&quot;cos(2*pi*x[1])&quot;</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>  <span class="n">V</span><span class="p">)</span>
+<span class="n">nu</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;nu&quot;</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">ic</span><span class="p">):</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">ic</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">deepcopy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Velocity&quot;</span><span class="p">)</span>
+    <span class="n">u_next</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;VelocityNext&quot;</span><span class="p">)</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">TestFunction</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+
+    <span class="n">timestep</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+
+    <span class="n">F</span> <span class="o">=</span> <span class="p">(</span><span class="n">inner</span><span class="p">((</span><span class="n">u_next</span> <span class="o">-</span> <span class="n">u</span><span class="p">)</span><span class="o">/</span><span class="n">timestep</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+       <span class="o">+</span> <span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">u_next</span><span class="p">)</span><span class="o">*</span><span class="n">u_next</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+       <span class="o">+</span> <span class="n">nu</span><span class="o">*</span><span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">u_next</span><span class="p">),</span> <span class="n">grad</span><span class="p">(</span><span class="n">v</span><span class="p">)))</span><span class="o">*</span><span class="n">dx</span>
+
+    <span class="n">bc</span> <span class="o">=</span> <span class="n">DirichletBC</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="s2">&quot;on_boundary&quot;</span><span class="p">)</span>
+
+    <span class="n">t</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="mf">0.1</span>
+    <span class="k">while</span> <span class="p">(</span><span class="n">t</span> <span class="o">&lt;=</span> <span class="n">end</span><span class="p">):</span>
+        <span class="n">solve</span><span class="p">(</span><span class="n">F</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">u_next</span><span class="p">,</span> <span class="n">bc</span><span class="p">)</span>
+        <span class="n">u</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">u_next</span><span class="p">)</span>
+        <span class="n">t</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">timestep</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">u</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">main</span><span class="p">(</span><span class="n">ic</span><span class="p">)</span>
+
+    <span class="n">gst</span> <span class="o">=</span> <span class="n">compute_gst</span><span class="p">(</span><span class="s2">&quot;Velocity&quot;</span><span class="p">,</span> <span class="s2">&quot;Velocity&quot;</span><span class="p">,</span> <span class="n">nsv</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">gst</span><span class="o">.</span><span class="n">ncv</span><span class="p">):</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">gst</span><span class="o">.</span><span class="n">get_gst</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Growth rate of vector </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">sigma</span><span class="p">))</span>
+</pre></div>
+</div>
+<p><img alt="more info" class="align-middle" src="../_images/more.png" /> Download the <a class="reference external" href="../_static/tutorial11.py">gst code</a>.</p>
+<p>This prints the following output:</p>
+<div class="highlight-none"><div class="highlight"><pre>$ python tutorial11.py
+...
+Growth rate of vector 0: 4.09880352035
+Growth rate of vector 1: 3.20037673764
+Growth rate of vector 2: 3.07821571572
+Growth rate of vector 3: 3.06242628866
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, The dolfin-adjoint team.
+    </div>
+  </body>
+</html>
