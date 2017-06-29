@@ -32,15 +32,10 @@ def main(nu):
 if __name__ == "__main__":
     nu = Constant(0.0001)
     u = main(nu)
-
-    J = assemble(inner(u, u)*dx)
-    dJdnu = compute_gradient(J, nu)
     
-    h_nu = Constant(1) #the direction of the perturbation
-    Jhat_nu = ReducedFunctional(J,nu) #the functional as a pure function of nu
-    conv_rate_nu = taylor_test(Jhat_nu, Constant(nu), h_nu,dJdm = float(dJdnu))
-
-    # h_u = Function(V)
-    # h_u.vector()[:] = 0.1
-    # Jhat_u = ReducedFunctional(J,u)
-    # conv_rate_u = taylor_test(Jhat_u,u.copy(deepcopy=True),h_u)
+    J = assemble(inner(u, u)*dx)
+    
+    h = Constant(0.0001) #the direction of the perturbation
+    Jhat = ReducedFunctional(J,nu) #the functional as a pure function of nu
+    conv_rate = taylor_test(Jhat, Constant(nu), h,dJdm = 0)
+    

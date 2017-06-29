@@ -6,12 +6,12 @@ mesh = UnitSquareMesh(n, n)
 V = VectorFunctionSpace(mesh, "CG", 2)
 
 u = project(Expression(("sin(2*pi*x[0])", "cos(2*pi*x[1])"), degree=2),  V)
-u_next = Function(V)
+u_next = Function(V,name="u_next")
 v = TestFunction(V)
 
-nu = Constant(0.0001)
+nu = Constant(0.0001, name = "nu" )
 
-timestep = Constant(0.01)
+timestep = Constant(0.01, name = "dt")
 
 F = (inner((u_next - u)/timestep, v)
    + inner(grad(u_next)*u_next, v)
@@ -22,4 +22,4 @@ bc = DirichletBC(V, (0.0, 0.0), "on_boundary")
 solve(F == 0, u_next, bc)
 
 tape = get_working_tape()
-tape.visualise("simplified_burgers",dot= True)
+tape.visualise("simplified_burgers_named",dot= True)
