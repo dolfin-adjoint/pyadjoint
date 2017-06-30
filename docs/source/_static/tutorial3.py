@@ -7,6 +7,7 @@ V = VectorFunctionSpace(mesh, "CG", 2)
 
 ic = project(Expression(("sin(2*pi*x[0])", "cos(2*pi*x[1])"), degree=2),  V)
 
+
 def main(nu):
     u = ic.copy(deepcopy=True)
     u_next = Function(V)
@@ -15,8 +16,8 @@ def main(nu):
     timestep = Constant(0.01)
 
     F = (inner((u_next - u)/timestep, v)
-       + inner(grad(u_next)*u_next, v)
-       + nu*inner(grad(u_next), grad(v)))*dx
+         + inner(grad(u_next)*u_next, v)
+         + nu*inner(grad(u_next), grad(v)))*dx
 
     bc = DirichletBC(V, (0.0, 0.0), "on_boundary")
 
@@ -28,6 +29,7 @@ def main(nu):
         t += float(timestep)
 
     return u
+
 
 if __name__ == "__main__":
     nu = Constant(0.0001)

@@ -14,12 +14,12 @@ nu = Constant(0.0001)
 timestep = Constant(0.01)
 
 F = (inner((u_next - u)/timestep, v)
-   + inner(grad(u_next)*u_next, v)
-   + nu*inner(grad(u_next), grad(v)))*dx
+     + inner(grad(u_next)*u_next, v)
+     + nu*inner(grad(u_next), grad(v)))*dx
 
 bc = DirichletBC(V, (0.0, 0.0), "on_boundary")
 
 solve(F == 0, u_next, bc)
 
 tape = get_working_tape()
-tape.visualise("simplified_burgers",dot= True)
+tape.visualise("simplified_burgers", dot=True)
