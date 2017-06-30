@@ -37,11 +37,11 @@ look as follows:
 adjoin this code.
 
 The first change necessary to adjoin this code is to import the
-fenics_adjoint module **after** loading dolfin:
+fenics-adjoint module **after** loading fenics:
 
 .. code-block:: python
 
-    from dolfin import *
+    from fenics import *
     from fenics_adjoint import *
 
 The reason why it is necessary to do it afterwards is because
@@ -79,20 +79,7 @@ or in code:
 
     J = assemble(inner(u, u)*dx),
 
-where u is the final velocity.
-
-..
-   |more| If the functional were to be an integral over time, one could
-   multiply by :py:data:`*dt`. This requires some more annotation; see
-   the documentation for :py:func:`adj_inc_timestep`. For how to express
-   more complex functionals, see the documentation on :doc:`expressing
-   functionals <functionals>`.
-
-
-   The dolfin-adjoint software has several drivers, depending on
-   precisely what the user requires.  The highest-level interface is to
-   compute the gradient of the functional with respect to some
-   :py:class:`Control`. For example,
+where :py:data:`u` is the final velocity.
 
 Suppose we wish to compute the
 gradient of :math:`J` with respect to the initial condition for
@@ -105,12 +92,11 @@ gradient of :math:`J` with respect to the initial condition for
 
 This single function call differentiates the model, assembles each adjoint
 equation in turn, and then uses the adjoint solutions to compute the
-requested gradient.
+requested gradient. Here we note that even though :py:data:`u` represented the
+*final* velocity when we defined the functional, the differentiation is with
+respect to the *initial* velocity. :py:func:`compute_gradient <fenics_adjoint.compute_gradient>`
+always differentiates with respect to the value of the second argument at its creation time. 
 
-..
-   Other :py:class:`Controls` are possible. For example, to compute the
-   gradient of the functional :math:`J` with respect to the diffusivity
-   :math:`\nu`:
 
 If we wish instead to take the gradient with respect to the diffusivity
 :math:`\nu`, we can write:
@@ -122,7 +108,7 @@ If we want both gradients we can write
 
 .. code-block:: python
 
-    dJdu, dJdnu = compute_gradient(J,[u,nu])
+    dJdu, dJdnu = compute_gradient(J, [u, nu])
 
 Now our whole program is
 
@@ -135,17 +121,9 @@ original code, we are able to compute the gradient information.
 |more| If you have been following along, you can `download the
 adjoined Burgers' equation code`_ and compare your results.
 
-Other interfaces are available to manually compute the adjoint and
-tangent linear solutions. For details, see the section on
-:doc:`lower-level interfaces <misc>`.
 
 Once you have computed the gradient, how do you know if it is correct?
 
-..
-   If you were to pass an incorrect gradient to an optimisation
-   algorithm, the convergence would be hampered or it may fail
-   entirely. Therefore, before using any gradients, you should satisfy
-   yourself that they are correct.
 
 fenics-adjoint offers easy routines to
 rigorously verify the computed results, which is the topic of the

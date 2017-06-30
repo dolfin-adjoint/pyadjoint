@@ -1,11 +1,11 @@
-from dolfin import *
+from fenics import *
 
 n = 30
 mesh = UnitSquareMesh(n, n)
 V = VectorFunctionSpace(mesh, "CG", 2)
 
-ic = project(Expression(("sin(2*pi*x[0])", "cos(2*pi*x[1])"), degree=2),  V)
-u = ic.copy(deepcopy=True)
+u = project(Expression(("sin(2*pi*x[0])", "cos(2*pi*x[1])"), degree=2),  V)
+
 u_next = Function(V)
 v = TestFunction(V)
 
