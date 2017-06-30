@@ -2,6 +2,8 @@ from .tape import get_working_tape, pause_annotation, continue_annotation
 
 
 def compute_gradient(J, m, block_idx=0, options={}, tape=None):
+    '''Compute the gradient of J with respect to the initialisation value of m, 
+    that is the value of m at its creation.'''
     tape = get_working_tape() if tape is None else tape
     tape.reset_variables()
     J.set_initial_adj_input(1.0)
