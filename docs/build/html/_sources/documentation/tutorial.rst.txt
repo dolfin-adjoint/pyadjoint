@@ -47,8 +47,8 @@ fenics_adjoint module **after** loading dolfin:
 The reason why it is necessary to do it afterwards is because
 fenics-adjoint overloads many of the dolfin API functions to
 understand what the forward code is doing.  In this particular case,
-the :py:func:`solve <dolfin_adjoint.solve>` function and
-:py:meth:`assign <dolfin_adjoint.Function.assign>` method have been
+the :py:func:`solve <fenics_adjoint.solve>` function and
+:py:meth:`assign <fenics_adjoint.Function.assign>` method have been
 overloaded:
 
 .. code-block:: python
@@ -100,9 +100,9 @@ gradient of :math:`J` with respect to the initial condition for
 
 .. code-block:: python
 
-    dJdic = compute_gradient(J, ic)
+    dJdu = compute_gradient(J, u)
 
-where ic is the initial condition for u.
+
 This single function call differentiates the model, assembles each adjoint
 equation in turn, and then uses the adjoint solutions to compute the
 requested gradient.
@@ -119,9 +119,10 @@ If we wish instead to take the gradient with respect to the diffusivity
 
     dJdnu = compute_gradient(J, nu)
 If we want both gradients we can write
+
 .. code-block:: python
 
-    dJdic, dJdnu = compute_gradient(J,[ic,nu])
+    dJdu, dJdnu = compute_gradient(J,[u,nu])
 
 Now our whole program is
 

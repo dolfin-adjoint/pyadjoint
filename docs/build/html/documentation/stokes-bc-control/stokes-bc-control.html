@@ -134,7 +134,6 @@
             
   <div class="section" id="dirichlet-bc-control-of-the-stokes-equations">
 <h1>Dirichlet BC control of the Stokes equations<a class="headerlink" href="#dirichlet-bc-control-of-the-stokes-equations" title="Permalink to this headline">¶</a></h1>
-<p><em>Section author: Simon W. Funke &lt;<a class="reference external" href="mailto:simon&#37;&#52;&#48;simula&#46;no">simon<span>&#64;</span>simula<span>&#46;</span>no</a>&gt;, André Massing &lt;<a class="reference external" href="mailto:massing&#37;&#52;&#48;simula&#46;no">massing<span>&#64;</span>simula<span>&#46;</span>no</a>&gt;</em></p>
 <p>This example demonstrates how to compute the sensitivity with respect to the Dirichlet
 boundary conditions in pyadjoint.</p>
 <div class="section" id="problem-definition">
@@ -163,7 +162,7 @@ Dirichlet boundary condition on the circle.</p>
 </div>
 <div class="section" id="implementation">
 <h2>Implementation<a class="headerlink" href="#implementation" title="Permalink to this headline">¶</a></h2>
-<p>First, the <code class="xref py py-mod docutils literal"><span class="pre">fenics</span></code> and <code class="xref py py-mod docutils literal"><span class="pre">fenics_adjoint</span></code> modules are imported:</p>
+<p>First, the <code class="xref py py-mod docutils literal"><span class="pre">fenics</span></code> and <a class="reference internal" href="../api.html#module-fenics_adjoint" title="fenics_adjoint"><code class="xref py py-mod docutils literal"><span class="pre">fenics_adjoint</span></code></a> modules are imported:</p>
 <div class="highlight-default"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">fenics</span> <span class="k">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">fenics_adjoint</span> <span class="k">import</span> <span class="o">*</span>
 </pre></div>
@@ -223,7 +222,6 @@ defined over the entire domain).</p>
 
 <span class="n">h</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">V_collapse</span><span class="p">)</span>
 <span class="n">h</span><span class="o">.</span><span class="n">vector</span><span class="p">()[:]</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="nb">print</span> <span class="nb">map</span><span class="p">(</span><span class="nb">type</span><span class="p">,(</span><span class="n">h</span><span class="p">,</span><span class="n">h</span><span class="o">.</span><span class="n">vector</span><span class="p">(),</span><span class="n">dJdm</span><span class="p">,</span><span class="n">dJdm</span><span class="o">.</span><span class="n">vector</span><span class="p">()</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">vector</span><span class="p">())))</span>
 <span class="n">taylor_test</span><span class="p">(</span><span class="n">ReducedFunctional</span><span class="p">(</span><span class="n">J</span><span class="p">,</span><span class="n">g</span><span class="p">),</span><span class="n">g</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">deepcopy</span> <span class="o">=</span> <span class="kc">True</span><span class="p">),</span><span class="n">h</span><span class="p">,</span><span class="n">dJdm</span><span class="o">=</span><span class="n">dJdm</span><span class="o">.</span><span class="n">vector</span><span class="p">()</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">vector</span><span class="p">()))</span>
 </pre></div>
 </div>
@@ -237,7 +235,8 @@ defined over the entire domain).</p>
       <div class="clearer"></div>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2017, The dolfin-adjoint team.
+        &#169; Copyright 2017, Sebastian Mitusch.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.
     </div>
   </body>
 </html>

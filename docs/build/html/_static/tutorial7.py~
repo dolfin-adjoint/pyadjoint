@@ -1,0 +1,46 @@
+from dolfin import *
+from fenics_adjoint import *
+
+
+
+n = 30
+mesh = UnitSquareMesh(n, n)
+V = VectorFunctionSpace(mesh, "CG", 2)
+
+#ic = project(Expression(("sin(2*pi*x[0])", "cos(2*pi*x[1])"), degree=2),  V)
+
+def main(nu):
+    u = project(Expression(("sin(2*pi*x[0])", "cos(2*pi*x[1])"), degree=2),  V)
+    u_next = Function(V,name = "u_next")
+    v = TestFunction(V)
+
+    timestep = Constant(0.01,name = "dt")
+
+    F = (inner((u_next - u)/timestep, v)
+       + inner(grad(u_next)*u_next, v)
+       + nu*inner(grad(u_next), grad(v)))*dx
+
+    bc = DirichletBC(V, (0.0, 0.0), "on_boundary")
+
+    t = 0.0
+    end = 0.01
+    while (t <= end):
+        solve(F == 0, u_next, bc)
+        u.assign(u_next)
+        t += float(timestep)
+
+    return u
+
+if __name__ == "__main__":
+    nu = Constant(0.0001, name = "nu")
+    u = main(nu)
+
+
+    # J = assemble(inner(u, u)*dx)
+    # dJdnu = compute_gradient(J, nu)
+    # Jhat = ReducedFunctional(J,nu)
+
+    tape = get_working_tape()
+    tape.visualise("burger_vis",dot=True)
+
+    #conv_rate = taylor_test(Jhat, Control(nu), Jnu, dJdnu)

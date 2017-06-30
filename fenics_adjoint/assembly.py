@@ -6,6 +6,11 @@ from .types import create_overloaded_object
 
 
 def assemble(*args, **kwargs):
+    """When a form is assembled, the information about its nonlinear dependencies is lost,
+    and it is no longer easy to manipulate. Therefore, fenics_adjoint overloads the :py:func:`dolfin.assemble`
+    function to *attach the form to the assembled object*. This lets the automatic annotation work,
+    even when the user calls the lower-level :py:data:`solve(A, x, b)`.
+    """
     annotate_tape = kwargs.pop("annotate_tape", True)
     output = backend.assemble(*args, **kwargs)
     output = create_overloaded_object(output)

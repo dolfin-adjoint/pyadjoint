@@ -134,7 +134,6 @@
             
   <div class="section" id="generalised-stability-analysis-of-double-diffusive-salt-fingering">
 <span id="salt-fingering-example"></span><h1>Generalised stability analysis of double-diffusive salt fingering<a class="headerlink" href="#generalised-stability-analysis-of-double-diffusive-salt-fingering" title="Permalink to this headline">¶</a></h1>
-<p><em>Section author: Patrick E. Farrell &lt;<a class="reference external" href="mailto:patrick&#46;farrell&#37;&#52;&#48;maths&#46;ox&#46;ac&#46;uk">patrick<span>&#46;</span>farrell<span>&#64;</span>maths<span>&#46;</span>ox<span>&#46;</span>ac<span>&#46;</span>uk</a>&gt;</em></p>
 <p>This demo solves example 4.2 of <a class="reference internal" href="#farrell2012c" id="id1">[6E-FCF14]</a>.</p>
 <div class="section" id="background">
 <h2>Background<a class="headerlink" href="#background" title="Permalink to this headline">¶</a></h2>
@@ -205,8 +204,8 @@ propagator actions.</p>
 </pre></div>
 </div>
 <p>Here we enforce the periodic boundary conditions that map the right-hand
-boundary to the left-hand boundary. The <code class="xref py py-func docutils literal"><span class="pre">inside</span></code> function indicates
-which boundary is to be mapped <em>to</em> (here the left); the <code class="xref py py-func docutils literal"><span class="pre">map</span></code>
+boundary to the left-hand boundary. The <code class="xref py py-func docutils literal"><span class="pre">inside()</span></code> function indicates
+which boundary is to be mapped <em>to</em> (here the left); the <code class="xref py py-func docutils literal"><span class="pre">map()</span></code>
 function maps from the right-hand boundary to the left-hand boundary.</p>
 <div class="highlight-default"><div class="highlight"><pre><span class="k">class</span> <span class="nc">PeriodicBoundary</span><span class="p">(</span><span class="n">SubDomain</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">inside</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">on_boundary</span><span class="p">):</span>
@@ -506,7 +505,8 @@ growth of others.</p>
       <div class="clearer"></div>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2017, The dolfin-adjoint team.
+        &#169; Copyright 2017, Sebastian Mitusch.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.
     </div>
   </body>
 </html>

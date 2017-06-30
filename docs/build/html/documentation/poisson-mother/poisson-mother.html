@@ -134,7 +134,6 @@
             
   <div class="section" id="optimal-control-of-the-poisson-equation">
 <h1>Optimal control of the Poisson equation<a class="headerlink" href="#optimal-control-of-the-poisson-equation" title="Permalink to this headline">¶</a></h1>
-<p><em>Section author: Simon W. Funke &lt;<a class="reference external" href="mailto:simon&#37;&#52;&#48;simula&#46;no">simon<span>&#64;</span>simula<span>&#46;</span>no</a>&gt;</em></p>
 <p>This demo solves the <cite>mother problem</cite> of PDE-constrained
 optimisation: the optimal control of the Poisson equation.
 Physically, this problem can the interpreted as finding the best
@@ -266,7 +265,7 @@ optimisation.</p>
 <p>Next we use <code class="xref py py-class docutils literal"><span class="pre">MoolaOptimizationProblem</span></code> to generate a problem that
 is compatible with the Moola optimisation framework.  Then, we
 wrap the control function into a Moola object, and create a
-<code class="xref py py-meth docutils literal"><span class="pre">NewtonCG</span></code> solver for solving the optimisation problem:</p>
+<code class="xref py py-meth docutils literal"><span class="pre">NewtonCG()</span></code> solver for solving the optimisation problem:</p>
 <div class="highlight-default"><div class="highlight"><pre><span class="n">problem</span> <span class="o">=</span> <span class="n">MoolaOptimizationProblem</span><span class="p">(</span><span class="n">rf</span><span class="p">)</span>
 <span class="n">f_moola</span> <span class="o">=</span> <span class="n">moola</span><span class="o">.</span><span class="n">DolfinPrimalVector</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
 <span class="n">solver</span> <span class="o">=</span> <span class="n">moola</span><span class="o">.</span><span class="n">NewtonCG</span><span class="p">(</span><span class="n">problem</span><span class="p">,</span> <span class="n">f_moola</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;gtol&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">9</span><span class="p">,</span>
@@ -448,7 +447,8 @@ the control can be observed.</p>
       <div class="clearer"></div>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2017, The dolfin-adjoint team.
+        &#169; Copyright 2017, Sebastian Mitusch.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.
     </div>
   </body>
 </html>

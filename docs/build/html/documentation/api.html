@@ -132,633 +132,161 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="module-dolfin_adjoint">
-<span id="id1"></span><span id="dolfin-adjoint-api-reference"></span><h1>dolfin-adjoint API reference<a class="headerlink" href="#module-dolfin_adjoint" title="Permalink to this headline">¶</a></h1>
-<p>The entire dolfin-adjoint interface should be imported with a single
-call:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">dolfin</span> <span class="kn">import</span> <span class="o">*</span>
-<span class="kn">from</span> <span class="nn">dolfin_adjoint</span> <span class="kn">import</span> <span class="o">*</span>
-</pre></div>
-</div>
-<p>It is essential that the importing of the <a class="reference internal" href="#module-dolfin_adjoint" title="dolfin_adjoint"><code class="xref py py-mod docutils literal"><span class="pre">dolfin_adjoint</span></code></a> module happen <em>after</em>
-importing the <code class="xref py py-mod docutils literal"><span class="pre">dolfin</span></code> module. dolfin-adjoint relies on <em>overloading</em> many of
-the key functions of dolfin to achieve its degree of automation.</p>
+  <div class="section" id="module-fenics_adjoint">
+<span id="id1"></span><span id="dolfin-adjoint-api-reference"></span><h1>dolfin-adjoint API reference<a class="headerlink" href="#module-fenics_adjoint" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="overloaded-functions">
 <h2>Overloaded functions<a class="headerlink" href="#overloaded-functions" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="dolfin_adjoint.assemble">
-<code class="descclassname">dolfin_adjoint.</code><code class="descname">assemble</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.assemble" title="Permalink to this definition">¶</a></dt>
+<dt id="fenics_adjoint.assemble">
+<code class="descclassname">fenics_adjoint.</code><code class="descname">assemble</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.assemble" title="Permalink to this definition">¶</a></dt>
 <dd><p>When a form is assembled, the information about its nonlinear dependencies is lost,
-and it is no longer easy to manipulate. Therefore, dolfin_adjoint overloads the <code class="xref py py-func docutils literal"><span class="pre">dolfin.assemble</span></code>
+and it is no longer easy to manipulate. Therefore, fenics_adjoint overloads the <code class="xref py py-func docutils literal"><span class="pre">dolfin.assemble()</span></code>
 function to <em>attach the form to the assembled object</em>. This lets the automatic annotation work,
 even when the user calls the lower-level <code class="xref py py-data docutils literal"><span class="pre">solve(A,</span> <span class="pre">x,</span> <span class="pre">b)</span></code>.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="dolfin_adjoint.assemble_system">
-<code class="descclassname">dolfin_adjoint.</code><code class="descname">assemble_system</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.assemble_system" title="Permalink to this definition">¶</a></dt>
-<dd><p>When a form is assembled, the information about its nonlinear dependencies is lost,
-and it is no longer easy to manipulate. Therefore, dolfin_adjoint overloads the <code class="xref py py-func docutils literal"><span class="pre">dolfin.assemble_system</span></code>
-function to <em>attach the form to the assembled object</em>. This lets the automatic annotation work,
-even when the user calls the lower-level <code class="xref py py-data docutils literal"><span class="pre">solve(A,</span> <span class="pre">x,</span> <span class="pre">b)</span></code>.</p>
-</dd></dl>
+<dt id="fenics_adjoint.assemble_system">
+<code class="descclassname">fenics_adjoint.</code><code class="descname">assemble_system</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.assemble_system" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="function">
-<dt id="dolfin_adjoint.solve">
-<code class="descclassname">dolfin_adjoint.</code><code class="descname">solve</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.solve" title="Permalink to this definition">¶</a></dt>
-<dd><p>This solve routine wraps the real Dolfin solve call. Its purpose is to annotate the model,
-recording what solves occur and what forms are involved, so that the adjoint and tangent linear models may be
-constructed automatically by libadjoint.</p>
-<p>To disable the annotation, just pass <code class="xref py py-data docutils literal"><span class="pre">annotate=False</span></code> to this routine, and it acts exactly like the
-Dolfin solve call. This is useful in cases where the solve is known to be irrelevant or diagnostic
-for the purposes of the adjoint computation (such as projecting fields to other function spaces
-for the purposes of visualisation).</p>
-</dd></dl>
+<dt id="fenics_adjoint.solve">
+<code class="descclassname">fenics_adjoint.</code><code class="descname">solve</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.solve" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="function">
-<dt id="dolfin_adjoint.project">
-<code class="descclassname">dolfin_adjoint.</code><code class="descname">project</code><span class="sig-paren">(</span><em>v</em>, <em>V=None</em>, <em>bcs=None</em>, <em>mesh=None</em>, <em>solver_type=’lu’</em>, <em>preconditioner_type=’default’</em>, <em>form_compiler_parameters=None</em>, <em>annotate=None</em>, <em>name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.project" title="Permalink to this definition">¶</a></dt>
-<dd><p>The project call performs an equation solve, and so it too must be annotated so that the
-adjoint and tangent linear models may be constructed automatically by libadjoint.</p>
-<p>To disable the annotation of this function, just pass <code class="xref py py-data docutils literal"><span class="pre">annotate=False</span></code>. This is useful in
-cases where the solve is known to be irrelevant or diagnostic for the purposes of the adjoint
-computation (such as projecting fields to other function spaces for the purposes of
-visualisation).</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="dolfin_adjoint.interpolate">
-<code class="descclassname">dolfin_adjoint.</code><code class="descname">interpolate</code><span class="sig-paren">(</span><em>v</em>, <em>V</em>, <em>annotate=None</em>, <em>name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.interpolate" title="Permalink to this definition">¶</a></dt>
-<dd><p>The interpolate call changes Function data, and so it too must be annotated so that the
-adjoint and tangent linear models may be constructed automatically by libadjoint.</p>
-<p>To disable the annotation of this function, just pass <code class="xref py py-data docutils literal"><span class="pre">annotate=False</span></code>. This is useful in
-cases where the interpolation is known to be irrelevant or diagnostic for the purposes of the adjoint
-computation (such as interpolating fields to other function spaces for the purposes of
-visualisation).</p>
-</dd></dl>
+<dt id="fenics_adjoint.project">
+<code class="descclassname">fenics_adjoint.</code><code class="descname">project</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.project" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </div>
 <div class="section" id="overloaded-objects">
 <h2>Overloaded objects<a class="headerlink" href="#overloaded-objects" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="dolfin_adjoint.LUSolver">
-<em class="property">class </em><code class="descclassname">dolfin_adjoint.</code><code class="descname">LUSolver</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.LUSolver" title="Permalink to this definition">¶</a></dt>
-<dd><p>This object is overloaded so that solves using this class are automatically annotated,
-so that libadjoint can automatically derive the adjoint and tangent linear models.</p>
-<dl class="method">
-<dt id="dolfin_adjoint.LUSolver.solve">
-<code class="descname">solve</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.LUSolver.solve" title="Permalink to this definition">¶</a></dt>
-<dd><p>To disable the annotation, just pass <code class="xref py py-data docutils literal"><span class="pre">annotate=False</span></code> to this routine, and it acts exactly like the
-Dolfin solve call. This is useful in cases where the solve is known to be irrelevant or diagnostic
-for the purposes of the adjoint computation (such as projecting fields to other function spaces
-for the purposes of visualisation).</p>
-</dd></dl>
+<dt id="fenics_adjoint.Function">
+<em class="property">class </em><code class="descclassname">fenics_adjoint.</code><code class="descname">Function</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.Function" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="fenics_adjoint.Function.assign">
+<code class="descname">assign</code><span class="sig-paren">(</span><em>other</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.Function.assign" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="dolfin_adjoint.NewtonSolver">
-<em class="property">class </em><code class="descclassname">dolfin_adjoint.</code><code class="descname">NewtonSolver</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.NewtonSolver" title="Permalink to this definition">¶</a></dt>
-<dd><p>This object is overloaded so that solves using this class are automatically annotated,
-so that libadjoint can automatically derive the adjoint and tangent linear models.</p>
-<dl class="method">
-<dt id="dolfin_adjoint.NewtonSolver.solve">
-<code class="descname">solve</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.NewtonSolver.solve" title="Permalink to this definition">¶</a></dt>
-<dd><p>To disable the annotation, just pass <code class="xref py py-data docutils literal"><span class="pre">annotate=False</span></code> to this routine, and it acts exactly like the
-Dolfin solve call. This is useful in cases where the solve is known to be irrelevant or diagnostic
-for the purposes of the adjoint computation (such as projecting fields to other function spaces
-for the purposes of visualisation).</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="dolfin_adjoint.KrylovSolver">
-<em class="property">class </em><code class="descclassname">dolfin_adjoint.</code><code class="descname">KrylovSolver</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.KrylovSolver" title="Permalink to this definition">¶</a></dt>
-<dd><p>This object is overloaded so that solves using this class are automatically annotated,
-so that libadjoint can automatically derive the adjoint and tangent linear models.</p>
-<dl class="method">
-<dt id="dolfin_adjoint.KrylovSolver.solve">
-<code class="descname">solve</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.KrylovSolver.solve" title="Permalink to this definition">¶</a></dt>
-<dd><p>To disable the annotation, just pass <code class="xref py py-data docutils literal"><span class="pre">annotate=False</span></code> to this routine, and it acts exactly like the
-Dolfin solve call. This is useful in cases where the solve is known to be irrelevant or diagnostic
-for the purposes of the adjoint computation (such as projecting fields to other function spaces
-for the purposes of visualisation).</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="dolfin_adjoint.NonlinearVariationalSolver">
-<em class="property">class </em><code class="descclassname">dolfin_adjoint.</code><code class="descname">NonlinearVariationalSolver</code><span class="sig-paren">(</span><em>problem</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.NonlinearVariationalSolver" title="Permalink to this definition">¶</a></dt>
-<dd><p>This object is overloaded so that solves using this class are automatically annotated,
-so that libadjoint can automatically derive the adjoint and tangent linear models.</p>
-<dl class="method">
-<dt id="dolfin_adjoint.NonlinearVariationalSolver.solve">
-<code class="descname">solve</code><span class="sig-paren">(</span><em>annotate=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.NonlinearVariationalSolver.solve" title="Permalink to this definition">¶</a></dt>
-<dd><p>To disable the annotation, just pass <code class="xref py py-data docutils literal"><span class="pre">annotate=False</span></code> to this routine, and it acts exactly like the
-Dolfin solve call. This is useful in cases where the solve is known to be irrelevant or diagnostic
-for the purposes of the adjoint computation (such as projecting fields to other function spaces
-for the purposes of visualisation).</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="dolfin_adjoint.NonlinearVariationalProblem">
-<em class="property">class </em><code class="descclassname">dolfin_adjoint.</code><code class="descname">NonlinearVariationalProblem</code><span class="sig-paren">(</span><em>F</em>, <em>u</em>, <em>bcs=None</em>, <em>J=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.NonlinearVariationalProblem" title="Permalink to this definition">¶</a></dt>
-<dd><p>This object is overloaded so that solves using this class are automatically annotated,
-so that libadjoint can automatically derive the adjoint and tangent linear models.</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="dolfin_adjoint.LinearVariationalSolver">
-<em class="property">class </em><code class="descclassname">dolfin_adjoint.</code><code class="descname">LinearVariationalSolver</code><span class="sig-paren">(</span><em>problem</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.LinearVariationalSolver" title="Permalink to this definition">¶</a></dt>
-<dd><p>This object is overloaded so that solves using this class are automatically annotated,
-so that libadjoint can automatically derive the adjoint and tangent linear models.</p>
-<dl class="method">
-<dt id="dolfin_adjoint.LinearVariationalSolver.solve">
-<code class="descname">solve</code><span class="sig-paren">(</span><em>annotate=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.LinearVariationalSolver.solve" title="Permalink to this definition">¶</a></dt>
-<dd><p>To disable the annotation, just pass <code class="xref py py-data docutils literal"><span class="pre">annotate=False</span></code> to this routine, and it acts exactly like the
-Dolfin solve call. This is useful in cases where the solve is known to be irrelevant or diagnostic
-for the purposes of the adjoint computation (such as projecting fields to other function spaces
-for the purposes of visualisation).</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="dolfin_adjoint.LinearVariationalProblem">
-<em class="property">class </em><code class="descclassname">dolfin_adjoint.</code><code class="descname">LinearVariationalProblem</code><span class="sig-paren">(</span><em>a</em>, <em>L</em>, <em>u</em>, <em>bcs=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.LinearVariationalProblem" title="Permalink to this definition">¶</a></dt>
-<dd><p>This object is overloaded so that solves using this class are automatically annotated,
-so that libadjoint can automatically derive the adjoint and tangent linear models.</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="dolfin_adjoint.Function">
-<em class="property">class </em><code class="descclassname">dolfin_adjoint.</code><code class="descname">Function</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.Function" title="Permalink to this definition">¶</a></dt>
-<dd><p>The Function class is overloaded so that you can give <code class="xref py py-class docutils literal"><span class="pre">Functions</span></code> <em>names</em>. For example,</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">u</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Velocity&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>This allows you to refer to the <a class="reference internal" href="#dolfin_adjoint.Function" title="dolfin_adjoint.Function"><code class="xref py py-class docutils literal"><span class="pre">Function</span></code></a> by name throughout dolfin-adjoint, rather than
-needing to have the specific <a class="reference internal" href="#dolfin_adjoint.Function" title="dolfin_adjoint.Function"><code class="xref py py-class docutils literal"><span class="pre">Function</span></code></a> instance available.</p>
-<p>For more details, see <a class="reference internal" href="misc.html"><span class="doc">the dolfin-adjoint documentation</span></a>.</p>
-<dl class="method">
-<dt id="dolfin_adjoint.Function.assign">
-<code class="descname">assign</code><span class="sig-paren">(</span><em>other</em>, <em>annotate=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.Function.assign" title="Permalink to this definition">¶</a></dt>
-<dd><p>To disable the annotation, just pass <code class="xref py py-data docutils literal"><span class="pre">annotate=False</span></code> to this routine, and it acts exactly like the
-Dolfin assign call.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="dolfin_adjoint.Constant">
-<em class="property">class </em><code class="descclassname">dolfin_adjoint.</code><code class="descname">Constant</code><span class="sig-paren">(</span><em>value</em>, <em>cell=None</em>, <em>name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.Constant" title="Permalink to this definition">¶</a></dt>
-<dd><p>The Constant class is overloaded so that you can give <code class="xref py py-class docutils literal"><span class="pre">Constants</span></code> <em>names</em>. For example,</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">nu</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">1.0e-4</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Diffusivity&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>This allows you to refer to the <a class="reference internal" href="#dolfin_adjoint.Constant" title="dolfin_adjoint.Constant"><code class="xref py py-class docutils literal"><span class="pre">Constant</span></code></a> by name throughout dolfin-adjoint, rather than
-needing to have the specific <a class="reference internal" href="#dolfin_adjoint.Constant" title="dolfin_adjoint.Constant"><code class="xref py py-class docutils literal"><span class="pre">Constant</span></code></a> instance available.</p>
-<p>For more details, see <a class="reference internal" href="misc.html"><span class="doc">the dolfin-adjoint documentation</span></a>.</p>
-</dd></dl>
+<dt id="fenics_adjoint.Constant">
+<em class="property">class </em><code class="descclassname">fenics_adjoint.</code><code class="descname">Constant</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.Constant" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </div>
 <div class="section" id="driver-functions">
 <h2>Driver functions<a class="headerlink" href="#driver-functions" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="dolfin_adjoint.compute_gradient">
-<code class="descclassname">dolfin_adjoint.</code><code class="descname">compute_gradient</code><span class="sig-paren">(</span><em>J</em>, <em>param</em>, <em>forget=True</em>, <em>ignore=[]</em>, <em>callback=&lt;function &lt;lambda&gt;&gt;</em>, <em>project=False</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.compute_gradient" title="Permalink to this definition">¶</a></dt>
+<dt id="fenics_adjoint.compute_gradient">
+<code class="descclassname">fenics_adjoint.</code><code class="descname">compute_gradient</code><span class="sig-paren">(</span><em>J</em>, <em>m</em>, <em>block_idx=0</em>, <em>options={}</em>, <em>tape=None</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.compute_gradient" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
-
-<dl class="function">
-<dt id="dolfin_adjoint.compute_adjoint">
-<code class="descclassname">dolfin_adjoint.</code><code class="descname">compute_adjoint</code><span class="sig-paren">(</span><em>functional</em>, <em>forget=True</em>, <em>ignore=[]</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.compute_adjoint" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="dolfin_adjoint.compute_tlm">
-<code class="descclassname">dolfin_adjoint.</code><code class="descname">compute_tlm</code><span class="sig-paren">(</span><em>parameter</em>, <em>forget=False</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.compute_tlm" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</div>
-<div class="section" id="functional-object">
-<h2><a class="reference internal" href="#dolfin_adjoint.Functional" title="dolfin_adjoint.Functional"><code class="xref py py-data docutils literal"><span class="pre">Functional</span></code></a> object<a class="headerlink" href="#functional-object" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="dolfin_adjoint.Functional">
-<em class="property">class </em><code class="descclassname">dolfin_adjoint.</code><code class="descname">Functional</code><span class="sig-paren">(</span><em>timeform</em>, <em>verbose=False</em>, <em>name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.Functional" title="Permalink to this definition">¶</a></dt>
-<dd><p>This class implements the <code class="xref py py-class docutils literal"><span class="pre">libadjoint.Functional</span></code> abstract base class for dolfin-adjoint.
-The core idea is that a functional is either</p>
-<blockquote>
-<div><ol class="loweralpha simple">
-<li>an integral of a form over a certain time window, or</li>
-<li>a pointwise evaluation in time of a certain form, or</li>
-<li>a sum of terms like (a) and (b).</li>
-</ol>
-</div></blockquote>
-<p>Some examples:</p>
-<blockquote>
-<div><ul>
-<li><p class="first">Integration over all time:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">J</span> <span class="o">=</span> <span class="n">Functional</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="o">*</span><span class="n">dt</span><span class="p">)</span>
-</pre></div>
-</div>
-</li>
-<li><p class="first">Integration over a certain time window:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">J</span> <span class="o">=</span> <span class="n">Functional</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="o">*</span><span class="n">dt</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">])</span>
-</pre></div>
-</div>
-</li>
-<li><p class="first">Integration from a certain point until the end:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">J</span> <span class="o">=</span> <span class="n">Functional</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="o">*</span><span class="n">dt</span><span class="p">[</span><span class="mf">0.5</span><span class="p">:])</span>
-</pre></div>
-</div>
-</li>
-<li><p class="first">Pointwise evaluation in time (does not need to line up with timesteps):</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">J</span> <span class="o">=</span> <span class="n">Functional</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="o">*</span><span class="n">dt</span><span class="p">[</span><span class="mf">0.5</span><span class="p">])</span>
-</pre></div>
-</div>
-</li>
-<li><p class="first">Pointwise evaluation at the start (e.g. for regularisation terms):</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">J</span> <span class="o">=</span> <span class="n">Functional</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="o">*</span><span class="n">dt</span><span class="p">[</span><span class="n">START_TIME</span><span class="p">])</span>
-</pre></div>
-</div>
-</li>
-<li><p class="first">Pointwise evaluation at the end:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">J</span> <span class="o">=</span> <span class="n">Functional</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="o">*</span><span class="n">dt</span><span class="p">[</span><span class="n">FINISH_TIME</span><span class="p">])</span>
-</pre></div>
-</div>
-</li>
-<li><p class="first">And sums of these work too:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">J</span> <span class="o">=</span> <span class="n">Functional</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="o">*</span><span class="n">dt</span> <span class="o">+</span> <span class="n">inner</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="o">*</span><span class="n">dt</span><span class="p">[</span><span class="n">FINISH_TIME</span><span class="p">])</span>
-</pre></div>
-</div>
-</li>
-</ul>
-<p>If <code class="xref py py-data docutils literal"><span class="pre">dt</span></code> has been redefined, you can create your own time measure with <code class="xref py py-class docutils literal"><span class="pre">TimeMeasure</span></code>.</p>
-<p>For anything but the evaluation at the final time to work, you need to annotate the
-timestepping of your model with <a class="reference internal" href="#dolfin_adjoint.adj_inc_timestep" title="dolfin_adjoint.adj_inc_timestep"><code class="xref py py-func docutils literal"><span class="pre">adj_inc_timestep</span></code></a>.</p>
-</div></blockquote>
-</dd></dl>
 
 </div>
 <div class="section" id="reducedfunctional-object">
-<h2><a class="reference internal" href="#dolfin_adjoint.ReducedFunctional" title="dolfin_adjoint.ReducedFunctional"><code class="xref py py-data docutils literal"><span class="pre">ReducedFunctional</span></code></a> object<a class="headerlink" href="#reducedfunctional-object" title="Permalink to this headline">¶</a></h2>
+<h2><a class="reference internal" href="#fenics_adjoint.ReducedFunctional" title="fenics_adjoint.ReducedFunctional"><code class="xref py py-data docutils literal"><span class="pre">ReducedFunctional</span></code></a> object<a class="headerlink" href="#reducedfunctional-object" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="dolfin_adjoint.ReducedFunctional">
-<em class="property">class </em><code class="descclassname">dolfin_adjoint.</code><code class="descname">ReducedFunctional</code><span class="sig-paren">(</span><em>functional</em>, <em>controls</em>, <em>scale=1.0</em>, <em>eval_cb_pre=&lt;function &lt;lambda&gt;&gt;</em>, <em>eval_cb_post=&lt;function &lt;lambda&gt;&gt;</em>, <em>derivative_cb_pre=&lt;function &lt;lambda&gt;&gt;</em>, <em>derivative_cb_post=&lt;function &lt;lambda&gt;&gt;</em>, <em>replay_cb=&lt;function &lt;lambda&gt;&gt;</em>, <em>hessian_cb=&lt;function &lt;lambda&gt;&gt;</em>, <em>cache=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.ReducedFunctional" title="Permalink to this definition">¶</a></dt>
-<dd><p>This class provides access to the reduced functional for given
-functional and controls. The reduced functional maps a point in control
-space to the associated functional value by implicitly solving the PDE that
-is annotated by dolfin-adjoint. The ReducedFunctional object can also
-compute functional derivatives with respect to the controls using the
-adjoint method.</p>
-<dl class="method">
-<dt id="dolfin_adjoint.ReducedFunctional.__call__">
-<code class="descname">__call__</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.ReducedFunctional.__call__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="dolfin_adjoint.ReducedFunctional.derivative">
-<code class="descname">derivative</code><span class="sig-paren">(</span><em>forget=True</em>, <em>project=False</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.ReducedFunctional.derivative" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="docutils">
-<dt>Evaluates the derivative of the reduced functional at the most</dt>
-<dd>recently evaluated control value.</dd>
-<dt>Args:</dt>
-<dd><dl class="first last docutils">
-<dt>forget (Optional[bool]): Delete the forward state while solving the</dt>
-<dd>adjoint equations. If you want to reevaluate derivative at the same
-point (or the Hessian) you will need to set this to False or None. Defaults to True.</dd>
-<dt>project (Optional[bool]): If True, the returned value will be the L2</dt>
-<dd>Riesz representer, if False it will be the l2 Riesz representative.
-The L2 projection requires one additional linear solve.
-Defaults to False.</dd>
-</dl>
-</dd>
-<dt>Returns:</dt>
-<dd>The functional derivative. The returned type is the same as the control
-type.</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="dolfin_adjoint.ReducedFunctional.hessian">
-<code class="descname">hessian</code><span class="sig-paren">(</span><em>m_dot</em>, <em>project=False</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.ReducedFunctional.hessian" title="Permalink to this definition">¶</a></dt>
-<dd><p>Evaluates the Hessian action at the most recently evaluated control
-value in direction m_dot.</p>
+<dt id="fenics_adjoint.ReducedFunctional">
+<em class="property">class </em><code class="descclassname">fenics_adjoint.</code><code class="descname">ReducedFunctional</code><span class="sig-paren">(</span><em>functional</em>, <em>controls</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.ReducedFunctional" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class representing the reduced functional.</p>
+<p>A reduced functional maps a control value to the provided functional.
+It may also be used to compute the derivative of the functional with
+respect to the control.</p>
 <dl class="docutils">
 <dt>Args:</dt>
 <dd><dl class="first last docutils">
-<dt>m_dot: The direction in control space in which to compute the</dt>
-<dd>Hessian. Must be of the same type as the Control (e.g. Function,
-Constant or lists of latter).</dd>
-<dt>project (Optional[bool]): If True, the returned value will be the L2</dt>
-<dd>Riesz representer, if False it will be the l2 Riesz representative.
-The L2 projection requires one additional linear solve.  Defaults to
-False.</dd>
+<dt>functional (<code class="xref py py-obj docutils literal"><span class="pre">OverloadedType</span></code>): An instance of an OverloadedType,</dt>
+<dd>usually <code class="xref py py-class docutils literal"><span class="pre">AdjFloat</span></code>. This should be the return value of the
+functional you want to reduce.</dd>
+<dt>controls (OverloadedType): An instance of an OverloadedType,</dt>
+<dd>which you want to map to the functional. You may also supply a list
+of such instances if you have multiple controls.</dd>
 </dl>
 </dd>
-<dt>Returns:</dt>
-<dd>The directional second derivative. The returned type is the same as the control
-type.</dd>
 </dl>
-<p>Note: Hessian evaluations never delete the forward state.</p>
-</dd></dl>
-
 <dl class="method">
-<dt id="dolfin_adjoint.ReducedFunctional.taylor_test">
-<code class="descname">taylor_test</code><span class="sig-paren">(</span><em>value=None</em>, <em>test_hessian=False</em>, <em>seed=None</em>, <em>perturbation_direction=None</em>, <em>size=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.ReducedFunctional.taylor_test" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run a Taylor test to check that the functional, gradient and
-(optionally) Hessian are consistent by
-running the Taylor test.</p>
+<dt id="fenics_adjoint.ReducedFunctional.__call__">
+<code class="descname">__call__</code><span class="sig-paren">(</span><em>values</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.ReducedFunctional.__call__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the reduced functional with supplied control value.</p>
 <dl class="docutils">
 <dt>Args:</dt>
-<dd><dl class="first docutils">
-<dt>value (Optional): The point in control space where to perform the Taylor test.</dt>
-<dd>Must be of the same type as the Control (e.g. Function, Constant or
-lists of latter). If value is None (default), the Taylor test
-will be performed at the control value of the latest evaluation.</dd>
-<dt>test_hessian (Optional[boolean]): If True, the Taylor test also</dt>
-<dd>includes the Hessian. Defaults to False.</dd>
-<dt>seed (Optional[float]): The initial perturbation size for the Taylor</dt>
-<dd>test.</dd>
-<dt>perturbation_direction (Optional): The direction in which to perform</dt>
-<dd>the Taylor test. Must be of the same type as the Control (e.g.
-Function, Constant or lists of latter). Defaults to a random
-direction.</dd>
+<dd><dl class="first last docutils">
+<dt>values (<code class="xref py py-obj docutils literal"><span class="pre">OverloadedType</span></code>): Should be an object of the same type</dt>
+<dd>as the control.</dd>
 </dl>
-<p class="last">size (Optional[int]): Number of perturbations for the test</p>
 </dd>
 <dt>Returns:</dt>
-<dd>float: The minimum (higher-order) convergence rate of all performed tests.</dd>
+<dd><dl class="first last docutils">
+<dt><code class="xref py py-obj docutils literal"><span class="pre">OverloadedType</span></code>: The computed value. Typically of instance</dt>
+<dd>of <code class="xref py py-class docutils literal"><span class="pre">AdjFloat</span></code>.</dd>
 </dl>
-<p>The Taylor test also prints out detailed information about the convergence rate
-if the fenics.log_level is set INFO or higher.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="dolfin_adjoint.ReducedFunctionalNumPy">
-<em class="property">class </em><code class="descclassname">dolfin_adjoint.</code><code class="descname">ReducedFunctionalNumPy</code><span class="sig-paren">(</span><em>rf</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.ReducedFunctionalNumPy" title="Permalink to this definition">¶</a></dt>
-<dd><p>This class implements the reduced functional for given functional and
-controls based on numpy data structures.</p>
-<p>This “NumPy version” of the dolfin_adjoint.ReducedFunctional is created from
-an existing ReducedFunctional object:
-rf_np = ReducedFunctionalNumPy(rf = rf)</p>
-<dl class="method">
-<dt id="dolfin_adjoint.ReducedFunctionalNumPy.__call__">
-<code class="descname">__call__</code><span class="sig-paren">(</span><em>m_array</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.ReducedFunctionalNumPy.__call__" title="Permalink to this definition">¶</a></dt>
-<dd><p>An implementation of the reduced functional evaluation
-that accepts the control values as an array of scalars</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
-<dt id="dolfin_adjoint.ReducedFunctionalNumPy.derivative">
-<code class="descname">derivative</code><span class="sig-paren">(</span><em>m_array=None</em>, <em>forget=True</em>, <em>project=False</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.ReducedFunctionalNumPy.derivative" title="Permalink to this definition">¶</a></dt>
-<dd><p>An implementation of the reduced functional derivative evaluation
-that accepts the controls as an array of scalars. If no control values are given,
-the result is derivative at the lastest forward run.</p>
+<dt id="fenics_adjoint.ReducedFunctional.derivative">
+<code class="descname">derivative</code><span class="sig-paren">(</span><em>options={}</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.ReducedFunctional.derivative" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the derivative of the functional w.r.t. the control.</p>
+<p>Using the adjoint method, the derivative of the functional with
+respect to the control, around the last supplied value of the control,
+is computed and returned.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>options (dict): A dictionary of options. To find a list of available options</dt>
+<dd>have a look at the specific control type.</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>OverloadedType: The derivative with respect to the control.</dt>
+<dd>Should be an instance of the same type as the control.</dd>
+</dl>
+</dd>
+</dl>
 </dd></dl>
-
-<dl class="method">
-<dt id="dolfin_adjoint.ReducedFunctionalNumPy.hessian">
-<code class="descname">hessian</code><span class="sig-paren">(</span><em>m_array</em>, <em>m_dot_array</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.ReducedFunctionalNumPy.hessian" title="Permalink to this definition">¶</a></dt>
-<dd><p>An implementation of the reduced functional hessian action evaluation
-that accepts the controls as an array of scalars. If m_array is None,
-the Hessian action at the latest forward run is returned.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="dolfin_adjoint.ReducedFunctionalNumPy.pyopt_problem">
-<code class="descname">pyopt_problem</code><span class="sig-paren">(</span><em>constraints=None</em>, <em>bounds=None</em>, <em>name=’Problem’</em>, <em>ignore_model_errors=False</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.ReducedFunctionalNumPy.pyopt_problem" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a pyopt problem class that can be used with the PyOpt package,
-<a class="reference external" href="http://www.pyopt.org/">http://www.pyopt.org/</a></p>
-</dd></dl>
-
-<dl class="method">
-<dt id="dolfin_adjoint.ReducedFunctionalNumPy.set_controls">
-<code class="descname">set_controls</code><span class="sig-paren">(</span><em>array</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.ReducedFunctionalNumPy.set_controls" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="dolfin_adjoint.ReducedFunctionalNumPy.get_controls">
-<code class="descname">get_controls</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.ReducedFunctionalNumPy.get_controls" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 </dd></dl>
 
 </div>
 <div class="section" id="control-objects">
-<span id="parameter-label"></span><h2><a class="reference internal" href="#dolfin_adjoint.Control" title="dolfin_adjoint.Control"><code class="xref py py-data docutils literal"><span class="pre">Control</span></code></a> objects<a class="headerlink" href="#control-objects" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="dolfin_adjoint.Control">
-<code class="descclassname">dolfin_adjoint.</code><code class="descname">Control</code><span class="sig-paren">(</span><em>obj</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.Control" title="Permalink to this definition">¶</a></dt>
-<dd><p>Creates a dolfin-adjoint control.</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="dolfin_adjoint.FunctionControl">
-<em class="property">class </em><code class="descclassname">dolfin_adjoint.</code><code class="descname">FunctionControl</code><span class="sig-paren">(</span><em>coeff</em>, <em>value=None</em>, <em>perturbation=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.FunctionControl" title="Permalink to this definition">¶</a></dt>
-<dd><p>This Parameter is used as input to the tangent linear model (TLM)
-when one wishes to compute dJ/d(initial condition) in a particular direction (perturbation).</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="dolfin_adjoint.ConstantControl">
-<em class="property">class </em><code class="descclassname">dolfin_adjoint.</code><code class="descname">ConstantControl</code><span class="sig-paren">(</span><em>a</em>, <em>coeff=1</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.ConstantControl" title="Permalink to this definition">¶</a></dt>
-<dd><p>This Parameter is used as input to the tangent linear model (TLM)
-when one wishes to compute dJ/da, where a is a single scalar parameter.</p>
-</dd></dl>
-
+<span id="parameter-label"></span><h2><code class="xref py py-data docutils literal"><span class="pre">Control</span></code> objects<a class="headerlink" href="#control-objects" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="constraint-objects">
 <h2>Constraint objects<a class="headerlink" href="#constraint-objects" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="dolfin_adjoint.EqualityConstraint">
-<em class="property">class </em><code class="descclassname">dolfin_adjoint.</code><code class="descname">EqualityConstraint</code><a class="headerlink" href="#dolfin_adjoint.EqualityConstraint" title="Permalink to this definition">¶</a></dt>
-<dd><p>This class represents equality constraints of the form</p>
-<p>c_i(m) == 0</p>
-<p>for 0 &lt;= i &lt; n, where m is the parameter.</p>
-<dl class="method">
-<dt id="dolfin_adjoint.EqualityConstraint.function">
-<code class="descname">function</code><span class="sig-paren">(</span><em>m</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.EqualityConstraint.function" title="Permalink to this definition">¶</a></dt>
-<dd><p>Evaluate c(m), where c(m) == 0 for equality constraints and c(m) &gt;= 0 for inequality constraints.</p>
-<p>c(m) must return a numpy array or a dolfin Function or Constant.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="dolfin_adjoint.EqualityConstraint.jacobian">
-<code class="descname">jacobian</code><span class="sig-paren">(</span><em>m</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.EqualityConstraint.jacobian" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the full Jacobian matrix as a list of vector-like objects representing the gradient of the constraint function with respect to the parameter m.</p>
-<p>The objects returned must be of the same type as m’s data.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="dolfin_adjoint.InequalityConstraint">
-<em class="property">class </em><code class="descclassname">dolfin_adjoint.</code><code class="descname">InequalityConstraint</code><a class="headerlink" href="#dolfin_adjoint.InequalityConstraint" title="Permalink to this definition">¶</a></dt>
-<dd><p>This class represents constraints of the form</p>
-<p>c_i(m) &gt;= 0</p>
-<p>for 0 &lt;= i &lt; n, where m is the parameter.</p>
-<dl class="method">
-<dt id="dolfin_adjoint.InequalityConstraint.function">
-<code class="descname">function</code><span class="sig-paren">(</span><em>m</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.InequalityConstraint.function" title="Permalink to this definition">¶</a></dt>
-<dd><p>Evaluate c(m), where c(m) == 0 for equality constraints and c(m) &gt;= 0 for inequality constraints.</p>
-<p>c(m) must return a numpy array or a dolfin Function or Constant.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="dolfin_adjoint.InequalityConstraint.jacobian">
-<code class="descname">jacobian</code><span class="sig-paren">(</span><em>m</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.InequalityConstraint.jacobian" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the full Jacobian matrix as a list of vector-like objects representing the gradient of the constraint function with respect to the parameter m.</p>
-<p>The objects returned must be of the same type as m’s data.</p>
-</dd></dl>
-
-</dd></dl>
-
 </div>
 <div class="section" id="annotation-functions">
 <h2>Annotation functions<a class="headerlink" href="#annotation-functions" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="dolfin_adjoint.adj_checkpointing">
-<code class="descclassname">dolfin_adjoint.</code><code class="descname">adj_checkpointing</code><span class="sig-paren">(</span><em>strategy</em>, <em>steps</em>, <em>snaps_on_disk</em>, <em>snaps_in_ram</em>, <em>verbose=False</em>, <em>replay=False</em>, <em>replay_comparison_tolerance=1e-10</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.adj_checkpointing" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="dolfin_adjoint.adj_start_timestep">
-<code class="descclassname">dolfin_adjoint.</code><code class="descname">adj_start_timestep</code><span class="sig-paren">(</span><em>time=0.0</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.adj_start_timestep" title="Permalink to this definition">¶</a></dt>
-<dd><p>Dolfin does not supply us with information about timesteps, and so more information
-is required from the user for certain features. This function should be called at the
-start of the time loop with the initial time (defaults to 0).</p>
-<p>See also: <a class="reference internal" href="#dolfin_adjoint.adj_inc_timestep" title="dolfin_adjoint.adj_inc_timestep"><code class="xref py py-func docutils literal"><span class="pre">dolfin_adjoint.adj_inc_timestep</span></code></a></p>
-</dd></dl>
-
-<dl class="function">
-<dt id="dolfin_adjoint.adj_inc_timestep">
-<code class="descclassname">dolfin_adjoint.</code><code class="descname">adj_inc_timestep</code><span class="sig-paren">(</span><em>time=None</em>, <em>finished=False</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.adj_inc_timestep" title="Permalink to this definition">¶</a></dt>
-<dd><p>Dolfin does not supply us with information about timesteps, and so more information
-is required from the user for certain features. This function should be called at
-the end of the time loop with two arguments:</p>
-<blockquote>
-<div><ul class="simple">
-<li><code class="xref py py-data docutils literal"><span class="pre">time</span></code> – the time at the end of the timestep just computed</li>
-<li><code class="xref py py-data docutils literal"><span class="pre">finished</span></code> – whether this is the final timestep.</li>
-</ul>
-</div></blockquote>
-<p>With this information, complex functional expressions using the <a class="reference internal" href="#dolfin_adjoint.Functional" title="dolfin_adjoint.Functional"><code class="xref py py-class docutils literal"><span class="pre">Functional</span></code></a> class
-can be used.</p>
-<p>The finished argument is necessary because the final step of a functional integration must perform
-additional calculations.</p>
-<p>See also: <a class="reference internal" href="#dolfin_adjoint.adj_start_timestep" title="dolfin_adjoint.adj_start_timestep"><code class="xref py py-func docutils literal"><span class="pre">dolfin_adjoint.adj_start_timestep</span></code></a></p>
-</dd></dl>
-
 </div>
 <div class="section" id="debugging-functions">
 <h2>Debugging functions<a class="headerlink" href="#debugging-functions" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="dolfin_adjoint.adj_html">
-<code class="descclassname">dolfin_adjoint.</code><code class="descname">adj_html</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.adj_html" title="Permalink to this definition">¶</a></dt>
-<dd><p>This routine dumps the current state of the adjglobals.adjointer to a HTML visualisation.
-Use it like:</p>
-<blockquote>
-<div><ul class="simple">
-<li>adj_html(“forward.html”, “forward”) # for the equations recorded on the forward run</li>
-<li>adj_html(“adjoint.html”, “adjoint”) # for the equations to be assembled on the adjoint run</li>
-</ul>
-</div></blockquote>
-</dd></dl>
-
-<dl class="function">
-<dt id="dolfin_adjoint.adj_check_checkpoints">
-<code class="descclassname">dolfin_adjoint.</code><code class="descname">adj_check_checkpoints</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.adj_check_checkpoints" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="dolfin_adjoint.taylor_test">
-<code class="descclassname">dolfin_adjoint.</code><code class="descname">taylor_test</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.taylor_test" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="dolfin_adjoint.replay_dolfin">
-<code class="descclassname">dolfin_adjoint.</code><code class="descname">replay_dolfin</code><span class="sig-paren">(</span><em>forget=False</em>, <em>tol=0.0</em>, <em>stop=False</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.replay_dolfin" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</div>
-<div class="section" id="generalised-stability-theory">
-<h2>Generalised stability theory<a class="headerlink" href="#generalised-stability-theory" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="dolfin_adjoint.compute_gst">
-<code class="descclassname">dolfin_adjoint.</code><code class="descname">compute_gst</code><span class="sig-paren">(</span><em>ic</em>, <em>final</em>, <em>nsv</em>, <em>ic_norm=’mass’</em>, <em>final_norm=’mass’</em>, <em>which=1</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.compute_gst" title="Permalink to this definition">¶</a></dt>
-<dd><p>This function computes the generalised stability analysis of a simulation.
-Generalised stability theory computes the perturbations to a field (such as an
-initial condition, forcing term, etc.) that /grow the most/ over the finite
-time window of the simulation. For more details, see the mathematical documentation
-on <a class="reference external" href="http://dolfin-adjoint.org">the website</a>.</p>
-<ul class="simple">
-<li><code class="xref py py-data docutils literal"><span class="pre">ic</span></code> – the input of the propagator</li>
-<li><code class="xref py py-data docutils literal"><span class="pre">final</span></code> – the output of the propagator</li>
-<li><code class="xref py py-data docutils literal"><span class="pre">nsv</span></code> – the number of optimal perturbations to compute</li>
-<li><code class="xref py py-data docutils literal"><span class="pre">ic_norm</span></code> – a symmetric positive-definite bilinear form that defines the norm on the input space</li>
-<li><code class="xref py py-data docutils literal"><span class="pre">final_norm</span></code> – a symmetric positive-definite bilinear form that defines the norm on the output space</li>
-<li><code class="xref py py-data docutils literal"><span class="pre">which</span></code> – which singular vectors to compute. Use e.g. slepc4py.SLEPc.EPS.Which.LARGEST_REAL</li>
-</ul>
-<p>You can supply <code class="xref py py-data docutils literal"><span class="pre">&quot;mass&quot;</span></code> for <code class="xref py py-data docutils literal"><span class="pre">ic_norm</span></code> and <code class="xref py py-data docutils literal"><span class="pre">final_norm</span></code> to use the (default) mass matrices associated
-with these spaces.</p>
-<p>For example:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">gst</span> <span class="o">=</span> <span class="n">compute_gst</span><span class="p">(</span><span class="s2">&quot;State&quot;</span><span class="p">,</span> <span class="s2">&quot;State&quot;</span><span class="p">,</span> <span class="n">nsv</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">gst</span><span class="o">.</span><span class="n">ncv</span><span class="p">):</span> <span class="c1"># number of converged vectors</span>
-  <span class="p">(</span><span class="n">sigma</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="o">=</span> <span class="n">gst</span><span class="o">.</span><span class="n">get_gst</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">return_vectors</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
-</pre></div>
-</div>
-</dd></dl>
-
-</div>
-<div class="section" id="accessing-tape">
-<h2>Accessing tape<a class="headerlink" href="#accessing-tape" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="dolfin_adjoint.DolfinAdjointVariable">
-<em class="property">class </em><code class="descclassname">dolfin_adjoint.</code><code class="descname">DolfinAdjointVariable</code><span class="sig-paren">(</span><em>coefficient</em>, <em>timestep=None</em>, <em>iteration=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.DolfinAdjointVariable" title="Permalink to this definition">¶</a></dt>
-<dd><p>A wrapper class for Dolfin objects to store additional information such as
-a time step, a iteration counter and the type of the variable (adjoint, forward or tangent linear).</p>
-<dl class="method">
-<dt id="dolfin_adjoint.DolfinAdjointVariable.__init__">
-<code class="descname">__init__</code><span class="sig-paren">(</span><em>coefficient</em>, <em>timestep=None</em>, <em>iteration=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.DolfinAdjointVariable.__init__" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create a DolfinAdjointVariable associated with the provided coefficient.</p>
-<p>If the coefficient is not known to dolfin_adjoint (i.e. if no equation for it was
-annotated), an Exception is thrown.</p>
-<p>By default, the DolfinAdjointVariable references the latest timestep and iteration number,
-but may be overwritten with the timestep and the iteration parameters. Negative values may
-be used to reference the backwards.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="dolfin_adjoint.DolfinAdjointVariable.tape_value">
-<code class="descname">tape_value</code><span class="sig-paren">(</span><em>timestep=None</em>, <em>iteration=None</em><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.DolfinAdjointVariable.tape_value" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the tape value associated with the variable (optionally for the given timestep and iteration).</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="dolfin_adjoint.DolfinAdjointVariable.iteration_count">
-<code class="descname">iteration_count</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.DolfinAdjointVariable.iteration_count" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the annotated number of iterations at the variables timestep.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="dolfin_adjoint.DolfinAdjointVariable.known_timesteps">
-<code class="descname">known_timesteps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.DolfinAdjointVariable.known_timesteps" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a list of timesteps for which this variable is annotated on the tape.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="function">
-<dt id="dolfin_adjoint.adj_reset">
-<code class="descclassname">dolfin_adjoint.</code><code class="descname">adj_reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#dolfin_adjoint.adj_reset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Forget all annotation, and reset the entire dolfin-adjoint state.</p>
+<dt id="fenics_adjoint.taylor_test">
+<code class="descclassname">fenics_adjoint.</code><code class="descname">taylor_test</code><span class="sig-paren">(</span><em>J</em>, <em>m</em>, <em>h</em>, <em>dJdm=None</em>, <em>Hm=None</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.taylor_test" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run a taylor test on the functional J around point m in direction h.</p>
+<p>Given a functional J, a point in control space m, and a direction in
+control space h, the function computes the taylor remainders and
+returns the convergence rate.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>J (reduced_functional.ReducedFunctional): The functional to evaluate the taylor remainders of.</dt>
+<dd>Must be an instance of <a class="reference internal" href="#fenics_adjoint.ReducedFunctional" title="fenics_adjoint.ReducedFunctional"><code class="xref py py-class docutils literal"><span class="pre">ReducedFunctional</span></code></a>, or something with a similar
+interface.</dd>
+<dt>m (overloaded_type.OverloadedType): The point in control space. Must be of same type as the</dt>
+<dd>control.</dd>
+<dt>h (overloaded_type.OverloadedType): The direction of perturbations. Must be of same type as</dt>
+<dd>the control.</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd>float: The smallest computed convergence rate of the tested perturbations.</dd>
+</dl>
 </dd></dl>
 
 </div>
@@ -771,7 +299,8 @@ be used to reference the backwards.</p>
       <div class="clearer"></div>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2017, The dolfin-adjoint team.
+        &#169; Copyright 2017, Sebastian Mitusch.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.
     </div>
   </body>
 </html>

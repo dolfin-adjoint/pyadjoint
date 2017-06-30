@@ -137,12 +137,12 @@
 <p>Applying algorithmic differentiation tools to parallel source code is still
 a major research area, and most adjoint codes that work in parallel manually adjoin the parallel
 communication sections of their code.</p>
-<p>One of the major advantages of the new high-level abstraction used in dolfin-adjoint is that
+<p>One of the major advantages of the new high-level abstraction used in fenics-adjoint is that
 the problem of parallelism in adjoint codes simply disappears: indeed, there is not a single
-line of parallel-specific code in dolfin-adjoint or libadjoint. For more details on how this
+line of parallel-specific code in fenics-adjoint or pyadjoint. For more details on how this
 works, see <a class="reference internal" href="../citing/index.html"><span class="doc">the papers</span></a>.</p>
 <p>Therefore, <strong>if your forward model runs in parallel, your adjoint will also, with no modification.</strong>
-For example, let us take the <a class="reference internal" href="checkpointing.html"><span class="doc">checkpointed adjoint model used in the previous section</span></a>:</p>
+For example, let us take the <span class="xref std std-doc">checkpointed adjoint model used in the previous section</span>:</p>
 <div class="highlight-none"><div class="highlight"><pre>$ mpiexec -n 8 python tutorial5.py
 ...
 Process 0: Convergence orders for Taylor remainder with adjoint information (should all be 2):
@@ -158,7 +158,8 @@ Process 0: Convergence orders for Taylor remainder with adjoint information (sho
       <div class="clearer"></div>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2017, The dolfin-adjoint team.
+        &#169; Copyright 2017, Sebastian Mitusch.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.
     </div>
   </body>
 </html>

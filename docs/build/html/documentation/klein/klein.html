@@ -134,7 +134,6 @@
             
   <div class="section" id="sensitivity-analysis-of-the-heat-equation-on-a-gray-s-klein-bottle">
 <span id="klein"></span><h1>Sensitivity analysis of the heat equation on a Gray’s Klein bottle<a class="headerlink" href="#sensitivity-analysis-of-the-heat-equation-on-a-gray-s-klein-bottle" title="Permalink to this headline">¶</a></h1>
-<p><em>Section author: Simon W. Funke &lt;<a class="reference external" href="mailto:simon&#37;&#52;&#48;simula&#46;no">simon<span>&#64;</span>simula<span>&#46;</span>no</a>&gt;</em></p>
 <div class="section" id="background">
 <h2>Background<a class="headerlink" href="#background" title="Permalink to this headline">¶</a></h2>
 <p>When working with computational models, it is often desirable to study the
@@ -289,7 +288,7 @@ the sensitivity with respect to the initial condition <span class="math">\(g\)</
 <span class="n">adj_time</span> <span class="o">=</span> <span class="n">adj_timer</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>Note the project=True flag for <code class="xref py py-func docutils literal"><span class="pre">compute_gradient</span></code>. It indicates that
+<p>Note the project=True flag for <code class="xref py py-func docutils literal"><span class="pre">compute_gradient()</span></code>. It indicates that
 the gradient should not be returned as an operator, that is not in the dual
 space <span class="math">\(V^*\)</span>, but instead its Riesz representation in the primal space
 <span class="math">\(V\)</span>. This is necessary to plot the sensitivities without seeing mesh
@@ -393,7 +392,8 @@ checkpointing is close to the predicted optimal performance.</p>
       <div class="clearer"></div>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2017, The dolfin-adjoint team.
+        &#169; Copyright 2017, Sebastian Mitusch.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.
     </div>
   </body>
 </html>

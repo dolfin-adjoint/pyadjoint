@@ -112,5 +112,4 @@ dJdm = compute_gradient(J, g)
 
 h = Function(V_collapse)
 h.vector()[:] = 1
-print map(type,(h,h.vector(),dJdm,dJdm.vector().inner(h.vector())))
 taylor_test(ReducedFunctional(J,g),g.copy(deepcopy = True),h,dJdm=dJdm.vector().inner(h.vector()))

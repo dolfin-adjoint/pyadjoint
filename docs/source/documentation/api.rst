@@ -4,7 +4,7 @@
 dolfin-adjoint API reference
 ============================
 
-.. automodule:: dolfin_adjoint
+.. automodule:: fenics_adjoint
 
 ********************
 Overloaded functions
@@ -55,11 +55,6 @@ Driver functions
 .. autofunction:: compute_adjoint
 .. autofunction:: compute_tlm
 
-*****************************
-:py:data:`Functional` object
-*****************************
-
-.. autoclass:: Functional
 
 ***********************************
 :py:data:`ReducedFunctional` object
@@ -121,23 +116,3 @@ Debugging functions
 .. autofunction:: adj_check_checkpoints
 .. autofunction:: taylor_test
 .. autofunction:: replay_dolfin
-
-****************************
-Generalised stability theory
-****************************
-
-.. autofunction:: compute_gst
-
-***********************************
-Accessing tape
-***********************************
-
-.. autoclass:: DolfinAdjointVariable
-
-   .. automethod:: __init__
-   .. automethod:: tape_value
-   .. automethod:: iteration_count
-   .. automethod:: known_timesteps
-
-
-.. autofunction:: adj_reset

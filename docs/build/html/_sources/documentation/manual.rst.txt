@@ -11,10 +11,7 @@ How to use dolfin-adjoint
 
    tutorial
    verification
-   checkpointing
-   parallel
    debugging
+   parallel
    functionals
-   optimisation
-   gst
    misc

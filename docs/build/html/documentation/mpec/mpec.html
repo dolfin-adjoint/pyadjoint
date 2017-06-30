@@ -134,7 +134,6 @@
             
   <div class="section" id="mathematical-programs-with-equilibrium-constraints">
 <h1>Mathematical Programs with Equilibrium Constraints<a class="headerlink" href="#mathematical-programs-with-equilibrium-constraints" title="Permalink to this headline">¶</a></h1>
-<p><em>Section author: Simon W. Funke &lt;<a class="reference external" href="mailto:simon&#37;&#52;&#48;simula&#46;no">simon<span>&#64;</span>simula<span>&#46;</span>no</a>&gt;</em></p>
 <p>This demo solves example 5.2 of <a class="reference internal" href="#hintermueller2011" id="id1">[5E-HintermullerK11]</a>.</p>
 <div class="section" id="problem-definition">
 <h2>Problem definition<a class="headerlink" href="#problem-definition" title="Permalink to this headline">¶</a></h2>
@@ -294,7 +293,7 @@ keeps a reference to it instead.  That means that assigning a new
 value to <code class="docutils literal"><span class="pre">alpha</span></code> has the effect that the optimisation routine will
 automatically use that new value.</p>
 <p>Next we solve the optimisation problem for the current <code class="docutils literal"><span class="pre">alpha</span></code>.  We
-use the <code class="docutils literal"><span class="pre">L-BFGS-B</span></code> optimisation algorithm here <a class="reference internal" href="#zhu1997b" id="id10">[5E-ZBLN97]</a> and
+use the <code class="docutils literal"><span class="pre">L-BFGS-B</span></code> optimisation algorithm here <a class="reference internal" href="#zhu1997b" id="id10">[3M-ZBLN97]</a> and
 select a set of sensible stopping criteria:</p>
 <div class="highlight-default"><div class="highlight"><pre><span class="n">u_opt</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">Jhat</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;L-BFGS-B&quot;</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">),</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;gtol&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">12</span><span class="p">,</span> <span class="s2">&quot;ftol&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">100</span><span class="p">})</span>
 </pre></div>
@@ -417,7 +416,7 @@ image on the right:</p>
 <table class="docutils citation" frame="void" id="zhu1997b" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id10">[5E-ZBLN97]</a></td><td>C.&nbsp;Zhu, R.&nbsp;H. Byrd, P.&nbsp;Lu, and J.&nbsp;Nocedal. Algorithm 778: L-BFGS-B: Fortran subroutines for large-scale bound-constrained optimization. <em>ACM Transactions on Mathematical Software</em>, 23(4):550–560, 1997. <a class="reference external" href="https://doi.org/10.1145/279232.279236">doi:10.1145/279232.279236</a>.</td></tr>
+<tr><td class="label"><a class="fn-backref" href="#id10">[3M-ZBLN97]</a></td><td>C.&nbsp;Zhu, R.&nbsp;H. Byrd, P.&nbsp;Lu, and J.&nbsp;Nocedal. Algorithm 778: L-BFGS-B: Fortran subroutines for large-scale bound-constrained optimization. <em>ACM Transactions on Mathematical Software</em>, 23(4):550–560, 1997. <a class="reference external" href="https://doi.org/10.1145/279232.279236">doi:10.1145/279232.279236</a>.</td></tr>
 </tbody>
 </table>
 </p>
@@ -431,7 +430,8 @@ image on the right:</p>
       <div class="clearer"></div>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2017, The dolfin-adjoint team.
+        &#169; Copyright 2017, Sebastian Mitusch.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.
     </div>
   </body>
 </html>

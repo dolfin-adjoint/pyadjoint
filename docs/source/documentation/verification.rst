@@ -39,84 +39,90 @@ Applying this in fenics-adjoint
 
 In the case of PDE-constrained optimisation, computing :math:`\widehat{J}(m)` involves solving the PDE
 for that choice of :math:`m` to compute the solution :math:`u`, and then evaluating the functional :math:`J`. 
-The main function in fenics-adjoint for applying the Taylor remainder convergence test is :py:func:`taylor_test <dolfin_adjoint.taylor_test>`.
+The main function in fenics-adjoint for applying the Taylor remainder convergence test is :py:func:`taylor_test <fenics_adjoint.taylor_test>`.
 To see how this works, let's restructure our forward model so that we can run it as a pure function of
 the diffusivity :math:`\nu`:
 
 .. literalinclude:: ../_static/tutorial3.py
 
 As you can see, we've taken the action part of the model into a function :py:data:`main`, so that we
-can drive the forward model several times for verification. Now let's see how to use :py:func:`taylor_test <dolfin_adjoint.taylor_test>`:
-
-.. literalinclude:: ../_static/tutorial4.py
-
-The h must be the same type as what we are differentiating with respect to, so in this case since nu is a constant h must be a constant.
-Also note that calling Jhat with a new constant for example Jhat(nu + h) changes nu to nu + h. For this reason we pass Constant(nu) to the taylor test rather than nu.
-If we were differentiating with respect to something other than a function, for example the function u we could do
+can drive the forward model several times for verification. Now let's see how to use :py:func:`taylor_test <fenics_adjoint.taylor_test>`:
+Instead of
 
 .. code-block:: python
+
+   dJdnu = compute_gradient(J,nu)
+
+we write
+
+.. code-block:: python
+
+   h = Constant(0.0001)
+   Jhat = ReducedFunctional(J,nu)
+   conv_rate = taylor_test(Jhat, Constant(nu), h)
+
+Here, :py:data:`h` is the direction of perturbation.
+:py:data:`h` must be the same type as what we are differentiating with respect to, so in this case since :py:data:`nu` is a :py:class:`Constant <fenics_adjoint.Constant>` :py:data:`h` must also be a :py:class:`Constant <fenics_adjoint.Constant>`.
+It is also a good idea to make sure that :py:data:`h` is the same order of magnitude as :py:data:`nu`, so that the perturbations are not too large.
+:py:data:`Jhat` is the functional reduced to a pure function of :py:data:`nu`.
+Note that calling :py:data:`Jhat` with a new constant, for example :py:data:`Jhat(nu + h)`, rather than :py:data:`nu` changes :py:data:`nu` to the new constant, :py:data:`nu + h` in the example.
+For this reason we pass :py:data:`Constant(nu)` to the taylor test rather than :py:data:`nu`.
+If we were differentiating with respect to something other than a :py:class:`Constant <fenics_adjoint.Constant>`, for example the :py:class:`Function <fenics_adjoint.Function>`
+:py:data:`u` we must for the same reason pass a copy of :py:data:`u` rather than :py:data:`u` itself:
+
+.. code-block:: python
+
    h = Function(V)
-   h.vector()[:] = 1
-   taylor_test(RestrictedFunctional(J,u),u.copy(deepcopy=True),h)
+   h.vector()[:] = 0.1
+   conv_rate = taylor_test(RestrictedFunctional(J,u),u.copy(deepcopy=True),h)
+
+Here is the full program to check that we compute :py:data:`dJdnu` correctly:
+
+.. literalinclude:: ../_static/tutorial4.py
 
 |more| Download the `adjoint code with verification`_.
 
 .. _adjoint code with verification: ../_static/tutorial4.py
 
 
-Running this program yields the following output (well, not really!!!):
+Running this program yields the following output:
 
 .. code-block:: none
 
     $ python tutorial4.py
     ...
-    Taylor remainder without gradient information: 
-      [0.0023634768826859553, 0.001219686435181555, 0.0006197555788530762, 
-      0.0003124116082189321, 0.0001568463925042951]
+    Computed residuals: [8.7896393952526051e-07, 2.2008124772799524e-07, 5.5062930799269294e-08, 1.3771065357994394e-08]
+    Computed convergence rates: [1.9977677544105585, 1.9988829175084986, 1.9994412277283045]
 
-The first line gives the values computed for the first-order Taylor remainder. As you can see, each value is approximately half the previous one. 
 
-.. code-block:: none
+The first line gives the values computed for the second-order Taylor remainder. As you can see, each value is approximately one quarter of the previous one.
+The second line gives the convergence orders of the second-order Taylor remainder: if the gradient has been computed correctly these numbers should be 2.
+As we can see they are in fact very close to 2, so we are calculating the gradient correctly.
 
-    Convergence orders for Taylor remainder without gradient information (should all be 1): 
-      [0.9544004555219242, 0.9767390399645689, 0.9882512926546192, 0.9940957131087177]
+If you want to see if some object is the gradient you can pass the inner product of that object and the direction :py:data:`h` with the named argument :py:data:`dJdm`.
+For example we may want to check that the convergence orders of the first-order Taylor remainder are 1. This is achieved by passing a proposed gradient 0:
 
-The second line shows the convergence orders of the first-order Taylor remainders: these should
-always be 1. (If they are not, try decreasing h to
-use a smaller perturbation.) 
+.. code-block:: python
 
-.. code-block:: none
+    conv_rate = taylor_test(Jhat,Constant(nu),h,dJdm = 0)
 
-    Taylor remainder with gradient information: 
-      [0.00015639195264909554, 4.0247982485970384e-05, 1.0211629980686528e-05, 
-      2.5719961979492594e-06, 6.454097041455739e-07]
-
-The third line gives the values computed for the second-order Taylor remainder. These values should be much smaller than those on
-the first line. 
+Adding this we get the output
 
 .. code-block:: none
 
-    Convergence orders for Taylor remainder with gradient information (should all be 2): 
-      [1.9581779067535698, 1.9787032993204938, 1.9892527525050359, 1.9946013350664813]
+   $ python tutorial4.py
+   ...
+   Computed residuals: [0.00025403832691939243, 0.00012723856418173085, 6.367425978393015e-05, 3.185089029200672e-05]
+   Computed convergence rates: [0.99751017666093167, 0.99875380873361586, 0.99937658413144936]
 
-The fourth line shows the convergence orders of the second-order Taylor remainders: if the gradient has been computed correctly with the adjoint, then
-these numbers should be 2.
-
-As can be seen, the second-order Taylor remainders do indeed converge at second order, and so the gradient :py:data:`dJdnu` is correct.
+We see that the residuals are halved and the convergence rates are 1 as expected.
 
 So, what if the Taylor remainders are not correct? Such a situation could occur if the model
-manually modifies :py:class:`Function <dolfin_adjoint.Function>` values, or if the model modifies the entries of assembled matrices and
-vectors, or if the model is not differentiable, or if there is a bug in fenics-adjoint. fenics-adjoint offers many ways to pinpoint
+manually modifies :py:class:`Function <fenics_adjoint.Function>` values, or if the model modifies the entries of assembled matrices and
+vectors, or if the model is not differentiable, or if there is a bug in fenics-adjoint. fenics-adjoint offers ways to pinpoint
 precisely where an error might lie; these are discussed in the :doc:`next section on debugging
 <debugging>`.
 
-..
-   Once the adjoint model development is completed, you may wish to run your model on much bigger
-   production runs. **By default, dolfin-adjoint stores all variables computed in memory**, as they
-   will be necessary to linearise the model about the forward trajectory. If you wish to solve much
-   bigger problems, or if the model must run for many timesteps, it may not be feasible to store
-   everything: some balance between storage and recomputation must be achieved, in the form of a
-   **checkpointing scheme**. Checkpointing is the topic of the :doc:`next section <checkpointing>`.
 
 .. |more| image:: ../_static/more.png
           :align: middle

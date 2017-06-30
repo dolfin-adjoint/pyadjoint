@@ -158,7 +158,7 @@ by a factor of 4.</p>
 <h2>Applying this in fenics-adjoint<a class="headerlink" href="#applying-this-in-fenics-adjoint" title="Permalink to this headline">¶</a></h2>
 <p>In the case of PDE-constrained optimisation, computing <span class="math">\(\widehat{J}(m)\)</span> involves solving the PDE
 for that choice of <span class="math">\(m\)</span> to compute the solution <span class="math">\(u\)</span>, and then evaluating the functional <span class="math">\(J\)</span>.
-The main function in fenics-adjoint for applying the Taylor remainder convergence test is <a class="reference internal" href="api.html#dolfin_adjoint.taylor_test" title="dolfin_adjoint.taylor_test"><code class="xref py py-func docutils literal"><span class="pre">taylor_test</span></code></a>.
+The main function in fenics-adjoint for applying the Taylor remainder convergence test is <a class="reference internal" href="api.html#fenics_adjoint.taylor_test" title="fenics_adjoint.taylor_test"><code class="xref py py-func docutils literal"><span class="pre">taylor_test</span></code></a>.
 To see how this works, let’s restructure our forward model so that we can run it as a pure function of
 the diffusivity <span class="math">\(\nu\)</span>:</p>
 <div class="highlight-default"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">dolfin</span> <span class="k">import</span> <span class="o">*</span>
@@ -201,7 +201,31 @@ the diffusivity <span class="math">\(\nu\)</span>:</p>
 </pre></div>
 </div>
 <p>As you can see, we’ve taken the action part of the model into a function <code class="xref py py-data docutils literal"><span class="pre">main</span></code>, so that we
-can drive the forward model several times for verification. Now let’s see how to use <a class="reference internal" href="api.html#dolfin_adjoint.taylor_test" title="dolfin_adjoint.taylor_test"><code class="xref py py-func docutils literal"><span class="pre">taylor_test</span></code></a>:</p>
+can drive the forward model several times for verification. Now let’s see how to use <a class="reference internal" href="api.html#fenics_adjoint.taylor_test" title="fenics_adjoint.taylor_test"><code class="xref py py-func docutils literal"><span class="pre">taylor_test</span></code></a>:
+Instead of</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">dJdnu</span> <span class="o">=</span> <span class="n">compute_gradient</span><span class="p">(</span><span class="n">J</span><span class="p">,</span><span class="n">nu</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>we write</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">h</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">)</span>
+<span class="n">Jhat</span> <span class="o">=</span> <span class="n">ReducedFunctional</span><span class="p">(</span><span class="n">J</span><span class="p">,</span><span class="n">nu</span><span class="p">)</span>
+<span class="n">conv_rate</span> <span class="o">=</span> <span class="n">taylor_test</span><span class="p">(</span><span class="n">Jhat</span><span class="p">,</span> <span class="n">Constant</span><span class="p">(</span><span class="n">nu</span><span class="p">),</span> <span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here, <code class="xref py py-data docutils literal"><span class="pre">h</span></code> is the direction of perturbation.
+<code class="xref py py-data docutils literal"><span class="pre">h</span></code> must be the same type as what we are differentiating with respect to, so in this case since <code class="xref py py-data docutils literal"><span class="pre">nu</span></code> is a <a class="reference internal" href="api.html#fenics_adjoint.Constant" title="fenics_adjoint.Constant"><code class="xref py py-class docutils literal"><span class="pre">Constant</span></code></a> <code class="xref py py-data docutils literal"><span class="pre">h</span></code> must also be a <a class="reference internal" href="api.html#fenics_adjoint.Constant" title="fenics_adjoint.Constant"><code class="xref py py-class docutils literal"><span class="pre">Constant</span></code></a>.
+It is also a good idea to make sure that <code class="xref py py-data docutils literal"><span class="pre">h</span></code> is the same order of magnitude as <code class="xref py py-data docutils literal"><span class="pre">nu</span></code>, so that the perturbations are not too large.
+<code class="xref py py-data docutils literal"><span class="pre">Jhat</span></code> is the functional reduced to a pure function of <code class="xref py py-data docutils literal"><span class="pre">nu</span></code>.
+Note that calling <code class="xref py py-data docutils literal"><span class="pre">Jhat</span></code> with a new constant, for example <code class="xref py py-data docutils literal"><span class="pre">Jhat(nu</span> <span class="pre">+</span> <span class="pre">h)</span></code>, rather than <code class="xref py py-data docutils literal"><span class="pre">nu</span></code> changes <code class="xref py py-data docutils literal"><span class="pre">nu</span></code> to the new constant, <code class="xref py py-data docutils literal"><span class="pre">nu</span> <span class="pre">+</span> <span class="pre">h</span></code> in the example.
+For this reason we pass <code class="xref py py-data docutils literal"><span class="pre">Constant(nu)</span></code> to the taylor test rather than <code class="xref py py-data docutils literal"><span class="pre">nu</span></code>.
+If we were differentiating with respect to something other than a <a class="reference internal" href="api.html#fenics_adjoint.Constant" title="fenics_adjoint.Constant"><code class="xref py py-class docutils literal"><span class="pre">Constant</span></code></a>, for example the <a class="reference internal" href="api.html#fenics_adjoint.Function" title="fenics_adjoint.Function"><code class="xref py py-class docutils literal"><span class="pre">Function</span></code></a>
+<code class="xref py py-data docutils literal"><span class="pre">u</span></code> we must for the same reason pass a copy of <code class="xref py py-data docutils literal"><span class="pre">u</span></code> rather than <code class="xref py py-data docutils literal"><span class="pre">u</span></code> itself:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">h</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+<span class="n">h</span><span class="o">.</span><span class="n">vector</span><span class="p">()[:]</span> <span class="o">=</span> <span class="mf">0.1</span>
+<span class="n">conv_rate</span> <span class="o">=</span> <span class="n">taylor_test</span><span class="p">(</span><span class="n">RestrictedFunctional</span><span class="p">(</span><span class="n">J</span><span class="p">,</span><span class="n">u</span><span class="p">),</span><span class="n">u</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">deepcopy</span><span class="o">=</span><span class="bp">True</span><span class="p">),</span><span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here is the full program to check that we compute <code class="xref py py-data docutils literal"><span class="pre">dJdnu</span></code> correctly:</p>
 <div class="highlight-default"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">dolfin</span> <span class="k">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">fenics_adjoint</span> <span class="k">import</span> <span class="o">*</span>
 
@@ -236,53 +260,42 @@ can drive the forward model several times for verification. Now let’s see how 
 <span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
     <span class="n">nu</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">)</span>
     <span class="n">u</span> <span class="o">=</span> <span class="n">main</span><span class="p">(</span><span class="n">nu</span><span class="p">)</span>
-
+    
     <span class="n">J</span> <span class="o">=</span> <span class="n">assemble</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="p">)</span>
-    <span class="n">dJdnu</span> <span class="o">=</span> <span class="n">compute_gradient</span><span class="p">(</span><span class="n">J</span><span class="p">,</span> <span class="n">nu</span><span class="p">)</span>
     
-    <span class="n">h</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="c1">#the direction of the perturbation</span>
-    
+    <span class="n">h</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">)</span> <span class="c1">#the direction of the perturbation</span>
     <span class="n">Jhat</span> <span class="o">=</span> <span class="n">ReducedFunctional</span><span class="p">(</span><span class="n">J</span><span class="p">,</span><span class="n">nu</span><span class="p">)</span> <span class="c1">#the functional as a pure function of nu</span>
-
-    <span class="n">conv_rate</span> <span class="o">=</span> <span class="n">taylor_test</span><span class="p">(</span><span class="n">Jhat</span><span class="p">,</span> <span class="n">Constant</span><span class="p">(</span><span class="n">nu</span><span class="p">),</span> <span class="n">h</span><span class="p">)</span>
+    <span class="n">conv_rate</span> <span class="o">=</span> <span class="n">taylor_test</span><span class="p">(</span><span class="n">Jhat</span><span class="p">,</span> <span class="n">Constant</span><span class="p">(</span><span class="n">nu</span><span class="p">),</span> <span class="n">h</span><span class="p">,</span><span class="n">dJdm</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+    
 </pre></div>
 </div>
-<p>The h must be the same type as what we are differentiating with respect to, so in this case since nu is a constant h must be a constant.
-Also note that calling Jhat with a new constant for example Jhat(nu + h) changes nu to nu + h. For this reason we pass Constant(nu) to the taylor test rather than nu.
-<img alt="more info" class="align-middle" src="../_images/more.png" /> Download the <a class="reference external" href="../_static/tutorial4.py">adjoint code with verification</a>.</p>
-<p>Running this program yields the following output (well, not really!!!):</p>
+<p><img alt="more info" class="align-middle" src="../_images/more.png" /> Download the <a class="reference external" href="../_static/tutorial4.py">adjoint code with verification</a>.</p>
+<p>Running this program yields the following output:</p>
 <div class="highlight-none"><div class="highlight"><pre>$ python tutorial4.py
 ...
-Taylor remainder without gradient information:
-  [0.0023634768826859553, 0.001219686435181555, 0.0006197555788530762,
-  0.0003124116082189321, 0.0001568463925042951]
+Computed residuals: [8.7896393952526051e-07, 2.2008124772799524e-07, 5.5062930799269294e-08, 1.3771065357994394e-08]
+Computed convergence rates: [1.9977677544105585, 1.9988829175084986, 1.9994412277283045]
 </pre></div>
 </div>
-<p>The first line gives the values computed for the first-order Taylor remainder. As you can see, each value is approximately half the previous one.</p>
-<div class="highlight-none"><div class="highlight"><pre>Convergence orders for Taylor remainder without gradient information (should all be 1):
-  [0.9544004555219242, 0.9767390399645689, 0.9882512926546192, 0.9940957131087177]
+<p>The first line gives the values computed for the second-order Taylor remainder. As you can see, each value is approximately one quarter of the previous one.
+The second line gives the convergence orders of the second-order Taylor remainder: if the gradient has been computed correctly these numbers should be 2.
+As we can see they are in fact very close to 2, so we are calculating the gradient correctly.</p>
+<p>If you want to see if some object is the gradient you can pass the inner product of that object and the direction <code class="xref py py-data docutils literal"><span class="pre">h</span></code> with the named argument <code class="xref py py-data docutils literal"><span class="pre">dJdm</span></code>.
+For example we may want to check that the convergence orders of the first-order Taylor remainder are 1. This is achieved by passing a proposed gradient 0:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">conv_rate</span> <span class="o">=</span> <span class="n">taylor_test</span><span class="p">(</span><span class="n">Jhat</span><span class="p">,</span><span class="n">Constant</span><span class="p">(</span><span class="n">nu</span><span class="p">),</span><span class="n">h</span><span class="p">,</span><span class="n">dJdm</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The second line shows the convergence orders of the first-order Taylor remainders: these should
-always be 1. (If they are not, try decreasing h to
-use a smaller perturbation.)</p>
-<div class="highlight-none"><div class="highlight"><pre>Taylor remainder with gradient information:
-  [0.00015639195264909554, 4.0247982485970384e-05, 1.0211629980686528e-05,
-  2.5719961979492594e-06, 6.454097041455739e-07]
+<p>Adding this we get the output</p>
+<div class="highlight-none"><div class="highlight"><pre>$ python tutorial4.py
+...
+Computed residuals: [0.00025403832691939243, 0.00012723856418173085, 6.367425978393015e-05, 3.185089029200672e-05]
+Computed convergence rates: [0.99751017666093167, 0.99875380873361586, 0.99937658413144936]
 </pre></div>
 </div>
-<p>The third line gives the values computed for the second-order Taylor remainder. These values should be much smaller than those on
-the first line.</p>
-<div class="highlight-none"><div class="highlight"><pre>Convergence orders for Taylor remainder with gradient information (should all be 2):
-  [1.9581779067535698, 1.9787032993204938, 1.9892527525050359, 1.9946013350664813]
-</pre></div>
-</div>
-<p>The fourth line shows the convergence orders of the second-order Taylor remainders: if the gradient has been computed correctly with the adjoint, then
-these numbers should be 2.</p>
-<p>As can be seen, the second-order Taylor remainders do indeed converge at second order, and so the gradient <code class="xref py py-data docutils literal"><span class="pre">dJdnu</span></code> is correct.</p>
+<p>We see that the residuals are halved and the convergence rates are 1 as expected.</p>
 <p>So, what if the Taylor remainders are not correct? Such a situation could occur if the model
-manually modifies <a class="reference internal" href="api.html#dolfin_adjoint.Function" title="dolfin_adjoint.Function"><code class="xref py py-class docutils literal"><span class="pre">Function</span></code></a> values, or if the model modifies the entries of assembled matrices and
-vectors, or if the model is not differentiable, or if there is a bug in fenics-adjoint. fenics-adjoint offers many ways to pinpoint
+manually modifies <a class="reference internal" href="api.html#fenics_adjoint.Function" title="fenics_adjoint.Function"><code class="xref py py-class docutils literal"><span class="pre">Function</span></code></a> values, or if the model modifies the entries of assembled matrices and
+vectors, or if the model is not differentiable, or if there is a bug in fenics-adjoint. fenics-adjoint offers ways to pinpoint
 precisely where an error might lie; these are discussed in the <a class="reference internal" href="debugging.html"><span class="doc">next section on debugging</span></a>.</p>
 </div>
 </div>
@@ -294,7 +307,8 @@ precisely where an error might lie; these are discussed in the <a class="referen
       <div class="clearer"></div>
     </div>
     <div class="footer" role="contentinfo">
-        &#169; Copyright 2017, The dolfin-adjoint team.
+        &#169; Copyright 2017, Sebastian Mitusch.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.2.
     </div>
   </body>
 </html>
