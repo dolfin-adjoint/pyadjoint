@@ -151,4 +151,5 @@ class DirichletBCBlock(Block):
         # There is nothing to be recomputed.
         pass
 
-
+    def __str__(self):
+        return "DirichletBC block"

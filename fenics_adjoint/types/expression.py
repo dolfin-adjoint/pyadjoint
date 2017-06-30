@@ -344,3 +344,5 @@ class ExpressionBlock(Block):
             for block_output in self.get_dependencies():
                 key = self.dependency_keys[block_output.output]
                 checkpoint[key] = block_output.get_saved_output()
+    def __str__(self):
+        return "Expression block"
