@@ -54,6 +54,24 @@ class AdjFloat(OverloadedType, float):
             return NotImplemented
         return self._add(other, output)
 
+    def __pow__(self, power, modulo=None):
+        output = float.__pow__(self, power)
+        if output is NotImplemented:
+            return NotImplemented
+
+        if not isinstance(power, AdjFloat):
+            power = AdjFloat(power)
+
+        output = AdjFloat(output)
+        if annotate_tape():
+            block = PowBlock(self, power)
+
+            tape = get_working_tape()
+            tape.add_block(block)
+            block.add_output(output.get_block_output())
+
+        return output
+
     def get_derivative(self, options={}):
         return AdjFloat(self.get_adj_output())
 
@@ -76,6 +94,40 @@ class AdjFloat(OverloadedType, float):
     def _ad_dot(self, other):
         return float.__mul__(self, other)
 
+
+class PowBlock(Block):
+    def __init__(self, base, power):
+        super(PowBlock, self).__init__()
+        self.add_dependency(base.get_block_output())
+        self.add_dependency(power.get_block_output())
+
+    def evaluate_adj(self):
+        adj_input = self.get_outputs()[0].adj_value
+
+        if adj_input is None:
+            return
+
+        dependencies = self.get_dependencies()
+        base = dependencies[0]
+        exponent = dependencies[1]
+
+        base_value = base.get_saved_output()
+        exponent_value = exponent.get_saved_output()
+
+        base_adj = adj_input*exponent_value*base_value**(exponent_value-1)
+        base.add_adj_output(base_adj)
+
+        from numpy import log
+        exponent_adj = adj_input*base_value**exponent_value*log(base_value)
+        exponent.add_adj_output(exponent_adj)
+
+    def recompute(self):
+        dependencies = self.get_dependencies()
+        base_value = dependencies[0].get_saved_output()
+        exponent_value = dependencies[1].get_saved_output()
+
+        new_value = base_value ** exponent_value
+        self.get_outputs()[0].checkpoint = new_value
 
 class AddBlock(Block):
     def __init__(self, lterm, rterm):
