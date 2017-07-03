@@ -1,6 +1,7 @@
 import backend
 from .function import Function
 from pyadjoint.adjfloat import AdjFloat
+from pyadjoint.overloaded_type import OverloadedType
 
 
 def create_overloaded_object(obj):
@@ -16,6 +17,8 @@ def create_overloaded_object(obj):
         NotImplemntedError: If the corresponding :class:`OverloadedType` has not been implemented.
 
     """
+    if isinstance(obj, OverloadedType):
+        return obj
     if isinstance(obj, float):
         return AdjFloat(obj)
     elif isinstance(obj, backend.Function):

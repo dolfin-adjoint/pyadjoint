@@ -1,3 +1,6 @@
+import pytest
+pytest.importorskip("fenics")
+
 from fenics import *
 from fenics_adjoint import *
 
@@ -92,7 +95,9 @@ def test_tlm_func():
 
     assert (taylor_test(Jhat, g, h, dJdm=J.block_output.tlm_value) > 1.9)
 
-def test_time_dependent():
+@pytest.mark.parametrize("solve_type",
+                         ["solve", "LVS"])
+def test_time_dependent(solve_type):
     tape = Tape()
     set_working_tape(tape)
     # Defining the domain, 100 points from 0 to 1
@@ -129,10 +134,16 @@ def test_time_dependent():
     a = u_1 * u * v * dx + dt * f * inner(grad(u), grad(v)) * dx
     L = u_1 * v * dx
 
+    if solve_type == "LVS":
+        problem = LinearVariationalProblem(a, L, u_, bcs=bc)
+        solver = LinearVariationalSolver(problem)
     # Time loop
     t = dt
     while t <= T:
-        solve(a == L, u_, bc)
+        if solve_type == "LVS":
+            solver.solve()
+        else:
+            solve(a == L, u_, bc)
         u_1.assign(u_)
         t += dt
 
@@ -246,7 +257,7 @@ def test_projection():
     bc = DirichletBC(V, Constant(1), "on_boundary")
     k = Constant(2.0)
     expr = Expression("sin(k*x[0])", k=k, degree=1)
-    expr.user_defined_derivatives = {k: Expression("x[0]*cos(k*x[0])", k=k, degree=1, annotate_tape=False)}
+    expr.user_defined_derivatives = {k: Expression("x[0]*cos(k*x[0])", k=k, degree=1, annotate=False)}
     f = project(expr, V)
 
     u = TrialFunction(V)
@@ -274,9 +285,9 @@ def test_projection_function():
 
     bc = DirichletBC(V, Constant(1), "on_boundary")
     #g = Function(V)
-    g = project(Expression("sin(x[0])*sin(x[1])", degree=5, annotate_tape=False), V, annotate_tape=False)
+    g = project(Expression("sin(x[0])*sin(x[1])", degree=5, annotate_tape=False), V, annotate=False)
     expr = Expression("sin(g*x[0])", g=g, degree=5)
-    expr.user_defined_derivatives = {g: Expression("x[0]*cos(g*x[0])", g=g, degree=5, annotate_tape=False)}
+    expr.user_defined_derivatives = {g: Expression("x[0]*cos(g*x[0])", g=g, degree=5, annotate=False)}
     f = project(expr, V)
 
     u = TrialFunction(V)

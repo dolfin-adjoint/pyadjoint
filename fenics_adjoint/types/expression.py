@@ -3,7 +3,7 @@ import ufl
 from six import add_metaclass
 
 from pyadjoint.overloaded_type import OverloadedType
-from pyadjoint.tape import get_working_tape
+from pyadjoint.tape import get_working_tape, annotate_tape
 from pyadjoint.block import Block
 from pyadjoint.adjfloat import AdjFloat
 
@@ -20,8 +20,9 @@ from pyadjoint.adjfloat import AdjFloat
 _IGNORED_EXPRESSION_ATTRIBUTES = ['_ufl_is_evaluation_', '__lt__', '__mul__', '_ufl_terminal_modifiers_', '_ufl_num_typecodes_', '__disown__', '_ufl_obj_init_counts_', '_ad_restore_at_checkpoint', 'ufl_shape', 'tape', '__dir__', '__call__', '_ufl_shape', '_ufl_is_differential_', '__init__', '_count', '__doc__', '__sizeof__', 'ufl_free_indices', '__sub__', 'ufl_enable_profiling', '__add__', '__module__', 'cppcode', 'thisown', '__init_subclass__', '__bool__', 'id', '__radd__', '__ne__', '_ufl_function_space', '__swig_destroy__', 'ufl_evaluate', '__rpow__', 'annotate_tape', 'value_shape', '_ufl_evaluate_scalar_', '_ufl_is_shaping_', '__slots__', '__neg__', 'ufl_domain', '_ufl_is_restriction_', '__reduce__', 'name', '_ufl_compute_hash_', '_ufl_obj_del_counts_', '_ufl_required_methods_', '__gt__', '_ufl_typecode_', 'label', '_ufl_regular__del__', 'eval_cell', '_ufl_is_literal_', '_ufl_language_operators_', 'get_adj_output', '__rtruediv__', '__setattr__', '__floordiv__', 'ufl_domains', '__new__', 'value_size', '__getitem__', 'value_dimension', '_ufl_profiling__init__', '__subclasshook__', 'ufl_index_dimensions', '_ufl_class_', '_ufl_is_abstract_', 'create_block_output', '__pow__', 'get_block_output', '__getnewargs__', '__rsub__', '_ufl_err_str_', 'ufl_element', '__repr__', 'geometric_dimension', 'block_output', '__delattr__', '_repr', '_ufl_is_scalar_', 'str', '__abs__', '_ufl_is_index_free_', '_ad_ignored_attributes', 'this', '__float__', '__del__', '_ufl_is_terminal_', '__len__', 'ufl_function_space', '_ad_dot', '__rdiv__', 'is_cellwise_constant', 'value_rank', '_ufl_regular__init__', 'evaluate', '__dict__', '__eq__', '__unicode__', 'reset_variables', 'rename', 'user_defined_derivatives', '_repr_png_', 'count', 'user_parameters', '__truediv__', '__reduce_ex__', '_ad_initialized', '_repr_latex_', 'parameters', '__hash__', 'restrict', 'original_block_output', '_ad_attributes_dict', 'ufl_operands', '__iter__', '_globalcount', '_ufl_expr_reconstruct_', '_ufl_all_classes_', 'eval', 'set_initial_adj_input', '_ufl_required_properties_', '_ufl_signature_data_', 'get_derivative', 'set_block_output', 'update', '__getattribute__', '_ad_create_checkpoint', '_function_space', '__weakref__', '__format__', '_ad_add', '__pos__', '_ufl_profiling__del__', '__rmul__', '_hash', 'adj_update_value', 'compute_vertex_values', 'T', '__class__', '_ufl_is_terminal_modifier_', 'ufl_disable_profiling', '__div__', '__le__', '_ufl_handler_name_', '_value_shape', '__round__', '_ufl_is_in_reference_frame_', 'dx', '_ufl_all_handler_names_', '__str__', '__xor__', '_ufl_coerce_', '_ufl_num_ops_', '__ge__', '__nonzero__', 'set_initial_tlm_input', '_ad_mul', '_ufl_noslots_']
 
 _backend_ExpressionMetaClass = backend.functions.expression.ExpressionMetaClass
+
 class OverloadedExpressionMetaClass(_backend_ExpressionMetaClass):
-    """Overloads the ExpressionMetaClass so that we can create overloaded 
+    """Overloads the ExpressionMetaClass so that we can create overloaded
     Expression types.
 
     """
@@ -64,7 +65,7 @@ class OverloadedExpressionMetaClass(_backend_ExpressionMetaClass):
             if user_init is None:
                 def __init__(self, *args, **kwargs):
                     """Overloaded init method of user-defined Expression classes.
-                    
+
                     Workaround for the kwargs check done with no user_init.
 
                     """
@@ -75,7 +76,7 @@ class OverloadedExpressionMetaClass(_backend_ExpressionMetaClass):
         bases = tuple(bases)
 
         # Pass everything along to the backend metaclass.
-        # This should return a new user-defined Expression 
+        # This should return a new user-defined Expression
         # subclass that inherit from OverloadedType.
         original = _backend_ExpressionMetaClass.__new__(mcs, class_name, bases, dict_)
 
@@ -86,15 +87,15 @@ class OverloadedExpressionMetaClass(_backend_ExpressionMetaClass):
 
         def __init__(self, *args, **kwargs):
             self._ad_initialized = False
-            
+
             Expression.__init__(self, *args, **kwargs)
 
             OverloadedType.__init__(self, *args, **kwargs)
             original_init(self, *args, **kwargs)
-            
+
             self._ad_initialized = True
 
-            self.annotate_tape = kwargs.pop("annotate_tape", True)
+            self.annotate_tape = annotate_tape(kwargs)
             if self.annotate_tape:
                 tape = get_working_tape()
                 block = ExpressionBlock(self)
@@ -117,7 +118,7 @@ class OverloadedExpressionMetaClass(_backend_ExpressionMetaClass):
         # Thus __new__ of cls is invoked.
         out = _backend_ExpressionMetaClass.__call__(cls, *args, **kwargs)
 
-        # Since the class we create is not a subclass of our overloaded Expression 
+        # Since the class we create is not a subclass of our overloaded Expression
         # (where __new__ was invoked), type.__call__ will not initialize
         # the newly created instance. Hence we must do so "manually".
         if not isinstance(out, cls):
@@ -126,7 +127,7 @@ class OverloadedExpressionMetaClass(_backend_ExpressionMetaClass):
 
 
 def create_compiled_expression(original, cppcode, *args, **kwargs):
-    """Creates an overloaded CompiledExpression type from the supplied 
+    """Creates an overloaded CompiledExpression type from the supplied
     CompiledExpression instance.
 
     The argument `original` will be an (uninitialized) CompiledExpression instance,
@@ -154,14 +155,14 @@ def create_compiled_expression(original, cppcode, *args, **kwargs):
         """
         self._ad_initialized = False
         Expression.__init__(self, *args, **kwargs)
-        
+
         OverloadedType.__init__(self, *args, **kwargs)
         original_init(self, cppcode, *args, **kwargs)
 
         self._ad_initialized = True
 
-        self.annotate_tape = kwargs.pop("annotate_tape", True)
-        if self.annotate_tape:            
+        self.annotate_tape = annotate_tape(kwargs)
+        if self.annotate_tape:
             tape = get_working_tape()
             block = ExpressionBlock(self)
             tape.add_block(block)
@@ -192,12 +193,12 @@ class Expression(backend.Expression):
         self._ad_ignored_attributes = None
         self.user_defined_derivatives = {}
 
-    def __setattr__(self, k, v):    
+    def __setattr__(self, k, v):
         if k not in _IGNORED_EXPRESSION_ATTRIBUTES:
             if self._ad_initialized and self.annotate_tape:
                 self.block_output.save_output()
                 self._ad_attributes_dict[k] = v
-                    
+
                 tape = get_working_tape()
                 block = ExpressionBlock(self)
                 tape.add_block(block)
@@ -344,5 +345,6 @@ class ExpressionBlock(Block):
             for block_output in self.get_dependencies():
                 key = self.dependency_keys[block_output.output]
                 checkpoint[key] = block_output.get_saved_output()
+
     def __str__(self):
         return "Expression block"

@@ -1,11 +1,12 @@
 import backend
 import ufl
-from pyadjoint.tape import get_working_tape
+from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape, no_annotations
 from pyadjoint.block import Block
 from .types import create_overloaded_object
 
 
 def assemble(*args, **kwargs):
+<<<<<<< HEAD
     """When a form is assembled, the information about its nonlinear dependencies is lost,
     and it is no longer easy to manipulate. Therefore, fenics_adjoint overloads the :py:func:`dolfin.assemble`
     function to *attach the form to the assembled object*. This lets the automatic annotation work,
@@ -13,9 +14,14 @@ def assemble(*args, **kwargs):
     """
     annotate_tape = kwargs.pop("annotate_tape", True)
     output = backend.assemble(*args, **kwargs)
+=======
+    annotate = annotate_tape(kwargs)
+    with stop_annotating():
+        output = backend.assemble(*args, **kwargs)
+>>>>>>> master
     output = create_overloaded_object(output)
 
-    if annotate_tape:
+    if annotate:
         form = args[0]
         block = AssembleBlock(form)
 
@@ -56,9 +62,12 @@ class AssembleBlock(Block):
     def __str__(self):
         return str(self.form)
 
+    @no_annotations
     def evaluate_adj(self):
         #t = backend.Timer("Assemble:evaluate_adj")
         adj_input = self.get_outputs()[0].get_adj_output()
+        if adj_input is None:
+            return
 
         replaced_coeffs = {}
         for block_output in self.get_dependencies():
@@ -99,6 +108,7 @@ class AssembleBlock(Block):
             output = backend.assemble(dform)
             block_output.add_adj_output(adj_input * output)
 
+    @no_annotations
     def evaluate_tlm(self):
         replaced_coeffs = {}
         for block_output in self.get_dependencies():
@@ -130,6 +140,7 @@ class AssembleBlock(Block):
                 output = backend.assemble(dform)
                 self.get_outputs()[0].add_tlm_output(output)
 
+    @no_annotations
     def evaluate_hessian(self):
         hessian_input = self.get_outputs()[0].hessian_value
         adj_input = self.get_outputs()[0].adj_value
@@ -176,6 +187,7 @@ class AssembleBlock(Block):
             output = backend.assemble(dform)
             bo1.add_hessian_output(hessian_input*output)
 
+    @no_annotations
     def recompute(self):
         replaced_coeffs = {}
         for block_output in self.get_dependencies():

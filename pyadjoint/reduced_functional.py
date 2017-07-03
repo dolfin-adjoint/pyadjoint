@@ -1,4 +1,4 @@
-from .tape import get_working_tape, pause_annotation, continue_annotation
+from .tape import get_working_tape, stop_annotating
 from .drivers import compute_gradient
 from .overloaded_type import OverloadedType
 
@@ -75,10 +75,9 @@ class ReducedFunctional(object):
                 self.controls[i].adj_update_value(value)
 
         blocks = self.tape.get_blocks()
-        pause_annotation()
-        for i in range(self.block_idx, len(blocks)):
-            blocks[i].recompute()
-        continue_annotation()
+        with stop_annotating():
+            for i in range(self.block_idx, len(blocks)):
+                blocks[i].recompute()
 
         return self.functional.block_output.get_saved_output()
 

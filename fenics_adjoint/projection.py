@@ -1,16 +1,17 @@
 import backend
-from pyadjoint.tape import get_working_tape
+from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating
 from pyadjoint.block import Block
 from .types import create_overloaded_object
 from .solving import SolveBlock
 
 
 def project(*args, **kwargs):
-    annotate_tape = kwargs.pop("annotate_tape", True)
-    output = backend.project(*args, **kwargs)
+    annotate = annotate_tape(kwargs)
+    with stop_annotating():
+        output = backend.project(*args, **kwargs)
     output = create_overloaded_object(output)
 
-    if annotate_tape:
+    if annotate:
         bcs = kwargs.pop("bcs", [])
         block = ProjectBlock(args[0], args[1], output, bcs)
 
