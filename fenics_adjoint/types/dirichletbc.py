@@ -136,7 +136,7 @@ class DirichletBCBlock(Block):
 
     @no_annotations
     def recompute(self):
-        # There is nothing to be recomputed.
-        pass
-
+        # TODO: Here we assume only 1 dependency. Is this always valid?
+        if len(self.get_dependencies()) > 0:
+            self.bc.set_value(self.get_dependencies()[0].checkpoint)
 
