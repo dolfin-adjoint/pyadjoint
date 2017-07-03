@@ -14,10 +14,10 @@ class AdjFloat(OverloadedType, float):
         output = float.__mul__(self, other)
         if output is NotImplemented:
             return NotImplemented
-        
+
         if not isinstance(other, OverloadedType):
             other = AdjFloat(other)
-            
+
         output = AdjFloat(output)
         if annotate_tape():
             block = MulBlock(self, other)
@@ -25,7 +25,7 @@ class AdjFloat(OverloadedType, float):
             tape = get_working_tape()
             tape.add_block(block)
             block.add_output(output.get_block_output())
-        
+
         return output
 
     def _add(self, other, output):
@@ -111,4 +111,3 @@ class MulBlock(Block):
     def recompute(self):
         deps = self.get_dependencies()
         self.get_outputs()[0].checkpoint = deps[0].get_saved_output() * deps[1].get_saved_output()
-
