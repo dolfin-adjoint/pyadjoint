@@ -66,8 +66,7 @@ class Function(OverloadedType, backend.Function):
 
     @no_annotations
     def adj_update_value(self, value):
-        super(Function, self).assign(value)
-        self.original_block_output.save_output()
+        self.original_block_output.checkpoint = value._ad_create_checkpoint()
 
     @no_annotations
     def _ad_mul(self, other):
