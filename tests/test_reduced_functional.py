@@ -317,3 +317,67 @@ def test_assemble_recompute():
     h.vector()[:] = 1
     assert(taylor_test(Jhat, m, h) > 1.9)
 
+# TODO: Fix this! The time values are not updated properly on forward replay!
+def test_dirichlet_updating():
+    tape = Tape()
+    set_working_tape(tape)
+
+    mesh = UnitSquareMesh(10, 10)
+    V = FunctionSpace(mesh, "CG", 1)
+
+    v = TestFunction(V)
+    u = Function(V)
+    f = Function(V)
+    f.vector()[:] = 1
+
+    t = Constant(0)
+    dt = 0.1
+    bc = DirichletBC(V, t, "on_boundary")
+
+    T = 0.3
+    F = inner(grad(u), grad(v)) * dx - f * v * dx
+
+    while t.values()[0] <= T:
+        solve(F == 0, u, bc)
+        t.assign(t.values()[0] + dt)
+
+    J = assemble(u**2*dx)
+    Jhat = ReducedFunctional(J, f)
+    g = f.copy(deepcopy=True)
+    assert(Jhat(g) == J)
+
+def test_expression_update():
+    tape = Tape()
+    set_working_tape(tape)
+
+    mesh = UnitSquareMesh(10, 10)
+    V = FunctionSpace(mesh, "CG", 1)
+
+    v = TestFunction(V)
+    u = Function(V)
+    t = Constant(0.3)
+    f = Expression("t", t=t, degree=1)
+    g = Constant(1)
+
+    dt = 0.1
+    bc = DirichletBC(V, 1, "on_boundary")
+
+    T = 0.3
+    F = inner(grad(u), grad(v)) * dx - g * f * v * dx
+
+    i = 0.0
+    j = 0.3
+    while i <= j:
+        solve(F == 0, u, bc)
+        i += dt
+        t.assign(t.values()[0] + dt)
+
+    J = assemble(u**2*dx)
+    Jhat = ReducedFunctional(J, g)
+    h = Constant(1)
+    assert(Jhat(h) == J)
+
+
+
+
+
