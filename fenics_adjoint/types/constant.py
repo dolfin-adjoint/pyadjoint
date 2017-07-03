@@ -15,7 +15,7 @@ class Constant(OverloadedType, backend.Constant):
         self.original_block_output.save_output()
 
     def _ad_create_checkpoint(self):
-        return Constant(self)
+        return Constant(self.values())
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
