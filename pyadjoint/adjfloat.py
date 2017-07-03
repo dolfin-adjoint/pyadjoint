@@ -14,7 +14,10 @@ class AdjFloat(OverloadedType, float):
         output = float.__mul__(self, other)
         if output is NotImplemented:
             return NotImplemented
-
+        
+        if not isinstance(other, OverloadedType):
+            other = AdjFloat(other)
+            
         output = AdjFloat(output)
         if annotate_tape():
             block = MulBlock(self, other)
