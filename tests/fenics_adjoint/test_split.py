@@ -32,4 +32,4 @@ def test_split():
     j = assemble(u**2*dx)
     rf = ReducedFunctional(j, ic)
 
-    taylor_test(rf, ic.copy(deepcopy=True), h=project(Constant(1), ic.function_space()))
+    taylor_test(rf, ic.copy(deepcopy=True), h=project(Constant([1, 1]), ic.function_space()))
