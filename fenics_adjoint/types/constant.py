@@ -11,11 +11,12 @@ class Constant(OverloadedType, backend.Constant):
         return Constant(self.get_adj_output())
 
     def adj_update_value(self, value):
-        self.assign(value)
-        self.original_block_output.save_output()
+        self.original_block_output.checkpoint = value._ad_create_checkpoint()
 
     def _ad_create_checkpoint(self):
-        return Constant(self)
+        if self.ufl_shape == ():
+            return Constant(self)
+        return Constant(self.values())
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
