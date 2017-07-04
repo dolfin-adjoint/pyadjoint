@@ -1,8 +1,9 @@
 import logging
+from .tape import stop_annotating
 
 # Type dependencies
-import overloaded_type
-import reduced_functional
+from . import overloaded_type
+from . import reduced_functional
 
 
 def taylor_test(J, m, h, dJdm=None, Hm=None):
@@ -25,24 +26,50 @@ def taylor_test(J, m, h, dJdm=None, Hm=None):
         float: The smallest computed convergence rate of the tested perturbations.
 
     """
+    print("Running Taylor test")
+    with stop_annotating():
+        Jm = J(m)
+        dJdm = h._ad_dot(J.derivative()) if dJdm is None else dJdm
+        Hm = 0 if Hm is None else Hm
 
+        residuals = []
+        epsilons = [0.01/2**i for i in range(4)]
+        for eps in epsilons:
+
+            perturbation = h._ad_mul(eps)
+            Jp = J(m._ad_add(perturbation))
+
+            res = abs(Jp - Jm - eps*dJdm - 0.5*eps**2*Hm)
+            residuals.append(res)
+
+        if min(residuals) < 1E-15:
+            logging.warning("The taylor remainder is close to machine precision.")
+        print("Computed residuals: {}".format(residuals))
+    return min(convergence_rates(residuals, epsilons))
+
+
+def taylor_test_multiple(J, m, h):
     Jm = J(m)
-    dJdm = h._ad_dot(J.derivative()) if dJdm is None else dJdm
-    Hm = 0 if Hm is None else Hm
+    dJdm = 0
+    for i, delta in enumerate(J.derivative()):
+        dJdm += h[i]._ad_dot(delta)
 
     residuals = []
     epsilons = [0.01/2**i for i in range(4)]
     for eps in epsilons:
 
-        perturbation = h._ad_mul(eps)
-        Jp = J(m._ad_add(perturbation))
+        perts = []
+        for i, pert in enumerate(h):
+            perturbation = pert._ad_mul(eps)
+            perts.append(m[i]._ad_add(perturbation))
+        Jp = J(perts)
 
-        res = abs(Jp - Jm - eps*dJdm - 0.5*eps**2*Hm)
+        res = abs(Jp - Jm - eps*dJdm)
         residuals.append(res)
 
     if min(residuals) < 1E-15:
         logging.warning("The taylor remainder is close to machine precision.")
-    print residuals
+    print(residuals)
     return min(convergence_rates(residuals, epsilons))
 
 
@@ -51,6 +78,6 @@ def convergence_rates(E_values, eps_values):
     r = []
     for i in range(1, len(eps_values)):
         r.append(log(E_values[i]/E_values[i-1])/log(eps_values[i]/eps_values[i-1]))
-    print r
+    print("Computed convergence rates: {}".format(r))
     return r
 

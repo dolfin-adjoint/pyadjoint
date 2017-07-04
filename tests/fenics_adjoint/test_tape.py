@@ -1,3 +1,6 @@
+import pytest
+pytest.importorskip("fenics")
+
 from fenics import *
 from fenics_adjoint import *
 
@@ -21,14 +24,28 @@ def test_tape_visualisation():
     tape = get_working_tape()
     tape.visualise(filename="graph.pdf")
 
+@pytest.mark.skipif_module_is_missing("pygraphviz")
+def test_tape_visualisation():
+    mesh = IntervalMesh(10, 0, 1)
+    V = FunctionSpace(mesh, "Lagrange", 1)
+
+    f = Function(V)
+    f.vector()[:] = 1
+
+    u = TrialFunction(V)
+    u_ = Function(V)
+    v = TestFunction(V)
+    bc = DirichletBC(V, Constant(1), "on_boundary")
+
+    a = f*inner(grad(u), grad(v))*dx
+    L = f*v*dx
+    solve(a == L, u_, bc)
+    project(u_, V)
+
+    tape = get_working_tape()
+    tape.visualise(filename="graph.dot", dot=True)
 
 def test_tape_time():
-    try:
-        import pygraphviz
-    except ImportError:
-        # No need to run test if pygraphviz is not installed.
-        return False
-
     set_working_tape(Tape())
 
     mesh = IntervalMesh(10, 0, 1)
@@ -65,6 +82,3 @@ def test_tape_time():
         t += dt
 
     assemble(u_1**2*dx)
-
-    tape = get_working_tape()
-    tape.visualise(filename="graph.dot", dot=True)

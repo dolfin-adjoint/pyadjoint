@@ -1,8 +1,12 @@
-from fenics import *
-from fenics_adjoint import *
+import pytest
+pytest.importorskip("firedrake")
+
+from firedrake import *
+from firedrake_adjoint import *
 
 from numpy.random import rand, seed
 seed(8)
+
 
 def test_simple_solve():
     tape = Tape()
@@ -46,9 +50,9 @@ def test_simple_solve():
     tape.evaluate_hessian()
 
     m = f.copy(deepcopy=True)
-    dJdm = f.original_block_output.adj_value.inner(h.vector())
-    Hm = f.original_block_output.hessian_value.inner(h.vector())
-    assert(taylor_test(Jhat, m, h, dJdm=dJdm, Hm=Hm) > 2.9)
+    dJdm = f.original_block_output.adj_value.vector().inner(h.vector())
+    Hm = f.original_block_output.hessian_value.vector().inner(h.vector())
+    assert taylor_test(Jhat, m, h, dJdm=dJdm, Hm=Hm) > 2.9
 
 
 def test_mixed_derivatives():
@@ -87,12 +91,12 @@ def test_mixed_derivatives():
     tape.evaluate_hessian()
 
     dJdm = J.block_output.tlm_value
-    Hm = f.original_block_output.hessian_value.inner(h.vector()) + g.original_block_output.hessian_value.inner(h.vector())
+    Hm = f.original_block_output.hessian_value.vector().inner(h.vector()) + g.original_block_output.hessian_value.vector().inner(h.vector())
 
     m_1 = f.copy(deepcopy=True)
     m_2 = g.copy(deepcopy=True)
 
-    assert(conv_mixed(J, f, g, m_1, m_2, h, h, dJdm, Hm) > 2.9)
+    assert conv_mixed(J, f, g, m_1, m_2, h, h, dJdm, Hm) > 2.9
 
 
 def test_function():
@@ -132,9 +136,9 @@ def test_function():
     g = f.copy(deepcopy=True)
 
     dJdm = J.block_output.tlm_value
-    Hm = f.original_block_output.hessian_value.inner(h.vector()) + c.original_block_output.hessian_value
+    Hm = f.original_block_output.hessian_value.vector().inner(h.vector()) + c.original_block_output.hessian_value
 
-    assert(conv_mixed(J, f, c, g, Constant(4), h, Constant(1), dJdm=dJdm, Hm=Hm) > 2.9)
+    assert conv_mixed(J, f, c, g, Constant(4), h, Constant(1), dJdm=dJdm, Hm=Hm) > 2.9
 
 
 def test_nonlinear():
@@ -158,7 +162,7 @@ def test_nonlinear():
     Jhat = ReducedFunctional(J, f)
 
     h = Function(V)
-    h.vector()[:] = rand(V.dim())
+    h.vector()[:] = 10*rand(V.dim())
 
     J.set_initial_adj_input(1.0)
     f.set_initial_tlm_input(h)
@@ -172,8 +176,9 @@ def test_nonlinear():
     g = f.copy(deepcopy=True)
 
     dJdm = J.block_output.tlm_value
-    Hm = f.original_block_output.hessian_value.inner(h.vector())
-    assert(taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9)
+    Hm = f.original_block_output.hessian_value.vector().inner(h.vector())
+    assert taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9
+
 
 def test_dirichlet():
     tape = Tape()
@@ -213,9 +218,11 @@ def test_dirichlet():
 
     dJdm = J.block_output.tlm_value
 
-    Hm = c.original_block_output.hessian_value.inner(h.vector())
-    assert(taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9)
+    Hm = c.original_block_output.hessian_value.vector().inner(h.vector())
+    assert taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9
 
+
+@pytest.mark.xfail(reason="Expression annotation not supported")
 def test_expression():
     tape = Tape()
     set_working_tape(tape)
@@ -227,8 +234,8 @@ def test_expression():
     v = TestFunction(V)
     c = Constant(1)
     f = Expression("c*c*c", c=c, degree=1)
-    first_deriv = Expression("3*c*c", c=c, degree=1, annotate_tape=False)
-    second_deriv = Expression("6*c", c=c, degree=1, annotate_tape=False)
+    first_deriv = Expression("3*c*c", c=c, degree=1, annotate=False)
+    second_deriv = Expression("6*c", c=c, degree=1, annotate=False)
     f.user_defined_derivatives = {c: first_deriv}
     first_deriv.user_defined_derivatives = {c: second_deriv}
     bc = DirichletBC(V, Constant(1), "on_boundary")
@@ -255,20 +262,21 @@ def test_expression():
     dJdm = J.block_output.tlm_value
 
     Hm = c.original_block_output.hessian_value
-    assert(taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9)
+    assert taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9
 
 
 def test_burgers():
     tape = Tape()
     set_working_tape(tape)
-    n = 30
+    n = 100
     mesh = UnitIntervalMesh(n)
     V = FunctionSpace(mesh, "CG", 2)
 
     def Dt(u, u_, timestep):
         return (u - u_)/timestep
 
-    pr = project(Expression("sin(2*pi*x[0])", degree=1, annotate_tape=False), V, annotate_tape=False)
+    x, = SpatialCoordinate(mesh)
+    pr = project(sin(2*pi*x), V, annotate=False)
     ic = Function(V)
     ic.vector()[:] = pr.vector()[:]
 
@@ -314,8 +322,9 @@ def test_burgers():
     tape.evaluate_hessian()
 
     dJdm = J.block_output.tlm_value
-    Hm = ic.original_block_output.hessian_value.inner(h.vector())
-    assert(taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9)
+    Hm = ic.original_block_output.hessian_value.vector().inner(h.vector())
+    assert taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9
+
 
 # Temporary mixed controls taylor test until pyadjoint natively supports it.
 def conv_mixed(J, f, g, m_1, m_2, h_1, h_2, dJdm, Hm):
@@ -341,7 +350,7 @@ def conv_mixed(J, f, g, m_1, m_2, h_1, h_2, dJdm, Hm):
 
         res = abs(Jp - Jm - eps * dJdm - 0.5 * eps ** 2 * Hm)
         residuals.append(res)
-    print residuals
+    print(residuals)
     return min(convergence_rates(residuals, epsilons))
 
 
@@ -350,6 +359,5 @@ def convergence_rates(E_values, eps_values):
     r = []
     for i in range(1, len(eps_values)):
         r.append(log(E_values[i] / E_values[i - 1]) / log(eps_values[i] / eps_values[i - 1]))
-    print r
+    print(r)
     return r
-

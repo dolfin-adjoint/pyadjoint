@@ -1,11 +1,10 @@
-import backend
-
 # Type dependencies
-import block
+from . import block
 
 # TOOD: Save/checkpoint functions always. Not just on assign.
 
 _working_tape = None
+_stop_annotating = 0
 
 
 def get_working_tape():
@@ -15,6 +14,57 @@ def get_working_tape():
 def set_working_tape(tape):
     global _working_tape
     _working_tape = tape
+
+
+def pause_annotation():
+    global _stop_annotating
+    _stop_annotating += 1
+
+
+def continue_annotation():
+    global _stop_annotating
+    _stop_annotating -= 1
+    return _stop_annotating <= 0
+
+
+class stop_annotating(object):
+    def __enter__(self):
+        pause_annotation()
+
+    def __exit__(self, *args):
+        continue_annotation()
+
+def no_annotations(function):
+    """Decorator to turn off annotation for the decorated function."""
+    def wrapper(*args, **kwargs):
+        with stop_annotating():
+            return function(*args, **kwargs)
+    return wrapper
+
+
+def annotate_tape(kwargs=None):
+    """Returns True if annotation flag is on, and False if not.
+
+    If kwargs is given, the function will try to extract the
+    annotate keyword. If the annotate keyword is not present it defaults to True.
+    If annotation has been paused, then it will always return False.
+
+    Args:
+        kwargs (dict): A dictionary of keyword arguments to extract from.
+            Note that this should be passed as a dictionary and not actual keyword arguments.
+
+    Returns: bool
+
+    """
+    # TODO: Consider if there is any scenario where one would want the keyword to have
+    # precedence over the global flag.
+    if _stop_annotating > 0:
+        return False
+
+    if kwargs is None:
+        return True
+
+    return kwargs.pop("annotate", True)
 
 
 class Tape(object):
@@ -112,7 +162,7 @@ class Tape(object):
             pos = nx.spring_layout(G, pos=fixed_node_positions, fixed=fixed_node_positions.keys())
 
 
-            node_colors = nx.get_node_attributes(G, 'node_color').values()
+            node_colors = list(nx.get_node_attributes(G, 'node_color').values())
             nx.draw_networkx_nodes(G, pos,
                                    node_color=node_colors,
                                    node_size=500,

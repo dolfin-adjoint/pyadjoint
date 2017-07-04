@@ -2,7 +2,7 @@
 
 This repository contains a full re-implementation of dolfin-adjoint that is currently under development.
 
-The full documentation is available [here](http://dolfin-adjoint2.readthedocs.io)
+The full documentation is available [here](http://pyadjoint.readthedocs.io)
 
 
 # Installation
@@ -10,7 +10,7 @@ First install [FEniCS](http://fenicsproject.org) or [Firedrake](http://firedrake
 
 Then clone the repository:
 
-    git clone git@bitbucket.org:your-username/dolfin-adjoint/dolfin-adjoint2.git
+    git clone git@bitbucket.org:dolfin-adjoint/pyadjoint.git
 
 and install with
 
@@ -21,7 +21,7 @@ and install with
 
 If you found a bug, create an [issue].
 
-[issue]: https://bitbucket.org/dolfin-adjoint/dolfin-adjoint2/issues/new
+[issue]: https://bitbucket.org/dolfin-adjoint/pyadjoint/issues/new
 
 # Contributing
 
@@ -29,7 +29,7 @@ We love pull requests from everyone.
 
 Fork, then clone the repository:
 
-    git clone git@bitbucket.org:your-username/dolfin-adjoint/dolfin-adjoint2.git
+    git clone git@bitbucket.org:your-username/dolfin-adjoint/pyadjoint.git
 
 Make sure the tests pass:
 
@@ -41,7 +41,7 @@ Make your change. Add tests for your change. Make the tests pass:
 
 Push to your fork and [submit a pull request][pr].
 
-[pr]: https://bitbucket.org/dolfin-adjoint/dolfin-adjoint2/pull-requests/new
+[pr]: https://bitbucket.org/dolfin-adjoint/pyadjoint/pull-requests/new
 
 At this point you're waiting on us. We may suggest
 some changes or improvements or alternatives.
@@ -57,4 +57,4 @@ Some things that will increase the chance that your pull request is accepted:
 # License
 This software is licensed under the [GNU LGPL v3][license].
 
-[license]: https://bitbucket.org/dolfin-adjoint/dolfin-adjoint2/raw/master/LICENSE
+[license]: https://bitbucket.org/dolfin-adjoint/pyadjoint/raw/master/LICENSE

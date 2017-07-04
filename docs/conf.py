@@ -53,6 +53,7 @@ class Mock(object):
             else:
                 mockType = type(name, (Mock, ), {})
             mockType.__module__ = __name__
+            setattr(cls, name, mockType)
             return mockType
         else:
             return Mock()
