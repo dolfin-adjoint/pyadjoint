@@ -5,28 +5,59 @@ Expressing functionals
 In the example presented in the :doc:`tutorial <tutorial>`, the quantity of interest was
 evaluated at the end of the simulation. However, it is very common
 to want to compute integrals over time, or evaluated at certain points
-in time that are not the end. The syntax of the :py:class:`Functional <dolfin_adjoint.Functional>`
-class is intended to be very general, and to express all of these needs
-naturally.
+in time that are not the end. With fenics-adjoint this is very straightforward.
 
-The core abstraction for functionals in dolfin-adjoint is that a functional is either
-
-a. an integral of a form over a certain time window, or
-b. a pointwise evaluation in time of a certain form, or
-c. a sum of terms like (a) and (b).
 
 ********
 Examples
 ********
 
-To see how it works, consider some examples:
+To see how it works, we once again consider the Burgers equation example
+from the tutorial:
+
+.. literalinclude:: ../_static/tutorial2.py
+
+Here the functional considered was
+
+.. math::
+
+   J(u) = \int_{\Omega} \left\langle u(T), u(T) \right\rangle \ \textrm{d}\Omega.
+
+Let us see how we have to change the program to accomedate different functionals:
+                    
 
 - Integration over all time:
 
-.. code-block:: python
+  .. math::
+   
+     J(u) = \int_0^T\int_{\Omega}\left\langle u(t),u(t)\right\rangle \ \textrm{d}\Omega \ \textrm{d}t
 
-  J = Functional(inner(u, u)*dx*dt)
+  We need to perform the integral numerically.
+  To do this we should change the forward code to compute the time independent part of :math:`J`
+  at each time step and save the value to a list:
 
+  .. code-block:: python
+
+     Jlist = []
+
+     t = 0.0
+     end = 0.1
+     while (t <= end):
+         solve(F == 0, u_next, bc)
+         u.assign(u_next)
+         Jtemp = assemble(inner(u,u)*dx)
+         Jlist.append([t,Jtemp])
+         t += float(timestep)
+
+  Now we can integrate up :math:`J` for example by the trapezoidal rule:
+
+  .. code-block:: python
+
+     J = 0
+     for i in range(1, len(Jlist)):
+         J += (Jlist[i-1][1] + Jlist[i][1])*0.5*float(timestep)
+
+  
 - Integration over a certain time window:
 
 .. code-block:: python
