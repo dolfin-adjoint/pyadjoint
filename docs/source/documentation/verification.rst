@@ -18,7 +18,7 @@ let :math:`\nabla \widehat{J}` be its gradient, and let :math:`\delta m` be a pe
 
     \left|\widehat{J}(m + h\delta m) - \widehat{J}(m)\right| \rightarrow 0 \quad \mathrm{at} \ O(h),
 
-but that 
+but that
 
 .. math::
 
@@ -38,7 +38,7 @@ Applying this in fenics-adjoint
 *******************************
 
 In the case of PDE-constrained optimisation, computing :math:`\widehat{J}(m)` involves solving the PDE
-for that choice of :math:`m` to compute the solution :math:`u`, and then evaluating the functional :math:`J`. 
+for that choice of :math:`m` to compute the solution :math:`u`, and then evaluating the functional :math:`J`.
 The main function in fenics-adjoint for applying the Taylor remainder convergence test is :py:func:`taylor_test <fenics_adjoint.taylor_test>`.
 To see how this works, let us again consider our example with Burgers' equation :math:`\nu`:
 
@@ -58,22 +58,20 @@ we write
 
    h = Constant(0.0001)
    Jhat = ReducedFunctional(J, nu)
-   conv_rate = taylor_test(Jhat, Constant(nu), h)
+   conv_rate = taylor_test(Jhat, nu, h)
 
 Here, :py:data:`h` is the direction of perturbation.
 :py:data:`h` must be the same type as what we are differentiating with respect to, so in this case since :py:data:`nu` is a :py:class:`Constant <fenics_adjoint.Constant>` :py:data:`h` must also be a :py:class:`Constant <fenics_adjoint.Constant>`.
 It is also a good idea to make sure that :py:data:`h` is the same order of magnitude as :py:data:`nu`, so that the perturbations are not too large.
 :py:data:`Jhat` is the functional reduced to a pure function of :py:data:`nu`.
-Note that calling :py:data:`Jhat` with a new constant, for example :py:data:`Jhat(nu + h)`, rather than :py:data:`nu` changes :py:data:`nu` to the new constant, :py:data:`nu + h` in the example.
-For this reason we pass :py:data:`Constant(nu)` to the taylor test rather than :py:data:`nu`.
-If we are differentiating with respect to something other than a :py:class:`Constant <fenics_adjoint.Constant>`, for example the :py:class:`Function <fenics_adjoint.Function>`
-:py:data:`u`, we must for the same reason pass a copy of :py:data:`u` rather than :py:data:`u` itself:
+We could also have taken the taylor test on the gradient with respect to the :py:class:`Function <fenics_adjoint.Function>`
+:py:data:`u`. In that case :py:data:`h` must also be a :py:class:`Function <fenics_adjoint.Function>`.
 
 .. code-block:: python
 
    h = Function(V)
    h.vector()[:] = 0.1
-   conv_rate = taylor_test(RestrictedFunctional(J, u), u.copy(deepcopy=True), h)
+   conv_rate = taylor_test(RestrictedFunctional(J, u), u, h)
 
 Here is the full program to check that we compute :py:data:`dJdnu` correctly:
 

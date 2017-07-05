@@ -23,64 +23,95 @@ Here the functional considered was
 
    J(u) = \int_{\Omega} \left\langle u(T), u(T) \right\rangle \ \textrm{d}\Omega.
 
-Let us see how we have to change the program to accomedate different functionals:
-                    
+Let us see how we have to change the program to accomedate different functionals with different time dependencies:
+To do this we should change the forward code to compute the time independent part of :math:`J`
+at each time step and save the value to a list:
+
+.. code-block:: python
+
+   Jlist = []
+
+   t = 0.0
+   end = 0.1
+   while (t <= end):
+       solve(F == 0, u_next, bc)
+       u.assign(u_next)
+       Jtemp = assemble(inner(u, u)*dx)
+       Jlist.append([t, Jtemp])
+       t += float(timestep)
+
+Let us look at some specific functionals:
 
 - Integration over all time:
 
   .. math::
-   
+
      J(u) = \int_0^T\int_{\Omega}\left\langle u(t),u(t)\right\rangle \ \textrm{d}\Omega \ \textrm{d}t
 
-  We need to perform the integral numerically.
-  To do this we should change the forward code to compute the time independent part of :math:`J`
-  at each time step and save the value to a list:
-
-  .. code-block:: python
-
-     Jlist = []
-
-     t = 0.0
-     end = 0.1
-     while (t <= end):
-         solve(F == 0, u_next, bc)
-         u.assign(u_next)
-         Jtemp = assemble(inner(u,u)*dx)
-         Jlist.append([t,Jtemp])
-         t += float(timestep)
-
-  Now we can integrate up :math:`J` for example by the trapezoidal rule:
+  We need to perform the time integral numerically, for example by the trapezoidal rule:
 
   .. code-block:: python
 
      J = 0
      for i in range(1, len(Jlist)):
-         J += (Jlist[i-1][1] + Jlist[i][1])*0.5*float(timestep)
+         J += 0.5*(Jlist[i-1][1] + Jlist[i][1])*float(timestep)
 
-  
+  We could also use ready-made integration routines, but we have to make sure that the routine does
+  not change the type of the :py:data:`J`. :py:data:`Jtemp` and :py:data:`J` have
+  type :py:class:`AdjFloat <fenics_adjoint.AdjFloat>`.
+
+  |more| Download the `code to find the full time integral`_.
+
+  .. _code to find the full time integral: ../_static/tutorial8.py
+
 - Integration over a certain time window:
 
-.. code-block:: python
+  .. math::
 
-  J = Functional(inner(u, u)*dx*dt[0:1])
+     J(u) = \int_{t_1}^{t_2}\int_{\Omega}\left\langle u(t),u(t)\right\rangle \ \textrm{d}\Omega \ \textrm{d}t
+
+  We can again use the trapezoidal rule. Compared to the full time integration we only have to change the looping range.
+  If we use our example with :math:`t_{1} = 0.03` and
+  :math:`t_{2} = 0.07`, then we can write
+
+  .. code-block:: python
+
+     J = 0
+     for i in range(4,8):
+         J += 0.5*(Jlist[i-1][1] + Jlist[i][1])*float(timestep)
+
 
 - Integration from a certain point until the end:
 
-.. code-block:: python
+  .. math::
 
-  J = Functional(inner(u, u)*dx*dt[0.5:])
+     J(u) = \int_{t_1}^{T}\int_{\Omega}\left\langle u(t),u(t)\right\rangle \ \textrm{d}\Omega \ \textrm{d}t
 
-- Pointwise evaluation in time (does not need to line up with timesteps):
+  Again we only change the loop range. If we use our example with :math:`t_{1} = 0.03` we can write
 
-.. code-block:: python
+  .. code-block:: python
 
-  J = Functional(inner(u, u)*dx*dt[0.5])
+     J = 0
+     for i in range(4,len(Jlist)):
+         J += 0.5*(Jlist[i-1][1] + Jlist[i][1])*float(timestep)
+
+
+- Pointwise evaluation in time:
+
+  .. math::
+
+     J(u) = \int_{\Omega}\left\langle u(t_1),u(t_1)\right\rangle \ \textrm{d}\Omega
+
+  Here we only need to pick out the functional from the list, for example if :math:`t_1 = 0.03`:
+
+  .. code-block:: python
+
+     J = Jlist[3][1]
+
 
 - Pointwise evaluation at the start (e.g. for regularisation terms):
 
-.. code-block:: python
 
-  J = Functional(inner(u, u)*dx*dt[START_TIME])
 
 - Pointwise evaluation at the end:
 
@@ -94,28 +125,8 @@ Let us see how we have to change the program to accomedate different functionals
 
   J = Functional(inner(u, u)*dx*dt + inner(u, u)*dx*dt[FINISH_TIME])
 
-The object to express these evaluations in time is the :py:class:`TimeMeasure <dolfin_adjoint.TimeMeasure>`
-object. By default, dolfin-adjoint creates a :py:data:`TimeMeasure` called :py:data:`dt`. If your code
-redefines :py:data:`dt`, you will need to instantiate a new :py:data:`TimeMeasure` class under a different
-name:
 
-.. code-block:: python
 
-  # Can't use dt, because it's been set to be the timestep
-  dtm = TimeMeasure()
-  J = Functional(inner(u, u)*dx*dtm + inner(u, u)*dx*dtm[FINISH_TIME])
-
-***********
-Limitations
-***********
-
-If you use a complicated functional, you should be aware of some points.
-
-1. In order for anything other than evaluation at the end of time to work,
-   you need to call :py:func:`adj_start_timestep <dolfin_adjoint.adj_start_timestep>` before
-   your time loop, and :py:func:`adj_inc_timestep <dolfin_adjoint.adj_inc_timestep>`
-   function as the last instruction in your time loop. This is to make dolfin-adjoint aware that a timestep has ended,
-   and the start and end times of that timestep.
-2. Evaluation of expressions at times other than timesteps is currently performed using
-   linear interpolation, which may not be the correct thing to do if you are
-   using a higher-order scheme in time.
+.. |more| image:: ../_static/more.png
+          :align: middle
+          :alt: more info
