@@ -29,6 +29,11 @@ def assemble(*args, **kwargs):
     return output
 
 def assemble_system(*args, **kwargs):
+    """When a form is assembled, the information about its nonlinear dependencies is lost,
+    and it is no longer easy to manipulate. Therefore, fenics_adjoint overloads the :py:func:`dolfin.assemble_system`
+    function to *attach the form to the assembled object*. This lets the automatic annotation work,
+    even when the user calls the lower-level :py:data:`solve(A, x, b)`.
+    """
     A_form = args[0]
     b_form = args[1]
 

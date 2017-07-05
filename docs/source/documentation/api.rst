@@ -1,7 +1,7 @@
-.. _dolfin-adjoint-api-reference:
+.. _fenics-adjoint-api-reference:
 
 ============================
-dolfin-adjoint API reference
+fenics-adjoint API reference
 ============================
 
 .. automodule:: fenics_adjoint
@@ -14,23 +14,10 @@ Overloaded functions
 .. autofunction:: assemble_system
 .. autofunction:: solve
 .. autofunction:: project
-.. autofunction:: interpolate
 
 ******************
 Overloaded objects
 ******************
-
-.. autoclass:: LUSolver
-
-   .. automethod:: solve
-
-.. autoclass:: NewtonSolver
-
-   .. automethod:: solve
-
-.. autoclass:: KrylovSolver
-
-   .. automethod:: solve
 
 .. autoclass:: NonlinearVariationalSolver
 
@@ -52,8 +39,6 @@ Driver functions
 ****************
 
 .. autofunction:: compute_gradient
-.. autofunction:: compute_adjoint
-.. autofunction:: compute_tlm
 
 
 ***********************************
@@ -64,55 +49,11 @@ Driver functions
 
    .. automethod:: __call__
    .. automethod:: derivative
-   .. automethod:: hessian
-   .. automethod:: taylor_test
-
-.. autoclass:: ReducedFunctionalNumPy
-
-   .. automethod:: __call__
-   .. automethod:: derivative
-   .. automethod:: hessian
-   .. automethod:: pyopt_problem
-   .. automethod:: set_controls
-   .. automethod:: get_controls
 
 .. _parameter-label:
-
-****************************
-:py:data:`Control` objects
-****************************
-
-.. autofunction:: Control
-.. autoclass:: FunctionControl
-.. autoclass:: ConstantControl
-
-****************************
-Constraint objects
-****************************
-
-.. autoclass:: EqualityConstraint
-
-   .. automethod:: function
-   .. automethod:: jacobian
-
-.. autoclass:: InequalityConstraint
-
-   .. automethod:: function
-   .. automethod:: jacobian
-
-********************
-Annotation functions
-********************
-
-.. autofunction:: adj_checkpointing
-.. autofunction:: adj_start_timestep
-.. autofunction:: adj_inc_timestep
 
 *******************
 Debugging functions
 *******************
-
-.. autofunction:: adj_html
-.. autofunction:: adj_check_checkpoints
+.. autofunction:: visualise
 .. autofunction:: taylor_test
-.. autofunction:: replay_dolfin

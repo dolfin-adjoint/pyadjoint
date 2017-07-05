@@ -1,4 +1,4 @@
-.. py:currentmodule:: dolfin_adjoint
+.. py:currentmodule:: fenics_adjoint
 
 ============
 Verification
