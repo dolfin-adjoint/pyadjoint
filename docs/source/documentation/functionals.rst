@@ -28,16 +28,18 @@ To do this we should change the forward code to compute the time independent par
 at each time step and save the value to a list:
 
 .. code-block:: python
+   :emphasize-lines: 1, 6, 7
 
    Jlist = []
 
    t = 0.0
    end = 0.1
    while (t <= end):
-       solve(F == 0, u_next, bc)
-       u.assign(u_next)
        Jtemp = assemble(inner(u, u)*dx)
        Jlist.append([t, Jtemp])
+
+       solve(F == 0, u_next, bc)
+       u.assign(u_next)
        t += float(timestep)
 
 Let us look at some specific functionals:
@@ -111,19 +113,45 @@ Let us look at some specific functionals:
 
 - Pointwise evaluation at the start (e.g. for regularisation terms):
 
+  .. math::
+
+     J(u) = \int_{\Omega}\left\langle u(0),u(0)\right\rangle \ \textrm{d}\Omega
+
+  Here we only need to pick out the functional from the list:
+
+  .. code-block:: python
+
+     J = Jlist[0][1]
 
 
 - Pointwise evaluation at the end:
 
-.. code-block:: python
+  .. math::
 
-  J = Functional(inner(u, u)*dx*dt[FINISH_TIME])
+     J(u) = \int_{\Omega}\left\langle u(T),u(T)\right\rangle \ \textrm{d}\Omega
+
+  Here we only need to pick out the functional from the list:
+
+  .. code-block:: python
+
+     J = Jlist[-1][1]
+
 
 - And sums of these work too:
 
-.. code-block:: python
+  .. math::
 
-  J = Functional(inner(u, u)*dx*dt + inner(u, u)*dx*dt[FINISH_TIME])
+     J(u) = \int_0^T\int_{\Omega}\left\langle u(t),u(t)\right\rangle \ \textrm{d}\Omega \ \textrm{d}t  + \int_{\Omega}\left\langle u(t),u(t)\right\rangle \ \textrm{d}\Omega
+
+
+
+  .. code-block:: python
+
+     J = 0
+     for i in range(1, len(Jlist)):
+         J += 0.5*(Jlist[i-1][1] + Jlist[i][1])*float(timestep)
+     J += JList[-1][1]
+
 
 
 

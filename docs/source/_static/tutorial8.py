@@ -25,11 +25,13 @@ Jlist = []
 t = 0.0
 end = 0.1
 while (t <= end):
-    solve(F == 0, u_next, bc)
-    u.assign(u_next)
     Jtemp = assemble(inner(u, u)*dx)
     Jlist.append([t, Jtemp])
+
+    solve(F == 0, u_next, bc)
+    u.assign(u_next)
     t += float(timestep)
+
 
 J = 0
 for i in range(1, len(Jlist)):
