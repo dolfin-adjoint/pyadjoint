@@ -14,4 +14,4 @@ How to use dolfin-adjoint
    debugging
    parallel
    functionals
-   misc
+   custom_functions
