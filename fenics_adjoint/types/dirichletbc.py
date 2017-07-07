@@ -35,7 +35,7 @@ class DirichletBC(OverloadedType, backend.DirichletBC):
             block.add_output(self.block_output)
 
     def _ad_create_checkpoint(self):
-        return self
+        return DirichletBC(self.function_space(), self.value(), self.domain_args[0], method=self.method(), annotate=False)
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
