@@ -3,12 +3,13 @@ class BlockOutput(object):
 
     """
 
-    def __init__(self, output):
+    def __init__(self, output, floating_type=False):
         self.output = output
         self.adj_value = None
         self.tlm_value = None
         self.hessian_value = None
         self.checkpoint = None
+        self.floating_type = floating_type
 
     def add_adj_output(self, val):
         if self.adj_value is None:
@@ -45,6 +46,11 @@ class BlockOutput(object):
         return self.output
 
     def save_output(self, overwrite=True):
+        if self.floating_type and overwrite == False:
+            self.output._ad_annotate_block()
+            self.checkpoint = self.output._ad_create_checkpoint()
+            return
+
         if overwrite or not self.checkpoint:
             self.checkpoint = self.output._ad_create_checkpoint()
 

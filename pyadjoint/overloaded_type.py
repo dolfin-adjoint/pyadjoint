@@ -24,7 +24,8 @@ class OverloadedType(object):
         self.original_block_output = self.create_block_output()
 
     def create_block_output(self):
-        block_output = BlockOutput(self)
+        floating_type = False if not hasattr(self, "block_output") else self.block_output.floating_type
+        block_output = BlockOutput(self, floating_type=floating_type)
         self.set_block_output(block_output)
         return block_output
 

@@ -18,24 +18,32 @@ class DirichletBC(OverloadedType, backend.DirichletBC):
     def __init__(self, *args, **kwargs):
         super(DirichletBC, self).__init__(*args, **kwargs)
 
-        # Pop kwarg to pass the kwargs check in backend.DirichletBC.__init__.
+        # Activate floating type behaviour
+        self.block_output.floating_type = True
+
         self.annotate_tape = annotate_tape(kwargs)
 
-        with stop_annotating():
-            backend.DirichletBC.__init__(self, *args, **kwargs)
+        # Call backend constructor after popped AD specific keyword args.
+        backend.DirichletBC.__init__(self, *args, **kwargs)
 
-        if self.annotate_tape:
-            tape = get_working_tape()
+        self._ad_args = args
+        self._ad_kwargs = kwargs
 
-            # Since DirichletBC behaves differently based on number of
-            # args and arg types, we pass all args to block
-            block = DirichletBCBlock(self, *args)
+    def _ad_annotate_block(self):
+        if not self.annotate_tape:
+            return
 
-            tape.add_block(block)
-            block.add_output(self.block_output)
+        tape = get_working_tape()
+        block = DirichletBCBlock(self, *self._ad_args)
+        self.block = block
+        tape.add_block(block)
+        block.add_output(self.block_output)
+
+        # Need to create a new block output for future use.
+        self.create_block_output()
 
     def _ad_create_checkpoint(self):
-        return DirichletBC(self.function_space(), self.value(), self.domain_args[0], method=self.method(), annotate=False)
+        return DirichletBC(self.function_space(), self.block.get_dependencies()[0].get_saved_output(), self.domain_args[0], method=self.method(), annotate=False)
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
