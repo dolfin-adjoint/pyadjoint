@@ -22,24 +22,23 @@ bc = DirichletBC(V, (0.0, 0.0), "on_boundary")
 
 
 t = 0.0
-end = 0.01
+end = 0.1
 Jtemp = assemble(inner(u, u)*dx)
-Jlist = [[t,Jtemp]]
+Jlist = [Jtemp]
 while (t <= end):
     solve(F == 0, u_next, bc)
     u.assign(u_next)
     t += float(timestep)
 
     Jtemp = assemble(inner(u, u)*dx)
-    Jlist.append([t, Jtemp])
+    Jlist.append(Jtemp)
 
 
-    J = 0
+J = 0
 for i in range(1, len(Jlist)):
-    J += 0.5*(Jlist[i-1][1] + Jlist[i][1])*float(timestep)
+    J += 0.5*(Jlist[i-1] + Jlist[i])*float(timestep)
 
 tape = get_working_tape()
 tape.visualise('tut8debug',dot=1)
 h = Constant(nu)
-#print(Jlist)
 taylor_test(ReducedFunctional(J, nu), nu, h)

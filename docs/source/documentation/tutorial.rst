@@ -37,7 +37,7 @@ look as follows:
 adjoin this code.
 
 The first change necessary to adjoin this code is to import the
-fenics-adjoint module **after** loading fenics:
+fenics-adjoint module **after** loading FEniCS:
 
 .. code-block:: python
 
@@ -95,12 +95,12 @@ equation in turn, and then uses the adjoint solutions to compute the
 requested gradient. Here we note that even though :py:data:`u` represented the
 *final* velocity when we defined the functional, the differentiation is with
 respect to the *initial* velocity. :py:func:`compute_gradient <fenics_adjoint.compute_gradient>`
-always differentiates with respect to the value of the second argument at its creation time. 
+always differentiates with respect to the value of the second argument at its creation time.
 
 
 If we wish instead to take the gradient with respect to the diffusivity
 :math:`\nu`, we can write:
-      
+
 .. code-block:: python
 
     dJdnu = compute_gradient(J, nu)

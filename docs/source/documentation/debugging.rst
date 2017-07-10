@@ -10,7 +10,7 @@ Visualising the system
 *******************************************
 
 It is sometimes useful when debugging a problem to see fenics-adjoint's interpretation of your forward system,
-and the other models it derives from that. The :py:class:`visualise <pyadjoint.Tape>` function visualises the system as a graph.
+and the other models it derives from that. The :py:meth:`visualise <pyadjoint.Tape.visualise>` function visualises the system as a graph.
 To do this add
 
 .. code-block:: python
@@ -25,13 +25,13 @@ This will show a simple graph, but it is much more readable if we use the DOT fo
     tape = get_working_tape()
     tape.visualise("mygraph", dot = True)
 
-This saves the DOT formatted graph to the file mygraph, which can then be converted to for example a png file. 
+This saves the DOT formatted graph to the file mygraph, which can then be converted to for example a png file.
 To demonstrate, let us use a simplified version of our old Burgers' equation example:
 
 .. literalinclude:: ../_static/tutorial7.py
 
 Here we solve the equation for only one timestep and save a visualisation in the file simplified_burgers.
-                    
+
 |more| Download the `code to find graph`_.
 
 .. _code to find graph: ../_static/tutorial7.py
@@ -65,4 +65,3 @@ In the :doc:`next section
 .. |more| image:: ../_static/more.png
           :align: middle
           :alt: more info
-
