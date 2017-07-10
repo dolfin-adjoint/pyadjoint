@@ -1,9 +1,9 @@
-.. _dolfin-adjoint-documentation:
+.. _fenics-adjoint-documentation:
 
-.. title:: dolfin-adjoint documentation
+.. title:: fenics-adjoint documentation
 
 ******************************************
-Documentation for dolfin-adjoint |version|
+Documentation for fenics-adjoint |version|
 ******************************************
 
 Quickstart
@@ -71,11 +71,12 @@ separate `dolfin-adjoint applications repository
 
 .. raw:: html
 
-  <h2>dolfin-adjoint API reference</h2>
+  <h2>fenics-adjoint API reference</h2>
 
 Are you looking for the complete reference documentation? Look no
-further, it is right here: :ref:`dolfin-adjoint API reference
-<dolfin-adjoint-api-reference>`.
+further, it is right here: :ref:`fenics-adjoint API reference
+<api>`, :ref:`pyadjoint API reference <pyadjoint_api>`.
+
 
 .. raw:: html
 
