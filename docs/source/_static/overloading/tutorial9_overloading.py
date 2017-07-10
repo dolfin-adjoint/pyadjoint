@@ -1,7 +1,6 @@
 from fenics import *
 from fenics_adjoint import *
-from normalise import *
-from normalise_overloaded import *
+from normalise_overloaded import normalise
 
 mesh = UnitSquareMesh(10, 10)
 V = FunctionSpace(mesh, 'CG', 1)

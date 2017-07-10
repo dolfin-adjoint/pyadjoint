@@ -27,6 +27,7 @@ For example, let us take the adjoint verification program from the section on :d
     Computed convergence rates: [1.9977677554998587, 1.9988828855094791, 1.9994412684498588]
     Computed convergence rates: [1.9977677554998587, 1.9988828855094791, 1.9994412684498588]
 
+In the :doc:`next section <functionals>` we discuss how to express functionals with different time dependencies.
 
 .. |more| image:: ../_static/more.png
           :align: middle

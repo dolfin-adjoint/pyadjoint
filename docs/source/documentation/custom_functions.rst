@@ -5,17 +5,20 @@ Adding Custom Functions
 =======================
 
 As mentioned in the :doc:`first section  <tutorial>` of this tutorial fenics-adjoint
-works by overloading parts of fenics so that it may build up an annotation by recording
+works by overloading parts of FEniCS so that it may build up an annotation by recording
 each step of the forward model. The list of overloaded functions and objects is found
-in the :doc:`api <api>`. If the forward model uses custom functions rather than the
-standard fenics functions, fenics-adjoint won't automatically know how to record
-these steps, therefore we have to tell it how, by overloading the function ourselves.
+in the :doc:`api <api>`. The part of fenics-adjoint that takes care of the fundamental
+annotation is pyadjoint, which is independent of FEniCS.
+fenics-adjoint tells pyadjoint how to handle FEniCS types and functions.
+If the forward model uses custom functions rather than the
+standard FEniCS functions, pyadjoint won't know how to record
+these steps, therefore we have to tell it how, by overloading the functions ourselves.
 
 ****************
 A Simple Example
 ****************
 
-Suppose we have a module we want to use with our fenics model,
+Suppose we have a module we want to use with our FEniCS model,
 in this example the module will be named :py:data:`normalise` and consist of
 only one function: :py:data:`normalise(func)`. The module looks like this:
 
@@ -25,8 +28,8 @@ only one function: :py:data:`normalise(func)`. The module looks like this:
 
 .. _`Download this file`: ../_static/overloading/normalise.py
 
-The function :py:data:`normalise(func)` normalises the vector form of a fenics function,
-then returns a the fenics function form of that normalised vector. A simple fenics
+The function :py:data:`normalise(func)` normalises the vector form of a FEniCS function,
+then returns the FEniCS function form of that normalised vector. A simple fenics
 program that uses this function might look like this:
 
 .. literalinclude:: ../_static/overloading/tutorial9.py
@@ -49,17 +52,17 @@ and
 
    dJdf = compute_gradient(J,f)
 
-but that won't work, because fenics_adjoint does not know that it should record
+but that won't work, because pyadjoint does not know that it should record
 the normalisation and it does not know what the derivative of the normalisation is.
 We should create a new module that overloads :py:data:`normalise(func)`, telling
-fenics adjoint how to deal with it.
+pyadjoint how to deal with it.
 
 **********************
 Overloading a function
 **********************
 
 Let us now create a module overloading the :py:data:`normalise(func)` function.
-We need to start by importing the fenics and fenics_adjoint modules, along with
+We need to start by importing the FEniCS and fenics-adjoint modules, along with
 some specific functions needed for overloading and of course the function we want to
 overload.
 
@@ -109,7 +112,7 @@ Now we are ready to write the overloaded function:
 
 So what is going on here:
 
-- We check whether or not we should be annotating, if the user passes
+- We check whether or not we should be annotating. If the user passes
 
   .. code-block:: python
 
@@ -118,14 +121,14 @@ So what is going on here:
   as a keyword argument we should treat the function call exactly as if we were just
   using the non-overloaded version of  :py:data:`normalise(func)`.
 
-- If we are annotating we get the tape were we are annotating, make a block, which
+- If we are annotating we get the current tape, make a block, which
   are the building blocks of the tape and then add the new block to the tape.
   :py:data:`NormaliseBlock(func)` is the constructor of the class
   :py:class:`NormaliseBlock(Block)`, which we will implement and which contains the
-  information about how fenics_adjoint should handle our function.
+  information about how pyadjoint should handle our function.
 
 - We compute the normalisation with our non-overloaded function, and then make sure
-  that the output is an overloaded object that can be properly handled by fenics_adjoint.
+  that the output is an overloaded object that can be properly handled by pyadjoint.
 
 - If we are annotating we add the output to our block.
 
@@ -140,7 +143,7 @@ The Block class
 ---------------
 
 The class :py:class:`NormaliseBlock(Block)` is a subclass of
-:py:class:`Block <pyadjoint.block.Block>` from the pyadjoint module. In addition to
+:py:class:`Block <pyadjoint.Block>` from the pyadjoint module. In addition to
 writing a constructor we have to override the methods :py:meth:`evaluate_adj` and
 :py:meth:`recompute`, we will also add a :py:meth:`__str__` method.
 In our example the constructor may look like this
@@ -154,13 +157,13 @@ In our example the constructor may look like this
           self.add_dependency(func.get_block_output())
 
 We call the superclass constructor and  save the key word arguments.
-Then we tell fenics_adjoint that the operation this block represents depends
-on the function :py:data:`func`. As :py:data:`func` is an overloaded object it has a
+Then we tell pyadjoint that the operation this block represents depends
+on the function :py:data:`func`. As :py:data:`func` should be an overloaded object it has a
 :py:meth:`get_block_output` method.
 
 Next we can define a :py:meth:`__str__` method. This gives a name to the block,
 so the output of this is for example how the block is represented in graphs made
-with :py:meth:`visualise <pyadjoint.tape.Tape.visualise>` as explained in the section
+with :py:meth:`visualise <pyadjoint.Tape.visualise>` as explained in the section
 on :doc:`debugging <debugging>`.
 
 .. code-block:: python
@@ -189,14 +192,14 @@ The tangent linear model and the adjoint
 The method :py:meth:`evaluate_adj` should evaluate the adjoint gradient of the block.
 In the :doc:`mathematical background <maths/index>` we discussed the tangent linear model
 and the adjoint on the level of the whole model. Here we consider more concretely
-how fenics-adjoint treats each block. Fenics-adjoint treats a forward model as a series of equation solves.
-Some of these equations are complicated PDEs that are solved by the fenics function :py:func:`solve <fenics.solve>`,
+how fenics-adjoint treats each block. pyadjoint treats a forward model as a series of equation solves.
+Some of these equations are complicated PDEs that are solved by the FEniCS function :py:func:`solve <fenics.solve>`,
 but others are of the straightforward form
 
 .. math:: y = f(x_1,\ldots,x_n),
 
 where :math:`y` is the only unknown. Our :py:data:`normalise` function may be represented by this kind of equation.
-When differentiating a functional fenics-adjoint works by considering each block as a link in chain formed by
+When differentiating a functional pyadjoint works by considering each block as a link in chain formed by
 the chain rule. If a functional is the result of a series of straightforward transformations on an initial condition:
 
 .. math:: J(u_n(u_{n-1}(\ldots(u_0)\ldots))),
@@ -231,8 +234,8 @@ and
 
    y_0 = \frac{\mathrm{d} J}{\mathrm{d} u_0}
 
-Here each block needs to find the transpose of its own gradient.
-This is implemented in :py:meth:`evaluate_adj <pyadjoint.Block.evaluate_adj>`.
+Each block only needs to find the transpose of its own gradient!
+This is implemented in :py:meth:`evaluate_adj`.
 
 -------------------
 Back to our example
@@ -250,7 +253,7 @@ The gradient matrix is
 
    \frac{\partial f(x_i)}{\partial x_j} = \frac{1}{||x||} \delta_{ij} - \frac{x_i x_j}{||x||^3}
 
-:py:meth:`evaluate_adj <pyadjoint.Block.evaluate_adj>` takes a vector as input and returns that vector
+:py:meth:`evaluate_adj` takes a vector as input and returns that vector
 multiplied with the transpose of the gradient:
 
 .. math:: \nabla f^* \cdot y = \sum_j \frac{\partial f(x_j)}{\partial x_i} y_j =
@@ -268,7 +271,7 @@ Now let us look at the implementation:
 
 
 :py:data:`adj_input` is the vector :math:`y` above. As we are going *backwards* through the forward model
-it is the output of :py:meth:`evaluate_adj <pyadjoint.Block.evaluate_adj>` for the *output* of our normalisation
+it is the output of :py:meth:`evaluate_adj` for the *output* of our normalisation
 block. Then we get the value of the input to our block and save it as a vector.
 Next, we should compute the value:
 
