@@ -24,23 +24,24 @@ Here the functional considered was
    J(u) = \int_{\Omega} \left\langle u(T), u(T) \right\rangle \ \textrm{d}\Omega.
 
 Let us see how we have to change the program to accomedate different functionals with different time dependencies:
-To do this we should change the forward code to compute the time independent part of :math:`J`
+To do this we should change the forward code to compute part of :math:`J`
 at each time step and save the value to a list:
 
 .. code-block:: python
-   :emphasize-lines: 1, 6, 7
-
-   Jlist = []
+   :emphasize-lines: 3, 4, 10, 11
 
    t = 0.0
    end = 0.1
+   Jtemp = assemble(inner(u,u)*dx)
+   Jlist = [[t,Jtemp]]
    while (t <= end):
-       Jtemp = assemble(inner(u, u)*dx)
-       Jlist.append([t, Jtemp])
-
        solve(F == 0, u_next, bc)
        u.assign(u_next)
        t += float(timestep)
+
+       Jtemp = assemble(inner(u, u)*dx)
+       Jlist.append([t, Jtemp])
+
 
 Let us look at some specific functionals:
 
