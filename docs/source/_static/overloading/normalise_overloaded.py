@@ -35,7 +35,6 @@ class NormaliseBlock(Block):
         self.kwargs = kwargs
         self.add_dependency(func.get_block_output())
 
-
     def __str__(self):
         return 'NormaliseBlock'
 

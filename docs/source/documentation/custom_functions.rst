@@ -4,11 +4,11 @@
 Adding Custom Functions
 =======================
 
-As mentioned in the :doc:`first section of this tutorial <tutorial>` fenics adjoint
+As mentioned in the :doc:`first section  <tutorial>` of this tutorial fenics-adjoint
 works by overloading parts of fenics so that it may build up an annotation by recording
 each step of the forward model. The list of overloaded functions and objects is found
 in the :doc:`api <api>`. If the forward model uses custom functions rather than the
-standard fenics functions, fenics_adjoint won't automatically know how to record
+standard fenics functions, fenics-adjoint won't automatically know how to record
 these steps, therefore we have to tell it how, by overloading the function ourselves.
 
 ****************
@@ -17,7 +17,7 @@ A Simple Example
 
 Suppose we have a module we want to use with our fenics model,
 in this example the module will be named :py:data:`normalise` and consist of
-only one function: :py:func:`normalise(func)`. The module looks like this:
+only one function: :py:data:`normalise(func)`. The module looks like this:
 
 .. literalinclude:: ../_static/overloading/normalise.py
 
@@ -25,7 +25,7 @@ only one function: :py:func:`normalise(func)`. The module looks like this:
 
 .. _`Download this file`: ../_static/overloading/normalise.py
 
-The function :py:func:`normalise(func)` normalises the vector form of a fenics function,
+The function :py:data:`normalise(func)` normalises the vector form of a fenics function,
 then returns a the fenics function form of that normalised vector. A simple fenics
 program that uses this function might look like this:
 
@@ -33,7 +33,7 @@ program that uses this function might look like this:
 
 |more| `Download this example`_
 
-.. _`Download this example`: ../_static/overloading/normalise.py
+.. _`Download this example`: ../_static/overloading/tutorial9.py
 
 Here we define a function on a space, normalise it with our function and integrate it
 over the space. Now we want to know the gradient of :math:`J` with respect to the initial
@@ -51,14 +51,14 @@ and
 
 but that won't work, because fenics_adjoint does not know that it should record
 the normalisation and it does not know what the derivative of the normalisation is.
-We should create a new module that overloads :py:func:`normalise(func)`, telling
+We should create a new module that overloads :py:data:`normalise(func)`, telling
 fenics adjoint how to deal with it.
 
 **********************
 Overloading a function
 **********************
 
-Let us now create a module overloading the :py:func:`normalise(func)` function.
+Let us now create a module overloading the :py:data:`normalise(func)` function.
 We need to start by importing the fenics and fenics_adjoint modules, along with
 some specific functions needed for overloading and of course the function we want to
 overload.
@@ -74,11 +74,11 @@ overload.
 
    from normalise import normalise
 
-------------
-The function
-------------
+------------------------
+The overloading function
+------------------------
 
-Since we are overloading :py:func:`normalise(func)` we need to change it's name
+Since we are overloading :py:data:`normalise(func)` we need to change it's name
 to keep acces to it:
 
 .. code-block:: python
@@ -116,11 +116,11 @@ So what is going on here:
      annotate_tape = False
 
   as a keyword argument we should treat the function call exactly as if we were just
-  using the non-overloaded version of  :py:func:`normalise(func)`.
+  using the non-overloaded version of  :py:data:`normalise(func)`.
 
 - If we are annotating we get the tape were we are annotating, make a block, which
   are the building blocks of the tape and then add the new block to the tape.
-  :py:meth:`NormaliseBlock(func)` is the constructor of the class
+  :py:data:`NormaliseBlock(func)` is the constructor of the class
   :py:class:`NormaliseBlock(Block)`, which we will implement and which contains the
   information about how fenics_adjoint should handle our function.
 
@@ -132,7 +132,7 @@ So what is going on here:
 - And finally we return the output.
 
 This is quite general, the only things that specifically refers to normalisation are
-:py:func:`backend_normalise(func)` and :py:meth:`NormaliseBlock(func)`, and the
+:py:data:`backend_normalise(func)` and :py:data:`NormaliseBlock(func)`, and the
 overloading function will look very similar to this in most cases.
 
 ---------------
@@ -168,95 +168,161 @@ on :doc:`debugging <debugging>`.
    def __str__(self):
        return "NormaliseBlock"
 
------------
-The adjoint
------------
+We need a :py:meth:`recompute <pyadjoint.Block.recompute>` method that can
+recompute the block.
 
-The method :py:meth:`evaluate_adj` is should evaluate the adjoint of the block.
+.. code-block:: python
+
+   def recompute(self):
+       dependencies = self.get_dependencies()
+       func = dependencies[0].get_saved_output()
+       output = backend_normalise(func, **self.kwargs)
+       self.get_outputs()[0].checkpoint = output
+
+We get the inputs from the dependencies, calculate the function and save it to the ouput.
+
+----------------------------------------
+The tangent linear model and the adjoint
+----------------------------------------
+
+
+The method :py:meth:`evaluate_adj` should evaluate the adjoint gradient of the block.
 In the :doc:`mathematical background <maths/index>` we discussed the tangent linear model
-and the adjoint. We saw that the .........
+and the adjoint on the level of the whole model. Here we consider more concretely
+how fenics-adjoint treats each block. Fenics-adjoint treats a forward model as a series of equation solves.
+Some of these equations are complicated PDEs that are solved by the fenics function :py:func:`solve <fenics.solve>`,
+but others are of the straightforward form
 
-If we then consider our system as a series of linear equations:
+.. math:: y = f(x_1,\ldots,x_n),
 
-.. math:: y_i = A_i y_{i-1}
+where :math:`y` is the only unknown. Our :py:data:`normalise` function may be represented by this kind of equation.
+When differentiating a functional fenics-adjoint works by considering each block as a link in chain formed by
+the chain rule. If a functional is the result of a series of straightforward transformations on an initial condition:
 
-with initial condition
+.. math:: J(u_n(u_{n-1}(\ldots(u_0)\ldots))),
 
-.. math:: y_0 = x
+then by the chain rule
 
-we can write our system as a block matrix system like so:
+.. math:: \frac{\mathrm{d}J}{\mathrm{d}u_0} = \frac{\partial J}{\partial u_n}\frac{\partial u_n}{\partial u_{n-1}}\ldots\frac{\partial u_1}{\partial u_0}.
 
-.. math:: \begin{pmatrix}
-          I&&&&&\\
-          -A_1&I&&&&\\
-          &&\ddots&&&\\
-          &&-A_i&I&&\\
-          &&&&\ddots&\\
-          &&&&-A_n&I\\
-          \end{pmatrix}
-          \begin{pmatrix}
-          y_0\\
-          \vdots\\
-          \\
-          y_i\\
-          \vdots\\
-          y_n\\
-          \end{pmatrix}
-          =
-          \begin{pmatrix}
-          x\\
-          0\\
-          \vdots\\
-          \\
-          \\
-          0\\
-          \end{pmatrix},
+..
+   With the tangent linear model we calculate this product from the right and so
+   for a single link in the chain:
 
-where the empty spaces not indicated by dots are 0.
-That the equations may be solved in sequence is here manifested in the matrix being lower triangular.
-Let us use bold typefaces to indicate this large system
+   .. math:: y_i = \frac{\partial u_{i}}{\partial u_{i-1}}y_{i-1},
+
+   where
+
+   .. math::
+
+      y_{n+1} = \frac{\mathrm{d}J}{\mathrm{u_0}}.
+
+   We see that each block only needs to know about its own gradient!
+   This is what :py:func:`evaluate_tlm <pyadjoint.block.Block.evaluate_tlm>`
+   should implement.
+
+If we consider instead the adjoint model we will find the transpose of :math:`\frac{\mathrm{d}J}{\mathrm{d}u_0}`:
 
 .. math::
 
-   \bf{Ay} = \bf{x}
+   \frac{\mathrm{d}J}{\mathrm{d}u_0}^* = \frac{\partial u_1}{\partial u_0}^*\frac{\partial u_n}{\partial u_{n-1}}^*\ldots\frac{\partial J}{\partial u_n}^*.
 
-We note that the tangent linear model is now
-
-.. math::
-
-   \left(\bf{A} + \frac{\partial \bf{A}}{\partial \bf{y}}\bf{y}\right)\frac{\mathrm{d}\bf{y}}{\mathrm{d} x} = -\frac{\partial\bf{x}}{\partial x}
-
-and so the adjoint model is
+Calculating from the right we find that for each link
 
 .. math::
 
-   \left(\bf{A} + \frac{\partial \bf{A}}{\partial \bf{y}}\bf{y}\right)^*\lambda = \frac{\partial J}{\partial \bf{y}}
+   y_i = \frac{\partial u_i}{\partial u_{i+1}}^*y_{i+1},
 
-We note that our matrix is now *upper* triangular: we may solve for lambda from the end and backwards!
-If the functional we are interested in only explicitly depends on the final value for :math:`y` we are now in a similar situation to
-the forward model......
-Mathematically our block may be represented in index notation as
+where
+
+.. math::
+
+   y_{n+1} = \frac{\partial J}{\partial u_n}.
+
+and
+
+.. math::
+
+   y_0 = \frac{\mathrm{d} J}{\mathrm{d} u_0}
+
+Here each block needs to find the transpose of its own gradient.
+This is implemented in :py:meth:`evaluate_adj <pyadjoint.Block.evaluate_adj>`.
+
+-------------------
+Back to our example
+-------------------
+
+Mathematically our normalisation block may be represented in index notation as
 
 .. math::
 
    f(x_i) = \frac{x_i}{||x||}.
 
-The derivative matrix is
+The gradient matrix is
 
 .. math::
 
    \frac{\partial f(x_i)}{\partial x_j} = \frac{1}{||x||} \delta_{ij} - \frac{x_i x_j}{||x||^3}
 
-and thus the adjoint is
+:py:meth:`evaluate_adj <pyadjoint.Block.evaluate_adj>` takes a vector as input and returns that vector
+multiplied with the transpose of the gradient:
 
-.. math::
+.. math:: \nabla f^* \cdot y = \sum_j \frac{\partial f(x_j)}{\partial x_i} y_j =
+          \sum_{j} \frac{1}{||x||} \delta_{ij} y_j -
+          \frac{x_i x_j}{||x||^3} y_j = \frac{y_i}{||x||} - \frac{x_i}{||x||^3} \sum_j x_j y_j
 
-   \left(\frac{\partial J}{\partial x_i}\right)^* = \sum_{j} \frac{\partial f(x_j)}{\partial x_i}y_j
-   = \sum_{j} \frac{1}{||x||} \delta_{ij} y_j -
-   \frac{x_i x_j}{||x||^3} y_j = \frac{y_i}{||x||} - \frac{x_i}{||x||^3} \sum_j x_j y_j
+Now let us look at the implementation:
+
+.. code-block:: python
+
+   def evaluate_adj(self):
+       adj_input = self.get_outputs()[0].adj_value
+       dependency = self.get_dependencies()[0]
+       x = dependency.get_saved_output().vector()
 
 
+:py:data:`adj_input` is the vector :math:`y` above. As we are going *backwards* through the forward model
+it is the output of :py:meth:`evaluate_adj <pyadjoint.Block.evaluate_adj>` for the *output* of our normalisation
+block. Then we get the value of the input to our block and save it as a vector.
+Next, we should compute the value:
 
+.. code-block:: python
+
+       adj_output = x.copy()
+
+       xnorm = x.norm('l2')
+
+       const = 0
+       for i in range(len(x)):
+           const += adj_input[i][0]*x[i][0]
+       const /= xnorm**3
+
+       for i in range(len(x)):
+           adj_output[i] = adj_input[i][0]/xnorm - const*x[i][0]
+
+Finally we save :py:data:`adj_output` so that it may be propagated up the chain
+
+.. code-block:: python
+
+       dependency.add_adj_output(adj_output)
+
+|more| `download the overloaded module`_
+
+.. _`download the overloaded module`: ../_static/overloading/normalise_overloaded.py
+
+That's it! Now we are ready to use our function :py:data:`normalise` with fenics-adjoint.
+Let us perform a taylor test to see if it works:
+
+.. literalinclude:: ../_static/overloading/tutorial9_overloading.py
+
+This gives the output:
+
+.. code-block:: none
+
+   Computed residuals: [5.719808547972123e-06, 1.4356712128879936e-06, 3.5963468743448646e-07, 8.999840626988198e-08]
+   Computed convergence rates: [1.9942414669485427, 1.997121308032896, 1.9985608192606437]
+
+It works.
 
 
 
