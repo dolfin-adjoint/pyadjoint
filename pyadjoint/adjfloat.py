@@ -28,7 +28,14 @@ class AdjFloat(OverloadedType, float):
 
         return output
 
-    def _add(self, other, output):
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __add__(self, other):
+        output = float.__add__(self, other)
+        if output is NotImplemented:
+            return NotImplemented
+
         if not isinstance(other, OverloadedType):
             other = AdjFloat(other)
 
@@ -42,17 +49,8 @@ class AdjFloat(OverloadedType, float):
 
         return output
 
-    def __add__(self, other):
-        output = float.__add__(self, other)
-        if output is NotImplemented:
-            return NotImplemented
-        return self._add(other, output)
-
     def __radd__(self, other):
-        output = float.__radd__(self, other)
-        if output is NotImplemented:
-            return NotImplemented
-        return self._add(other, output)
+        return self.__add__(other)
 
     def __pow__(self, power, modulo=None):
         output = float.__pow__(self, power)
