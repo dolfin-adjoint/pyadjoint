@@ -19,7 +19,7 @@ def normalise(func, **kwargs):
         tape.add_block(block)
 
     with stop_annotating():
-        output = backend_normalise(func, **kwargs)
+        output = backend_normalise(func)
 
     output = create_overloaded_object(output)
 
@@ -59,5 +59,5 @@ class NormaliseBlock(Block):
     def recompute(self):
         dependencies = self.get_dependencies()
         func = dependencies[0].get_saved_output()
-        output = backend_normalise(func, **self.kwargs)
+        output = backend_normalise(func)
         self.get_outputs()[0].checkpoint = output
