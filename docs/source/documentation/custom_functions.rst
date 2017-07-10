@@ -203,23 +203,9 @@ the chain rule. If a functional is the result of a series of straightforward tra
 
 then by the chain rule
 
-.. math:: \frac{\mathrm{d}J}{\mathrm{d}u_0} = \frac{\partial J}{\partial u_n}\frac{\partial u_n}{\partial u_{n-1}}\ldots\frac{\partial u_1}{\partial u_0}.
+.. math::
 
-..
-   With the tangent linear model we calculate this product from the right and so
-   for a single link in the chain:
-
-   .. math:: y_i = \frac{\partial u_{i}}{\partial u_{i-1}}y_{i-1},
-
-   where
-
-   .. math::
-
-      y_{n+1} = \frac{\mathrm{d}J}{\mathrm{u_0}}.
-
-   We see that each block only needs to know about its own gradient!
-   This is what :py:func:`evaluate_tlm <pyadjoint.block.Block.evaluate_tlm>`
-   should implement.
+   \frac{\mathrm{d}J}{\mathrm{d}u_0} = \frac{\partial J}{\partial u_n}\frac{\partial u_n}{\partial u_{n-1}}\ldots\frac{\partial u_1}{\partial u_0}.
 
 If we consider instead the adjoint model we will find the transpose of :math:`\frac{\mathrm{d}J}{\mathrm{d}u_0}`:
 
