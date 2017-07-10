@@ -34,12 +34,12 @@ while (t <= end):
     Jlist.append([t, Jtemp])
 
 
-J = 0
+    J = 0
 for i in range(1, len(Jlist)):
     J += 0.5*(Jlist[i-1][1] + Jlist[i][1])*float(timestep)
 
 tape = get_working_tape()
 tape.visualise('tut8debug',dot=1)
 h = Constant(nu)
-print(Jlist)
-# taylor_test(ReducedFunctional(J, nu), nu, h)
+#print(Jlist)
+taylor_test(ReducedFunctional(J, nu), nu, h)
