@@ -1,8 +1,7 @@
 from fenics import *
 from fenics_adjoint import *
 
-from pyadjoint.block import Block
-from pyadjoint.tape import annotate_tape, stop_annotating
+from pyadjoint import Block, annotate_tape, stop_annotating
 from fenics_adjoint.types import create_overloaded_object
 
 from normalise import normalise

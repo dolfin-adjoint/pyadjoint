@@ -7,7 +7,7 @@ Adding Custom Functions
 As mentioned in the :doc:`first section  <tutorial>` of this tutorial fenics-adjoint
 works by overloading parts of FEniCS so that it may build up an annotation by recording
 each step of the forward model. The list of overloaded functions and objects is found
-in the :doc:`api <api>`. The part of fenics-adjoint that takes care of the fundamental
+in the :doc:`API reference <api>`. The part of fenics-adjoint that takes care of the fundamental
 annotation is pyadjoint, which is independent of FEniCS.
 fenics-adjoint tells pyadjoint how to handle FEniCS types and functions.
 If the forward model uses custom functions rather than the
@@ -71,8 +71,7 @@ overload.
    from fenics import *
    from fenics_adjoint import *
 
-   from pyadjoint.block import Block
-   from pyadjoint.tape import annotate_tape, stop_annotating
+   from pyadjoint import Block, annotate_tape, stop_annotating
    from fenics_adjoint.types import create_overloaded_object
 
    from normalise import normalise
@@ -303,6 +302,10 @@ That's it! Now we are ready to use our function :py:data:`normalise` with fenics
 Let us perform a taylor test to see if it works:
 
 .. literalinclude:: ../_static/overloading/tutorial9_overloading.py
+
+|more| `download this test`_
+
+.. _`download this test`: ../_static/overloading/tutorial9_overloading.py
 
 This gives the output:
 
