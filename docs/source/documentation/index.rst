@@ -9,19 +9,21 @@ Documentation for fenics-adjoint |version|
 Quickstart
 ==========
 
-Have you just discovered dolfin-adjoint and want to get up and running
+Have you just discovered fenics-adjoint and want to get up and running
 quickly? Then, we suggest you
 
- * Start by going through the first steps of the :ref:`dolfin-adjoint tutorial <dolfin-adjoint-tutorial>`.
- * Move on to look at the more detailed :ref:`topology optimization example <poisson-topology-example>`.
+ * Start by going through the first steps of the
+   :ref:`fenics-adjoint tutorial <fenics-adjoint-tutorial>`.
+ * Move on to look at the more detailed :ref:`Stokes Dirichlet BC control example <stokes-bc-control-example>`.
  * Install :ref:`dolfin-adjoint and its dependencies <download>`.
 
 Next, feel free to take a look at the complete :ref:`introduction to
-dolfin-adjoint <dolfin-adjoint-manual>`, more :ref:`dolfin-adjoint
-examples <dolfin-adjoint-examples>`, an introduction to the
+fenics-adjoint <fenics-adjoint-manual>`, more :ref:`fenics-adjoint
+examples <fenics-adjoint-examples>`, an introduction to the
 :ref:`mathematical background of adjoints
-<dolfin-adjoint-mathematical-background>`, or the :ref:`dolfin-adjoint
-API reference <dolfin-adjoint-api-reference>`.
+<fenics-adjoint-mathematical-background>`,
+or the :ref:`fenics-adjoint <fenics-adjoint-api-reference>`
+and :ref:`pyadjoint <pyadjoint-api-reference>` API references.
 
 Resources
 =========
@@ -35,10 +37,10 @@ Resources
 	<div id="front-block-1" class="front-block block">
           <h2> dolfin-adjoint manual </h2>
 
-The :ref:`dolfin-adjoint manual <dolfin-adjoint-manual>` describes
-how to use dolfin-adjoint and the main features of dolfin-adjoint, and
+The :ref:`fenics-adjoint manual <fenics-adjoint-manual>` describes
+how to use fenics-adjoint and the main features of fenics-adjoint, and
 includes introductory examples. For more use cases, see the
-:ref:`examples <dolfin-adjoint-examples>`.
+:ref:`examples <fenics-adjoint-examples>`.
 
 .. only:: html
 
@@ -52,7 +54,7 @@ includes introductory examples. For more use cases, see the
 Are you not that familiar with adjoints? Adjoints show up in many
 applications, and in many computational techniques. You might be
 interested in a :ref:`mathematical introduction to adjoints and
-their applications <dolfin-adjoint-mathematical-background>`.
+their applications <fenics-adjoint-mathematical-background>`.
 
 
 .. raw:: html
@@ -61,9 +63,9 @@ their applications <dolfin-adjoint-mathematical-background>`.
 
   <div id="front-block-2" class="front-block block">
 
-  <h2>Examples of dolfin-adjoint usage</h2>
+  <h2>Examples of fenics-adjoint usage</h2>
 
-We have implemented and documented a number of :ref:`examples <dolfin-adjoint-examples>` using dolfin-adjoint.
+We have implemented and documented a number of :ref:`examples <fenics-adjoint-examples>` using fenics-adjoint.
 
 Many more examples of dolfin-adjoint usage can be found in the
 separate `dolfin-adjoint applications repository
@@ -75,15 +77,9 @@ separate `dolfin-adjoint applications repository
 
 Are you looking for the complete reference documentation? Look no
 further, it is right here: :ref:`fenics-adjoint API reference
-<api>`, :ref:`pyadjoint API reference <pyadjoint_api>`.
+<fenics-adjoint-api-reference>`, :ref:`pyadjoint API reference <pyadjoint-api-reference>`.
 
 
-.. raw:: html
-
-  <h2>The timestepping library</h2>
-
-How dolfin-adjoint integrates with the timestepping library is
-documented :ref:`here <timestepping>`.
 
 .. raw:: html
 

@@ -1,4 +1,4 @@
-.. _dolfin-adjoint-mathematical-background:
+.. _fenics-adjoint-mathematical-background:
 
 ********************************************************
 Mathematical background: adjoints and their applications
@@ -29,4 +29,3 @@ Appendices
 .. toctree::
 
    A-gst
-

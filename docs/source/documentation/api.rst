@@ -33,6 +33,14 @@ Overloaded objects
 
    .. automethod:: assign
 .. autoclass:: Constant
+.. autoclass:: DirichletBC
+.. autoclass:: Expression
+
+*********************
+Overloading functions
+*********************
+
+.. autofunction:: create_overloaded_object
 
 ****************
 Driver functions
@@ -50,7 +58,6 @@ Driver functions
    .. automethod:: __call__
    .. automethod:: derivative
 
-.. _parameter-label:
 
 *******************
 Debugging functions

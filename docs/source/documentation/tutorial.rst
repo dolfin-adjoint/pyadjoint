@@ -1,6 +1,6 @@
-.. _dolfin-adjoint-tutorial:
+.. _fenics-adjoint-tutorial:
 
-.. py:currentmodule:: dolfin_adjoint
+.. py:currentmodule:: fenics_adjoint
 
 ===========
 First steps

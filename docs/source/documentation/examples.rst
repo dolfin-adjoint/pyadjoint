@@ -1,32 +1,12 @@
-.. _dolfin-adjoint-examples:
+.. _fenics-adjoint-examples:
 
 ********************************
-Examples of using dolfin-adjoint
+Examples of using fenics-adjoint
 ********************************
 
-Sensitivity analysis
---------------------
-
-.. toctree::
-
-   klein/klein
-
-Optimization examples
+Sensitivity Analysis
 ---------------------
 
 .. toctree::
 
-   poisson-mother/poisson-mother
    stokes-bc-control/stokes-bc-control
-   poisson-topology/poisson-topology
-   stokes-topology/stokes-topology
-   time-distributed-control/time-distributed-control
-   time-dependent-wave/time-dependent-wave
-   mpec/mpec
-
-Generalized stability examples
-------------------------------
-
-.. toctree::
-
-   salt-fingering/salt-fingering
