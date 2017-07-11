@@ -5,3 +5,5 @@ __license__ = 'LGPL-3'
 __maintainer__ = 'Sebastian Kenji Mitusch'
 __email__ = 'sebastkm@math.uio.no'
 
+from .block import Block
+from .tape import Tape
