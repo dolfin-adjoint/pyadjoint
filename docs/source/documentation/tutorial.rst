@@ -94,7 +94,7 @@ This single function call differentiates the model, assembles each adjoint
 equation in turn, and then uses the adjoint solutions to compute the
 requested gradient. Here we note that even though :py:data:`u` represented the
 *final* velocity when we defined the functional, the differentiation is with
-respect to the *initial* velocity. :py:func:`compute_gradient <fenics_adjoint.compute_gradient>`
+respect to the *initial* velocity. :py:func:`compute_gradient <pyadjoint.compute_gradient>`
 always differentiates with respect to the value of the second argument at its creation time.
 
 

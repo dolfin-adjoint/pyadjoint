@@ -63,7 +63,7 @@ we write
 Here, :py:data:`h` is the direction of perturbation.
 :py:data:`h` must be the same type as what we are differentiating with respect to, so in this case since :py:data:`nu` is a :py:class:`Constant <fenics_adjoint.Constant>` :py:data:`h` must also be a :py:class:`Constant <fenics_adjoint.Constant>`.
 It is also a good idea to make sure that :py:data:`h` is the same order of magnitude as :py:data:`nu`, so that the perturbations are not too large.
-:py:data:`Jhat` is the functional reduced to a pure function of :py:data:`nu`.
+:py:data:`Jhat` is the functional reduced to a pure function of :py:data:`nu`, it is a :py:class:`ReducedFunctional <pyadjoint.ReducedFunctional>` object.
 We could also have taken the taylor test on the gradient with respect to the :py:class:`Function <fenics_adjoint.Function>`
 :py:data:`u`. In that case :py:data:`h` must also be a :py:class:`Function <fenics_adjoint.Function>`.
 

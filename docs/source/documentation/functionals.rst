@@ -61,7 +61,7 @@ Let us look at some specific functionals:
 
   We could also use ready-made integration routines, but we have to make sure that the routine does
   not change the type of the :py:data:`J`. :py:data:`Jtemp` and :py:data:`J` have
-  type :py:class:`AdjFloat <fenics_adjoint.AdjFloat>`. For example if we wanted to use the scipy
+  type :py:class:`AdjFloat <pyadjoint.AdjFloat>`. For example if we wanted to use the scipy
   trapezoidal rule function we could write
 
   .. code-block:: python

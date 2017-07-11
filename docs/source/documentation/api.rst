@@ -4,6 +4,8 @@
 fenics-adjoint API reference
 ============================
 
+See also the :doc:`pyadjoint API reference <pyadjoint_api>`.
+
 .. automodule:: fenics_adjoint
 
 ********************
@@ -35,32 +37,3 @@ Overloaded objects
 .. autoclass:: Constant
 .. autoclass:: DirichletBC
 .. autoclass:: Expression
-
-*********************
-Overloading functions
-*********************
-
-.. autofunction:: create_overloaded_object
-
-****************
-Driver functions
-****************
-
-.. autofunction:: compute_gradient
-
-
-***********************************
-:py:data:`ReducedFunctional` object
-***********************************
-
-.. autoclass:: ReducedFunctional
-
-   .. automethod:: __call__
-   .. automethod:: derivative
-
-
-*******************
-Debugging functions
-*******************
-.. autofunction:: visualise
-.. autofunction:: taylor_test
