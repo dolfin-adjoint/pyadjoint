@@ -36,12 +36,21 @@ jobs:
           paths:
             - ./venv
           key: v1-dependencies-{{ checksum "requirements.txt" }}
-        
+
+      - restore_cache:
+          keys:
+          - dolfin-jit-cache
+
       # run tests!
       - run:
           name: run tests
           command: |
             python -m pytest -v tests/fenics_adjoint/
+
+      - save_cache:
+          paths:
+            - ~/.cache
+          key: dolfin-jit-cache
 
       - store_artifacts:
           path: test-reports
