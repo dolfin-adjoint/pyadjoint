@@ -183,9 +183,9 @@ recompute the block.
 
 We get the inputs from the dependencies, calculate the function and save it to the ouput.
 
-----------------------------------------
-The tangent linear model and the adjoint
-----------------------------------------
+-----------
+The adjoint
+-----------
 
 
 The method :py:meth:`evaluate_adj` should evaluate the adjoint gradient of the block.
