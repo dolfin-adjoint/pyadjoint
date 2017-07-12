@@ -42,7 +42,7 @@ class DirichletBC(FloatingType, backend.DirichletBC):
             # Most probably it was just a float that is immutable so will never change.
             return self
 
-        return DirichletBC(self.function_space(), deps[0].get_saved_output(), self.domain_args[0], method=self.method(), annotate=False)
+        return compat.create_bc(self, deps[0].get_saved_output())
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
