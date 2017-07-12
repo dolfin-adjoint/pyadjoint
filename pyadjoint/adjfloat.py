@@ -17,9 +17,9 @@ class AdjFloat(OverloadedType, float, generic):
             return NotImplemented
 
         if not isinstance(other, OverloadedType):
-            other = type(self)(other)
+            other = self.__class__(other)
 
-        output = type(self)(output)
+        output = self.__class__(output)
         if annotate_tape():
             block = MulBlock(self, other)
 
@@ -38,9 +38,9 @@ class AdjFloat(OverloadedType, float, generic):
             return NotImplemented
 
         if not isinstance(other, OverloadedType):
-            other = type(self)(other)
+            other = self.__class__(other)
 
-        output = type(self)(output)
+        output = self.__class__(output)
         if annotate_tape():
             block = AddBlock(self, other)
 
@@ -58,10 +58,10 @@ class AdjFloat(OverloadedType, float, generic):
         if output is NotImplemented:
             return NotImplemented
 
-        if not isinstance(power, type(self)):
-            power = type(self)(power)
+        if not isinstance(power, self.__class__):
+            power = self.__class__(power)
 
-        output = type(self)(output)
+        output = self.__class__(output)
         if annotate_tape():
             block = PowBlock(self, power)
 
@@ -72,7 +72,7 @@ class AdjFloat(OverloadedType, float, generic):
         return output
 
     def get_derivative(self, options={}):
-        return type(self)(self.get_adj_output())
+        return self.__class__(self.get_adj_output())
 
     def adj_update_value(self, value):
         self.original_block_output.checkpoint = value
