@@ -41,8 +41,7 @@ class DirichletBC(FloatingType, backend.DirichletBC):
             # We don't have any dependencies so the supplied value was not an OverloadedType.
             # Most probably it was just a float that is immutable so will never change.
             return self
-        #return self
-        print("Her")
+
         return DirichletBC(self.function_space(), deps[0].get_saved_output(), self.domain_args[0], method=self.method(), annotate=False)
 
     def _ad_restore_at_checkpoint(self, checkpoint):
@@ -50,7 +49,7 @@ class DirichletBC(FloatingType, backend.DirichletBC):
 
 
 class DirichletBCBlock(Block):
-    def __init__(self, bc, *args):
+    def __init__(self, *args):
         Block.__init__(self)
         self.function_space = args[0]
         self.parent_space = self.function_space

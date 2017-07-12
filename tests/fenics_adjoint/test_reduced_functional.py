@@ -55,6 +55,8 @@ def test_function():
 
 
 def test_wrt_function_dirichlet_boundary():
+    tape = Tape()
+    set_working_tape(tape)
     mesh = UnitSquareMesh(10,10)
 
     V = FunctionSpace(mesh,"CG",1)
@@ -89,7 +91,7 @@ def test_wrt_function_dirichlet_boundary():
     down.mark(boundary,2)
     ds = Measure("ds", subdomain_data=boundary)
 
-    bc_func = project(Expression("sin(x[1])", degree=1), V)
+    bc_func = project(Expression("sin(x[1])", degree=1, annotate=False), V, annotate=False)
     bc1 = DirichletBC(V,bc_func,left)
     bc2 = DirichletBC(V,2,right)
     bc = [bc1,bc2]

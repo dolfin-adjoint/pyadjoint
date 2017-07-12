@@ -5,7 +5,7 @@ from fenics import *
 from fenics_adjoint import *
 
 # For asserts
-from pyadjoint.overloaded_type import OverloadedType
+from pyadjoint.overloaded_type import OverloadedType, FloatingType
 
 def test_subclass_expression():
     class MyExpression1(Expression):
@@ -22,7 +22,7 @@ def test_subclass_expression():
     assert(Expression in MyExpression1.__bases__)
 
     # OverloadedType is a base of the subclass:
-    assert(OverloadedType in MyExpression1.__bases__)
+    assert(FloatingType in MyExpression1.__bases__)
     assert(isinstance(f, OverloadedType))
 
 

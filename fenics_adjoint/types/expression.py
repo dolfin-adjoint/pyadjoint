@@ -2,7 +2,7 @@ import backend
 import ufl
 from six import add_metaclass
 
-from pyadjoint.overloaded_type import OverloadedType
+from pyadjoint.overloaded_type import OverloadedType, FloatingType
 from pyadjoint.tape import get_working_tape, annotate_tape
 from pyadjoint.block import Block
 from pyadjoint.adjfloat import AdjFloat
@@ -41,7 +41,7 @@ class OverloadedExpressionMetaClass(_backend_ExpressionMetaClass):
             and bases[0] == Expression
             and bases[1] == ufl.Coefficient
             and issubclass(bases[2], backend.cpp.Expression)
-            and bases[3] == OverloadedType):
+            and bases[3] == FloatingType):
 
             return type.__new__(mcs, class_name, bases, dict_)
 
@@ -52,13 +52,13 @@ class OverloadedExpressionMetaClass(_backend_ExpressionMetaClass):
         bases.append(backend.Expression)
 
         # The if-test might be redundant as users should never define
-        # Expression subclasses which inherit from OverloadedType.
+        # Expression subclasses which inherit from FloatingType.
         # In fact it might just be better to raise an error if it does.
-        if OverloadedType not in bases:
-            # Time to add our OverloadedType as a baseclass,
+        if FloatingType not in bases:
+            # Time to add our FloatingType as a baseclass,
             # as well as its constructor to the
             # new class constructor.
-            bases.append(OverloadedType)
+            bases.append(FloatingType)
 
             user_init = dict_.get("__init__", None)
 
@@ -72,36 +72,33 @@ class OverloadedExpressionMetaClass(_backend_ExpressionMetaClass):
                     pass
                 dict_["__init__"] = __init__
 
-
         bases = tuple(bases)
 
         # Pass everything along to the backend metaclass.
         # This should return a new user-defined Expression 
-        # subclass that inherit from OverloadedType.
+        # subclass that inherit from FloatingType.
         original = _backend_ExpressionMetaClass.__new__(mcs, class_name, bases, dict_)
 
         original_init = original.__dict__["__init__"]
 
         bases = list(original.__bases__)
-        bases[0] = Expression # Replace backend.Expression with our overloaded expression.
+        bases[0] = Expression  # Replace backend.Expression with our overloaded expression.
 
         def __init__(self, *args, **kwargs):
             self._ad_initialized = False
 
             Expression.__init__(self, *args, **kwargs)
 
-            OverloadedType.__init__(self, *args, **kwargs)
+            FloatingType.__init__(self,
+                                  *args,
+                                  block_class=ExpressionBlock,
+                                  annotate=annotate_tape(kwargs),
+                                  _ad_args=[self],
+                                  _ad_floating_active=True,
+                                  **kwargs)
             original_init(self, *args, **kwargs)
 
             self._ad_initialized = True
-
-            self.annotate_tape = annotate_tape(kwargs)
-            if self.annotate_tape:
-                tape = get_working_tape()
-                block = ExpressionBlock(self)
-                tape.add_block(block)
-                block.add_output(self.block_output)
-
 
         dict_["__init__"] = __init__
         bases = tuple(bases)
@@ -145,7 +142,7 @@ def create_compiled_expression(original, cppcode, *args, **kwargs):
 
     """
     original_bases = type(original).__bases__
-    bases = (Expression, original_bases[1], original_bases[2], OverloadedType)
+    bases = (Expression, original_bases[1], original_bases[2], FloatingType)
 
     original_init = type(original).__dict__["__init__"]
 
@@ -156,17 +153,16 @@ def create_compiled_expression(original, cppcode, *args, **kwargs):
         self._ad_initialized = False
         Expression.__init__(self, *args, **kwargs)
 
-        OverloadedType.__init__(self, *args, **kwargs)
+        FloatingType.__init__(self,
+                              *args,
+                              block_class=ExpressionBlock,
+                              annotate=annotate_tape(kwargs),
+                              _ad_args=[self],
+                              _ad_floating_active=True,
+                              **kwargs)
         original_init(self, cppcode, *args, **kwargs)
 
         self._ad_initialized = True
-
-        self.annotate_tape = annotate_tape(kwargs)
-        if self.annotate_tape:            
-            tape = get_working_tape()
-            block = ExpressionBlock(self)
-            tape.add_block(block)
-            block.add_output(self.block_output)
 
     return type.__new__(OverloadedExpressionMetaClass,
                         "CompiledExpression",
@@ -195,20 +191,18 @@ class Expression(backend.Expression):
 
     def __setattr__(self, k, v):    
         if k not in _IGNORED_EXPRESSION_ATTRIBUTES:
-            if self._ad_initialized and self.annotate_tape:
-                self.block_output.save_output()
-                self._ad_attributes_dict[k] = v
-
-                tape = get_working_tape()
-                block = ExpressionBlock(self)
-                tape.add_block(block)
-                block.add_output(self.create_block_output())
-            else:
-                self._ad_attributes_dict[k] = v
+            self._ad_attributes_dict[k] = v
         backend.Expression.__setattr__(self, k, v)
 
     def _ad_create_checkpoint(self):
-        return self._ad_attributes_dict.copy()
+        ret = {}
+        for k in self._ad_attributes_dict:
+            v = self._ad_attributes_dict[k]
+            if isinstance(v, OverloadedType):
+                ret[k] = v.block_output.get_saved_output()
+            else:
+                ret[k] = v
+        return ret
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         for k in checkpoint:
