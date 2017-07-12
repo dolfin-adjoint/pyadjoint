@@ -1,4 +1,4 @@
-from .tape import get_working_tape
+from .tape import get_working_tape, annotate_tape
 from .block_output import BlockOutput
 
 
@@ -14,6 +14,7 @@ class OverloadedType(object):
 
     """
     def __init__(self, *args, **kwargs):
+        # TODO: Do we actually need to store the tape? I don't think this is used at all.
         tape = kwargs.pop("tape", None)
 
         if tape:
@@ -24,8 +25,7 @@ class OverloadedType(object):
         self.original_block_output = self.create_block_output()
 
     def create_block_output(self):
-        floating_type = False if not hasattr(self, "block_output") else self.block_output.floating_type
-        block_output = BlockOutput(self, floating_type=floating_type)
+        block_output = BlockOutput(self)
         self.set_block_output(block_output)
         return block_output
 
@@ -143,3 +143,37 @@ class OverloadedType(object):
 
         """
         raise NotImplementedError
+
+
+class FloatingType(OverloadedType):
+    def __init__(self, *args, **kwargs):
+        self.block_class = kwargs.pop("block_class", None)
+        self._ad_args = kwargs.pop("_ad_args", [])
+        self._ad_kwargs = kwargs.pop("_ad_kwargs", {})
+        self._ad_floating_active = kwargs.pop("_ad_floating_active", False)
+        self.annotate_tape = annotate_tape(kwargs)
+        self.block = None
+        OverloadedType.__init__(self, *args, **kwargs)
+
+    def create_block_output(self):
+        block_output = OverloadedType.create_block_output(self)
+        block_output.floating_type = True
+        return block_output
+
+    def _ad_annotate_block(self):
+        if self.block_class is None:
+            return
+
+        if not self.annotate_tape:
+            return
+
+        tape = get_working_tape()
+        block = self.block_class(self, *self._ad_args, **self._ad_kwargs)
+        self.block = block
+        tape.add_block(block)
+        block.add_output(self.block_output)
+
+        # Need to create a new block output for future use.
+        self.create_block_output()
+
+

@@ -25,7 +25,7 @@ class Block(object):
 
         """
         if dep not in self._dependencies:  # Can be optimized if we have need for huge lists.
-            dep.save_output(overwrite=False)
+            dep.will_add_as_dependency()
             self._dependencies.append(dep)
 
     def get_dependencies(self):
@@ -46,7 +46,7 @@ class Block(object):
             obj (:class:`BlockOutput`): The object to be added.
 
         """
-        obj.save_output()
+        obj.will_add_as_output()
         self._outputs.append(obj)
 
     def get_outputs(self):

@@ -431,7 +431,9 @@ class SolveBlock(Block):
             c = block_output.output
             c_rep = block_output.get_saved_output()
 
-            if c != c_rep:
+            if isinstance(c, backend.DirichletBC):
+                bcs.append(c_rep)
+            elif c != c_rep:
                 if c in self.lhs.coefficients():
                     replace_lhs_coeffs[c] = c_rep
                     if c == self.func:
@@ -440,9 +442,6 @@ class SolveBlock(Block):
                 
                 if self.linear and c in self.rhs.coefficients():
                     replace_rhs_coeffs[c] = c_rep
-
-                if isinstance(c, backend.DirichletBC):
-                    bcs.append(c_rep)
 
         lhs = backend.replace(self.lhs, replace_lhs_coeffs)
         
