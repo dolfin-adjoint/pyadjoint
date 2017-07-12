@@ -1,9 +1,9 @@
 from .tape import get_working_tape, annotate_tape
 from .block import Block
 from .overloaded_type import OverloadedType
+from numpy import generic
 
-
-class AdjFloat(OverloadedType, float):
+class AdjFloat(OverloadedType, float, generic):
     def __new__(cls, *args, **kwargs):
         return float.__new__(cls, *args)
 
@@ -16,9 +16,9 @@ class AdjFloat(OverloadedType, float):
             return NotImplemented
 
         if not isinstance(other, OverloadedType):
-            other = AdjFloat(other)
+            other = type(self)(other)
 
-        output = AdjFloat(output)
+        output = type(self)(output)
         if annotate_tape():
             block = MulBlock(self, other)
 
@@ -37,9 +37,9 @@ class AdjFloat(OverloadedType, float):
             return NotImplemented
 
         if not isinstance(other, OverloadedType):
-            other = AdjFloat(other)
+            other = type(self)(other)
 
-        output = AdjFloat(output)
+        output = type(self)(output)
         if annotate_tape():
             block = AddBlock(self, other)
 
@@ -57,10 +57,10 @@ class AdjFloat(OverloadedType, float):
         if output is NotImplemented:
             return NotImplemented
 
-        if not isinstance(power, AdjFloat):
-            power = AdjFloat(power)
+        if not isinstance(power, type(self)):
+            power = type(self)(power)
 
-        output = AdjFloat(output)
+        output = type(self)(output)
         if annotate_tape():
             block = PowBlock(self, power)
 
@@ -71,7 +71,7 @@ class AdjFloat(OverloadedType, float):
         return output
 
     def get_derivative(self, options={}):
-        return AdjFloat(self.get_adj_output())
+        return type(self)(self.get_adj_output())
 
     def adj_update_value(self, value):
         self.original_block_output.checkpoint = value
