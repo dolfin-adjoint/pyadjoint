@@ -3,6 +3,7 @@ from .block import Block
 from .overloaded_type import OverloadedType
 from numpy import generic
 
+
 class AdjFloat(OverloadedType, float, generic):
     def __new__(cls, *args, **kwargs):
         return float.__new__(cls, *args)
@@ -126,6 +127,7 @@ class PowBlock(Block):
 
         new_value = base_value ** exponent_value
         self.get_outputs()[0].checkpoint = new_value
+
 
 class AddBlock(Block):
     def __init__(self, lterm, rterm):
