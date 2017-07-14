@@ -233,6 +233,10 @@ class ExpressionBlock(Block):
 
         for block_output in self.get_dependencies():
             c = block_output.output
+
+            if c not in self.expression.user_defined_derivatives:
+                continue
+
             for adj_pair in adj_inputs:
                 adj_input = adj_pair[0]
                 V = adj_pair[1]
@@ -262,6 +266,9 @@ class ExpressionBlock(Block):
                 continue
 
             c = block_output.output
+            if c not in self.expression.user_defined_derivatives:
+                continue
+
             for key in self.expression._ad_attributes_dict:
                 if (self.expression._ad_ignored_attributes is None
                     or key not in self.expression._ad_ignored_attributes):
