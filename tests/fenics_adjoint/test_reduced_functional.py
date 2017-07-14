@@ -342,14 +342,16 @@ def test_dirichlet_updating():
     T = 0.3
     F = inner(grad(u), grad(v)) * dx - f * v * dx
 
+    J = 0
     while t.values()[0] <= T:
         solve(F == 0, u, bc)
         t.assign(t.values()[0] + dt)
+        J += dt*assemble(u**2*dx)
 
-    J = assemble(u**2*dx)
     Jhat = ReducedFunctional(J, f)
-    g = f.copy(deepcopy=True)
-    assert(Jhat(g) == J)
+    h = project(Constant(1), V, annotate=False)
+    assert taylor_test(Jhat, f, h) > 1.9
+
 
 def test_expression_update():
     tape = Tape()
@@ -361,7 +363,9 @@ def test_expression_update():
     v = TestFunction(V)
     u = Function(V)
     t = Constant(0.3)
-    f = Expression("t", t=t, degree=1)
+    a = Constant(2)
+    f = Expression("t*t*a*a", t=t, a=a, degree=1)
+    f.user_defined_derivatives = {a: Expression("2*t*t*a", t=t, a=a, degree=1, annotate=False)}
     g = Constant(1)
 
     dt = 0.1
@@ -378,9 +382,12 @@ def test_expression_update():
         t.assign(t.values()[0] + dt)
 
     J = assemble(u**2*dx)
-    Jhat = ReducedFunctional(J, g)
+    Jhat = ReducedFunctional(J, a)
     h = Constant(1)
-    assert(Jhat(h) == J)
+    assert taylor_test(Jhat, a, h)
+
+
+
 
 
 
