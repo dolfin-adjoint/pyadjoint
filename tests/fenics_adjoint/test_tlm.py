@@ -129,7 +129,7 @@ def test_time_dependent(solve_type):
 
     u_1 = Function(V)
     u_1.vector()[:] = 1
-    g = u_1.copy(deepcopy=True)
+    control = Control(u_1)
 
     a = u_1 * u * v * dx + dt * f * inner(grad(u), grad(v)) * dx
     L = u_1 * v * dx
@@ -149,12 +149,12 @@ def test_time_dependent(solve_type):
 
     J = assemble(u_1 ** 2 * dx)
 
-    Jhat = ReducedFunctional(J, u_1)
+    Jhat = ReducedFunctional(J, control)
     h = Function(V)
     h.vector()[:] = rand(V.dim())
     u_1.set_initial_tlm_input(h)
     tape.evaluate_tlm()
-    assert (taylor_test(Jhat, g, h, dJdm=J.block_output.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, control.data(), h, dJdm=J.block_output.tlm_value) > 1.9)
 
 
 def test_burgers():
@@ -307,8 +307,6 @@ def test_projection_function():
     m = g.copy(deepcopy=True)
     g.set_initial_tlm_input(h)
     tape.evaluate_tlm()
-    print(J.block_output.tlm_value)
-    print(Jhat.derivative().vector().inner(h.vector()))
     assert (taylor_test(Jhat, m, h, dJdm=J.block_output.tlm_value) > 1.9)
 
 

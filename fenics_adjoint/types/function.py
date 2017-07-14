@@ -40,8 +40,7 @@ class Function(OverloadedType, backend.Function):
         return vec
 
     @no_annotations
-    def get_derivative(self, options={}):
-        adj_value = self.get_adj_output()
+    def get_derivative(self, adj_value, options={}):
         return self._ad_convert_type(adj_value, options)
 
     @no_annotations

@@ -4,6 +4,8 @@ pytest.importorskip("fenics")
 from fenics import *
 from fenics_adjoint import *
 
+from numpy.random import rand, seed
+seed(8)
 
 def test_constant():
     mesh = IntervalMesh(10, 0, 1)
@@ -21,8 +23,8 @@ def test_constant():
     solve(F == 0, u, bc)
 
     J = assemble(c**2*u*dx)
-    Jhat = ReducedFunctional(J, c)
-    assert(taylor_test(Jhat, Constant(5), Constant(1)) > 1.9)
+    Jhat = ReducedFunctional(J, Control(c))
+    assert(taylor_test(Jhat, c, Constant(1)) > 1.9)
 
 
 def test_function():
@@ -41,17 +43,11 @@ def test_function():
     solve(F == 0, u, bc)
 
     J = assemble(c**2*u*dx)
-    Jhat = ReducedFunctional(J, f)
+    Jhat = ReducedFunctional(J, Control(f))
     
     h = Function(V)
-    from numpy.random import rand
     h.vector()[:] = rand(V.dim())
-    # Note that if you use f directly, it will not work
-    # as expected since f is the control and thus the initial point in control
-    # space is changed as you do the test. (Since f.vector is also assigned new values on pertubations)
-    g = f.copy(deepcopy=True)
-
-    assert(taylor_test(Jhat, g, h) > 1.9)
+    assert(taylor_test(Jhat, f, h) > 1.9)
 
 
 def test_wrt_function_dirichlet_boundary():
@@ -106,13 +102,11 @@ def test_wrt_function_dirichlet_boundary():
 
     J = assemble(u_**2*dx)
 
-    Jhat = ReducedFunctional(J, bc_func)
+    Jhat = ReducedFunctional(J, Control(bc_func))
     h = Function(V)
-    h.vector()[:] = 1
+    h.vector()[:] = rand(V.dim())
 
-    g = bc_func.copy(deepcopy=True)
-
-    assert(taylor_test(Jhat, g, h) > 1.9)
+    assert(taylor_test(Jhat, bc_func, h) > 1.9)
 
 
 def test_time_dependent():
@@ -144,7 +138,8 @@ def test_time_dependent():
     f.vector()[:] = 1
 
     u_1 = Function(V)
-    u_1.vector()[:] = 1 
+    u_1.vector()[:] = 1
+    control = Control(u_1)
 
     a = u_1*u*v*dx + dt*f*inner(grad(u),grad(v))*dx
     L = u_1*v*dx
@@ -158,12 +153,11 @@ def test_time_dependent():
 
     J = assemble(u_1**2*dx)
 
-    Jhat = ReducedFunctional(J, u_1)
+    Jhat = ReducedFunctional(J, control)
     
     h = Function(V)
-    h.vector()[:] = 1
-    g = f.copy(deepcopy=True)
-    assert(taylor_test(Jhat, g, h) > 1.9)
+    h.vector()[:] = rand(V.dim())
+    assert(taylor_test(Jhat, control.data(), h) > 1.9)
 
 def test_burgers():
     n = 30
@@ -205,12 +199,11 @@ def test_burgers():
         t += float(timestep)
 
     J = assemble(u_*u_*dx + ic*ic*dx)
-    Jhat = ReducedFunctional(J, ic)
+    Jhat = ReducedFunctional(J, Control(ic))
 
     h = Function(V)
-    h.vector()[:] = 1
-    g = ic.copy(deepcopy=True)
-    assert(taylor_test(Jhat, g, h) > 1.9)
+    h.vector()[:] = rand(V.dim())
+    assert(taylor_test(Jhat, ic, h) > 1.9)
 
 def test_expression():
     mesh = IntervalMesh(10, 0, 1)
@@ -237,12 +230,11 @@ def test_expression():
         f.t = t
 
     J = assemble(u**2*dx)
-    Jhat = ReducedFunctional(J, a)
+    Jhat = ReducedFunctional(J, Control(a))
 
     h = Function(V)
-    h.vector()[:] = 1
-    g = a.copy(deepcopy=True)
-    assert(taylor_test(Jhat, g, h) > 1.9)
+    h.vector()[:] = rand(V.dim())
+    assert(taylor_test(Jhat, a, h) > 1.9)
 
 def test_projection():
     mesh = UnitSquareMesh(10, 10)
@@ -264,11 +256,10 @@ def test_projection():
     solve(a == L, u_, bc)
 
     J = assemble(u_**2*dx)
-    Jhat = ReducedFunctional(J, k)
+    Jhat = ReducedFunctional(J, Control(k))
 
-    m = Constant(2.0)
     h = Constant(1.0)
-    assert(taylor_test(Jhat, m, h) > 1.9)
+    assert(taylor_test(Jhat, k, h) > 1.9)
 
 def test_projection_function():
     mesh = UnitSquareMesh(10, 10)
@@ -291,12 +282,11 @@ def test_projection_function():
     solve(a == L, u_, bc)
 
     J = assemble(u_**2*dx)
-    Jhat = ReducedFunctional(J, g)
+    Jhat = ReducedFunctional(J, Control(g))
 
-    m = g.copy(deepcopy=True)
     h = Function(V)
-    h.vector()[:] = 1
-    assert(taylor_test(Jhat, m, h) > 1.9)
+    h.vector()[:] = rand(V.dim())
+    assert(taylor_test(Jhat, g, h) > 1.9)
 
 def test_assemble_recompute():
     mesh = UnitSquareMesh(10, 10)
@@ -313,10 +303,9 @@ def test_assemble_recompute():
     expr = Expression("k", k=k, degree=1)
     expr.user_defined_derivatives = {k: Expression("1", degree=1, annotate_tape=False)}
     J = assemble(expr**2*dx(domain=mesh))
-    Jhat = ReducedFunctional(J, f)
+    Jhat = ReducedFunctional(J, Control(f))
 
-    m = f.copy(deepcopy=True)
     h = Function(V)
-    h.vector()[:] = 1
-    assert(taylor_test(Jhat, m, h) > 1.9)
+    h.vector()[:] = rand(V.dim())
+    assert(taylor_test(Jhat, f, h) > 1.9)
 

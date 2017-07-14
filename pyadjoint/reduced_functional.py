@@ -1,7 +1,8 @@
 from .tape import get_working_tape, stop_annotating
 from .drivers import compute_gradient
 from .overloaded_type import OverloadedType
-
+from .control import Control
+from .enlisting import enlist, delist
 
 class ReducedFunctional(object):
     """Class representing the reduced functional.
@@ -14,23 +15,20 @@ class ReducedFunctional(object):
         functional (:obj:`OverloadedType`): An instance of an OverloadedType,
             usually :class:`AdjFloat`. This should be the return value of the
             functional you want to reduce.
-        controls (OverloadedType): An instance of an OverloadedType,
-            which you want to map to the functional. You may also supply a list
-            of such instances if you have multiple controls.
+        controls (list[Control]): A list of Control instances, which you want
+            to map to the functional. It is also possible to supply a single Control
+            instance instead of a list.
 
     """
     def __init__(self, functional, controls):
         self.functional = functional
         self.tape = get_working_tape()
 
-        if isinstance(controls, OverloadedType):
-            self.controls = [controls]
-        else:
-            self.controls = controls
+        self.controls = enlist(controls)
 
         for i, block in enumerate(self.tape.get_blocks()):
             for control in self.controls:
-                if control.original_block_output in block.get_dependencies():
+                if control.block_output in block.get_dependencies():
                     self.block_idx = i
                     return
 
@@ -51,10 +49,7 @@ class ReducedFunctional(object):
 
         """
         derivatives = compute_gradient(self.functional, self.controls, options=options, tape=self.tape)
-        if len(derivatives) == 1:
-            return derivatives[0]
-        else:
-            return derivatives
+        return derivatives
 
     def __call__(self, values):
         """Computes the reduced functional with supplied control value.
@@ -68,11 +63,9 @@ class ReducedFunctional(object):
                 of :class:`AdjFloat`.
 
         """
-        if isinstance(values, OverloadedType):
-            self.controls[0].adj_update_value(values)
-        else:
-            for i, value in enumerate(values):
-                self.controls[i].adj_update_value(value)
+        values = enlist(values)
+        for i, value in enumerate(values):
+            self.controls[i].adj_update_value(value)
 
         blocks = self.tape.get_blocks()
         with stop_annotating():

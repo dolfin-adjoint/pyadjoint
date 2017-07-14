@@ -7,8 +7,8 @@ class Constant(OverloadedType, backend.Constant):
         super(Constant, self).__init__(*args, **kwargs)
         backend.Constant.__init__(self, *args, **kwargs)
 
-    def get_derivative(self, options={}):
-        return Constant(self.get_adj_output())
+    def get_derivative(self, adj_value, options={}):
+        return Constant(adj_value)
 
     def adj_update_value(self, value):
         self.original_block_output.checkpoint = value._ad_create_checkpoint()
