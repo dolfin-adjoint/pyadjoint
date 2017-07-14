@@ -13,6 +13,7 @@ from pyadjoint.reduced_functional import ReducedFunctional
 from pyadjoint.verification import taylor_test, taylor_test_multiple
 from pyadjoint.drivers import compute_gradient, Hessian
 from pyadjoint.adjfloat import AdjFloat
+from pyadjoint.control import Control
 
 tape = Tape()
 set_working_tape(tape)
