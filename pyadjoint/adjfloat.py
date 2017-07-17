@@ -1,9 +1,10 @@
 from .tape import get_working_tape, annotate_tape
 from .block import Block
 from .overloaded_type import OverloadedType
+from numpy import generic
 
 
-class AdjFloat(OverloadedType, float):
+class AdjFloat(OverloadedType, float, generic):
     def __new__(cls, *args, **kwargs):
         return float.__new__(cls, *args)
 
@@ -16,9 +17,9 @@ class AdjFloat(OverloadedType, float):
             return NotImplemented
 
         if not isinstance(other, OverloadedType):
-            other = AdjFloat(other)
+            other = self.__class__(other)
 
-        output = AdjFloat(output)
+        output = self.__class__(output)
         if annotate_tape():
             block = MulBlock(self, other)
 
@@ -37,9 +38,9 @@ class AdjFloat(OverloadedType, float):
             return NotImplemented
 
         if not isinstance(other, OverloadedType):
-            other = AdjFloat(other)
+            other = self.__class__(other)
 
-        output = AdjFloat(output)
+        output = self.__class__(output)
         if annotate_tape():
             block = AddBlock(self, other)
 
@@ -57,10 +58,10 @@ class AdjFloat(OverloadedType, float):
         if output is NotImplemented:
             return NotImplemented
 
-        if not isinstance(power, AdjFloat):
-            power = AdjFloat(power)
+        if not isinstance(power, self.__class__):
+            power = self.__class__(power)
 
-        output = AdjFloat(output)
+        output = self.__class__(output)
         if annotate_tape():
             block = PowBlock(self, power)
 
@@ -71,7 +72,7 @@ class AdjFloat(OverloadedType, float):
         return output
 
     def get_derivative(self, options={}):
-        return AdjFloat(self.get_adj_output())
+        return self.__class__(self.get_adj_output())
 
     def adj_update_value(self, value):
         self.original_block_output.checkpoint = value
@@ -126,6 +127,7 @@ class PowBlock(Block):
 
         new_value = base_value ** exponent_value
         self.get_outputs()[0].checkpoint = new_value
+
 
 class AddBlock(Block):
     def __init__(self, lterm, rterm):
