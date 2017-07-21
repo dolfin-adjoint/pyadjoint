@@ -38,7 +38,5 @@ J = 0
 for i in range(1, len(Jlist)):
     J += 0.5*(Jlist[i-1] + Jlist[i])*float(timestep)
 
-tape = get_working_tape()
-tape.visualise('tut8debug',dot=1)
 h = Constant(nu)
 taylor_test(ReducedFunctional(J, nu), nu, h)

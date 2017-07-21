@@ -61,16 +61,19 @@ Let us look at some specific functionals:
 
   We could also use ready-made integration routines, but we have to make sure that the routine does
   not change the type of the :py:data:`J`. :py:data:`Jtemp` and :py:data:`J` have
-  type :py:class:`AdjFloat <pyadjoint.AdjFloat>`. For example if we wanted to use the scipy
-  trapezoidal rule function we could write
+  type :py:class:`AdjFloat <pyadjoint.AdjFloat>`.
 
-  .. code-block:: python
+  ..
+     For example if we wanted to use the scipy
+     trapezoidal rule function we could write
 
-     from scipy.integrate import trapz
-     from numpy import array
+     .. code-block:: python
 
-     Jlist = array(Jlist, dtype=AdjFloat)
-     J = trapz(Jlist, dx=float(timestep))
+        from scipy.integrate import trapz
+        from numpy import array
+
+        Jlist = array(Jlist, dtype=AdjFloat)
+        J = trapz(Jlist, dx=float(timestep))
 
   |more| Download the `code to find the full time integral`_.
 
@@ -172,7 +175,7 @@ Let us look at some specific functionals:
 
   .. code-block:: python
 
-     J = Jlist[3]/Jlist[0]
+     J = Jlist[3]*Jlist[0]**(-1)
 
 
 In the :doc:`next section <custom_functions>` we discuss how to use pyadjoint with functions other than FEniCS functions.
