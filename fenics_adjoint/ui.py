@@ -8,11 +8,11 @@ if backend.__name__ != "firedrake":
 from .variational_solver import (NonlinearVariationalProblem, NonlinearVariationalSolver,
                                  LinearVariationalProblem, LinearVariationalSolver)
 from pyadjoint import (Tape, set_working_tape, get_working_tape,
+                       pause_annotation, continue_annotation,
                        ReducedFunctional,
                        taylor_test, taylor_test_multiple,
                        compute_gradient, Hessian,
                        AdjFloat)
-
 
 tape = Tape()
 set_working_tape(tape)
