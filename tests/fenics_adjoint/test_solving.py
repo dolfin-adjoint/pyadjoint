@@ -426,7 +426,7 @@ def _test_adjoint_constant_boundary(J, bc):
         Jm.set_initial_adj_input(1.0)
         tape.evaluate()
 
-        dJdbc = bc.get_adj_output()
+        dJdbc = bc.get_adj_output()[0]
 
         residual = abs(Jp - Jm - eps*dJdbc.sum())
         residuals.append(residual)
@@ -456,7 +456,7 @@ def _test_adjoint_constant(J, c):
         Jm.set_initial_adj_input(1.0)
         tape.evaluate()
 
-        dJdc = c.get_adj_output()
+        dJdc = c.get_adj_output()[0]
         print(dJdc)
 
         residual = abs(Jp - Jm - eps*dJdc)

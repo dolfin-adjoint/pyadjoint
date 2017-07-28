@@ -149,12 +149,13 @@ class SolveBlock(Block):
 
                     block_output.add_adj_output(dFdm)
                 elif isinstance(c, backend.Constant):
-                    dFdm = -backend.derivative(F_form, c_rep, backend.Constant(1))
+                    mesh = F_form.ufl_domain().ufl_cargo()
+                    dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(c._ad_function_space(mesh)))
+                    dFdm = backend.adjoint(dFdm)
+                    dFdm = dFdm*adj_var
                     dFdm = backend.assemble(dFdm)
 
-                    [bc.apply(dFdm) for bc in bcs]
-
-                    block_output.add_adj_output(compat.inner(dFdm, adj_var.vector()))
+                    block_output.add_adj_output(dFdm)
                 elif isinstance(c, backend.DirichletBC):
                     tmp_bc = compat.create_bc(c, value=extract_subfunction(adj_var_bdy, c.function_space()))
                     block_output.add_adj_output([tmp_bc])
@@ -268,6 +269,9 @@ class SolveBlock(Block):
         u = fwd_block_output.get_output()
         V = u.function_space()
 
+        if hessian_input is None:
+            return
+
         # Process the equation forms, replacing values with checkpoints,
         # and gathering lhs and rhs in one single form.
         if self.linear:
@@ -363,8 +367,8 @@ class SolveBlock(Block):
 
             dc = None
             if isinstance(c_rep, backend.Constant):
-                dc = backend.Constant(1)
-                # TODO: should this be a TrialFunction?
+                mesh = F_form.ufl_domain().ufl_cargo()
+                dc = backend.TrialFunction(c._ad_function_space(mesh))
             else:
                 dc = backend.TrialFunction(V)
             dFdm = backend.derivative(F_form, c_rep, dc)

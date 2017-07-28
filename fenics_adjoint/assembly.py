@@ -92,7 +92,8 @@ class AssembleBlock(Block):
             if isinstance(c, backend.Function):
                 dc = backend.TestFunction(c.function_space())
             elif isinstance(c, backend.Constant):
-                dc = backend.Constant(1)
+                mesh = self.form.ufl_domain().ufl_cargo()
+                dc = backend.TestFunction(c._ad_function_space(mesh))
 
             dform = backend.derivative(form, c_rep, dc)
             output = backend.assemble(dform)
@@ -135,6 +136,9 @@ class AssembleBlock(Block):
         hessian_input = self.get_outputs()[0].hessian_value
         adj_input = self.get_outputs()[0].adj_value
 
+        if hessian_input is None:
+            return
+
         replaced_coeffs = {}
         for block_output in self.get_dependencies():
             coeff = block_output.get_output()
@@ -149,7 +153,8 @@ class AssembleBlock(Block):
             if isinstance(c1, backend.Function):
                 dc = backend.TestFunction(c1.function_space())
             elif isinstance(c1, backend.Constant):
-                dc = backend.Constant(1)
+                mesh = form.ufl_domain().ufl_cargo()
+                dc = backend.TestFunction(c1._ad_function_space(mesh))
             else:
                 continue
 

@@ -10,6 +10,8 @@ from pyadjoint.tape import get_working_tape, annotate_tape, no_annotations, stop
 from pyadjoint.overloaded_type import OverloadedType
 from pyadjoint.block import Block
 
+import numpy
+
 # TODO: Might need/want some way of creating a new DirichletBCBlock if DirichletBC is assigned
 #       new boundary values/function.
 
@@ -76,7 +78,14 @@ class DirichletBCBlock(Block):
                 if isinstance(c, Constant):
                     adj_value = backend.Function(self.parent_space)
                     adj_input.apply(adj_value.vector())
-                    block_output.add_adj_output(adj_value.vector().sum())
+                    if adj_value.ufl_shape == () or adj_value.ufl_shape[0] <= 1:
+                        block_output.add_adj_output(adj_value.vector().sum())
+                    else:
+                        adj_output = []
+                        for i in range(adj_value.ufl_shape[0]):
+                            # TODO: This might not be the optimal way to extract the subfunction vectors.
+                            adj_output.append(adj_value.sub(i, deepcopy=True).vector().sum())
+                        block_output.add_adj_output(numpy.array(adj_output))
                 elif isinstance(c, Function):
                     # TODO: This gets a little complicated.
                     #       The function may belong to a different space,
@@ -121,7 +130,14 @@ class DirichletBCBlock(Block):
                 if isinstance(c, Constant):
                     hessian_value = backend.Function(self.parent_space)
                     hessian_input.apply(hessian_value.vector())
-                    block_output.add_hessian_output(hessian_value.vector().sum())
+                    if hessian_value.ufl_shape == () or hessian_value.ufl_shape[0] <= 1:
+                        block_output.add_hessian_output(hessian_value.vector().sum())
+                    else:
+                        hessian_output = []
+                        for i in range(hessian_value.ufl_shape[0]):
+                            # TODO: This might not be the optimal way to extract the subfunction vectors.
+                            hessian_output.append(hessian_value.sub(i, deepcopy=True).vector().sum())
+                        block_output.add_hessian_output(numpy.array(hessian_output))
                 elif isinstance(c, Function):
                     # TODO: This gets a little complicated.
                     #       The function may belong to a different space,
