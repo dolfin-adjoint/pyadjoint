@@ -2,7 +2,7 @@ import backend
 import ufl
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape, no_annotations
 from pyadjoint.block import Block
-from .types import create_overloaded_object
+from .types import create_overloaded_object, compat
 
 
 def assemble(*args, **kwargs):
@@ -92,7 +92,7 @@ class AssembleBlock(Block):
             if isinstance(c, backend.Function):
                 dc = backend.TestFunction(c.function_space())
             elif isinstance(c, backend.Constant):
-                mesh = self.form.ufl_domain().ufl_cargo()
+                mesh = compat.extract_mesh_from_form(self.form)
                 dc = backend.TestFunction(c._ad_function_space(mesh))
 
             dform = backend.derivative(form, c_rep, dc)
@@ -153,7 +153,7 @@ class AssembleBlock(Block):
             if isinstance(c1, backend.Function):
                 dc = backend.TestFunction(c1.function_space())
             elif isinstance(c1, backend.Constant):
-                mesh = form.ufl_domain().ufl_cargo()
+                mesh = compat.extract_mesh_from_form(form)
                 dc = backend.TestFunction(c1._ad_function_space(mesh))
             else:
                 continue

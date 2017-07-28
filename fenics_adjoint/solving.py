@@ -149,7 +149,7 @@ class SolveBlock(Block):
 
                     block_output.add_adj_output(dFdm)
                 elif isinstance(c, backend.Constant):
-                    mesh = F_form.ufl_domain().ufl_cargo()
+                    mesh = compat.extract_mesh_from_form(F_form)
                     dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(c._ad_function_space(mesh)))
                     dFdm = backend.adjoint(dFdm)
                     dFdm = dFdm*adj_var
@@ -367,7 +367,7 @@ class SolveBlock(Block):
 
             dc = None
             if isinstance(c_rep, backend.Constant):
-                mesh = F_form.ufl_domain().ufl_cargo()
+                mesh = compat.extract_mesh_from_form(F_form)
                 dc = backend.TrialFunction(c._ad_function_space(mesh))
             else:
                 dc = backend.TrialFunction(V)

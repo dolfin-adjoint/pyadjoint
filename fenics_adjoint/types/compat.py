@@ -71,6 +71,20 @@ if backend.__name__ == "firedrake":
             r = r.sub(idx)
         assert Vtarget == r.function_space()
         return r
+
+    def extract_mesh_from_form(form):
+        """Takes in a form and extracts a mesh which can be used to construct function spaces.
+
+        Dolfin only accepts dolfin.cpp.mesh.Mesh types for function spaces, while firedrake use ufl.Mesh.
+
+        Args:
+            form (ufl.Form): Form to extract mesh from
+
+        Returns:
+            ufl.Mesh: The extracted mesh
+
+        """
+        return form.ufl_domain()
 else:
     MatrixType = (backend.cpp.Matrix, backend.GenericMatrix)
     VectorType = backend.cpp.la.GenericVector
@@ -142,3 +156,17 @@ else:
         # TODO: This is not a general solution
         assigner.assign(output, extract_subfunction(value, bc.function_space()))
         return output.vector()
+
+    def extract_mesh_from_form(form):
+        """Takes in a form and extracts a mesh which can be used to construct function spaces.
+
+        Dolfin only accepts dolfin.cpp.mesh.Mesh types for function spaces, while firedrake use ufl.Mesh.
+
+        Args:
+            form (ufl.Form): Form to extract mesh from
+
+        Returns:
+            dolfin.Mesh: The extracted mesh
+
+        """
+        return form.ufl_domain().ufl_cargo()
