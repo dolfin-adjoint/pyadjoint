@@ -17,7 +17,7 @@ from pyadjoint.adjfloat import AdjFloat
 # probably ever be sent to __setattr__. However this saves us from making this manually. An idea might be to filter out methods,
 # but that will be something for a later time.
 # Might also consider moving this to a separate file if it ruins this file.
-_IGNORED_EXPRESSION_ATTRIBUTES = ['_ufl_is_evaluation_', '__lt__', '__mul__', '_ufl_terminal_modifiers_', '_ufl_num_typecodes_', '__disown__', '_ufl_obj_init_counts_', '_ad_restore_at_checkpoint', 'ufl_shape', 'tape', '__dir__', '__call__', '_ufl_shape', '_ufl_is_differential_', '__init__', '_count', '__doc__', '__sizeof__', 'ufl_free_indices', '__sub__', 'ufl_enable_profiling', '__add__', '__module__', 'cppcode', 'thisown', '__init_subclass__', '__bool__', 'id', '__radd__', '__ne__', '_ufl_function_space', '__swig_destroy__', 'ufl_evaluate', '__rpow__', 'annotate_tape', 'value_shape', '_ufl_evaluate_scalar_', '_ufl_is_shaping_', '__slots__', '__neg__', 'ufl_domain', '_ufl_is_restriction_', '__reduce__', 'name', '_ufl_compute_hash_', '_ufl_obj_del_counts_', '_ufl_required_methods_', '__gt__', '_ufl_typecode_', 'label', '_ufl_regular__del__', 'eval_cell', '_ufl_is_literal_', '_ufl_language_operators_', 'get_adj_output', '__rtruediv__', '__setattr__', '__floordiv__', 'ufl_domains', '__new__', 'value_size', '__getitem__', 'value_dimension', '_ufl_profiling__init__', '__subclasshook__', 'ufl_index_dimensions', '_ufl_class_', '_ufl_is_abstract_', 'create_block_output', '__pow__', 'get_block_output', '__getnewargs__', '__rsub__', '_ufl_err_str_', 'ufl_element', '__repr__', 'geometric_dimension', 'block_output', '__delattr__', '_repr', '_ufl_is_scalar_', 'str', '__abs__', '_ufl_is_index_free_', '_ad_ignored_attributes', 'this', '__float__', '__del__', '_ufl_is_terminal_', '__len__', 'ufl_function_space', '_ad_dot', '__rdiv__', 'is_cellwise_constant', 'value_rank', '_ufl_regular__init__', 'evaluate', '__dict__', '__eq__', '__unicode__', 'reset_variables', 'rename', 'user_defined_derivatives', '_repr_png_', 'count', 'user_parameters', '__truediv__', '__reduce_ex__', '_ad_initialized', '_repr_latex_', 'parameters', '__hash__', 'restrict', 'original_block_output', '_ad_attributes_dict', 'ufl_operands', '__iter__', '_globalcount', '_ufl_expr_reconstruct_', '_ufl_all_classes_', 'eval', 'set_initial_adj_input', '_ufl_required_properties_', '_ufl_signature_data_', 'get_derivative', 'set_block_output', 'update', '__getattribute__', '_ad_create_checkpoint', '_function_space', '__weakref__', '__format__', '_ad_add', '__pos__', '_ufl_profiling__del__', '__rmul__', '_hash', 'adj_update_value', 'compute_vertex_values', 'T', '__class__', '_ufl_is_terminal_modifier_', 'ufl_disable_profiling', '__div__', '__le__', '_ufl_handler_name_', '_value_shape', '__round__', '_ufl_is_in_reference_frame_', 'dx', '_ufl_all_handler_names_', '__str__', '__xor__', '_ufl_coerce_', '_ufl_num_ops_', '__ge__', '__nonzero__', 'set_initial_tlm_input', '_ad_mul', '_ufl_noslots_']
+_IGNORED_EXPRESSION_ATTRIBUTES = ['annotate', '_ad_function_space', '_ufl_is_evaluation_', '__lt__', '__mul__', '_ufl_terminal_modifiers_', '_ufl_num_typecodes_', '__disown__', '_ufl_obj_init_counts_', '_ad_restore_at_checkpoint', 'ufl_shape', 'tape', '__dir__', '__call__', '_ufl_shape', '_ufl_is_differential_', '__init__', '_count', '__doc__', '__sizeof__', 'ufl_free_indices', '__sub__', 'ufl_enable_profiling', '__add__', '__module__', 'cppcode', 'thisown', '__init_subclass__', '__bool__', 'id', '__radd__', '__ne__', '_ufl_function_space', '__swig_destroy__', 'ufl_evaluate', '__rpow__', 'annotate_tape', 'value_shape', '_ufl_evaluate_scalar_', '_ufl_is_shaping_', '__slots__', '__neg__', 'ufl_domain', '_ufl_is_restriction_', '__reduce__', 'name', '_ufl_compute_hash_', '_ufl_obj_del_counts_', '_ufl_required_methods_', '__gt__', '_ufl_typecode_', 'label', '_ufl_regular__del__', 'eval_cell', '_ufl_is_literal_', '_ufl_language_operators_', 'get_adj_output', '__rtruediv__', '__setattr__', '__floordiv__', 'ufl_domains', '__new__', 'value_size', '__getitem__', 'value_dimension', '_ufl_profiling__init__', '__subclasshook__', 'ufl_index_dimensions', '_ufl_class_', '_ufl_is_abstract_', 'create_block_output', '__pow__', 'get_block_output', '__getnewargs__', '__rsub__', '_ufl_err_str_', 'ufl_element', '__repr__', 'geometric_dimension', 'block_output', '__delattr__', '_repr', '_ufl_is_scalar_', 'str', '__abs__', '_ufl_is_index_free_', '_ad_ignored_attributes', 'this', '__float__', '__del__', '_ufl_is_terminal_', '__len__', 'ufl_function_space', '_ad_dot', '__rdiv__', 'is_cellwise_constant', 'value_rank', '_ufl_regular__init__', 'evaluate', '__dict__', '__eq__', '__unicode__', 'reset_variables', 'rename', 'user_defined_derivatives', '_repr_png_', 'count', 'user_parameters', '__truediv__', '__reduce_ex__', '_ad_initialized', '_repr_latex_', 'parameters', '__hash__', 'restrict', 'original_block_output', '_ad_attributes_dict', 'ufl_operands', '__iter__', '_globalcount', '_ufl_expr_reconstruct_', '_ufl_all_classes_', 'eval', 'set_initial_adj_input', '_ufl_required_properties_', '_ufl_signature_data_', 'get_derivative', 'set_block_output', 'update', '__getattribute__', '_ad_create_checkpoint', '_function_space', '__weakref__', '__format__', '_ad_add', '__pos__', '_ufl_profiling__del__', '__rmul__', '_hash', 'adj_update_value', 'compute_vertex_values', 'T', '__class__', '_ufl_is_terminal_modifier_', 'ufl_disable_profiling', '__div__', '__le__', '_ufl_handler_name_', '_value_shape', '__round__', '_ufl_is_in_reference_frame_', 'dx', '_ufl_all_handler_names_', '__str__', '__xor__', '_ufl_coerce_', '_ufl_num_ops_', '__ge__', '__nonzero__', 'set_initial_tlm_input', '_ad_mul', '_ufl_noslots_']
 
 _backend_ExpressionMetaClass = backend.functions.expression.ExpressionMetaClass
 
@@ -207,6 +207,18 @@ class Expression(backend.Expression):
                 self._ad_attributes_dict[k] = v
         backend.Expression.__setattr__(self, k, v)
 
+    def _ad_function_space(self, mesh):
+        element = self.ufl_element()
+        args = [element.family(), mesh.ufl_cell(), element.degree()]
+
+        # TODO: In newer versions of FEniCS we may use FiniteElement.reconstruct and avoid the if-test
+        #       and just write element.reconstruct(cell=mesh.ufl_cell()).
+        if isinstance(element, backend.VectorElement):
+            fs_element = element.__class__(*args, dim=len(element.sub_elements()))
+        else:
+            fs_element = element.__class__(*args)
+        return backend.FunctionSpace(mesh, fs_element)
+
     def _ad_create_checkpoint(self):
         return self._ad_attributes_dict.copy()
 
@@ -253,10 +265,19 @@ class ExpressionBlock(Block):
                 interp = backend.interpolate(self.expression.user_defined_derivatives[c], V)
                 if isinstance(c, (backend.Constant, AdjFloat)):
                     adj_output = adj_input.inner(interp.vector())
+                    block_output.add_adj_output(adj_output)
                 else:
                     adj_output = adj_input*interp.vector()
 
-                block_output.add_adj_output(adj_output)
+                    adj_func = backend.Function(V, adj_output)
+                    adj_output = 0
+                    num_sub_spaces = V.num_sub_spaces()
+                    if num_sub_spaces > 1:
+                        for i in range(num_sub_spaces):
+                            adj_output += backend.interpolate(adj_func.sub(i), c.function_space()).vector()
+                    else:
+                        adj_output = backend.interpolate(adj_func, c.function_space()).vector()
+                    block_output.add_adj_output(adj_output)
 
     def evaluate_tlm(self):
         output = self.get_outputs()[0]

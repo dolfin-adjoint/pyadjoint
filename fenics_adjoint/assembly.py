@@ -73,20 +73,13 @@ class AssembleBlock(Block):
             if isinstance(c, backend.Expression):
                 # Create a FunctionSpace from self.form and Expression.
                 # And then make a TestFunction from this space.
-
                 mesh = self.form.ufl_domain().ufl_cargo()
-                c_element = c.ufl_element()
-
-                # In newer versions of FEniCS there is a method named reconstruct, thus we may
-                # in the future just call c_element.reconstruct(cell=mesh.ufl_cell()).
-                element = ufl.FiniteElement(c_element.family(), mesh.ufl_cell(), c_element.degree())
-                V = backend.FunctionSpace(mesh, element)
+                V = c._ad_function_space(mesh)
                 dc = backend.TestFunction(V)
 
                 dform = backend.derivative(form, c_rep, dc)
                 output = backend.assemble(dform)
                 block_output.add_adj_output([[adj_input * output, V]])
-
                 continue
 
             if isinstance(c, backend.Function):
