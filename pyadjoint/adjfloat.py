@@ -52,6 +52,42 @@ class AdjFloat(OverloadedType, float):
     def __radd__(self, other):
         return self.__add__(other)
 
+    def __sub__(self, other):
+        output = float.__sub__(self, other)
+        if output is NotImplemented:
+            return NotImplemented
+
+        if not isinstance(other, OverloadedType):
+            other = self.__class__(other)
+
+        output = self.__class__(output)
+        if annotate_tape():
+            block = SubBlock(self, other)
+
+            tape = get_working_tape()
+            tape.add_block(block)
+            block.add_output(output.get_block_output())
+
+        return output
+
+    def __rsub__(self, other):
+        output = float.__sub__(self, other)
+        if output is NotImplemented:
+            return NotImplemented
+
+        if not isinstance(other, OverloadedType):
+            other = self.__class__(other)
+
+        output = self.__class__(output)
+        if annotate_tape():
+            block = SubBlock(other, self)
+
+            tape = get_working_tape()
+            tape.add_block(block)
+            block.add_output(output.get_block_output())
+
+        return output
+
     def __pow__(self, power, modulo=None):
         output = float.__pow__(self, power)
         if output is NotImplemented:
@@ -143,6 +179,23 @@ class AddBlock(Block):
     def recompute(self):
         deps = self.get_dependencies()
         self.get_outputs()[0].checkpoint = deps[0].get_saved_output() + deps[1].get_saved_output()
+
+
+class SubBlock(Block):
+    def __init__(self, lterm, rterm):
+        super(SubBlock, self).__init__()
+        self.add_dependency(lterm.get_block_output())
+        self.add_dependency(rterm.get_block_output())
+
+    def evaluate_adj(self):
+        adj_input = self.get_outputs()[0].get_adj_output()
+
+        self.get_dependencies()[0].add_adj_output(adj_input)
+        self.get_dependencies()[1].add_adj_output(adj_input)
+
+    def recompute(self):
+        deps = self.get_dependencies()
+        self.get_outputs()[0].checkpoint = deps[0].get_saved_output() - deps[1].get_saved_output()
 
 
 # TODO: Not up to date. Low priority for now.
