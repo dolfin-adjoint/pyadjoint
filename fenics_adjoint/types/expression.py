@@ -342,10 +342,19 @@ class ExpressionBlock(Block):
                     interp = backend.project(tlm_input*second_deriv, V)
                     if isinstance(c1, (backend.Constant, AdjFloat)):
                         hessian_output = adj_input.inner(interp.vector())
+                        bo1.add_hessian_output(hessian_output)
                     else:
                         hessian_output = adj_input * interp.vector()
 
-                    bo1.add_hessian_output(hessian_output)
+                        hessian_func = backend.Function(V, hessian_output)
+                        hessian_output = 0
+                        num_sub_spaces = V.num_sub_spaces()
+                        if num_sub_spaces > 1:
+                            for i in range(num_sub_spaces):
+                                hessian_output += backend.interpolate(hessian_func.sub(i), c1.function_space()).vector()
+                        else:
+                            hessian_output = backend.interpolate(hessian_func, c1.function_space()).vector()
+                        bo1.add_hessian_output(hessian_output)
 
             for hessian_pair in hessian_inputs:
                 hessian_input = hessian_pair[0]
@@ -354,10 +363,19 @@ class ExpressionBlock(Block):
                 interp = backend.interpolate(first_deriv, V)
                 if isinstance(c1, (backend.Constant, AdjFloat)):
                     hessian_output = hessian_input.inner(interp.vector())
+                    bo1.add_hessian_output(hessian_output)
                 else:
                     hessian_output = hessian_input*interp.vector()
 
-                bo1.add_hessian_output(hessian_output)
+                    hessian_func = backend.Function(V, hessian_output)
+                    hessian_output = 0
+                    num_sub_spaces = V.num_sub_spaces()
+                    if num_sub_spaces > 1:
+                        for i in range(num_sub_spaces):
+                            hessian_output += backend.interpolate(hessian_func.sub(i), c1.function_space()).vector()
+                    else:
+                        hessian_output = backend.interpolate(hessian_func, c1.function_space()).vector()
+                    bo1.add_hessian_output(hessian_output)
 
     def recompute(self):
         checkpoint = self.get_outputs()[0].checkpoint

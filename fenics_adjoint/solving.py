@@ -356,6 +356,10 @@ class SolveBlock(Block):
             if isinstance(c_rep, backend.Constant):
                 dc = backend.Constant(1)
                 # TODO: should this be a TrialFunction?
+            elif isinstance(c, backend.Expression):
+                mesh = F_form.ufl_domain().ufl_cargo()
+                W = c._ad_function_space(mesh)
+                dc = backend.TrialFunction(W)
             else:
                 dc = backend.TrialFunction(V)
             dFdm = backend.derivative(F_form, c_rep, dc)
@@ -393,7 +397,7 @@ class SolveBlock(Block):
                 output = backend.assemble(-output)
 
                 if isinstance(c, backend.Expression):
-                    bo.add_hessian_output([(output, V)])
+                    bo.add_hessian_output([(output, W)])
                 else:
                     bo.add_hessian_output(output)
 
@@ -408,7 +412,7 @@ class SolveBlock(Block):
             output = backend.assemble(-output)
 
             if isinstance(c, backend.Expression):
-                bo.add_hessian_output([(output, V)])
+                bo.add_hessian_output([(output, W)])
             else:
                 bo.add_hessian_output(output)
 
