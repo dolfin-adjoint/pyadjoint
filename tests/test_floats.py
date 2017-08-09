@@ -1,4 +1,6 @@
 import pytest
+from math import log
+from numpy.testing import assert_approx_equal
 
 # this test only uses AdjFloat so it should run under both firedrake and fenics
 try:
@@ -15,12 +17,14 @@ def test_float_addition():
     assert rf(a) == 3.0
     assert rf(AdjFloat(1.0)) == 3.0
     assert rf(AdjFloat(3.0)) == 5.0
+    assert rf.derivative() == 1.0
 
     d = a + a
     assert d == 2.0
     rf = ReducedFunctional(d, a)
     assert rf(AdjFloat(1.0)) == 2.0
     assert rf(AdjFloat(2.0)) == 4.0
+    assert rf.derivative() == 2.0
 
     # this tests AdjFloat.__radd__
     e = 3.0 + a
@@ -28,6 +32,7 @@ def test_float_addition():
     rf = ReducedFunctional(e, a)
     assert rf(a) == 4.0
     assert rf(AdjFloat(7.0)) == 10.0
+    assert rf.derivative() == 1.0
 
 def test_float_subtraction():
     a = AdjFloat(1.0)
@@ -40,9 +45,11 @@ def test_float_subtraction():
     assert rf(a) == -1.0
     assert rf(AdjFloat(1.0)) == -1.0
     assert rf(AdjFloat(3.0)) == 1.0
+    assert rf.derivative() == 1.0
     rf = ReducedFunctional(d, a)
     assert rf(AdjFloat(1.0)) == 0.0
     assert rf(AdjFloat(2.0)) == 0.0
+    assert rf.derivative() == 0.0
 
     # this tests AdjFloat.__rsub__
     e = 3.0 - a
@@ -51,6 +58,7 @@ def test_float_subtraction():
     rf = ReducedFunctional(e, a)
     assert rf(b) == 1.0
     assert rf(AdjFloat(3.0)) == 0.0
+    assert rf.derivative() == -1.0
 
 def test_float_multiplication():
     a = AdjFloat(3.0)
@@ -63,8 +71,12 @@ def test_float_multiplication():
     assert rf(a) == 6.0
     assert rf(AdjFloat(1.0)) == 2.0
     assert rf(AdjFloat(3.0)) == 6.0
+    assert rf.derivative() == 2.0
     rf = ReducedFunctional(d, a)
     assert rf(AdjFloat(1.0)) == 1.0
+    assert rf.derivative() == 2.0
+    assert rf(AdjFloat(5.0)) == 25.0
+    assert rf.derivative() == 10.0
 
     # this tests AdjFloat.__rmul__
     e = 5.0 * a
@@ -74,6 +86,7 @@ def test_float_multiplication():
     assert rf(b) == 10.0
     assert rf(AdjFloat(3.0)) == 15.0
     assert rf(AdjFloat(2.0)) == 10.0
+    assert rf.derivative() == 5.0
 
 def test_float_exponentiation():
     a = AdjFloat(3.0)
@@ -86,8 +99,12 @@ def test_float_exponentiation():
     assert rf(a) == 9.0
     assert rf(AdjFloat(1.0)) == 1.0
     assert rf(AdjFloat(3.0)) == 9.0
+    # d(a**b)/da = b*a**(b-1)
+    assert rf.derivative() ==  6.0
     rf = ReducedFunctional(d, a)
     assert rf(AdjFloat(1.0)) == 1.0
     assert rf(AdjFloat(2.0)) == 4.0
+    # d(a**a)/da = dexp(a log(a))/da = a**a * (log(a) + 1)
+    assert_approx_equal(rf.derivative(), 4.0 * (log(2.0)+1.0))
 
     # TODO: __rpow__ is not yet implemented

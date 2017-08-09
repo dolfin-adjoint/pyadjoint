@@ -172,5 +172,5 @@ class MulBlock(FloatOperatorBlock):
         if adj_input is None:
             return
 
-        deps[0].add_adj_output(float.__mul__(adj_input, deps[1].get_saved_output()))
-        deps[1].add_adj_output(float.__mul__(adj_input, deps[0].get_saved_output()))
+        self.terms[0].add_adj_output(float.__mul__(adj_input, self.terms[1].get_saved_output()))
+        self.terms[1].add_adj_output(float.__mul__(adj_input, self.terms[0].get_saved_output()))
