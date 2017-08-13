@@ -3,12 +3,15 @@ from . import compat
 from pyadjoint.adjfloat import AdjFloat
 from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, no_annotations
 from pyadjoint.block import Block
-from pyadjoint.overloaded_type import OverloadedType
+from pyadjoint.overloaded_type import OverloadedType, FloatingType
 
 
-class Function(OverloadedType, backend.Function):
+class Function(FloatingType, backend.Function):
     def __init__(self, *args, **kwargs):
-        super(Function, self).__init__(*args, **kwargs)
+        super(Function, self).__init__(*args,
+                                       block_class=kwargs.pop("block_class", None),
+                                       _ad_floating_active=kwargs.pop("_ad_floating_active", False),
+                                       **kwargs)
         backend.Function.__init__(self, *args, **kwargs)
 
     def copy(self, *args, **kwargs):
@@ -33,6 +36,11 @@ class Function(OverloadedType, backend.Function):
             block.add_output(self.create_block_output())
 
         return ret
+
+    def split(self):
+        components = backend.Function.split()
+        #ret = [Function(i, block_class=SplitBlock, _ad_floating_active=True) for i in components]
+        #return tuple(ret)
 
     def vector(self):
         vec = backend.Function.vector(self)

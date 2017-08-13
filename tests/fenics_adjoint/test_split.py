@@ -33,3 +33,17 @@ def test_split():
     rf = ReducedFunctional(j, ic)
 
     taylor_test(rf, ic.copy(deepcopy=True), h=project(Constant([1, 1]), ic.function_space()))
+
+
+def test_fn_split():
+    set_working_tape(Tape())
+
+    mesh = UnitSquareMesh(10, 10)
+    V_element = VectorElement("CG", mesh.ufl_cell(), 1)
+    V = FunctionSpace(mesh, V_element)
+
+
+
+
+
+
