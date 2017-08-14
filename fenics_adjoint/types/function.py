@@ -18,6 +18,8 @@ class Function(OverloadedType, backend.Function):
         return Function(c.function_space(), c.vector())
 
     def assign(self, other, *args, **kwargs):
+        '''To disable the annotation, just pass :py:data:`annotate=False` to this routine, and it acts exactly like the
+        Dolfin assign call.'''
         annotate = annotate_tape(kwargs)
         if annotate:
             from .types import create_overloaded_object

@@ -12,6 +12,15 @@ from .types.function_space import extract_subfunction
 
 
 def solve(*args, **kwargs):
+    '''This solve routine wraps the real Dolfin solve call. Its purpose is to annotate the model,
+    recording what solves occur and what forms are involved, so that the adjoint and tangent linear models may be
+    constructed automatically by pyadjoint.
+
+    To disable the annotation, just pass :py:data:`annotate=False` to this routine, and it acts exactly like the
+    Dolfin solve call. This is useful in cases where the solve is known to be irrelevant or diagnostic
+    for the purposes of the adjoint computation (such as projecting fields to other function spaces
+    for the purposes of visualisation).'''
+
     annotate = annotate_tape(kwargs)
 
     if annotate:
@@ -436,12 +445,12 @@ class SolveBlock(Block):
                     if c == self.func:
                         func = c_rep
                         block_output.checkpoint = c_rep._ad_create_checkpoint()
-                
+
                 if self.linear and c in self.rhs.coefficients():
                     replace_rhs_coeffs[c] = c_rep
 
         lhs = backend.replace(self.lhs, replace_lhs_coeffs)
-        
+
         rhs = 0
         if self.linear:
             rhs = backend.replace(self.rhs, replace_rhs_coeffs)

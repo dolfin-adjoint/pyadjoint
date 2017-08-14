@@ -22,7 +22,7 @@ _IGNORED_EXPRESSION_ATTRIBUTES = ['_ufl_is_evaluation_', '__lt__', '__mul__', '_
 _backend_ExpressionMetaClass = backend.functions.expression.ExpressionMetaClass
 
 class OverloadedExpressionMetaClass(_backend_ExpressionMetaClass):
-    """Overloads the ExpressionMetaClass so that we can create overloaded 
+    """Overloads the ExpressionMetaClass so that we can create overloaded
     Expression types.
 
     """
@@ -76,7 +76,7 @@ class OverloadedExpressionMetaClass(_backend_ExpressionMetaClass):
         bases = tuple(bases)
 
         # Pass everything along to the backend metaclass.
-        # This should return a new user-defined Expression 
+        # This should return a new user-defined Expression
         # subclass that inherit from OverloadedType.
         original = _backend_ExpressionMetaClass.__new__(mcs, class_name, bases, dict_)
 
@@ -118,7 +118,7 @@ class OverloadedExpressionMetaClass(_backend_ExpressionMetaClass):
         # Thus __new__ of cls is invoked.
         out = _backend_ExpressionMetaClass.__call__(cls, *args, **kwargs)
 
-        # Since the class we create is not a subclass of our overloaded Expression 
+        # Since the class we create is not a subclass of our overloaded Expression
         # (where __new__ was invoked), type.__call__ will not initialize
         # the newly created instance. Hence we must do so "manually".
         if not isinstance(out, cls):
@@ -127,7 +127,7 @@ class OverloadedExpressionMetaClass(_backend_ExpressionMetaClass):
 
 
 def create_compiled_expression(original, cppcode, *args, **kwargs):
-    """Creates an overloaded CompiledExpression type from the supplied 
+    """Creates an overloaded CompiledExpression type from the supplied
     CompiledExpression instance.
 
     The argument `original` will be an (uninitialized) CompiledExpression instance,
@@ -162,7 +162,7 @@ def create_compiled_expression(original, cppcode, *args, **kwargs):
         self._ad_initialized = True
 
         self.annotate_tape = annotate_tape(kwargs)
-        if self.annotate_tape:            
+        if self.annotate_tape:
             tape = get_working_tape()
             block = ExpressionBlock(self)
             tape.add_block(block)
@@ -193,7 +193,7 @@ class Expression(backend.Expression):
         self._ad_ignored_attributes = None
         self.user_defined_derivatives = {}
 
-    def __setattr__(self, k, v):    
+    def __setattr__(self, k, v):
         if k not in _IGNORED_EXPRESSION_ATTRIBUTES:
             if self._ad_initialized and self.annotate_tape:
                 self.block_output.save_output()
@@ -345,3 +345,6 @@ class ExpressionBlock(Block):
             for block_output in self.get_dependencies():
                 key = self.dependency_keys[block_output.output]
                 checkpoint[key] = block_output.get_saved_output()
+
+    def __str__(self):
+        return "Expression block"
