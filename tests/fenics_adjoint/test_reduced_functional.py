@@ -387,6 +387,30 @@ def test_expression_update():
     assert taylor_test(Jhat, a, h)
 
 
+def test_function_split():
+    tape = Tape()
+    set_working_tape(tape)
+
+    mesh = UnitSquareMesh(10, 10)
+    V_element = VectorElement("CG", mesh.ufl_cell(), 1)
+    V = FunctionSpace(mesh, V_element)
+
+    f = project(Expression(("x[0]", "x[1]"), degree=1, annotate=False), V, annotate=False)
+
+    u = TrialFunction(V)
+    v = TestFunction(V)
+
+    u_ = Function(V)
+    a = inner(u,v)*dx
+    L = inner(f,v)*dx
+    solve(a == L, u_)
+
+    f1, f2 = f.split()
+    J = assemble(f1*inner(u_, u_)*dx)
+    Jhat = ReducedFunctional(J, f)
+    h = project(Constant((1, 1)), V, annotate=False)
+    assert taylor_test(Jhat, f, h)
+
 
 
 

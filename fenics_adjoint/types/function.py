@@ -11,6 +11,8 @@ class Function(FloatingType, backend.Function):
         super(Function, self).__init__(*args,
                                        block_class=kwargs.pop("block_class", None),
                                        _ad_floating_active=kwargs.pop("_ad_floating_active", False),
+                                       _ad_args=kwargs.pop("_ad_args", None),
+                                       annotate=kwargs.pop("annotate", True),
                                        **kwargs)
         backend.Function.__init__(self, *args, **kwargs)
 
@@ -38,9 +40,14 @@ class Function(FloatingType, backend.Function):
         return ret
 
     def split(self):
-        components = backend.Function.split()
-        #ret = [Function(i, block_class=SplitBlock, _ad_floating_active=True) for i in components]
-        #return tuple(ret)
+        # TODO: Don't need split here. It is never actually used.
+        components = backend.Function.split(self)
+        ret = [Function(self, i,
+                        block_class=SplitBlock,
+                        _ad_floating_active=True,
+                        _ad_args=[self, i])
+               for i, _ in enumerate(components)]
+        return tuple(ret)
 
     def vector(self):
         vec = backend.Function.vector(self)
@@ -67,7 +74,12 @@ class Function(FloatingType, backend.Function):
             return ret
 
     def _ad_create_checkpoint(self):
-        return self.copy(deepcopy=True)
+        if self.block is None:
+            # TODO: This might crash if annotate=False, but still using a sub-function.
+            return self.copy(deepcopy=True)
+
+        dep = self.block.get_dependencies()[0]
+        return backend.Function.sub(dep.get_saved_output(), self.block.idx, deepcopy=True)
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
@@ -123,3 +135,19 @@ class AssignBlock(Block):
         other_bo = deps[1]
 
         backend.Function.assign(self.get_outputs()[0].get_saved_output(), other_bo.get_saved_output())
+
+
+class SplitBlock(Block):
+    def __init__(self, func, idx):
+        super(SplitBlock, self).__init__()
+        self.add_dependency(func.get_block_output())
+        self.idx = idx
+
+    def evaluate_adj(self):
+        adj_input = self.get_outputs()[0].get_adj_output()
+        dep = self.get_dependencies()[0]
+        dep.add_adj_output(adj_input)
+
+    def recompute(self):
+        dep = self.get_dependencies()[0].checkpoint
+        self.get_outputs()[0].checkpoint = backend.Function.sub(dep, self.idx, deepcopy=True)
