@@ -12,6 +12,9 @@ class Function(FloatingType, backend.Function):
                                        block_class=kwargs.pop("block_class", None),
                                        _ad_floating_active=kwargs.pop("_ad_floating_active", False),
                                        _ad_args=kwargs.pop("_ad_args", None),
+                                       output_block_class=kwargs.pop("output_block_class", None),
+                                       _ad_output_args=kwargs.pop("_ad_output_args", None),
+                                       _ad_outputs=kwargs.pop("_ad_outputs", None),
                                        annotate=kwargs.pop("annotate", True),
                                        **kwargs)
         backend.Function.__init__(self, *args, **kwargs)
@@ -45,7 +48,10 @@ class Function(FloatingType, backend.Function):
         ret = [Function(self, i,
                         block_class=SplitBlock,
                         _ad_floating_active=True,
-                        _ad_args=[self, i])
+                        _ad_args=[self, i],
+                        _ad_output_args=[i],
+                        output_block_class=MergeBlock,
+                        _ad_outputs=[self])
                for i, _ in enumerate(components)]
         return tuple(ret)
 
@@ -151,3 +157,21 @@ class SplitBlock(Block):
     def recompute(self):
         dep = self.get_dependencies()[0].checkpoint
         self.get_outputs()[0].checkpoint = backend.Function.sub(dep, self.idx, deepcopy=True)
+
+
+class MergeBlock(Block):
+    def __init__(self, func, idx):
+        super(MergeBlock, self).__init__()
+        self.add_dependency(func.get_block_output())
+        self.idx = idx
+
+    def evaluate_adj(self):
+        adj_input = self.get_outputs()[0].get_adj_output()
+        dep = self.get_dependencies()[0]
+        dep.add_adj_output(adj_input)
+
+    def recompute(self):
+        dep = self.get_dependencies()[0].checkpoint
+        output = self.get_outputs()[0].checkpoint
+        backend.assign(backend.Function.sub(output, self.idx), dep)
+

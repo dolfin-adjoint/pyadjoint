@@ -56,18 +56,14 @@ class BlockOutput(object):
             return self.output
 
     def will_add_as_dependency(self):
-        if self.floating_type:
-            self.output._ad_annotate_block()
-            self.save_output()
-        else:
-            self.save_output(overwrite=False)
+        overwrite = self.output._ad_will_add_as_dependency()
+        overwrite = False if overwrite is None else overwrite
+        self.save_output(overwrite=overwrite)
 
     def will_add_as_output(self):
-        if self.floating_type:
-            # TODO: Annotate blocks in reverse order
-            pass
-        else:
-            self.save_output()
+        overwrite = self.output._ad_will_add_as_output()
+        overwrite = True if overwrite is None else overwrite
+        self.save_output(overwrite=overwrite)
 
     def __str__(self):
         return str(self.output)

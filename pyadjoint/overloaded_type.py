@@ -144,6 +144,24 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
+    def _ad_will_add_as_dependency(self):
+        """Method called when the object is added as a Block dependency.
+
+        Returns:
+            bool: True if the saved checkpoint should be overwritten.
+
+        """
+        return False
+
+    def _ad_will_add_as_output(self):
+        """Method called when the object is added as a Block output.
+
+        Returns:
+            bool: True if the saved checkpoint should be overwritten.
+
+        """
+        return True
+
 
 class FloatingType(OverloadedType):
     def __init__(self, *args, **kwargs):
@@ -153,12 +171,30 @@ class FloatingType(OverloadedType):
         self._ad_floating_active = kwargs.pop("_ad_floating_active", False)
         self.annotate_tape = annotate_tape(kwargs)
         self.block = None
+
+        self.output_block = None
+        self._ad_output_args = kwargs.pop("_ad_output_args", [])
+        self._ad_output_kwargs = kwargs.pop("_ad_output_kwargs", {})
+        self.output_block_class = kwargs.pop("output_block_class", None)
+        self._ad_outputs = kwargs.pop("_ad_outputs", [])
         OverloadedType.__init__(self, *args, **kwargs)
 
     def create_block_output(self):
         block_output = OverloadedType.create_block_output(self)
         block_output.floating_type = True
         return block_output
+
+    def _ad_will_add_as_dependency(self):
+        if self._ad_floating_active:
+            with FloatingType.stop_floating(self):
+                self._ad_annotate_block()
+        return True
+
+    def _ad_will_add_as_output(self):
+        if self._ad_floating_active:
+            with FloatingType.stop_floating(self):
+                self._ad_annotate_output_block()
+        return True
 
     def _ad_annotate_block(self):
         if self.block_class is None:
@@ -176,4 +212,26 @@ class FloatingType(OverloadedType):
         # Need to create a new block output for future use.
         self.create_block_output()
 
+    def _ad_annotate_output_block(self):
+        if self.output_block_class is None:
+            return
 
+        if not self.annotate_tape:
+            return
+
+        tape = get_working_tape()
+        block = self.output_block_class(self, *self._ad_output_args, **self._ad_output_kwargs)
+        self.output_block = block
+        tape.add_block(block)
+        for output in self._ad_outputs:
+            block.add_output(output.create_block_output())
+
+    class stop_floating(object):
+        def __init__(self, obj):
+            self.obj = obj
+
+        def __enter__(self):
+            self.obj._ad_floating_active = False
+
+        def __exit__(self, *args):
+            self.obj._ad_floating_active = True
