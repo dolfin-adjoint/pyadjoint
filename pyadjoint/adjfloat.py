@@ -48,6 +48,14 @@ class AdjFloat(OverloadedType, float):
         return MulBlock(self, other)
 
     @annotate_operator
+    def __truediv__(self, other):
+        return DivBlock(self, other)
+
+    @annotate_operator
+    def __neg__(self):
+        return NegBlock(self)
+
+    @annotate_operator
     def __rmul__(self, other):
         return MulBlock(self, other)
 
@@ -87,6 +95,12 @@ class AdjFloat(OverloadedType, float):
 
     def _ad_mul(self, other):
         return self*other
+
+    def _ad_div(self, other):
+        return self/other #should it be * or / ?
+
+    def _ad_neg(self):
+        return -self
 
     def _ad_add(self, other):
         return self+other
@@ -160,7 +174,7 @@ class SubBlock(FloatOperatorBlock):
             return
 
         self.terms[0].add_adj_output(adj_input)
-        self.terms[1].add_adj_output(-adj_input)
+        self.terms[1].add_adj_output(float.__neg__(adj_input))
 
 
 class MulBlock(FloatOperatorBlock):
@@ -174,3 +188,26 @@ class MulBlock(FloatOperatorBlock):
 
         self.terms[0].add_adj_output(float.__mul__(adj_input, self.terms[1].get_saved_output()))
         self.terms[1].add_adj_output(float.__mul__(adj_input, self.terms[0].get_saved_output()))
+
+class DivBlock(FloatOperatorBlock):
+
+    operator = staticmethod(float.__truediv__)
+
+    def evaluate_adj(self):
+        adj_input = self.get_outputs()[0].get_adj_output()
+        if adj_input is None:
+            return
+
+        self.terms[0].add_adj_output(float.__mul__(adj_input, float.__truediv__(1., self.terms[1].get_saved_output())))
+        self.terms[1].add_adj_output(float.__mul__(adj_input, float.__neg__(float.__truediv__(self.terms[0].get_saved_output(), float.__pow__(self.terms[1].get_saved_output(),2)))))
+
+class NegBlock(FloatOperatorBlock):
+
+    operator = staticmethod(float.__neg__)
+
+    def evaluate_adj(self):
+        adj_input = self.get_outputs()[0].get_adj_output()
+        if adj_input is None:
+            return
+
+        self.terms[0].add_adj_output(float.__neg__(adj_input))
