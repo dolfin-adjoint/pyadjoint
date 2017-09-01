@@ -40,10 +40,6 @@ class Function(OverloadedType, backend.Function):
         return vec
 
     @no_annotations
-    def get_derivative(self, adj_value, options={}):
-        return self._ad_convert_type(adj_value, options)
-
-    @no_annotations
     def _ad_convert_type(self, value, options={}):
         riesz_representation = options.pop("riesz_representation", "l2")
 
