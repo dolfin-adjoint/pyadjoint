@@ -1,12 +1,11 @@
-def enlist(x):
-    if isinstance(x, (list, tuple)):
-        return x
-    else:
-        return [x]
+class Enlist(list):
+    def __init__(self, x):
+        self.listed = isinstance(x, (list, tuple))
+        super(Enlist, self).__init__(x if self.listed else [x])
 
-
-def delist(x):
-    if len(x) == 1:
-        return x[0]
-    else:
-        return x
+    def delist(self, y):
+        if self.listed:
+            return y
+        else:
+            assert len(y) == 1
+            return y[0]

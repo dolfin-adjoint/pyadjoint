@@ -2,7 +2,7 @@ from .tape import get_working_tape, stop_annotating
 from .drivers import compute_gradient
 from .overloaded_type import OverloadedType
 from .control import Control
-from .enlisting import enlist, delist
+from .enlisting import Enlist
 
 class ReducedFunctional(object):
     """Class representing the reduced functional.
@@ -24,7 +24,7 @@ class ReducedFunctional(object):
         self.functional = functional
         self.tape = get_working_tape()
 
-        self.controls = enlist(controls)
+        self.controls = Enlist(controls)
 
         for i, block in enumerate(self.tape.get_blocks()):
             for control in self.controls:
@@ -49,7 +49,7 @@ class ReducedFunctional(object):
 
         """
         derivatives = compute_gradient(self.functional, self.controls, options=options, tape=self.tape)
-        return derivatives
+        return self.controls.delist(derivatives)
 
     def __call__(self, values):
         """Computes the reduced functional with supplied control value.
@@ -63,7 +63,7 @@ class ReducedFunctional(object):
                 of :class:`AdjFloat`.
 
         """
-        values = enlist(values)
+        values = Enlist(values)
         for i, value in enumerate(values):
             self.controls[i].adj_update_value(value)
 

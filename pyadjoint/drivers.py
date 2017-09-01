@@ -1,5 +1,5 @@
 from .tape import get_working_tape, stop_annotating
-from .enlisting import enlist, delist
+from .enlisting import Enlist
 
 def compute_gradient(J, m, block_idx=0, options={}, tape=None):
     tape = get_working_tape() if tape is None else tape
@@ -9,9 +9,9 @@ def compute_gradient(J, m, block_idx=0, options={}, tape=None):
     with stop_annotating():
         tape.evaluate(block_idx)
 
-    m = enlist(m)
+    m = Enlist(m)
     grads = [i.get_derivative(options=options) for i in m]
-    return delist(grads)
+    return m.delist(grads)
 
 
 class Hessian(object):
