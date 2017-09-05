@@ -8,6 +8,7 @@ try:
 except ImportError:
     from firedrake_adjoint import *
 
+
 def test_float_addition():
     a = AdjFloat(1.0)
     b = AdjFloat(2.0)
@@ -34,6 +35,7 @@ def test_float_addition():
     assert rf(AdjFloat(7.0)) == 10.0
     assert rf.derivative() == 1.0
 
+
 def test_float_subtraction():
     a = AdjFloat(1.0)
     b = AdjFloat(2.0)
@@ -59,6 +61,7 @@ def test_float_subtraction():
     assert rf(b) == 1.0
     assert rf(AdjFloat(3.0)) == 0.0
     assert rf.derivative() == -1.0
+
 
 def test_float_multiplication():
     a = AdjFloat(3.0)
@@ -88,6 +91,7 @@ def test_float_multiplication():
     assert rf(AdjFloat(2.0)) == 10.0
     assert rf.derivative() == 5.0
 
+
 def test_float_division():
     a = AdjFloat(3.0)
     b = AdjFloat(2.0)
@@ -105,7 +109,7 @@ def test_float_division():
     assert rf(b) == 1.5
     assert rf(AdjFloat(1.0)) == 3.0
     assert rf(AdjFloat(3.0)) == 1.0
-    assert_approx_equal(rf.derivative(), -3/9) # b is now 3.0
+    assert_approx_equal(rf.derivative(), -3.0/9.0)  # b is now 3.0
     rf = ReducedFunctional(d, a)
     assert rf(AdjFloat(1.0)) == 1.0
     assert rf.derivative() == 0.0
@@ -121,6 +125,7 @@ def test_float_division():
     assert rf(AdjFloat(3.0)) == 15.0
     assert rf(AdjFloat(2.0)) == 10.0
     assert rf.derivative() == 5.0
+
 
 def test_float_neg():
     a = AdjFloat(3.0)
@@ -140,7 +145,7 @@ def test_float_neg():
     e = - AdjFloat(4.0)
     f = AdjFloat(-5.0)
     g = - AdjFloat(-7.0)
-    assert rf1(e) == 4.0 
+    assert rf1(e) == 4.0
     assert rf1.derivative() == - 1.0
     assert rf1(f) == 5.0
     assert rf1.derivative() == - 1.0
@@ -152,6 +157,7 @@ def test_float_neg():
     assert rf2.derivative() == - 2.0
     assert rf2(g) == - 14.0
     assert rf2.derivative() == - 2.0
+
 
 def test_float_exponentiation():
     a = AdjFloat(3.0)
@@ -165,7 +171,7 @@ def test_float_exponentiation():
     assert rf(AdjFloat(1.0)) == 1.0
     assert rf(AdjFloat(3.0)) == 9.0
     # d(a**b)/da = b*a**(b-1)
-    assert rf.derivative() ==  6.0
+    assert rf.derivative() == 6.0
     rf = ReducedFunctional(d, a)
     assert rf(AdjFloat(1.0)) == 1.0
     assert rf(AdjFloat(2.0)) == 4.0

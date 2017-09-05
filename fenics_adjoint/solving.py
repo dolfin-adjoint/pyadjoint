@@ -68,10 +68,11 @@ class SolveBlock(Block):
             if not isinstance(self.bcs, list):
                 self.bcs = [self.bcs]
 
-            # User provided Jacobians J and Jp should probably only be used in forward solve?
             self.forward_kwargs = kwargs.copy()
-            self.kwargs.pop("J", None)
-            self.kwargs.pop("Jp", None)
+            if "J" in self.kwargs:
+                self.kwargs["J"] = adjoint(self.kwargs["J"])
+            if "Jp" in self.kwargs:
+                self.kwargs["Jp"] = adjoint(self.kwargs["Jp"])
 
             if "M" in self.kwargs:
                 raise NotImplemented("Annotation of adaptive solves not implemented.")
