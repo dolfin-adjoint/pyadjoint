@@ -48,7 +48,11 @@ class ReducedFunctional(object):
                 Should be an instance of the same type as the control.
 
         """
-        derivatives = compute_gradient(self.functional, self.controls, options=options, tape=self.tape)
+        derivatives = compute_gradient(self.functional,
+                                       self.controls,
+                                       block_idx=self.block_idx,
+                                       options=options,
+                                       tape=self.tape)
         return self.controls.delist(derivatives)
 
     def __call__(self, values):
@@ -65,7 +69,7 @@ class ReducedFunctional(object):
         """
         values = Enlist(values)
         for i, value in enumerate(values):
-            self.controls[i].adj_update_value(value)
+            self.controls[i].update(value)
 
         blocks = self.tape.get_blocks()
         with stop_annotating():

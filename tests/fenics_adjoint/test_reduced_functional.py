@@ -309,3 +309,31 @@ def test_assemble_recompute():
     h.vector()[:] = rand(V.dim())
     assert(taylor_test(Jhat, f, h) > 1.9)
 
+def test_solve_output_control():
+    set_working_tape(Tape())
+    mesh = UnitSquareMesh(10, 10)
+    V = FunctionSpace(mesh, "CG", 1)
+
+    v = TestFunction(V)
+    u = Function(V)
+    t = Constant(1.0)
+    u_ = Function(V)
+    F = inner(grad(u), grad(v))*dx - (u_ + t)*v*dx
+    bc = DirichletBC(V, 1, "on_boundary")
+
+    dt = 0.1
+    T = 1.5
+    while t.values()[0] <= T:
+        if 1.3-1E-08 < t.values()[0] < 1.3+1E-08:
+            c = Control(u)
+            p_value = u.copy(deepcopy=True)
+        solve(F == 0, u, bc)
+        u_.assign(u)
+        t.assign(t.values()[0] + dt)
+
+    J = assemble(inner(u, u)*dx)
+    Jhat = ReducedFunctional(J, c)
+    h = Function(V)
+    h.vector()[:] = rand(V.dim())
+    assert taylor_test(Jhat, p_value, h) > 1.9
+

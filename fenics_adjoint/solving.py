@@ -446,6 +446,9 @@ class SolveBlock(Block):
         if self.linear:
             rhs = backend.replace(self.rhs, replace_rhs_coeffs)
 
+        # Here we overwrite the checkpoint (if nonlin solve). Is this a good idea?
+        # In theory should not matter, but may sometimes lead to
+        # unexpected results if not careful.
         backend.solve(lhs == rhs, func, self.bcs)
         # Save output for use in later re-computations.
         # TODO: Consider redesigning the saving system so a new deepcopy isn't created on each forward replay.
