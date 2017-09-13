@@ -2,6 +2,38 @@ from .overloaded_type import OverloadedType
 
 
 class Control(object):
+    """Defines a control variable from an OverloadedType.
+
+    The control object references a specific node on the Tape.
+    For mutable OverloadedType instances the Control only represents
+    the value at the time of initialization.
+
+    Example:
+        Given a mutable OverloadedType instance u.
+
+        >>> u = MutableFloat(1.0)
+        >>> float(u)
+        1.0
+        >>> c1 = Control(u)
+        >>> u.add_in_place(2.0)
+        >>> c2 = Control(u)
+        >>> float(u)
+        3.0
+        >>> c1.data()
+        1.0
+        >>> c2.data()
+        3.0
+
+        Now c1 represents the node prior to the add_in_place Block,
+        while c2 represents the node after the add_in_place Block.
+        Creating a `ReducedFunctional` with c2 as Control results in
+        a reduced problem without the add_in_place Block, while a ReducedFunctional
+        with c1 as Control results in a forward model including the add_in_place.
+
+    Args:
+        control (OverloadedType): The OverloadedType instance to define this control from.
+
+    """
     def __init__(self, control):
         self.control = control
         self.block_output = control.get_block_output()
