@@ -106,6 +106,31 @@ class Block(object):
         """
         raise NotImplementedError
 
+    def on_post_recompute(self):
+        """Mark the block outputs if they depend on a control.
+
+        If the dependencies depend on a control and the output
+        of this Block is a control, then a RuntimeError is raised.
+
+        This method is called when right after calling recompute
+        on the Block.
+
+        Raises:
+            RuntimeError: If a control is found to depend on another.
+
+        """
+        deps = self.get_dependencies()
+        outputs = self.get_outputs()
+        depends_on_control = False
+        for dep in deps:
+            if dep.depends_on_control:
+                for output in outputs:
+                    if depends_on_control:
+                        output.depends_on_control = True
+                        if output.is_control:
+                            raise RuntimeError("The control %s depends on another control." % output.get_output())
+                return
+
     def create_graph(self, G, pos, scale=1.0):
 
         # Edges for block dependencies

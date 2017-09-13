@@ -18,10 +18,12 @@ class Hessian(object):
     def __init__(self, J, m):
         self.tape = get_working_tape()
         self.functional = J
-        self.control = m
+        self.controls = Enlist(m)
 
     def __call__(self, m_dot, options={}):
-        self.control.set_initial_tlm_input(m_dot)
+        m_dot = Enlist(m_dot)
+        for i, value in enumerate(m_dot):
+            self.controls[i].set_initial_tlm_input(m_dot[i])
 
         with stop_annotating():
             self.tape.evaluate_tlm()
@@ -29,4 +31,5 @@ class Hessian(object):
         self.functional.block_output.hessian_value = 0
         self.tape.evaluate_hessian()
 
-        return self.control._ad_convert_type(self.control.original_block_output.hessian_value, options)
+        r = [v.get_hessian(options=options) for v in self.controls]
+        return self.controls.delist(r)

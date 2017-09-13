@@ -67,14 +67,17 @@ class ReducedFunctional(object):
                 of :class:`AdjFloat`.
 
         """
+        self.tape.reset_variables()
         values = Enlist(values)
         for i, value in enumerate(values):
             self.controls[i].update(value)
+            self.controls[i].activate_recompute_flag()
 
         blocks = self.tape.get_blocks()
         with stop_annotating():
             for i in range(self.block_idx, len(blocks)):
                 blocks[i].recompute()
+                blocks[i].on_post_recompute()
 
         return self.functional.block_output.get_saved_output()
 
