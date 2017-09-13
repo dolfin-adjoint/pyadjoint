@@ -4,8 +4,7 @@ pytest.importorskip("firedrake")
 from firedrake import *
 from firedrake_adjoint import *
 
-from numpy.random import rand, seed
-seed(8)
+from numpy.random import rand
 
 
 def test_simple_solve():

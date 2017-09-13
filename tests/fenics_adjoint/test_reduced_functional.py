@@ -4,8 +4,7 @@ pytest.importorskip("fenics")
 from fenics import *
 from fenics_adjoint import *
 
-from numpy.random import rand, seed
-seed(8)
+from numpy.random import rand
 
 def test_constant():
     mesh = IntervalMesh(10, 0, 1)
