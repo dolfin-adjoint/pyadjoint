@@ -85,6 +85,25 @@ if backend.__name__ == "firedrake":
 
         """
         return form.ufl_domain()
+
+    def constant_function_firedrake_compat(value):
+        """Takes a Function/vector and returns the array.
+
+        The Function should belong to the space of Reals.
+        This function is needed because Firedrake does not
+        accept a Function as argument to Constant constructor.
+        It does accept vector (which is what we work with in dolfin),
+        but since we work with Functions instead of vectors in firedrake,
+        this function call is needed in firedrake_adjoint.
+
+        Args:
+            value (Function): A Function to convert
+
+        Returns:
+            numpy.ndarray: A numpy array of the function values.
+
+        """
+        return value.dat.data
 else:
     MatrixType = (backend.cpp.Matrix, backend.GenericMatrix)
     VectorType = backend.cpp.la.GenericVector
@@ -170,3 +189,10 @@ else:
 
         """
         return form.ufl_domain().ufl_cargo()
+
+    def constant_function_firedrake_compat(value):
+        """Only needed on firedrake side.
+
+        See docstring for the firedrake version of this function above.
+        """
+        return value

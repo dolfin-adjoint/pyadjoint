@@ -1,5 +1,6 @@
 import backend
 from pyadjoint.overloaded_type import OverloadedType
+from .compat import constant_function_firedrake_compat
 
 
 class Constant(OverloadedType, backend.Constant):
@@ -14,6 +15,7 @@ class Constant(OverloadedType, backend.Constant):
         self.original_block_output.checkpoint = value._ad_create_checkpoint()
 
     def _ad_convert_type(self, value, options={}):
+        value = constant_function_firedrake_compat(value)
         return Constant(value)
 
     def _ad_function_space(self, mesh):
