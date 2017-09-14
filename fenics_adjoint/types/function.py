@@ -28,7 +28,8 @@ class Function(FloatingType, backend.Function):
     def assign(self, other, *args, **kwargs):
         '''To disable the annotation, just pass :py:data:`annotate=False` to this routine, and it acts exactly like the
         Dolfin assign call.'''
-        annotate = annotate_tape(kwargs)
+        # do not annotate in case of self assignment
+        annotate = annotate_tape(kwargs) and self != other
         if annotate:
             from .types import create_overloaded_object
             other = create_overloaded_object(other)

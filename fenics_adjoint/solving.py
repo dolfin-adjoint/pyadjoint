@@ -53,15 +53,35 @@ class SolveBlock(Block):
             self.lhs = eq.lhs
             self.rhs = eq.rhs
             self.func = args[1]
+            self.kwargs = kwargs
 
-            # Store boundary conditions in a list.
             if len(args) > 2:
-                if isinstance(args[2], list):
-                    self.bcs = args[2]
-                else:
-                    self.bcs = [args[2]]
+                self.bcs = args[2]
+            elif "bcs" in kwargs:
+                self.bcs = self.kwargs.pop("bcs")
             else:
                 self.bcs = []
+
+            # make sure self.bcs is always a list
+            if self.bcs is None:
+                self.bcs = []
+            if not isinstance(self.bcs, list):
+                self.bcs = [self.bcs]
+
+            self.forward_kwargs = kwargs.copy()
+            if "J" in self.kwargs:
+                self.kwargs["J"] = adjoint(self.kwargs["J"])
+            if "Jp" in self.kwargs:
+                self.kwargs["Jp"] = adjoint(self.kwargs["Jp"])
+
+            if "M" in self.kwargs:
+                raise NotImplemented("Annotation of adaptive solves not implemented.")
+
+            # Some arguments need passing to assemble:
+            self.assemble_kwargs = {}
+            if "solver_parameters" in kwargs and "mat_type" in kwargs["solver_parameters"]:
+                self.assemble_kwargs["mat_type"] = kwargs["solver_parameters"]["mat_type"]
+
             #self.add_output(self.func.create_block_output())
         else:
             # Linear algebra problem.
@@ -120,7 +140,7 @@ class SolveBlock(Block):
 
         dFdu = backend.derivative(F_form, fwd_block_output.get_saved_output(), backend.TrialFunction(u.function_space()))
         dFdu_form = backend.adjoint(dFdu)
-        dFdu = backend.assemble(dFdu_form)
+        dFdu = backend.assemble(dFdu_form, **self.assemble_kwargs)
 
         # Get dJdu from previous calculations.
         dJdu = fwd_block_output.get_adj_output()
@@ -139,7 +159,7 @@ class SolveBlock(Block):
             bcs.append(bc)
             bc.apply(dFdu, dJdu)
 
-        backend.solve(dFdu, adj_var.vector(), dJdu)
+        backend.solve(dFdu, adj_var.vector(), dJdu, **self.kwargs)
 
         adj_var_bdy = Function(V)
         adj_var_bdy = compat.evaluate_algebra_expression(dJdu_copy -
@@ -154,12 +174,12 @@ class SolveBlock(Block):
                     dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(c.function_space()))
                     dFdm = backend.adjoint(dFdm)
                     dFdm = dFdm*adj_var
-                    dFdm = backend.assemble(dFdm)
+                    dFdm = backend.assemble(dFdm, **self.assemble_kwargs)
 
                     block_output.add_adj_output(dFdm)
                 elif isinstance(c, backend.Constant):
                     dFdm = -backend.derivative(F_form, c_rep, backend.Constant(1))
-                    dFdm = backend.assemble(dFdm)
+                    dFdm = backend.assemble(dFdm, **self.assemble_kwargs)
 
                     [bc.apply(dFdm) for bc in bcs]
 
@@ -169,7 +189,7 @@ class SolveBlock(Block):
                     block_output.add_adj_output([tmp_bc])
                 elif isinstance(c, backend.Expression):
                     dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(V)) # TODO: What space to use?
-                    dFdm = backend.assemble(dFdm)
+                    dFdm = backend.assemble(dFdm, **self.assemble_kwargs)
 
                     dFdm_mat = backend.as_backend_type(dFdm).mat()
 
@@ -211,7 +231,7 @@ class SolveBlock(Block):
         # Obtain dFdu.
         dFdu = backend.derivative(F_form, fwd_block_output.get_saved_output(), backend.TrialFunction(u.function_space()))
 
-        dFdu = backend.assemble(dFdu)
+        dFdu = backend.assemble(dFdu, **self.assemble_kwargs)
 
         # Homogenize and apply boundary conditions on dFdu.
         bcs = []
@@ -235,7 +255,7 @@ class SolveBlock(Block):
             if isinstance(c, backend.Function):
                 #dFdm = -backend.derivative(F_form, c_rep, backend.Function(V, tlm_value))
                 dFdm = -backend.derivative(F_form, c_rep, tlm_value)
-                dFdm = backend.assemble(dFdm)
+                dFdm = backend.assemble(dFdm, **self.assemble_kwargs)
 
                 # Zero out boundary values from boundary conditions as they do not depend (directly) on c.
                 for bc in bcs:
@@ -243,7 +263,7 @@ class SolveBlock(Block):
 
             elif isinstance(c, backend.Constant):
                 dFdm = -backend.derivative(F_form, c_rep, tlm_value)
-                dFdm = backend.assemble(dFdm)
+                dFdm = backend.assemble(dFdm, **self.assemble_kwargs)
 
                 # Zero out boundary values from boundary conditions as they do not depend (directly) on c.
                 for bc in bcs:
@@ -256,14 +276,14 @@ class SolveBlock(Block):
 
             elif isinstance(c, backend.Expression):
                 dFdm = -backend.derivative(F_form, c_rep, tlm_value)
-                dFdm = backend.assemble(dFdm)
+                dFdm = backend.assemble(dFdm, **self.assemble_kwargs)
 
                 # Zero out boundary values from boundary conditions as they do not depend (directly) on c.
                 for bc in bcs:
                     bc.apply(dFdm)
 
             dudm = Function(V)
-            backend.solve(dFdu, dudm.vector(), dFdm)
+            backend.solve(dFdu, dudm.vector(), dFdm, **self.kwargs)
 
             fwd_block_output.add_tlm_output(dudm)
 
@@ -307,7 +327,7 @@ class SolveBlock(Block):
         d2Fdu2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdu_form, fwd_block_output.get_saved_output(), tlm_output))
 
         dFdu = backend.adjoint(dFdu_form)
-        dFdu = backend.assemble(dFdu)
+        dFdu = backend.assemble(dFdu, **self.assemble_kwargs)
 
         for bc in bcs:
             bc.apply(dFdu, adj_input)
@@ -315,7 +335,7 @@ class SolveBlock(Block):
         # TODO: First-order adjoint solution should be possible to obtain from the earlier adjoint computations.
         adj_sol = backend.Function(V)
         # Solve the (first order) adjoint equation
-        backend.solve(dFdu, adj_sol.vector(), adj_input)
+        backend.solve(dFdu, adj_sol.vector(), adj_input, **self.kwargs)
 
         # Second-order adjoint (soa) solution
         adj_sol2 = backend.Function(V)
@@ -345,7 +365,7 @@ class SolveBlock(Block):
             bc.apply(dFdu, b)
 
         # Solve the soa equation
-        backend.solve(dFdu, adj_sol2.vector(), b)
+        backend.solve(dFdu, adj_sol2.vector(), b, **self.kwargs)
 
         adj_sol2_bdy = Function(V)
         adj_sol2_bdy = compat.evaluate_algebra_expression(b_copy -
@@ -458,7 +478,7 @@ class SolveBlock(Block):
         if self.linear:
             rhs = backend.replace(self.rhs, replace_rhs_coeffs)
 
-        backend.solve(lhs == rhs, func, bcs)
+        backend.solve(lhs == rhs, func, bcs, **self.forward_kwargs)
         # Save output for use in later re-computations.
         # TODO: Consider redesigning the saving system so a new deepcopy isn't created on each forward replay.
         self.get_outputs()[0].checkpoint = func._ad_create_checkpoint()

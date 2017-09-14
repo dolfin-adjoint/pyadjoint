@@ -86,9 +86,10 @@ class OverloadedExpressionMetaClass(_backend_ExpressionMetaClass):
 
         def __init__(self, *args, **kwargs):
             self._ad_initialized = False
+            # pop annotate from kwargs before passing them on the backend init
+            self.annotate_tape = annotate_tape(kwargs)
 
             Expression.__init__(self, *args, **kwargs)
-
             FloatingType.__init__(self,
                                   *args,
                                   block_class=ExpressionBlock,
@@ -151,8 +152,10 @@ def create_compiled_expression(original, cppcode, *args, **kwargs):
 
         """
         self._ad_initialized = False
-        Expression.__init__(self, *args, **kwargs)
+        # pop annotate from kwargs before passing them on the backend init
+        self.annotate_tape = annotate_tape(kwargs)
 
+        Expression.__init__(self, *args, **kwargs)
         FloatingType.__init__(self,
                               *args,
                               block_class=ExpressionBlock,

@@ -56,15 +56,14 @@ def annotate_tape(kwargs=None):
     Returns: bool
 
     """
+    annotate = kwargs is None or kwargs.pop("annotate", True)
+
     # TODO: Consider if there is any scenario where one would want the keyword to have
     # precedence over the global flag.
     if _stop_annotating > 0:
         return False
 
-    if kwargs is None:
-        return True
-
-    return kwargs.pop("annotate", True)
+    return annotate
 
 
 class Tape(object):

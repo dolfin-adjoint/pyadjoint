@@ -8,7 +8,7 @@ __email__ = 'sebastkm@math.uio.no'
 from .block import Block
 from .tape import (Tape,
                    set_working_tape, get_working_tape,
-                   annotate_tape, stop_annotating)
+                   annotate_tape, stop_annotating, pause_annotation, continue_annotation)
 from .adjfloat import AdjFloat
 from .reduced_functional import ReducedFunctional
 from .drivers import compute_gradient, Hessian

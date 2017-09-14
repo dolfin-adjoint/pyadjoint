@@ -53,8 +53,3 @@ def test_fn_split():
     h.vector()[:] = rand(Z.dim())
     taylor_test(rf, ic, h)
 
-
-
-
-
-
