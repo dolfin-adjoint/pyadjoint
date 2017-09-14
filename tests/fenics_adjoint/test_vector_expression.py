@@ -5,7 +5,6 @@ from fenics import *
 from fenics_adjoint import *
 
 from numpy.random import rand, seed
-seed(8)
 
 
 def test_simple_constant():
@@ -198,9 +197,9 @@ def test_assemble_expr_hessian():
     Jhat = ReducedFunctional(J, c)
 
     h = Function(c.function_space())
-    h.vector()[:] = rand(c.function_space().dim())
+    h.vector()[:] = rand(c.function_space().dim())*2.5
     H = Hessian(J, c)
     dJdm = h._ad_dot(Jhat.derivative())
     Hm = h._ad_dot(H(h))
-    assert (taylor_test(Jhat, c, h, dJdm=dJdm, Hm=Hm) > 2.5)
+    assert (taylor_test(Jhat, c, h, dJdm=dJdm, Hm=Hm) > 2.9)
 

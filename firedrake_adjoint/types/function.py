@@ -19,7 +19,7 @@ class Function(function.Function):
             tape = get_working_tape()
             tape.add_block(block)
 
-            block.add_output(output.get_block_output())
+            block.add_output(output.create_block_output())
 
         return output
 

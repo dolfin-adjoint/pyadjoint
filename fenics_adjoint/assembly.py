@@ -6,9 +6,15 @@ from .types import create_overloaded_object
 
 
 def assemble(*args, **kwargs):
+    """When a form is assembled, the information about its nonlinear dependencies is lost,
+    and it is no longer easy to manipulate. Therefore, fenics_adjoint overloads the :py:func:`dolfin.assemble`
+    function to *attach the form to the assembled object*. This lets the automatic annotation work,
+    even when the user calls the lower-level :py:data:`solve(A, x, b)`.
+    """
     annotate = annotate_tape(kwargs)
     with stop_annotating():
         output = backend.assemble(*args, **kwargs)
+
     output = create_overloaded_object(output)
 
     if annotate:
@@ -17,12 +23,17 @@ def assemble(*args, **kwargs):
 
         tape = get_working_tape()
         tape.add_block(block)
-        
+
         block.add_output(output.get_block_output())
 
     return output
 
 def assemble_system(*args, **kwargs):
+    """When a form is assembled, the information about its nonlinear dependencies is lost,
+    and it is no longer easy to manipulate. Therefore, fenics_adjoint overloads the :py:func:`dolfin.assemble_system`
+    function to *attach the form to the assembled object*. This lets the automatic annotation work,
+    even when the user calls the lower-level :py:data:`solve(A, x, b)`.
+    """
     A_form = args[0]
     b_form = args[1]
 
@@ -54,7 +65,6 @@ class AssembleBlock(Block):
 
     @no_annotations
     def evaluate_adj(self):
-        #t = backend.Timer("Assemble:evaluate_adj")
         adj_input = self.get_outputs()[0].get_adj_output()
         if adj_input is None:
             return

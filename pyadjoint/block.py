@@ -25,7 +25,7 @@ class Block(object):
 
         """
         if dep not in self._dependencies:  # Can be optimized if we have need for huge lists.
-            dep.save_output(overwrite=False)
+            dep.will_add_as_dependency()
             self._dependencies.append(dep)
 
     def get_dependencies(self):
@@ -46,7 +46,7 @@ class Block(object):
             obj (:class:`BlockOutput`): The object to be added.
 
         """
-        obj.save_output()
+        obj.will_add_as_output()
         self._outputs.append(obj)
 
     def get_outputs(self):
@@ -59,11 +59,14 @@ class Block(object):
         return self._outputs
 
     def reset_variables(self):
-        """Resets all adjoint variables in the block dependencies.
+        """Resets all adjoint variables in the block dependencies and outputs.
 
         """
         for dep in self._dependencies:
             dep.reset_variables()
+
+        for output in self._outputs:
+            output.reset_variables()
 
     def evaluate_adj(self):
         """This method must be overriden.

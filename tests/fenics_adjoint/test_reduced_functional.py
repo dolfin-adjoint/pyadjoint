@@ -55,6 +55,8 @@ def test_function():
 
 
 def test_wrt_function_dirichlet_boundary():
+    tape = Tape()
+    set_working_tape(tape)
     mesh = UnitSquareMesh(10,10)
 
     V = FunctionSpace(mesh,"CG",1)
@@ -89,7 +91,7 @@ def test_wrt_function_dirichlet_boundary():
     down.mark(boundary,2)
     ds = Measure("ds", subdomain_data=boundary)
 
-    bc_func = project(Expression("sin(x[1])", degree=1), V)
+    bc_func = project(Expression("sin(x[1])", degree=1, annotate=False), V, annotate=False)
     bc1 = DirichletBC(V,bc_func,left)
     bc2 = DirichletBC(V,2,right)
     bc = [bc1,bc2]
@@ -319,4 +321,99 @@ def test_assemble_recompute():
     h = Function(V)
     h.vector()[:] = 1
     assert(taylor_test(Jhat, m, h) > 1.9)
+
+# TODO: Fix this! The time values are not updated properly on forward replay!
+def test_dirichlet_updating():
+    tape = Tape()
+    set_working_tape(tape)
+
+    mesh = UnitSquareMesh(10, 10)
+    V = FunctionSpace(mesh, "CG", 1)
+
+    v = TestFunction(V)
+    u = Function(V)
+    f = Function(V)
+    f.vector()[:] = 1
+
+    t = Constant(0)
+    dt = 0.1
+    bc = DirichletBC(V, t, "on_boundary")
+
+    T = 0.3
+    F = inner(grad(u), grad(v)) * dx - f * v * dx
+
+    J = 0
+    while t.values()[0] <= T:
+        solve(F == 0, u, bc)
+        t.assign(t.values()[0] + dt)
+        J += dt*assemble(u**2*dx)
+
+    Jhat = ReducedFunctional(J, f)
+    h = project(Constant(1), V, annotate=False)
+    assert taylor_test(Jhat, f, h) > 1.9
+
+
+def test_expression_update():
+    tape = Tape()
+    set_working_tape(tape)
+
+    mesh = UnitSquareMesh(10, 10)
+    V = FunctionSpace(mesh, "CG", 1)
+
+    v = TestFunction(V)
+    u = Function(V)
+    t = Constant(0.3)
+    a = Constant(2)
+    f = Expression("t*t*a*a", t=t, a=a, degree=1)
+    f.user_defined_derivatives = {a: Expression("2*t*t*a", t=t, a=a, degree=1, annotate=False)}
+    g = Constant(1)
+
+    dt = 0.1
+    bc = DirichletBC(V, 1, "on_boundary")
+
+    T = 0.3
+    F = inner(grad(u), grad(v)) * dx - g * f * v * dx
+
+    i = 0.0
+    j = 0.3
+    while i <= j:
+        solve(F == 0, u, bc)
+        i += dt
+        t.assign(t.values()[0] + dt)
+
+    J = assemble(u**2*dx)
+    Jhat = ReducedFunctional(J, a)
+    h = Constant(1)
+    assert taylor_test(Jhat, a, h)
+
+
+def test_function_split():
+    tape = Tape()
+    set_working_tape(tape)
+
+    mesh = UnitSquareMesh(10, 10)
+    V_element = VectorElement("CG", mesh.ufl_cell(), 1)
+    V = FunctionSpace(mesh, V_element)
+
+    f = project(Expression(("x[0]", "x[1]"), degree=1, annotate=False), V, annotate=False)
+
+    u = TrialFunction(V)
+    v = TestFunction(V)
+
+    u_ = Function(V)
+    a = inner(u,v)*dx
+    L = inner(f,v)*dx
+    solve(a == L, u_)
+
+    f1, f2 = f.split()
+    J = assemble(f1*inner(u_, u_)*dx)
+    Jhat = ReducedFunctional(J, f)
+    h = project(Constant((1, 1)), V, annotate=False)
+    assert taylor_test(Jhat, f, h)
+
+
+
+
+
+
 

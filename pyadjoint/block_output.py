@@ -9,6 +9,7 @@ class BlockOutput(object):
         self.tlm_value = None
         self.hessian_value = None
         self.checkpoint = None
+        self.floating_type = False
 
     def add_adj_output(self, val):
         if self.adj_value is None:
@@ -49,10 +50,20 @@ class BlockOutput(object):
             self.checkpoint = self.output._ad_create_checkpoint()
 
     def get_saved_output(self):
-        if self.checkpoint:
+        if self.checkpoint is not None:
             return self.output._ad_restore_at_checkpoint(self.checkpoint)
         else:
             return self.output
+
+    def will_add_as_dependency(self):
+        overwrite = self.output._ad_will_add_as_dependency()
+        overwrite = False if overwrite is None else overwrite
+        self.save_output(overwrite=overwrite)
+
+    def will_add_as_output(self):
+        overwrite = self.output._ad_will_add_as_output()
+        overwrite = True if overwrite is None else overwrite
+        self.save_output(overwrite=overwrite)
 
     def __str__(self):
         return str(self.output)
