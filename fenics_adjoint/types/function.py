@@ -42,9 +42,13 @@ class Function(FloatingType, backend.Function):
 
         return ret
 
-    def split(self):
-        # TODO: Don't need split here. It is never actually used.
-        components = backend.Function.split(self)
+    def split(self, *args, **kwargs):
+        deepcopy = kwargs.get("deepcopy", False)
+        annotate = annotate_tape(kwargs)
+        if deepcopy or not annotate:
+            return backend.Function.split(self, *args, **kwargs)
+
+        num_sub_spaces = backend.Function.function_space(self).num_sub_spaces()
         ret = [Function(self, i,
                         block_class=SplitBlock,
                         _ad_floating_active=True,
@@ -52,7 +56,7 @@ class Function(FloatingType, backend.Function):
                         _ad_output_args=[i],
                         output_block_class=MergeBlock,
                         _ad_outputs=[self])
-               for i, _ in enumerate(components)]
+               for i in range(num_sub_spaces)]
         return tuple(ret)
 
     def vector(self):

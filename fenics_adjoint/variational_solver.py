@@ -1,5 +1,5 @@
 import backend
-from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
+from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape, no_annotations
 from .solving import SolveBlock
 
 
@@ -17,7 +17,7 @@ class NonlinearVariationalProblem(backend.NonlinearVariationalProblem):
 
 
 class NonlinearVariationalSolver(backend.NonlinearVariationalSolver):
-
+    @no_annotations
     def __init__(self, problem, *args, **kwargs):
         super(NonlinearVariationalSolver, self).__init__(problem, *args, **kwargs)
         self._ad_problem = problem
