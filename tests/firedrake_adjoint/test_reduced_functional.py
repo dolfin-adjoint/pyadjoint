@@ -4,6 +4,7 @@ pytest.importorskip("firedrake")
 from firedrake import *
 from firedrake_adjoint import *
 
+from numpy.random import rand
 
 def test_constant():
     mesh = IntervalMesh(10, 0, 1)
@@ -21,8 +22,8 @@ def test_constant():
     solve(F == 0, u, bc)
 
     J = assemble(c**2*u*dx)
-    Jhat = ReducedFunctional(J, c)
-    assert taylor_test(Jhat, Constant(5), Constant(1)) > 1.9
+    Jhat = ReducedFunctional(J, Control(c))
+    assert taylor_test(Jhat, c, Constant(1)) > 1.9
 
 
 def test_function():
@@ -41,17 +42,11 @@ def test_function():
     solve(F == 0, u, bc)
 
     J = assemble(c**2*u*dx)
-    Jhat = ReducedFunctional(J, f)
+    Jhat = ReducedFunctional(J, Control(f))
     
     h = Function(V)
-    from numpy.random import rand
     h.vector()[:] = rand(V.dof_dset.size)
-    # Note that if you use f directly, it will not work
-    # as expected since f is the control and thus the initial point in control
-    # space is changed as you do the test. (Since f.vector is also assigned new values on pertubations)
-    g = f.copy(deepcopy=True)
-
-    assert taylor_test(Jhat, g, h) > 1.9
+    assert taylor_test(Jhat, f, h) > 1.9
 
 
 @pytest.mark.parametrize("control", ["dirichlet", "neumann"])
@@ -82,13 +77,13 @@ def test_wrt_function_dirichlet_boundary(control):
     J = assemble(u_**2*dx)
 
     if control == "dirichlet":
-        Jhat = ReducedFunctional(J, bc_func)
-        g = bc_func.copy(deepcopy=True)
+        Jhat = ReducedFunctional(J, Control(bc_func))
+        g = bc_func
         h = Function(V)
         h.vector()[:] = 1
     else:
-        Jhat = ReducedFunctional(J, g1)
-        g = Constant(2)
+        Jhat = ReducedFunctional(J, Control(g1))
+        g = g1
         h = Constant(1)
 
     assert taylor_test(Jhat, g, h) > 1.9
@@ -116,7 +111,8 @@ def test_time_dependent():
     f.vector()[:] = 1
 
     u_1 = Function(V)
-    u_1.vector()[:] = 1 
+    u_1.vector()[:] = 1
+    control = Control(u_1)
 
     a = u_1*u*v*dx + dt*f*inner(grad(u),grad(v))*dx
     L = u_1*v*dx
@@ -130,12 +126,11 @@ def test_time_dependent():
 
     J = assemble(u_1**2*dx)
 
-    Jhat = ReducedFunctional(J, u_1)
+    Jhat = ReducedFunctional(J, control)
     
     h = Function(V)
     h.vector()[:] = 1
-    g = f.copy(deepcopy=True)
-    assert taylor_test(Jhat, g, h) > 1.9
+    assert taylor_test(Jhat, control.data(), h) > 1.9
 
 
 def test_mixed_boundary():
@@ -162,11 +157,10 @@ def test_mixed_boundary():
 
     J = assemble(u_**2*dx)
 
-    Jhat = ReducedFunctional(J, f)
-    g = Function(f)
+    Jhat = ReducedFunctional(J, Control(f))
     h = Function(V)
     h.vector()[:] = 1
-    assert taylor_test(Jhat, g, h) > 1.9
+    assert taylor_test(Jhat, f, h) > 1.9
 
 
 @pytest.mark.xfail(reason="Expression not implemented yet")
@@ -195,12 +189,11 @@ def test_expression():
         f.t = t
 
     J = assemble(u**2*dx)
-    Jhat = ReducedFunctional(J, a)
+    Jhat = ReducedFunctional(J, Control(a))
 
     h = Function(V)
     h.vector()[:] = 1
-    g = a.copy(deepcopy=True)
-    assert taylor_test(Jhat, g, h) > 1.9
+    assert taylor_test(Jhat, a, h) > 1.9
 
 
 @pytest.mark.xfail(reason="Expression not implemented yet")
@@ -224,11 +217,10 @@ def test_projection():
     solve(a == L, u_, bc)
 
     J = assemble(u_**2*dx)
-    Jhat = ReducedFunctional(J, k)
+    Jhat = ReducedFunctional(J, Control(k))
 
-    m = Constant(2.0)
     h = Constant(1.0)
-    assert taylor_test(Jhat, m, h) > 1.9
+    assert taylor_test(Jhat, k, h) > 1.9
 
 
 @pytest.mark.xfail(reason="Expression not implemented yet")
@@ -253,12 +245,11 @@ def test_projection_function():
     solve(a == L, u_, bc)
 
     J = assemble(u_**2*dx)
-    Jhat = ReducedFunctional(J, g)
+    Jhat = ReducedFunctional(J, Control(g))
 
-    m = g.copy(deepcopy=True)
     h = Function(V)
     h.vector()[:] = 1
-    assert taylor_test(Jhat, m, h) > 1.9
+    assert taylor_test(Jhat, g, h) > 1.9
 
 
 @pytest.mark.xfail(reason="Constant annotation not yet quite right")
@@ -275,9 +266,8 @@ def test_assemble_recompute():
     f.vector()[:] = 2
     expr = Constant(assemble(f**2*dx))
     J = assemble(expr**2*dx(domain=mesh))
-    Jhat = ReducedFunctional(J, f)
+    Jhat = ReducedFunctional(J, Control(f))
 
-    m = f.copy(deepcopy=True)
     h = Function(V)
     h.vector()[:] = 1
-    assert taylor_test(Jhat, m, h) > 1.9
+    assert taylor_test(Jhat, f, h) > 1.9

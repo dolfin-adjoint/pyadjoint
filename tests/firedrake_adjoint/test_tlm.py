@@ -31,7 +31,7 @@ def test_tlm_assemble():
     solve(a == L, u_, bc)
 
     J = assemble(u_**2*dx)
-    Jhat = ReducedFunctional(J, f)
+    Jhat = ReducedFunctional(J, Control(f))
 
     h = Function(V)
     h.vector()[:] = rand(h.dof_dset.size)
@@ -59,7 +59,7 @@ def test_tlm_bc():
     solve(F == 0, u, bc)
 
     J = assemble(c ** 2 * u * dx)
-    Jhat = ReducedFunctional(J, c)
+    Jhat = ReducedFunctional(J, Control(c))
 
     c.set_initial_tlm_input(Constant(1))
     tape.evaluate_tlm()
@@ -86,7 +86,7 @@ def test_tlm_func():
     solve(F == 0, u, bc)
 
     J = assemble(c ** 2 * u * dx)
-    Jhat = ReducedFunctional(J, c)
+    Jhat = ReducedFunctional(J, Control(c))
 
     h = Function(V)
     h.vector()[:] = rand(h.dof_dset.size)
@@ -124,7 +124,7 @@ def test_time_dependent(solve_type):
 
     u_1 = Function(V)
     u_1.vector()[:] = 1
-    g = u_1.copy(deepcopy=True)
+    control = Control(u_1)
 
     a = u_1 * u * v * dx + dt * f * inner(grad(u), grad(v)) * dx
     L = u_1 * v * dx
@@ -144,12 +144,12 @@ def test_time_dependent(solve_type):
 
     J = assemble(u_1 ** 2 * dx)
 
-    Jhat = ReducedFunctional(J, u_1)
+    Jhat = ReducedFunctional(J, control)
     h = Function(V)
     h.vector()[:] = rand(h.dof_dset.size)
     u_1.set_initial_tlm_input(h)
     tape.evaluate_tlm()
-    assert (taylor_test(Jhat, g, h, dJdm=J.block_output.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, control.data(), h, dJdm=J.block_output.tlm_value) > 1.9)
 
 
 def test_burgers():
@@ -196,7 +196,7 @@ def test_burgers():
 
     J = assemble(u_*u_*dx + ic*ic*dx)
 
-    Jhat = ReducedFunctional(J, ic)
+    Jhat = ReducedFunctional(J, Control(ic))
     h = Function(V)
     h.vector()[:] = rand(h.dof_dset.size)
     g = ic.copy(deepcopy=True)
@@ -236,7 +236,7 @@ def test_expression():
 
     J = assemble(u**2*dx)
 
-    Jhat = ReducedFunctional(J, a)
+    Jhat = ReducedFunctional(J, Control(a))
     h = Function(V)
     h.vector()[:] = rand(V.dim())
     g = a.copy(deepcopy=True)
@@ -267,7 +267,7 @@ def test_projection():
     solve(a == L, u_, bc)
 
     J = assemble(u_**2*dx)
-    Jhat = ReducedFunctional(J, k)
+    Jhat = ReducedFunctional(J, Control(k))
 
     k.set_initial_tlm_input(Constant(1))
     tape.evaluate_tlm()
@@ -297,7 +297,7 @@ def test_projection_function():
     solve(a == L, u_, bc)
 
     J = assemble(u_**2*dx)
-    Jhat = ReducedFunctional(J, g)
+    Jhat = ReducedFunctional(J, Control(g))
 
     h = Function(V)
     h.vector()[:] = rand(h.dof_dset.size)
@@ -326,7 +326,7 @@ def test_assemble_recompute():
     expr.user_defined_derivatives = {k: Expression("1", degree=1, annotate_tape=False)}
     J = assemble(expr**2*dx(domain=mesh))
 
-    Jhat = ReducedFunctional(J, f)
+    Jhat = ReducedFunctional(J, Control(f))
     h = Function(V)
     h.vector()[:] = rand(V.dim())
     g = f.copy(deepcopy=True)

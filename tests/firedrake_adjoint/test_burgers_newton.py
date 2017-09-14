@@ -64,9 +64,8 @@ def test_burgers_newton(solve_type):
 
     val = J(ic, solve_type)
 
-    Jhat = ReducedFunctional(val, ic)
+    Jhat = ReducedFunctional(val, Control(ic))
 
     h = Function(V)
     h.assign(1, annotate=False)
-    ic = Function(ic)
     assert taylor_test(Jhat, ic, h) > 1.9

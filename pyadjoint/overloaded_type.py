@@ -47,10 +47,23 @@ class OverloadedType(object):
     def reset_variables(self):
         self.original_block_output.reset_variables()
 
-    def get_derivative(self, options={}):
-        # TODO: Decide on naming here.
-        # Basically the method should implement a way to convert
-        # the adj_output to the same type as `self`.
+    def _ad_convert_type(self, value, options={}):
+        """This method must be overridden.
+
+        Should implement a way to convert the result of an adjoint computation, `value`,
+        into the same type as `self`.
+
+        Args:
+            value (Any): The value to convert. Should be a result of an adjoint computation.
+            options (dict): A dictionary with options that may be supplied by the user.
+                If the convert type functionality offers some options on how to convert,
+                this is the dictionary that should be used.
+                For an example see fenics_adjoint.types.Function
+
+        Returns:
+            OverloadedType: An instance of the same type as `self`.
+
+        """
         raise NotImplementedError
 
     def _ad_create_checkpoint(self):

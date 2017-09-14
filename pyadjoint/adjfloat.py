@@ -90,8 +90,8 @@ class AdjFloat(OverloadedType, float):
     def __pow__(self, power):
         return PowBlock(self, power)
 
-    def get_derivative(self, options={}):
-        return self.__class__(self.get_adj_output())
+    def _ad_convert_type(self, value, options={}):
+        return AdjFloat(value)
 
     def adj_update_value(self, value):
         self.original_block_output.checkpoint = value

@@ -68,11 +68,6 @@ class Function(FloatingType, backend.Function):
         return vec
 
     @no_annotations
-    def get_derivative(self, options={}):
-        adj_value = self.get_adj_output()
-        return self._ad_convert_type(adj_value, options)
-
-    @no_annotations
     def _ad_convert_type(self, value, options={}):
         riesz_representation = options.pop("riesz_representation", "l2")
 

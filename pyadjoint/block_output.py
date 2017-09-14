@@ -8,7 +8,10 @@ class BlockOutput(object):
         self.adj_value = None
         self.tlm_value = None
         self.hessian_value = None
-        self.checkpoint = None
+        self._checkpoint = None
+        self.is_control = False
+        self.depends_on_control = False
+        self.control_value = None
         self.floating_type = False
 
     def add_adj_output(self, val):
@@ -40,6 +43,8 @@ class BlockOutput(object):
 
     def reset_variables(self):
         self.adj_value = None
+        self.is_control = False
+        self.depends_on_control = False
 
     # TODO: Make this just an attribute. Extend with Property if needed later.
     def get_output(self):
@@ -67,4 +72,14 @@ class BlockOutput(object):
 
     def __str__(self):
         return str(self.output)
+
+    @property
+    def checkpoint(self):
+        if self.is_control:
+            return self.control_value
+        return self._checkpoint
+
+    @checkpoint.setter
+    def checkpoint(self, value):
+        self._checkpoint = value
 

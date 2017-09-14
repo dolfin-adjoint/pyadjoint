@@ -11,7 +11,7 @@ def test_simple_assemble():
     c = Constant((3.0, 4.0))
     J = assemble(c**2*dx(domain=mesh))
 
-    Jhat = ReducedFunctional(J, c)
+    Jhat = ReducedFunctional(J, Control(c))
     deriv = Jhat.derivative()
 
     assert(taylor_test(Jhat, c, Constant((0.3, 0.5))) > 1.9)
@@ -36,7 +36,7 @@ def test_simple_solve():
     solve(a == L, sol)
 
     J = assemble(sol**2*dx)
-    Jhat = ReducedFunctional(J, c)
+    Jhat = ReducedFunctional(J, Control(c))
 
     assert(taylor_test(Jhat, c, Constant((1, 1, 1))) > 1.9)
 
@@ -61,7 +61,7 @@ def test_solve_assemble():
     solve(a == L, sol, bc)
 
     J = assemble(c**2*sol**2*dx)
-    Jhat = ReducedFunctional(J, c)
+    Jhat = ReducedFunctional(J, Control(c))
 
     assert(taylor_test(Jhat, c, Constant((1, 1, 1))) > 1.9)
 
@@ -89,7 +89,7 @@ def test_dirichlet_bc():
     solve(a == L, sol, bc)
 
     J = assemble(sol**2*dx)
-    Jhat = ReducedFunctional(J, c)
+    Jhat = ReducedFunctional(J, Control(c))
 
     assert(taylor_test(Jhat, c, Constant((1, 1))) > 1.9)
 
@@ -101,10 +101,11 @@ def test_simple_assemble_hessian():
 
     c = Constant((3.0, 4.0))
     J = assemble(c**2*c**2*dx(domain=mesh))
-    Jhat = ReducedFunctional(J, c)
+    control = Control(c)
+    Jhat = ReducedFunctional(J, control)
     h = Constant((1.0, 1.0))
     dJdm = h._ad_dot(Jhat.derivative())
-    H = Hessian(J, c)
+    H = Hessian(J, control)
     Hm = h._ad_dot(H(h))
 
     assert(taylor_test(Jhat, c, h, dJdm=dJdm, Hm=Hm) > 2.9)
@@ -130,9 +131,10 @@ def test_solve_assemble_hessian():
     solve(a == L, sol, bc)
 
     J = assemble(c**2*sol**2*dx)
-    Jhat = ReducedFunctional(J, c)
+    control = Control(c)
+    Jhat = ReducedFunctional(J, control)
     h = Constant((1, 1, 1))
-    H = Hessian(J, c)
+    H = Hessian(J, control)
     dJdm = h._ad_dot(Jhat.derivative())
     Hm = h._ad_dot(H(h))
 
@@ -162,9 +164,10 @@ def test_dirichlet_bc_hessian():
     solve(a == L, sol, bc)
 
     J = assemble(c**2*sol**2*dx)
-    Jhat = ReducedFunctional(J, c)
+    control = Control(c)
+    Jhat = ReducedFunctional(J, control)
     h = Constant((1,1))
-    H = Hessian(J, c)
+    H = Hessian(J, control)
     dJdm = h._ad_dot(Jhat.derivative())
     Hm = h._ad_dot(H(h))
 

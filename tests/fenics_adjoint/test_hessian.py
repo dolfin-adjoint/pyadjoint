@@ -4,8 +4,7 @@ pytest.importorskip("fenics")
 from fenics import *
 from fenics_adjoint import *
 
-from numpy.random import rand, seed
-seed(8)
+from numpy.random import rand
 
 def test_simple_solve():
     tape = Tape()
@@ -33,25 +32,16 @@ def test_simple_solve():
     solve(a == L, u_sol)
 
     J = assemble(u_sol**4*dx)
-    Jhat = ReducedFunctional(J, f)
-
-    tape = get_working_tape()
+    c = Control(f)
+    Jhat = ReducedFunctional(J, c)
 
     h = Function(V)
     h.vector()[:] = rand(V.dim())
-    f.set_initial_tlm_input(h)
-    J.set_initial_adj_input(1.0)
 
-    tape.evaluate()
-    tape.evaluate_tlm()
-    J.block_output.hessian_value = 0
-
-    tape.evaluate_hessian()
-
-    m = f.copy(deepcopy=True)
-    dJdm = f.original_block_output.adj_value.inner(h.vector())
-    Hm = f.original_block_output.hessian_value.inner(h.vector())
-    assert(taylor_test(Jhat, m, h, dJdm=dJdm, Hm=Hm) > 2.9)
+    dJdm = Jhat.derivative().vector().inner(h.vector())
+    H = Hessian(J, c)
+    Hm = H(h).vector().inner(h.vector())
+    assert(taylor_test(Jhat, f, h, dJdm=dJdm, Hm=Hm) > 2.9)
 
 
 def test_mixed_derivatives():
@@ -158,7 +148,7 @@ def test_nonlinear():
     solve(F == 0, u, bc)
 
     J = assemble(u ** 4 * dx)
-    Jhat = ReducedFunctional(J, f)
+    Jhat = ReducedFunctional(J, Control(f))
 
     h = Function(V)
     h.vector()[:] = rand(V.dim())
@@ -198,7 +188,7 @@ def test_dirichlet():
     solve(F == 0, u, bc)
 
     J = assemble(u ** 4 * dx)
-    Jhat = ReducedFunctional(J, c)
+    Jhat = ReducedFunctional(J, Control(c))
 
     h = Function(V)
     h.vector()[:] = rand(V.dim())
@@ -240,7 +230,7 @@ def test_expression():
     solve(F == 0, u, bc)
 
     J = assemble(u ** 4 * dx)
-    Jhat = ReducedFunctional(J, c)
+    Jhat = ReducedFunctional(J, Control(c))
 
     h = Constant(1)
 
@@ -304,7 +294,7 @@ def test_burgers():
 
     J = assemble(u_*u_*dx + ic*ic*dx)
 
-    Jhat = ReducedFunctional(J, ic)
+    Jhat = ReducedFunctional(J, Control(ic))
     h = Function(V)
     h.vector()[:] = rand(V.dim())
     g = ic.copy(deepcopy=True)
