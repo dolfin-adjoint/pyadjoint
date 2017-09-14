@@ -93,9 +93,6 @@ class AdjFloat(OverloadedType, float):
     def _ad_convert_type(self, value, options={}):
         return AdjFloat(value)
 
-#    def get_derivative(self, options={}):
-#        return self.__class__(self.get_adj_output())
-
     def adj_update_value(self, value):
         self.original_block_output.checkpoint = value
 

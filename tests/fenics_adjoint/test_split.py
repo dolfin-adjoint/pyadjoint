@@ -47,7 +47,7 @@ def test_fn_split():
 
     u = main(ic, fnsplit=True)
     j = assemble(u**2*dx)
-    rf = ReducedFunctional(j, ic)
+    rf = ReducedFunctional(j, Control(ic))
 
     h = Function(Z)
     h.vector()[:] = rand(Z.dim())

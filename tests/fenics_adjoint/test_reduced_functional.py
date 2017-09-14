@@ -398,7 +398,7 @@ def test_dirichlet_updating():
         t.assign(t.values()[0] + dt)
         J += dt*assemble(u**2*dx)
 
-    Jhat = ReducedFunctional(J, f)
+    Jhat = ReducedFunctional(J, Control(f))
     h = project(Constant(1), V, annotate=False)
     assert taylor_test(Jhat, f, h) > 1.9
 
@@ -432,7 +432,7 @@ def test_expression_update():
         t.assign(t.values()[0] + dt)
 
     J = assemble(u**2*dx)
-    Jhat = ReducedFunctional(J, a)
+    Jhat = ReducedFunctional(J, Control(a))
     h = Constant(1)
     assert taylor_test(Jhat, a, h)
 
@@ -457,7 +457,7 @@ def test_function_split():
 
     f1, f2 = f.split()
     J = assemble(f1*inner(u_, u_)*dx)
-    Jhat = ReducedFunctional(J, f)
+    Jhat = ReducedFunctional(J, Control(f))
     h = project(Constant((1, 1)), V, annotate=False)
     assert taylor_test(Jhat, f, h)
 

@@ -4,7 +4,7 @@ pytest.importorskip("fenics")
 from fenics import *
 from fenics_adjoint import *
 
-from numpy.random import rand, seed
+from numpy.random import rand
 
 
 def test_simple_constant():
@@ -29,7 +29,7 @@ def test_simple_constant():
     solve(a == L, u_, bc)
 
     J = assemble(inner(u_, u_)*dx)
-    Jhat = ReducedFunctional(J, c)
+    Jhat = ReducedFunctional(J, Control(c))
     assert(taylor_test(Jhat, c, Constant(1)) > 1.9)
 
 
@@ -56,7 +56,7 @@ def test_simple_function():
     solve(a == L, u_, bc)
 
     J = assemble(inner(u_, u_)*dx)
-    Jhat = ReducedFunctional(J, c)
+    Jhat = ReducedFunctional(J, Control(c))
 
     h = Function(c.function_space())
     h.vector()[:] = rand(c.function_space().dim())
@@ -74,7 +74,7 @@ def test_assemble_expr():
     expr.user_defined_derivatives = {c: Expression(("x[0]*cos(c*x[0])", "-x[0]*sin(c*x[0])"), c=c, degree=2, annotate=False)}
 
     J = assemble(inner(expr, expr) * dx(domain=mesh))
-    Jhat = ReducedFunctional(J, c)
+    Jhat = ReducedFunctional(J, Control(c))
 
     h = Function(c.function_space())
     h.vector()[:] = rand(c.function_space().dim())
@@ -104,7 +104,7 @@ def test_scalar_working():
     solve(a == L, u_, bc)
 
     J = assemble(inner(u_, u_)*dx)
-    Jhat = ReducedFunctional(J, c)
+    Jhat = ReducedFunctional(J, Control(c))
 
     h = Function(c.function_space())
     h.vector()[:] = rand(c.function_space().dim())
@@ -136,9 +136,10 @@ def test_simple_constant_hessian():
     solve(a == L, u_, bc)
 
     J = assemble(inner(u_, u_)*dx)
-    Jhat = ReducedFunctional(J, c)
+    control = Control(c)
+    Jhat = ReducedFunctional(J, control)
     h = Constant(1)
-    H = Hessian(J, c)
+    H = Hessian(J, control)
     dJdm = h._ad_dot(Jhat.derivative())
     Hm = h._ad_dot(H(h))
     assert(taylor_test(Jhat, c, h, dJdm=dJdm, Hm=Hm) > 2.9)
@@ -170,11 +171,12 @@ def test_simple_function_hessian():
     solve(a == L, u_, bc)
 
     J = assemble(inner(u_, u_)*dx)
-    Jhat = ReducedFunctional(J, c)
+    control = Control(c)
+    Jhat = ReducedFunctional(J, control)
 
     h = Function(c.function_space())
-    h.vector()[:] = rand(c.function_space().dim())
-    H = Hessian(J, c)
+    h.vector()[:] = rand(c.function_space().dim())*4.0
+    H = Hessian(J, control)
     dJdm = h._ad_dot(Jhat.derivative())
     Hm = h._ad_dot(H(h))
     assert(taylor_test(Jhat, c, h, dJdm=dJdm, Hm=Hm) > 2.9)
@@ -194,11 +196,12 @@ def test_assemble_expr_hessian():
     first_deriv.user_defined_derivatives = {c: second_deriv}
 
     J = assemble(inner(expr, expr) * dx(domain=mesh))
-    Jhat = ReducedFunctional(J, c)
+    control = Control(c)
+    Jhat = ReducedFunctional(J, control)
 
     h = Function(c.function_space())
-    h.vector()[:] = rand(c.function_space().dim())*2.5
-    H = Hessian(J, c)
+    h.vector()[:] = rand(c.function_space().dim())*10.0
+    H = Hessian(J, control)
     dJdm = h._ad_dot(Jhat.derivative())
     Hm = h._ad_dot(H(h))
     assert (taylor_test(Jhat, c, h, dJdm=dJdm, Hm=Hm) > 2.9)
