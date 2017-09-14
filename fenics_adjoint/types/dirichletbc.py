@@ -149,3 +149,5 @@ class DirichletBCBlock(Block):
         if len(self.get_dependencies()) > 0:
             self.get_outputs()[0].checkpoint.set_value(self.get_dependencies()[0].checkpoint)
 
+    def __str__(self):
+        return "DirichletBC block"

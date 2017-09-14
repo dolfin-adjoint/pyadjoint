@@ -22,7 +22,7 @@ _IGNORED_EXPRESSION_ATTRIBUTES = ['__gt__', '__ne__', '__div__', '__rdiv__', 'is
 _backend_ExpressionMetaClass = backend.functions.expression.ExpressionMetaClass
 
 class OverloadedExpressionMetaClass(_backend_ExpressionMetaClass):
-    """Overloads the ExpressionMetaClass so that we can create overloaded 
+    """Overloads the ExpressionMetaClass so that we can create overloaded
     Expression types.
 
     """
@@ -115,7 +115,7 @@ class OverloadedExpressionMetaClass(_backend_ExpressionMetaClass):
         # Thus __new__ of cls is invoked.
         out = _backend_ExpressionMetaClass.__call__(cls, *args, **kwargs)
 
-        # Since the class we create is not a subclass of our overloaded Expression 
+        # Since the class we create is not a subclass of our overloaded Expression
         # (where __new__ was invoked), type.__call__ will not initialize
         # the newly created instance. Hence we must do so "manually".
         if not isinstance(out, cls):
@@ -124,7 +124,7 @@ class OverloadedExpressionMetaClass(_backend_ExpressionMetaClass):
 
 
 def create_compiled_expression(original, cppcode, *args, **kwargs):
-    """Creates an overloaded CompiledExpression type from the supplied 
+    """Creates an overloaded CompiledExpression type from the supplied
     CompiledExpression instance.
 
     The argument `original` will be an (uninitialized) CompiledExpression instance,
@@ -189,7 +189,7 @@ class Expression(backend.Expression):
         self._ad_ignored_attributes = None
         self.user_defined_derivatives = {}
 
-    def __setattr__(self, k, v):    
+    def __setattr__(self, k, v):
         if k not in _IGNORED_EXPRESSION_ATTRIBUTES:
             self._ad_attributes_dict[k] = v
         backend.Expression.__setattr__(self, k, v)
@@ -346,3 +346,6 @@ class ExpressionBlock(Block):
             for block_output in self.get_dependencies():
                 key = self.dependency_keys[block_output.output]
                 checkpoint[key] = block_output.get_saved_output()
+
+    def __str__(self):
+        return "Expression block"

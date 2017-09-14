@@ -1,10 +1,9 @@
 from .tape import get_working_tape, annotate_tape
 from .block import Block
 from .overloaded_type import OverloadedType
-from numpy import generic
 
 
-class AdjFloat(OverloadedType, float, generic):
+class AdjFloat(OverloadedType, float):
     def __new__(cls, *args, **kwargs):
         return float.__new__(cls, *args)
 
@@ -157,8 +156,8 @@ class MulBlock(Block):
         adj_input = self.get_outputs()[0].get_adj_output()
         deps = self.get_dependencies()
 
-        deps[0].add_adj_output(adj_input * deps[1].get_saved_output())
-        deps[1].add_adj_output(adj_input * deps[0].get_saved_output())
+        deps[0].add_adj_output(float.__mul__(adj_input, deps[1].get_saved_output()))
+        deps[1].add_adj_output(float.__mul__(adj_input, deps[0].get_saved_output()))
 
     def recompute(self):
         deps = self.get_dependencies()

@@ -1,8 +1,9 @@
 import backend
-from pyadjoint.tape import get_working_tape
+from pyadjoint.tape import get_working_tape, no_annotations
 from pyadjoint.overloaded_type import OverloadedType
 from pyadjoint.block import Block
 from .types import create_overloaded_object
+
 
 class Constant(OverloadedType, backend.Constant):
     def __init__(self, *args, **kwargs):
