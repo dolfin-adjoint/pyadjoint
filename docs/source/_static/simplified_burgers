@@ -1,0 +1,51 @@
+strict digraph  {
+	node [label="\N"];
+	139769913890048	 [label="Expression block",
+		node_color=b,
+		position="(0, 0.0)",
+		shape=box];
+	139769954277840	 [label=f_4,
+		node_color=r,
+		position="(0.0, -0.5)"];
+	139769913890048 -> 139769954277840;
+	139769913883728	 [label=f_20,
+		node_color=r,
+		position="(0.0, -1.5)"];
+	139769905112960	 [label="{ (({ A | A_{i_9} = (({ A | A_{i_8} = -1 * f_20[i_8] }) + f_24)[i_9] / f_28 }) : (v_0)) + (({ A | A_{i_{10}} = sum_{i_{11}} f_24[\
+i_{11}] * (grad(f_24))[i_{10}, i_{11}]  }) : (v_0)) + f_27 * ((grad(v_0)) : (grad(f_24))) } * dx(<Mesh #0>[everywhere], {}) = 0",
+		node_color=b,
+		position="(0, -3.0)",
+		shape=box];
+	139769913883728 -> 139769905112960;
+	139769914031504	 [label=f_24,
+		node_color=r,
+		position="(0.0, -3.5)"];
+	139769905112960 -> 139769914031504;
+	139769913882448	 [label=f_24,
+		node_color=r,
+		position="(0.2, -2.5)"];
+	139769913882448 -> 139769905112960;
+	139769914031376	 [label=<DOLFIN object x (unnamed data)>,
+		node_color=r,
+		position="(0.0, -2.5)"];
+	139769914031376 -> 139769905112960;
+	139769913891408	 [label="{ (v_0) : (v_1) } * dx(<Mesh #0>[everywhere], {}) = { (v_0) : (f_4) } * dx(<Mesh #0>[everywhere], {})",
+		node_color=b,
+		position="(0, -1.0)",
+		shape=box];
+	139769954277840 -> 139769913891408;
+	139769913987536	 [label=f_28,
+		node_color=r,
+		position="(0.4, -2.5)"];
+	139769913987536 -> 139769905112960;
+	139769913891408 -> 139769913883728;
+	139769913884432	 [label=f_27,
+		node_color=r,
+		position="(0.30000000000000004, -2.5)"];
+	139769913884432 -> 139769905112960;
+	139769905112880	 [label="DirichletBC block",
+		node_color=b,
+		position="(0, -2.0)",
+		shape=box];
+	139769905112880 -> 139769914031376;
+}

@@ -125,7 +125,7 @@ def test_function():
     g = f.copy(deepcopy=True)
 
     dJdm = J.block_output.tlm_value
-    Hm = f.original_block_output.hessian_value.inner(h.vector()) + c.original_block_output.hessian_value
+    Hm = f.original_block_output.hessian_value.inner(h.vector()) + c.original_block_output.hessian_value[0]
 
     assert(conv_mixed(J, f, c, g, Constant(4), h, Constant(1), dJdm=dJdm, Hm=Hm) > 2.9)
 
