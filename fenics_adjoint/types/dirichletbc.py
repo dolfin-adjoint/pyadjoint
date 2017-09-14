@@ -7,7 +7,7 @@ from .function import Function
 from .function_space import extract_subfunction
 
 from pyadjoint.tape import get_working_tape, annotate_tape, no_annotations, stop_annotating
-from pyadjoint.overloaded_type import OverloadedType
+from pyadjoint.overloaded_type import OverloadedType, FloatingType
 from pyadjoint.block import Block
 
 import numpy
@@ -16,37 +16,43 @@ import numpy
 #       new boundary values/function.
 
 
-class DirichletBC(OverloadedType, backend.DirichletBC):
+class DirichletBC(FloatingType, backend.DirichletBC):
     def __init__(self, *args, **kwargs):
         super(DirichletBC, self).__init__(*args, **kwargs)
 
-        # Pop kwarg to pass the kwargs check in backend.DirichletBC.__init__.
-        self.annotate_tape = annotate_tape(kwargs)
+        FloatingType.__init__(self,
+                              *args,
+                              block_class=DirichletBCBlock,
+                              _ad_args=args,
+                              _ad_floating_active=True,
+                              annotate=kwargs.pop("annotate", True),
+                              **kwargs)
 
-        with stop_annotating():
-            backend.DirichletBC.__init__(self, *args, **kwargs)
+        # Call backend constructor after popped AD specific keyword args.
+        backend.DirichletBC.__init__(self, *args, **kwargs)
 
-        if self.annotate_tape:
-            tape = get_working_tape()
-
-            # Since DirichletBC behaves differently based on number of
-            # args and arg types, we pass all args to block
-            block = DirichletBCBlock(self, *args)
-
-            tape.add_block(block)
-            block.add_output(self.block_output)
+        self._ad_args = args
+        self._ad_kwargs = kwargs
 
     def _ad_create_checkpoint(self):
-        return self
+        if self.block is None:
+            return None
+
+        deps = self.block.get_dependencies()
+        if len(deps) <= 0:
+            # We don't have any dependencies so the supplied value was not an OverloadedType.
+            # Most probably it was just a float that is immutable so will never change.
+            return self
+
+        return compat.create_bc(self, deps[0].get_saved_output())
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
 
 
 class DirichletBCBlock(Block):
-    def __init__(self, bc, *args):
+    def __init__(self, *args):
         Block.__init__(self)
-        self.bc = bc
         self.function_space = args[0]
         self.parent_space = self.function_space
         if hasattr(self.function_space, "_ad_parent_space") and self.function_space._ad_parent_space is not None:
@@ -67,6 +73,7 @@ class DirichletBCBlock(Block):
 
     @no_annotations
     def evaluate_adj(self):
+        bc = self.get_outputs()[0].get_saved_output()
         adj_inputs = self.get_outputs()[0].get_adj_output()
 
         if adj_inputs is None:
@@ -95,12 +102,13 @@ class DirichletBCBlock(Block):
                     # the BC and the Function.
                     adj_value = backend.Function(self.parent_space)
                     adj_input.apply(adj_value.vector())
-                    adj_output = compat.extract_bc_subvector(adj_value, c.function_space(), self.bc)
+                    adj_output = compat.extract_bc_subvector(adj_value, c.function_space(), bc)
                     block_output.add_adj_output(adj_output)
 
     @no_annotations
     def evaluate_tlm(self):
         output = self.get_outputs()[0]
+        bc = output.get_saved_output()
 
         for block_output in self.get_dependencies():
             tlm_input = block_output.tlm_value
@@ -113,12 +121,13 @@ class DirichletBCBlock(Block):
                 m = tlm_input
 
             #m = backend.project(m, self.function_space)
-            m = compat.create_bc(self.bc, value=m)
+            m = compat.create_bc(bc, value=m)
             output.add_tlm_output(m)
 
     @no_annotations
     def evaluate_hessian(self):
         # TODO: This is the exact same as evaluate_adj for now. Consider refactoring for no duplicate code.
+        bc = self.get_outputs()[0].get_saved_output()
         hessian_inputs = self.get_outputs()[0].hessian_value
 
         if hessian_inputs is None:
@@ -147,12 +156,14 @@ class DirichletBCBlock(Block):
                     # the BC and the Function.
                     hessian_value = backend.Function(self.parent_space)
                     hessian_input.apply(hessian_value.vector())
-                    hessian_output = compat.extract_bc_subvector(hessian_value, c.function_space(), self.bc)
+                    hessian_output = compat.extract_bc_subvector(hessian_value, c.function_space(), bc)
                     block_output.add_hessian_output(hessian_output)
 
     @no_annotations
     def recompute(self):
         # TODO: Here we assume only 1 dependency. Is this always valid?
         if len(self.get_dependencies()) > 0:
-            self.bc.set_value(self.get_dependencies()[0].checkpoint)
+            self.get_outputs()[0].checkpoint.set_value(self.get_dependencies()[0].checkpoint)
 
+    def __str__(self):
+        return "DirichletBC block"

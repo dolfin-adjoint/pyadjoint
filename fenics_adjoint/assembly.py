@@ -6,9 +6,15 @@ from .types import create_overloaded_object, compat
 
 
 def assemble(*args, **kwargs):
+    """When a form is assembled, the information about its nonlinear dependencies is lost,
+    and it is no longer easy to manipulate. Therefore, fenics_adjoint overloads the :py:func:`dolfin.assemble`
+    function to *attach the form to the assembled object*. This lets the automatic annotation work,
+    even when the user calls the lower-level :py:data:`solve(A, x, b)`.
+    """
     annotate = annotate_tape(kwargs)
     with stop_annotating():
         output = backend.assemble(*args, **kwargs)
+
     output = create_overloaded_object(output)
 
     if annotate:
@@ -17,12 +23,17 @@ def assemble(*args, **kwargs):
 
         tape = get_working_tape()
         tape.add_block(block)
-        
+
         block.add_output(output.get_block_output())
 
     return output
 
 def assemble_system(*args, **kwargs):
+    """When a form is assembled, the information about its nonlinear dependencies is lost,
+    and it is no longer easy to manipulate. Therefore, fenics_adjoint overloads the :py:func:`dolfin.assemble_system`
+    function to *attach the form to the assembled object*. This lets the automatic annotation work,
+    even when the user calls the lower-level :py:data:`solve(A, x, b)`.
+    """
     A_form = args[0]
     b_form = args[1]
 
@@ -54,7 +65,6 @@ class AssembleBlock(Block):
 
     @no_annotations
     def evaluate_adj(self):
-        #t = backend.Timer("Assemble:evaluate_adj")
         adj_input = self.get_outputs()[0].get_adj_output()
         if adj_input is None:
             return
@@ -73,20 +83,13 @@ class AssembleBlock(Block):
             if isinstance(c, backend.Expression):
                 # Create a FunctionSpace from self.form and Expression.
                 # And then make a TestFunction from this space.
-
                 mesh = self.form.ufl_domain().ufl_cargo()
-                c_element = c.ufl_element()
-
-                # In newer versions of FEniCS there is a method named reconstruct, thus we may
-                # in the future just call c_element.reconstruct(cell=mesh.ufl_cell()).
-                element = ufl.FiniteElement(c_element.family(), mesh.ufl_cell(), c_element.degree())
-                V = backend.FunctionSpace(mesh, element)
+                V = c._ad_function_space(mesh)
                 dc = backend.TestFunction(V)
 
                 dform = backend.derivative(form, c_rep, dc)
                 output = backend.assemble(dform)
                 block_output.add_adj_output([[adj_input * output, V]])
-
                 continue
 
             if isinstance(c, backend.Function):
@@ -152,6 +155,10 @@ class AssembleBlock(Block):
 
             if isinstance(c1, backend.Function):
                 dc = backend.TestFunction(c1.function_space())
+            elif isinstance(c1, backend.Expression):
+                mesh = form.ufl_domain().ufl_cargo()
+                W = c1._ad_function_space(mesh)
+                dc = backend.TestFunction(W)
             elif isinstance(c1, backend.Constant):
                 mesh = compat.extract_mesh_from_form(form)
                 dc = backend.TestFunction(c1._ad_function_space(mesh))
@@ -172,6 +179,10 @@ class AssembleBlock(Block):
                     ddform = backend.derivative(dform, c2_rep, tlm_input)
                     output = backend.assemble(ddform)
                     bo1.add_hessian_output(adj_input*output)
+                elif isinstance(c1, backend.Expression):
+                    ddform = backend.derivative(dform, c2_rep, tlm_input)
+                    output = backend.assemble(ddform)
+                    bo1.add_hessian_output([(adj_input * output, W)])
                 elif isinstance(c1, backend.Constant):
                     ddform = backend.derivative(dform, c2_rep, tlm_input)
                     output = backend.assemble(ddform)
@@ -180,7 +191,10 @@ class AssembleBlock(Block):
                     continue
 
             output = backend.assemble(dform)
-            bo1.add_hessian_output(hessian_input*output)
+            if isinstance(c1, backend.Expression):
+                bo1.add_hessian_output([(hessian_input*output, W)])
+            else:
+                bo1.add_hessian_output(hessian_input*output)
 
     @no_annotations
     def recompute(self):
