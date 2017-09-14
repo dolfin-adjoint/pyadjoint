@@ -83,20 +83,13 @@ class AssembleBlock(Block):
             if isinstance(c, backend.Expression):
                 # Create a FunctionSpace from self.form and Expression.
                 # And then make a TestFunction from this space.
-
                 mesh = self.form.ufl_domain().ufl_cargo()
-                c_element = c.ufl_element()
-
-                # In newer versions of FEniCS there is a method named reconstruct, thus we may
-                # in the future just call c_element.reconstruct(cell=mesh.ufl_cell()).
-                element = ufl.FiniteElement(c_element.family(), mesh.ufl_cell(), c_element.degree())
-                V = backend.FunctionSpace(mesh, element)
+                V = c._ad_function_space(mesh)
                 dc = backend.TestFunction(V)
 
                 dform = backend.derivative(form, c_rep, dc)
                 output = backend.assemble(dform)
                 block_output.add_adj_output([[adj_input * output, V]])
-
                 continue
 
             if isinstance(c, backend.Function):
@@ -158,6 +151,10 @@ class AssembleBlock(Block):
 
             if isinstance(c1, backend.Function):
                 dc = backend.TestFunction(c1.function_space())
+            elif isinstance(c1, backend.Expression):
+                mesh = form.ufl_domain().ufl_cargo()
+                W = c1._ad_function_space(mesh)
+                dc = backend.TestFunction(W)
             elif isinstance(c1, backend.Constant):
                 dc = backend.Constant(1)
             else:
@@ -177,6 +174,10 @@ class AssembleBlock(Block):
                     ddform = backend.derivative(dform, c2_rep, tlm_input)
                     output = backend.assemble(ddform)
                     bo1.add_hessian_output(adj_input*output)
+                elif isinstance(c1, backend.Expression):
+                    ddform = backend.derivative(dform, c2_rep, tlm_input)
+                    output = backend.assemble(ddform)
+                    bo1.add_hessian_output([(adj_input * output, W)])
                 elif isinstance(c1, backend.Constant):
                     ddform = backend.derivative(dform, c2_rep, tlm_input)
                     output = backend.assemble(ddform)
@@ -185,7 +186,10 @@ class AssembleBlock(Block):
                     continue
 
             output = backend.assemble(dform)
-            bo1.add_hessian_output(hessian_input*output)
+            if isinstance(c1, backend.Expression):
+                bo1.add_hessian_output([(hessian_input*output, W)])
+            else:
+                bo1.add_hessian_output(hessian_input*output)
 
     @no_annotations
     def recompute(self):

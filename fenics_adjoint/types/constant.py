@@ -29,10 +29,13 @@ class Constant(OverloadedType, backend.Constant):
         return ret
 
     def get_derivative(self, options={}):
-        return Constant(self.get_adj_output())
+        return self._ad_convert_type(self.get_adj_output(), options=options)
 
     def adj_update_value(self, value):
         self.original_block_output.checkpoint = value._ad_create_checkpoint()
+
+    def _ad_convert_type(self, value, options={}):
+        return Constant(value)
 
     def _ad_create_checkpoint(self):
         if self.ufl_shape == ():

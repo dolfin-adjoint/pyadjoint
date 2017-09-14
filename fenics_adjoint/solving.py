@@ -188,22 +188,13 @@ class SolveBlock(Block):
                     tmp_bc = compat.create_bc(c, value=extract_subfunction(adj_var_bdy, c.function_space()))
                     block_output.add_adj_output([tmp_bc])
                 elif isinstance(c, backend.Expression):
-                    dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(V)) # TODO: What space to use?
+                    mesh = F_form.ufl_domain().ufl_cargo()
+                    c_fs = c._ad_function_space(mesh)
+                    dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(c_fs))
+                    dFdm = backend.adjoint(dFdm)
+                    dFdm = dFdm * adj_var
                     dFdm = backend.assemble(dFdm, **self.assemble_kwargs)
-
-                    dFdm_mat = backend.as_backend_type(dFdm).mat()
-
-                    import numpy as np
-                    bc_rows = []
-                    for bc in bcs:
-                        for key in bc.get_boundary_values():
-                            bc_rows.append(key)
-
-                    dFdm.zero(np.array(bc_rows, dtype=np.intc))
-
-                    dFdm_mat.transpose(dFdm_mat)
-
-                    block_output.add_adj_output([[dFdm*adj_var.vector(), V]])
+                    block_output.add_adj_output([[dFdm, c_fs]])
 
     @no_annotations
     def evaluate_tlm(self):
@@ -394,6 +385,10 @@ class SolveBlock(Block):
             if isinstance(c_rep, backend.Constant):
                 dc = backend.Constant(1)
                 # TODO: should this be a TrialFunction?
+            elif isinstance(c, backend.Expression):
+                mesh = F_form.ufl_domain().ufl_cargo()
+                W = c._ad_function_space(mesh)
+                dc = backend.TrialFunction(W)
             else:
                 dc = backend.TrialFunction(V)
             dFdm = backend.derivative(F_form, c_rep, dc)
@@ -431,7 +426,7 @@ class SolveBlock(Block):
                 output = backend.assemble(-output)
 
                 if isinstance(c, backend.Expression):
-                    bo.add_hessian_output([(output, V)])
+                    bo.add_hessian_output([(output, W)])
                 else:
                     bo.add_hessian_output(output)
 
@@ -446,7 +441,7 @@ class SolveBlock(Block):
             output = backend.assemble(-output)
 
             if isinstance(c, backend.Expression):
-                bo.add_hessian_output([(output, V)])
+                bo.add_hessian_output([(output, W)])
             else:
                 bo.add_hessian_output(output)
 
