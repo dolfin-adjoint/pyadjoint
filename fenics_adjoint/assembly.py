@@ -2,7 +2,7 @@ import backend
 import ufl
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape, no_annotations
 from pyadjoint.block import Block
-from .types import create_overloaded_object
+from .types import create_overloaded_object, compat
 
 
 def assemble(*args, **kwargs):
@@ -95,7 +95,8 @@ class AssembleBlock(Block):
             if isinstance(c, backend.Function):
                 dc = backend.TestFunction(c.function_space())
             elif isinstance(c, backend.Constant):
-                dc = backend.Constant(1)
+                mesh = compat.extract_mesh_from_form(self.form)
+                dc = backend.TestFunction(c._ad_function_space(mesh))
 
             dform = backend.derivative(form, c_rep, dc)
             output = backend.assemble(dform)
@@ -138,6 +139,9 @@ class AssembleBlock(Block):
         hessian_input = self.get_outputs()[0].hessian_value
         adj_input = self.get_outputs()[0].adj_value
 
+        if hessian_input is None:
+            return
+
         replaced_coeffs = {}
         for block_output in self.get_dependencies():
             coeff = block_output.get_output()
@@ -156,7 +160,8 @@ class AssembleBlock(Block):
                 W = c1._ad_function_space(mesh)
                 dc = backend.TestFunction(W)
             elif isinstance(c1, backend.Constant):
-                dc = backend.Constant(1)
+                mesh = compat.extract_mesh_from_form(form)
+                dc = backend.TestFunction(c1._ad_function_space(mesh))
             else:
                 continue
 
