@@ -455,11 +455,14 @@ class SolveBlock(Block):
         func = self.func
         replace_lhs_coeffs = {}
         replace_rhs_coeffs = {}
+        bcs = []
         for block_output in self.get_dependencies():
             c = block_output.output
             c_rep = block_output.get_saved_output()
 
-            if c != c_rep:
+            if isinstance(c, backend.DirichletBC):
+                bcs.append(c_rep)
+            elif c != c_rep:
                 if c in self.lhs.coefficients():
                     replace_lhs_coeffs[c] = c_rep
                     if c == self.func:
@@ -475,7 +478,7 @@ class SolveBlock(Block):
         if self.linear:
             rhs = backend.replace(self.rhs, replace_rhs_coeffs)
 
-        backend.solve(lhs == rhs, func, self.bcs, **self.forward_kwargs)
+        backend.solve(lhs == rhs, func, bcs, **self.forward_kwargs)
         # Save output for use in later re-computations.
         # TODO: Consider redesigning the saving system so a new deepcopy isn't created on each forward replay.
         self.get_outputs()[0].checkpoint = func._ad_create_checkpoint()

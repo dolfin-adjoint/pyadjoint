@@ -1,8 +1,10 @@
 import pytest
 pytest.importorskip("fenics")
 
-from dolfin import *
+from fenics import *
 from fenics_adjoint import *
+
+from numpy.random import rand
 
 mesh = UnitSquareMesh(2, 2)
 cg2 = FiniteElement("CG", triangle, 2)
@@ -28,6 +30,7 @@ def main(ic, fnsplit=True):
 
     return u
 
+
 def test_split():
     ic = Function(Z)
 
@@ -36,3 +39,17 @@ def test_split():
     rf = ReducedFunctional(j, ic)
 
     taylor_test(rf, ic.copy(deepcopy=True), h=project(Constant([1, 1]), ic.function_space()))
+
+
+def test_fn_split():
+    set_working_tape(Tape())
+    ic = Function(Z)
+
+    u = main(ic, fnsplit=True)
+    j = assemble(u**2*dx)
+    rf = ReducedFunctional(j, ic)
+
+    h = Function(Z)
+    h.vector()[:] = rand(Z.dim())
+    taylor_test(rf, ic, h)
+
