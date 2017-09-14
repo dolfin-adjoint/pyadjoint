@@ -49,7 +49,7 @@ class BlockOutput(object):
             self.checkpoint = self.output._ad_create_checkpoint()
 
     def get_saved_output(self):
-        if self.checkpoint:
+        if self.checkpoint is not None:
             return self.output._ad_restore_at_checkpoint(self.checkpoint)
         else:
             return self.output
