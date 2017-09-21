@@ -462,11 +462,6 @@ def test_function_split():
     assert taylor_test(Jhat, f, h)
 
 
-
-
-
-
-
 def test_pow_assemble():
     mesh = UnitSquareMesh(10, 10)
     V = FunctionSpace(mesh, "CG", 1)
@@ -485,5 +480,5 @@ def test_pow_assemble():
     p = AdjFloat(3)
     J = assemble(sol**2*dx)**p
 
-    Jhat = ReducedFunctional(J, f)
+    Jhat = ReducedFunctional(J, Control(f))
     assert taylor_test(Jhat, f, Constant(1)) > 1.9
