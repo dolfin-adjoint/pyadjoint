@@ -462,8 +462,39 @@ def test_function_split():
     assert taylor_test(Jhat, f, h)
 
 
+def test_multiple_reduced_functionals():
+    mesh = UnitSquareMesh(10, 10)
+    V = FunctionSpace(mesh, "CG", 1)
 
+    controls = []
+    u = Function(V)
+    v = TestFunction(V)
 
+    b = Constant(2)
+    controls.append(Control(b))
+    F = inner(grad(u), grad(v))*dx - b*v*dx
+    bc = DirichletBC(V, b, "on_boundary")
+    solve(F == 0, u, bc)
+
+    a = Constant(1)
+    f = project(Expression("a*x[0]*x[1]", a=a, degree=1), V)
+    controls.append(Control(f))
+
+    F = inner(grad(u), grad(v))*dx - f*v*dx
+    solve(F == 0, u, bc)
+
+    J = assemble(inner(u, u)*dx)
+    Jhat = ReducedFunctional(J, controls)
+    h = Function(V)
+    h.vector()[:] = rand(V.dim())
+    hs = [Constant(1), h]
+    assert taylor_test_multiple(Jhat, [b, f], hs) > 1.9
+
+    Jhat = ReducedFunctional(J, controls[1])
+    assert taylor_test(Jhat, f, h) > 1.9
+
+    Jhat = ReducedFunctional(J, controls[0])
+    assert taylor_test(Jhat, b, Constant(1)) > 1.9
 
 
 

@@ -26,7 +26,7 @@ def test_lcoe():
     assert_approx_equal(lcoe, 4.4891304347826075)
 
     # d L /d e0
-    rf = ReducedFunctional(lcoe, energy[0])
+    rf = ReducedFunctional(lcoe, Control(energy[0]))
     assert rf(AdjFloat(2.0)) == 4.4891304347826075  # (13+7/1.05)/(2.0+2.5/1.05)
     assert_approx_equal(rf(AdjFloat(2.0)), 4.4891304347826075)  # (13+7/1.05)/(2.0+2.5/1.05)
     assert_approx_equal(rf(energy[0]), 4.4891304347826075)  # (13+7/1.05)/(2.0+2.5/1.05)
@@ -36,7 +36,7 @@ def test_lcoe():
     assert_approx_equal(rf(AdjFloat(2.0)), 4.4891304347826075)  # to set value back for next test
 
     # d L /d e1
-    rf = ReducedFunctional(lcoe, energy[1])
+    rf = ReducedFunctional(lcoe, Control(energy[1]))
     assert rf(AdjFloat(2.5)) == 4.4891304347826075  # (13+7/1.05)/(2.0+2.5/1.05)
     assert_approx_equal(rf(AdjFloat(2.5)), 4.4891304347826075)  # (13+7/1.05)/(2.0+2.5/1.05)
     assert_approx_equal(rf(energy[1]), 4.4891304347826075)  # (13+7/1.05)/(2.0+2.5/1.05)
@@ -46,7 +46,7 @@ def test_lcoe():
     assert_approx_equal(rf(AdjFloat(2.5)), 4.4891304347826075)  # to set value back for next test
 
     # d L /d c0
-    rf = ReducedFunctional(lcoe, cost[0])
+    rf = ReducedFunctional(lcoe, Control(cost[0]))
     assert rf(AdjFloat(13.0)) == 4.4891304347826075  # (13+7/1.05)/(2.0+2.5/1.05)
     assert_approx_equal(rf(AdjFloat(13.0)), 4.4891304347826075)  # (13+7/1.05)/(2.0+2.5/1.05)
     assert_approx_equal(rf(cost[0]), 4.4891304347826075)  # (13+7/1.05)/(2.0+2.5/1.05)
@@ -56,7 +56,7 @@ def test_lcoe():
     assert_approx_equal(rf(AdjFloat(13.0)), 4.4891304347826075)  # to set value back for next test
 
     # d L /d c1
-    rf = ReducedFunctional(lcoe, cost[1])
+    rf = ReducedFunctional(lcoe, Control(cost[1]))
     assert rf(AdjFloat(7.0)) == 4.4891304347826075  # (13+7/1.05)/(2.0+2.5/1.05)
     assert_approx_equal(rf(AdjFloat(7.0)), 4.4891304347826075)  # (13+7/1.05)/(2.0+2.5/1.05)
     assert_approx_equal(rf(cost[1]), 4.4891304347826075)  # (13+7/1.05)/(2.0+2.5/1.05)

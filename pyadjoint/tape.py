@@ -75,9 +75,9 @@ class Tape(object):
     """
     __slots__ = ["_blocks"]
 
-    def __init__(self):
+    def __init__(self, blocks=None):
         # Initialize the list of blocks on the tape.
-        self._blocks = []
+        self._blocks = [] if blocks is None else blocks
 
     def clear_tape(self):
         self.reset_variables()

@@ -1,4 +1,4 @@
-from .tape import get_working_tape, stop_annotating
+from .tape import get_working_tape, stop_annotating, Tape
 from .drivers import compute_gradient
 from .overloaded_type import OverloadedType
 from .control import Control
@@ -20,17 +20,10 @@ class ReducedFunctional(object):
             instance instead of a list.
 
     """
-    def __init__(self, functional, controls):
+    def __init__(self, functional, controls, tape=None):
         self.functional = functional
-        self.tape = get_working_tape()
-
+        self.tape = get_working_tape() if tape is None else tape
         self.controls = Enlist(controls)
-
-        for i, block in enumerate(self.tape.get_blocks()):
-            for control in self.controls:
-                if control.block_output in block.get_dependencies():
-                    self.block_idx = i
-                    return
 
     def derivative(self, options={}):
         """Returns the derivative of the functional w.r.t. the control.
@@ -50,7 +43,6 @@ class ReducedFunctional(object):
         """
         derivatives = compute_gradient(self.functional,
                                        self.controls,
-                                       block_idx=self.block_idx,
                                        options=options,
                                        tape=self.tape)
         return self.controls.delist(derivatives)
@@ -67,19 +59,37 @@ class ReducedFunctional(object):
                 of :class:`AdjFloat`.
 
         """
-        self.tape.reset_variables()
         values = Enlist(values)
         for i, value in enumerate(values):
             self.controls[i].update(value)
-            self.controls[i].activate_recompute_flag()
 
         blocks = self.tape.get_blocks()
-        with stop_annotating():
-            for i in range(self.block_idx, len(blocks)):
-                blocks[i].recompute()
-                blocks[i].on_post_recompute()
+        with self.marked_controls():
+            with stop_annotating():
+                for i in range(len(blocks)):
+                    blocks[i].recompute()
 
-        return self.functional.block_output.get_saved_output()
+        return self.functional.block_output.checkpoint
+
+    def marked_controls(self):
+        return marked_controls(self)
+
+
+class marked_controls(object):
+    def __init__(self, rf):
+        self.rf = rf
+
+    def __enter__(self):
+        for control in self.rf.controls:
+            control.mark_as_control()
+
+    def __exit__(self, *args):
+        for control in self.rf.controls:
+            control.unmark_as_control()
+
+
+
+
 
 
 

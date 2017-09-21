@@ -10,8 +10,6 @@ class BlockOutput(object):
         self.hessian_value = None
         self._checkpoint = None
         self.is_control = False
-        self.depends_on_control = False
-        self.control_value = None
         self.floating_type = False
 
     def add_adj_output(self, val):
@@ -43,8 +41,6 @@ class BlockOutput(object):
 
     def reset_variables(self):
         self.adj_value = None
-        self.is_control = False
-        self.depends_on_control = False
 
     # TODO: Make this just an attribute. Extend with Property if needed later.
     def get_output(self):
@@ -52,7 +48,7 @@ class BlockOutput(object):
 
     def save_output(self, overwrite=True):
         if overwrite or not self.checkpoint:
-            self.checkpoint = self.output._ad_create_checkpoint()
+            self._checkpoint = self.output._ad_create_checkpoint()
 
     def get_saved_output(self):
         if self.checkpoint is not None:
@@ -75,11 +71,11 @@ class BlockOutput(object):
 
     @property
     def checkpoint(self):
-        if self.is_control:
-            return self.control_value
         return self._checkpoint
 
     @checkpoint.setter
     def checkpoint(self, value):
+        if self.is_control:
+            return
         self._checkpoint = value
 
