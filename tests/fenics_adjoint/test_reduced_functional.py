@@ -575,3 +575,43 @@ def test_functional_optimized_reduced_functional():
     Jhat.optimize()
     assert pre_len == len(tape.get_blocks())
 
+    h = Function(V)
+    h.vector()[:] = rand(V.dim())
+    assert taylor_test(Jhat, f, h) > 1.9
+
+
+def test_multiple_optimized_reduced_functionals():
+    mesh = UnitSquareMesh(10, 10)
+    V = FunctionSpace(mesh, "CG", 1)
+
+    f = Function(V)
+    f.vector()[:] = 1
+    control = Control(f)
+    u = TrialFunction(V)
+    v = TestFunction(V)
+    a = inner(u, v)*dx
+    L = f*v*dx
+    sol = Function(V)
+    solve(a == L, sol)
+
+    J1 = assemble(sol**2*dx)
+    J2 = assemble(sol**4*dx)
+    Jhat = ReducedFunctional(J1, control)
+
+    tape = get_working_tape()
+    tape2 = tape.copy()
+    pre_len = len(tape.get_blocks())
+    assert pre_len == len(tape.get_blocks())
+    assert pre_len == len(tape2.get_blocks())
+
+    Jhat.optimize()
+    assert pre_len > len(tape.get_blocks())
+    assert pre_len == len(tape2.get_blocks())
+
+    Jhat2 = ReducedFunctional(J2, control, tape=tape2)
+    Jhat2.optimize()
+
+    h = Function(V)
+    h.vector()[:] = rand(V.dim())
+    assert taylor_test(Jhat, f, h) > 1.9
+    assert taylor_test(Jhat2, f, h) > 1.9

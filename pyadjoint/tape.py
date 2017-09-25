@@ -117,6 +117,16 @@ class Tape(object):
         for i in range(len(self._blocks)-1, -1, -1):
             self._blocks[i].reset_variables()
 
+    def copy(self):
+        """Returns a shallow copy of the tape.
+
+        Returns:
+            Tape: The copy of the tape.
+
+        """
+        # TODO: Offer deepcopying. But is it feasible memory wise to copy all checkpoints?
+        return Tape(blocks=self._blocks[:])
+
     def optimize(self, controls=None, functionals=None):
         if controls is not None:
             self.optimize_for_controls(controls)
