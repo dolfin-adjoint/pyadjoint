@@ -71,6 +71,12 @@ class ReducedFunctional(object):
 
         return self.functional.block_output.checkpoint
 
+    def optimize(self):
+        self.tape.optimize(
+            controls=self.controls,
+            functionals=[self.functional]
+        )
+
     def marked_controls(self):
         return marked_controls(self)
 

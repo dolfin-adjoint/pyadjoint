@@ -497,4 +497,81 @@ def test_multiple_reduced_functionals():
     assert taylor_test(Jhat, b, Constant(1)) > 1.9
 
 
+def test_dependent_controls():
+    mesh = UnitSquareMesh(10, 10)
+    V = FunctionSpace(mesh, "CG", 1)
+
+    f = Function(V)
+    f.vector()[:] = 1
+
+    c = assemble(f**2*dx)
+    controls = [Control(f), Control(c)]
+
+    J = c*assemble(f*dx)
+
+    Jhat = ReducedFunctional(J, controls)
+
+    with pytest.raises(RuntimeError):
+        Jhat.optimize()
+
+
+def test_control_optimized_reduced_functional():
+    mesh = UnitSquareMesh(10, 10)
+    V = FunctionSpace(mesh, "CG", 1)
+
+    v = TestFunction(V)
+    u = Function(V)
+    t = Constant(1.0)
+    u_ = Function(V)
+    F = inner(grad(u), grad(v))*dx - (u_ + t)*v*dx
+    bc = DirichletBC(V, 1, "on_boundary")
+
+    dt = 0.1
+    T = 1.5
+    while t.values()[0] <= T:
+        if 1.3-1E-08 < t.values()[0] < 1.3+1E-08:
+            c = Control(u)
+            p_value = u.copy(deepcopy=True)
+        solve(F == 0, u, bc)
+        u_.assign(u)
+        t.assign(t.values()[0] + dt)
+
+    J = assemble(inner(u, u)*dx)
+    Jhat = ReducedFunctional(J, c)
+    h = Function(V)
+    h.vector()[:] = rand(V.dim())
+
+    tape = get_working_tape()
+    pre_optimized_len = len(tape.get_blocks())
+    Jhat.optimize()
+    assert len(tape.get_blocks()) < pre_optimized_len
+    assert taylor_test(Jhat, p_value, h) > 1.9
+
+
+def test_functional_optimized_reduced_functional():
+    mesh = UnitSquareMesh(10, 10)
+    V = FunctionSpace(mesh, "CG", 1)
+
+    f = Function(V)
+    f.vector()[:] = 1
+    control = Control(f)
+    u = TrialFunction(V)
+    v = TestFunction(V)
+    a = inner(u, v)*dx
+    L = f*v*dx
+    sol = Function(V)
+    solve(a == L, sol)
+
+    J1 = assemble(sol**2*dx)
+    Jhat = ReducedFunctional(J1, control)
+
+    tape = get_working_tape()
+    pre_len = len(tape.get_blocks())
+    Jhat.optimize()
+    assert pre_len == len(tape.get_blocks())
+
+    J2 = assemble(sol**4*dx)
+    assert pre_len < len(tape.get_blocks())
+    Jhat.optimize()
+    assert pre_len == len(tape.get_blocks())
 
