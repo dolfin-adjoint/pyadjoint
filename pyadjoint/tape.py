@@ -117,6 +117,51 @@ class Tape(object):
         for i in range(len(self._blocks)-1, -1, -1):
             self._blocks[i].reset_variables()
 
+    def optimize(self, controls=None, functionals=None):
+        if controls is not None:
+            self.optimize_for_controls(controls)
+
+        if functionals is not None:
+            self.optimize_for_functionals(functionals)
+
+    def optimize_for_controls(self, controls):
+        # TODO: Consider if we want Enlist wherever it is possible. Like in this case.
+        # TODO: Consider warning/message on empty tape.
+        blocks = self.get_blocks()
+        nodes = set([control.block_output for control in controls])
+        valid_blocks = []
+
+        for block in blocks:
+            depends_on_control = False
+            for dep in block.get_dependencies():
+                if dep in nodes:
+                    depends_on_control = True
+
+            if depends_on_control:
+                for output in block.get_outputs():
+                    if output in nodes:
+                        raise RuntimeError("Control depends on another control.")
+                    nodes.add(output)
+                valid_blocks.append(block)
+        self._blocks = valid_blocks
+
+    def optimize_for_functionals(self, functionals):
+        blocks = self.get_blocks()
+        nodes = set([functional.block_output for functional in functionals])
+        valid_blocks = []
+
+        for block in reversed(blocks):
+            produces_functional = False
+            for dep in block.get_outputs():
+                if dep in nodes:
+                    produces_functional = True
+
+            if produces_functional:
+                for dep in block.get_dependencies():
+                    nodes.add(dep)
+                valid_blocks.append(block)
+        self._blocks = list(reversed(valid_blocks))
+
     def create_graph(self, backend="networkx", scale=1.0):
         import networkx as nx
 
