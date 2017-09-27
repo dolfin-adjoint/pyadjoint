@@ -52,15 +52,17 @@ class Control(object):
         # for converting a value to the correct type.
         # As this might depend on the OverloadedType control.
         if isinstance(value, OverloadedType):
-            self.block_output.control_value = value._ad_create_checkpoint()
+            self.block_output.checkpoint = value._ad_create_checkpoint()
         else:
-            self.block_output.control_value = value
+            self.block_output.checkpoint = value
 
     def __getattr__(self, item):
         return getattr(self.control, item)
 
-    def activate_recompute_flag(self):
+    def mark_as_control(self):
         self.block_output.is_control = True
-        self.block_output.depends_on_control = True
+
+    def unmark_as_control(self):
+        self.block_output.is_control = False
 
 

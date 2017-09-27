@@ -149,6 +149,7 @@ class SolveBlock(Block):
         if dJdu is None:
             return
 
+        dJdu = dJdu.copy()
         dJdu_copy = dJdu.copy()
 
         # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
@@ -466,8 +467,8 @@ class SolveBlock(Block):
                 if c in self.lhs.coefficients():
                     replace_lhs_coeffs[c] = c_rep
                     if c == self.func:
-                        func = c_rep
-                        block_output.checkpoint = c_rep._ad_create_checkpoint()
+                        func = c_rep._ad_create_checkpoint()
+                        replace_lhs_coeffs[c] = func
 
                 if self.linear and c in self.rhs.coefficients():
                     replace_rhs_coeffs[c] = c_rep
