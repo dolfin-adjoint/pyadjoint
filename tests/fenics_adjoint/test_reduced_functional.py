@@ -462,6 +462,28 @@ def test_function_split():
     assert taylor_test(Jhat, f, h)
 
 
+def test_pow_assemble():
+    mesh = UnitSquareMesh(10, 10)
+    V = FunctionSpace(mesh, "CG", 1)
+
+    u = TrialFunction(V)
+    v = TestFunction(V)
+    f = Constant(1)
+
+    a = inner(grad(u), grad(v))*dx
+    L = f*v*dx
+    bc = DirichletBC(V, 1, "on_boundary")
+
+    sol = Function(V)
+    solve(a == L, sol, bc)
+
+    p = AdjFloat(3)
+    J = assemble(sol**2*dx)**p
+
+    Jhat = ReducedFunctional(J, Control(f))
+    assert taylor_test(Jhat, f, Constant(1)) > 1.9
+
+
 def test_multiple_reduced_functionals():
     mesh = UnitSquareMesh(10, 10)
     V = FunctionSpace(mesh, "CG", 1)

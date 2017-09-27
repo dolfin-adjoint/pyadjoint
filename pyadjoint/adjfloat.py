@@ -147,11 +147,13 @@ class PowBlock(FloatOperatorBlock):
         base_value = base.get_saved_output()
         exponent_value = exponent.get_saved_output()
 
-        base_adj = adj_input*exponent_value*base_value**(exponent_value-1)
+        base_adj = float.__mul__(float.__mul__(adj_input, exponent_value),
+                                 float.__pow__(base_value, exponent_value-1))
         base.add_adj_output(base_adj)
 
         from numpy import log
-        exponent_adj = adj_input*base_value**exponent_value*log(base_value)
+        exponent_adj = float.__mul__(float.__mul__(adj_input, log(base_value)),
+                                     float.__pow__(base_value, exponent_value))
         exponent.add_adj_output(exponent_adj)
 
 
