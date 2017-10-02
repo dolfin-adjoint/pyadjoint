@@ -341,7 +341,7 @@ class SolveBlock(Block):
         adj_sol2 = backend.Function(V)
 
         # Start piecing together the rhs of the soa equation
-        b = hessian_input
+        b = hessian_input.copy()
         b_form = d2Fdu2
 
         for bo in self.get_dependencies():

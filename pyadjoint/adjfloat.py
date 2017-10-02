@@ -169,6 +169,23 @@ class AddBlock(FloatOperatorBlock):
         for term in self.terms:
             term.add_adj_output(adj_input)
 
+    def evaluate_tlm(self):
+        for term in self.terms:
+            tlm_input = term.tlm_value
+
+            if tlm_input is None:
+                return
+
+            term.add_tlm_output(tlm_input)
+
+    def evaluate_hessian(self):
+        hessian_input = self.get_outputs()[0].hessian_value
+        if hessian_input is None:
+            return
+
+        for term in self.terms:
+            term.add_hessian_output(hessian_input)
+
 
 class SubBlock(FloatOperatorBlock):
 

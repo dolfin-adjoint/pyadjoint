@@ -56,6 +56,9 @@ class Control(object):
         else:
             self.block_output.checkpoint = value
 
+    def set_initial_tlm_input(self, m):
+        self.block_output.set_initial_tlm_input(m)
+
     def __getattr__(self, item):
         return getattr(self.control, item)
 
