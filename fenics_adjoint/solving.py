@@ -92,8 +92,12 @@ class SolveBlock(Block):
 
             self.lhs = A.form
             self.rhs = b.form
-            self.bcs = A.bcs
+            self.bcs = A.bcs if hasattr(A, "bcs") else []
             self.func = u.function
+
+            self.kwargs = kwargs
+            self.forward_kwargs = kwargs.copy()
+            self.assemble_kwargs = {}
 
         if isinstance(self.lhs, ufl.Form) and isinstance(self.rhs, ufl.Form):
             self.linear = True
