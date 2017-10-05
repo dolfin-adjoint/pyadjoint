@@ -15,16 +15,20 @@ def assemble(*args, **kwargs):
     with stop_annotating():
         output = backend.assemble(*args, **kwargs)
 
-    output = create_overloaded_object(output)
+    form = args[0]
+    if isinstance(output, float):
+        output = create_overloaded_object(output)
 
-    if annotate:
-        form = args[0]
-        block = AssembleBlock(form)
+        if annotate:
+            block = AssembleBlock(form)
 
-        tape = get_working_tape()
-        tape.add_block(block)
+            tape = get_working_tape()
+            tape.add_block(block)
 
-        block.add_output(output.get_block_output())
+            block.add_output(output.get_block_output())
+    else:
+        # Assembled a vector or matrix
+        output.form = form
 
     return output
 
