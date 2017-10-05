@@ -20,10 +20,23 @@ class Function(FloatingType, backend.Function):
         backend.Function.__init__(self, *args, **kwargs)
 
     def copy(self, *args, **kwargs):
-        # Overload the copy method so we actually return overloaded types.
-        # Otherwise we might end up getting unexpected errors later.
+        from .types import create_overloaded_object
+
+        annotate = annotate_tape(kwargs)
         c = backend.Function.copy(self, *args, **kwargs)
-        return Function(c.function_space(), c.vector())
+        func = create_overloaded_object(c)
+
+        if annotate:
+            if kwargs.pop("deepcopy", False):
+                block = AssignBlock(func, self)
+                tape = get_working_tape()
+                tape.add_block(block)
+                block.add_output(func.create_block_output())
+            else:
+                # TODO: Implement. Here we would need to use floating types.
+                pass
+
+        return func
 
     def assign(self, other, *args, **kwargs):
         '''To disable the annotation, just pass :py:data:`annotate=False` to this routine, and it acts exactly like the

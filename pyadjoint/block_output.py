@@ -1,3 +1,6 @@
+from .tape import no_annotations
+
+
 class BlockOutput(object):
     """References a block output variable.
 
@@ -46,6 +49,7 @@ class BlockOutput(object):
     def get_output(self):
         return self.output
 
+    @no_annotations
     def save_output(self, overwrite=True):
         if overwrite or not self.checkpoint:
             self._checkpoint = self.output._ad_create_checkpoint()

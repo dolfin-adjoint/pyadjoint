@@ -170,13 +170,14 @@ class AddBlock(FloatOperatorBlock):
             term.add_adj_output(adj_input)
 
     def evaluate_tlm(self):
+        output = self.get_outputs()[0]
         for term in self.terms:
             tlm_input = term.tlm_value
 
             if tlm_input is None:
-                return
+                continue
 
-            term.add_tlm_output(tlm_input)
+            output.add_tlm_output(tlm_input)
 
     def evaluate_hessian(self):
         hessian_input = self.get_outputs()[0].hessian_value
@@ -211,6 +212,37 @@ class MulBlock(FloatOperatorBlock):
 
         self.terms[0].add_adj_output(float.__mul__(adj_input, self.terms[1].get_saved_output()))
         self.terms[1].add_adj_output(float.__mul__(adj_input, self.terms[0].get_saved_output()))
+
+    def evaluate_tlm(self):
+        output = self.get_outputs()[0]
+
+        for i, j in zip((0, 1), (1, 0)):
+            tlm_input = self.terms[i].tlm_value
+
+            if tlm_input is None:
+                continue
+
+            output.add_tlm_output(float.__mul__(tlm_input, self.terms[j].get_saved_output()))
+
+    def evaluate_hessian(self):
+        output = self.get_outputs()[0]
+        hessian_input = output.hessian_value
+        adj_input = output.get_adj_output()
+
+        if hessian_input is None:
+            return
+
+        for i, j in zip((0, 1), (1, 0)):
+            tlm_input = self.terms[j].tlm_value
+
+            mixed = 0.0
+            if tlm_input is not None:
+                # Mixed derivative contribution.
+                mixed = float.__mul__(adj_input, self.terms[j].tlm_value)
+
+            self.terms[i].add_hessian_output(
+                float.__add__(mixed, float.__mul__(hessian_input, self.terms[j].get_saved_output()))
+            )
 
 
 class DivBlock(FloatOperatorBlock):
