@@ -88,7 +88,7 @@ class AssembleBlock(Block):
                 dc = backend.TestFunction(V)
 
                 dform = backend.derivative(form, c_rep, dc)
-                output = backend.assemble(dform)
+                output = compat.assemble_adjoint_value(dform)
                 block_output.add_adj_output([[adj_input * output, V]])
                 continue
 
@@ -99,7 +99,7 @@ class AssembleBlock(Block):
                 dc = backend.TestFunction(c._ad_function_space(mesh))
 
             dform = backend.derivative(form, c_rep, dc)
-            output = backend.assemble(dform)
+            output = compat.assemble_adjoint_value(dform)
             block_output.add_adj_output(adj_input * output)
 
     @no_annotations
@@ -121,17 +121,17 @@ class AssembleBlock(Block):
 
             if isinstance(c, backend.Function):
                 dform = backend.derivative(form, c_rep, tlm_value)
-                output = backend.assemble(dform)
+                output = compat.assemble_adjoint_value(dform)
                 self.get_outputs()[0].add_tlm_output(output)
 
             elif isinstance(c, backend.Constant):
                 dform = backend.derivative(form, c_rep, tlm_value)
-                output = backend.assemble(dform)
+                output = compat.assemble_adjoint_value(dform)
                 self.get_outputs()[0].add_tlm_output(output)
 
             elif isinstance(c, backend.Expression):
                 dform = backend.derivative(form, c_rep, tlm_value)
-                output = backend.assemble(dform)
+                output = compat.assemble_adjoint_value(dform)
                 self.get_outputs()[0].add_tlm_output(output)
 
     @no_annotations
@@ -177,20 +177,20 @@ class AssembleBlock(Block):
 
                 if isinstance(c1, backend.Function):
                     ddform = backend.derivative(dform, c2_rep, tlm_input)
-                    output = backend.assemble(ddform)
+                    output = compat.assemble_adjoint_value(ddform)
                     bo1.add_hessian_output(adj_input*output)
                 elif isinstance(c1, backend.Expression):
                     ddform = backend.derivative(dform, c2_rep, tlm_input)
-                    output = backend.assemble(ddform)
+                    output = compat.assemble_adjoint_value(ddform)
                     bo1.add_hessian_output([(adj_input * output, W)])
                 elif isinstance(c1, backend.Constant):
                     ddform = backend.derivative(dform, c2_rep, tlm_input)
-                    output = backend.assemble(ddform)
+                    output = compat.assemble_adjoint_value(ddform)
                     bo1.add_hessian_output(adj_input*output)
                 else:
                     continue
 
-            output = backend.assemble(dform)
+            output = compat.assemble_adjoint_value(dform)
             if isinstance(c1, backend.Expression):
                 bo1.add_hessian_output([(hessian_input*output, W)])
             else:
