@@ -245,7 +245,7 @@ class SolveBlock(Block):
             if isinstance(c, backend.Function):
                 #dFdm = -backend.derivative(F_form, c_rep, backend.Function(V, tlm_value))
                 dFdm = -backend.derivative(F_form, c_rep, tlm_value)
-                dFdm = backend.assemble(dFdm, **self.assemble_kwargs)
+                dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
 
                 # Zero out boundary values from boundary conditions as they do not depend (directly) on c.
                 for bc in bcs:
@@ -253,7 +253,7 @@ class SolveBlock(Block):
 
             elif isinstance(c, backend.Constant):
                 dFdm = -backend.derivative(F_form, c_rep, tlm_value)
-                dFdm = backend.assemble(dFdm, **self.assemble_kwargs)
+                dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
 
                 # Zero out boundary values from boundary conditions as they do not depend (directly) on c.
                 for bc in bcs:
