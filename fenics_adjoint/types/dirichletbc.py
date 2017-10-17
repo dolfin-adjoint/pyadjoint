@@ -34,6 +34,13 @@ class DirichletBC(FloatingType, backend.DirichletBC):
         self._ad_args = args
         self._ad_kwargs = kwargs
 
+    def apply(self, *args, **kwargs):
+        for arg in args:
+            if not hasattr(arg, "bcs"):
+                arg.bcs = []
+            arg.bcs.append(self)
+        return backend.DirichletBC.apply(self, *args, **kwargs)
+
     def _ad_create_checkpoint(self):
         if self.block is None:
             return None

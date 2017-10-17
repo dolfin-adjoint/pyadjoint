@@ -158,8 +158,9 @@ class AssignBlock(Block):
     def recompute(self):
         deps = self.get_dependencies()
         other_bo = deps[1]
-
-        backend.Function.assign(self.get_outputs()[0].get_saved_output(), other_bo.get_saved_output())
+        # TODO: This is a quick-fix, so should be reviewed later.
+        if not self.get_outputs()[0].is_control:
+            backend.Function.assign(self.get_outputs()[0].get_saved_output(), other_bo.get_saved_output())
 
 
 class SplitBlock(Block):

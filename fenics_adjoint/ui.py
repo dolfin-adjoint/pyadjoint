@@ -5,6 +5,7 @@ from .projection import project
 from .types import Function, Constant, DirichletBC, FunctionSpace
 if backend.__name__ != "firedrake":
     from .types import Expression
+    from .newton_solver import NewtonSolver
 from .variational_solver import (NonlinearVariationalProblem, NonlinearVariationalSolver,
                                  LinearVariationalProblem, LinearVariationalSolver)
 from pyadjoint import (Tape, set_working_tape, get_working_tape,

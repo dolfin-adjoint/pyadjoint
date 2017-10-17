@@ -164,7 +164,7 @@ class SolveBlock(Block):
             bcs.append(bc)
             bc.apply(dFdu, dJdu)
 
-        backend.solve(dFdu, adj_var.vector(), dJdu, **self.kwargs)
+        backend.solve(dFdu, adj_var.vector(), dJdu)
 
         adj_var_bdy = Function(V)
         adj_var_bdy = compat.evaluate_algebra_expression(dJdu_copy -
