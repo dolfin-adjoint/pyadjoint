@@ -70,9 +70,9 @@ class SolveBlock(Block):
 
             self.forward_kwargs = kwargs.copy()
             if "J" in self.kwargs:
-                self.kwargs["J"] = adjoint(self.kwargs["J"])
+                self.kwargs["J"] = backend.adjoint(self.kwargs["J"])
             if "Jp" in self.kwargs:
-                self.kwargs["Jp"] = adjoint(self.kwargs["Jp"])
+                self.kwargs["Jp"] = backend.adjoint(self.kwargs["Jp"])
 
             if "M" in self.kwargs:
                 raise NotImplemented("Annotation of adaptive solves not implemented.")
@@ -280,7 +280,7 @@ class SolveBlock(Block):
                     bc.apply(dFdm)
 
             dudm = Function(V)
-            backend.solve(dFdu, dudm.vector(), dFdm, **self.kwargs)
+            backend.solve(dFdu, dudm.vector(), dFdm)
 
             fwd_block_output.add_tlm_output(dudm)
 
@@ -335,7 +335,7 @@ class SolveBlock(Block):
         # TODO: First-order adjoint solution should be possible to obtain from the earlier adjoint computations.
         adj_sol = backend.Function(V)
         # Solve the (first order) adjoint equation
-        backend.solve(dFdu, adj_sol.vector(), adj_input, **self.kwargs)
+        backend.solve(dFdu, adj_sol.vector(), adj_input)
 
         # Second-order adjoint (soa) solution
         adj_sol2 = backend.Function(V)
@@ -365,7 +365,7 @@ class SolveBlock(Block):
             bc.apply(dFdu, b)
 
         # Solve the soa equation
-        backend.solve(dFdu, adj_sol2.vector(), b, **self.kwargs)
+        backend.solve(dFdu, adj_sol2.vector(), b)
 
         adj_sol2_bdy = Function(V)
         adj_sol2_bdy = compat.evaluate_algebra_expression(b_copy -
@@ -457,7 +457,10 @@ class SolveBlock(Block):
 
     @no_annotations
     def recompute(self):
-        func = self.func
+        if self.get_outputs()[0].is_control:
+            return
+
+        func = self.get_outputs()[0].get_saved_output()
         replace_lhs_coeffs = {}
         replace_rhs_coeffs = {}
         bcs = []
@@ -471,7 +474,7 @@ class SolveBlock(Block):
                 if c in self.lhs.coefficients():
                     replace_lhs_coeffs[c] = c_rep
                     if c == self.func:
-                        func = c_rep._ad_create_checkpoint()
+                        backend.Function.assign(func, c_rep)
                         replace_lhs_coeffs[c] = func
 
                 if self.linear and c in self.rhs.coefficients():
