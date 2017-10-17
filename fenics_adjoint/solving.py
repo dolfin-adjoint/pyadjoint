@@ -162,8 +162,7 @@ class SolveBlock(Block):
 
         backend.solve(dFdu, adj_var.vector(), dJdu, **self.kwargs)
 
-        adj_var_bdy = Function(V)
-        adj_var_bdy.vector()[:] = dJdu_copy - compat.assemble_adjoint_value(backend.action(dFdu_form, adj_var))
+        adj_var_bdy = compat.function_from_vector(V, dJdu_copy - compat.assemble_adjoint_value(backend.action(dFdu_form, adj_var)))
         for block_output in self.get_dependencies():
             c = block_output.get_output()
             if c != self.func or self.linear:
@@ -361,8 +360,7 @@ class SolveBlock(Block):
         # Solve the soa equation
         backend.solve(dFdu, adj_sol2.vector(), b, **self.kwargs)
 
-        adj_sol2_bdy = Function(V)
-        adj_sol2_bdy.vector()[:] = b_copy - compat.assemble_adjoint_value(backend.action(dFdu_form, adj_sol2))
+        adj_sol2_bdy = compat.function_from_vector(V, b_copy - compat.assemble_adjoint_value(backend.action(dFdu_form, adj_sol2)))
 
         # Iterate through every dependency to evaluate and propagate the hessian information.
         for bo in self.get_dependencies():
