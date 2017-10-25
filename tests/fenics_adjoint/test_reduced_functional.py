@@ -638,3 +638,30 @@ def test_multiple_optimized_reduced_functionals():
     h.vector()[:] = rand(V.dim())
     assert taylor_test(Jhat, f, h) > 1.9
     assert taylor_test(Jhat2, f, h) > 1.9
+
+
+def test_recompute_expression_bc():
+    mesh = UnitSquareMesh(10, 10)
+    V = FunctionSpace(mesh, "CG", 1)
+
+    f = Function(V)
+    f.vector()[:] = 1
+    u = TrialFunction(V)
+    v = TestFunction(V)
+
+    sol = Function(V)
+    a = inner(grad(u), grad(v))*dx
+    L = f*v*dx
+
+    c = Constant(1)
+    exp = Expression("c", c=c, degree=1)
+    bc = DirichletBC(V, exp, "on_boundary")
+    solve(a == L, sol, bc)
+
+    J = assemble(sol*sol*dx)
+    m = Control(f)
+    Jhat = ReducedFunctional(J, m)
+
+    h = Function(V)
+    h.vector()[:] = rand(V.dim())
+    assert taylor_test(Jhat, f, h) > 1.9

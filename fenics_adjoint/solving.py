@@ -144,7 +144,7 @@ class SolveBlock(Block):
 
         dFdu = backend.derivative(F_form, fwd_block_output.get_saved_output(), backend.TrialFunction(u.function_space()))
         dFdu_form = backend.adjoint(dFdu)
-        dFdu = backend.assemble(dFdu_form, **self.assemble_kwargs)
+        dFdu = compat.assemble_adjoint_value(dFdu_form, **self.assemble_kwargs)
 
         # Get dJdu from previous calculations.
         dJdu = fwd_block_output.get_adj_output()
@@ -166,10 +166,7 @@ class SolveBlock(Block):
 
         backend.solve(dFdu, adj_var.vector(), dJdu)
 
-        adj_var_bdy = Function(V)
-        adj_var_bdy = compat.evaluate_algebra_expression(dJdu_copy -
-                                                         backend.assemble(backend.action(dFdu_form, adj_var)),
-                                                         adj_var_bdy)
+        adj_var_bdy = compat.function_from_vector(V, dJdu_copy - compat.assemble_adjoint_value(backend.action(dFdu_form, adj_var)))
         for block_output in self.get_dependencies():
             c = block_output.get_output()
             if c != self.func or self.linear:
@@ -179,7 +176,7 @@ class SolveBlock(Block):
                     dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(c.function_space()))
                     dFdm = backend.adjoint(dFdm)
                     dFdm = dFdm*adj_var
-                    dFdm = backend.assemble(dFdm, **self.assemble_kwargs)
+                    dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
 
                     block_output.add_adj_output(dFdm)
                 elif isinstance(c, backend.Constant):
@@ -187,7 +184,7 @@ class SolveBlock(Block):
                     dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(c._ad_function_space(mesh)))
                     dFdm = backend.adjoint(dFdm)
                     dFdm = dFdm*adj_var
-                    dFdm = backend.assemble(dFdm, **self.assemble_kwargs)
+                    dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
 
                     block_output.add_adj_output(dFdm)
                 elif isinstance(c, backend.DirichletBC):
@@ -199,7 +196,7 @@ class SolveBlock(Block):
                     dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(c_fs))
                     dFdm = backend.adjoint(dFdm)
                     dFdm = dFdm * adj_var
-                    dFdm = backend.assemble(dFdm, **self.assemble_kwargs)
+                    dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
                     block_output.add_adj_output([[dFdm, c_fs]])
 
     @no_annotations
@@ -252,7 +249,7 @@ class SolveBlock(Block):
             if isinstance(c, backend.Function):
                 #dFdm = -backend.derivative(F_form, c_rep, backend.Function(V, tlm_value))
                 dFdm = -backend.derivative(F_form, c_rep, tlm_value)
-                dFdm = backend.assemble(dFdm, **self.assemble_kwargs)
+                dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
 
                 # Zero out boundary values from boundary conditions as they do not depend (directly) on c.
                 for bc in bcs:
@@ -260,7 +257,7 @@ class SolveBlock(Block):
 
             elif isinstance(c, backend.Constant):
                 dFdm = -backend.derivative(F_form, c_rep, tlm_value)
-                dFdm = backend.assemble(dFdm, **self.assemble_kwargs)
+                dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
 
                 # Zero out boundary values from boundary conditions as they do not depend (directly) on c.
                 for bc in bcs:
@@ -273,7 +270,7 @@ class SolveBlock(Block):
 
             elif isinstance(c, backend.Expression):
                 dFdm = -backend.derivative(F_form, c_rep, tlm_value)
-                dFdm = backend.assemble(dFdm, **self.assemble_kwargs)
+                dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
 
                 # Zero out boundary values from boundary conditions as they do not depend (directly) on c.
                 for bc in bcs:
@@ -358,7 +355,7 @@ class SolveBlock(Block):
 
         if len(b_form.integrals()) > 0:
             b_form = backend.adjoint(b_form)
-            b -= backend.assemble(backend.action(b_form, adj_sol))
+            b -= compat.assemble_adjoint_value(backend.action(b_form, adj_sol))
         b_copy = b.copy()
 
         for bc in bcs:
@@ -367,10 +364,7 @@ class SolveBlock(Block):
         # Solve the soa equation
         backend.solve(dFdu, adj_sol2.vector(), b)
 
-        adj_sol2_bdy = Function(V)
-        adj_sol2_bdy = compat.evaluate_algebra_expression(b_copy -
-                                                          backend.assemble(backend.action(dFdu_form, adj_sol2)),
-                                                          adj_sol2_bdy)
+        adj_sol2_bdy = compat.function_from_vector(V, b_copy - compat.assemble_adjoint_value(backend.action(dFdu_form, adj_sol2)))
 
         # Iterate through every dependency to evaluate and propagate the hessian information.
         for bo in self.get_dependencies():
@@ -433,7 +427,7 @@ class SolveBlock(Block):
                     d2Fdm2 = backend.adjoint(d2Fdm2)
 
                 output = backend.action(d2Fdm2, adj_sol)
-                output = backend.assemble(-output)
+                output = compat.assemble_adjoint_value(-output)
 
                 if isinstance(c, backend.Expression):
                     bo.add_hessian_output([(output, W)])
@@ -448,7 +442,7 @@ class SolveBlock(Block):
                     d2Fdudm = backend.adjoint(d2Fdudm)
                 output += backend.action(d2Fdudm, adj_sol)
 
-            output = backend.assemble(-output)
+            output = compat.assemble_adjoint_value(-output)
 
             if isinstance(c, backend.Expression):
                 bo.add_hessian_output([(output, W)])

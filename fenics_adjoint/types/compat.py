@@ -50,10 +50,6 @@ if backend.__name__ == "firedrake":
         """
         return backend.Function(V, val=vector)
 
-    def evaluate_algebra_expression(expr, f):
-        """Assemble an expression into f."""
-        return f.assign(backend.assemble(expr))
-
     def inner(a, b):
         """Compute the l2 inner product of a and b.
 
@@ -70,7 +66,7 @@ if backend.__name__ == "firedrake":
         for idx in bc._indices:
             r = r.sub(idx)
         assert Vtarget == r.function_space()
-        return r
+        return r.vector()
 
     def extract_mesh_from_form(form):
         """Takes in a form and extracts a mesh which can be used to construct function spaces.
@@ -104,6 +100,15 @@ if backend.__name__ == "firedrake":
 
         """
         return value.dat.data
+
+    def assemble_adjoint_value(*args, **kwargs):
+        """A wrapper around Firedrake's assemble that returns a Vector 
+        instead of a Function when assembling a 1-form."""
+        result = backend.assemble(*args, **kwargs)
+        if isinstance(result, backend.Function):
+            return result.vector()
+        else:
+            return result
 else:
     MatrixType = (backend.cpp.Matrix, backend.GenericMatrix)
     VectorType = backend.cpp.la.GenericVector
@@ -153,11 +158,6 @@ else:
         """
         return backend.Function(V, vector)
 
-    def evaluate_algebra_expression(expr, f):
-        """Assemble an expression into f."""
-        f.vector()[:] = expr
-        return f
-
     def inner(a, b):
         """Compute the l2 inner product of a and b.
 
@@ -196,3 +196,5 @@ else:
         See docstring for the firedrake version of this function above.
         """
         return value
+
+    assemble_adjoint_value = backend.assemble
