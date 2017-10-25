@@ -28,7 +28,8 @@
 
 from fenics import *
 from fenics_adjoint import *
-import sys
+
+from numpy.testing import assert_approx_equal
 
 
 def test_supg():
@@ -106,8 +107,7 @@ def test_supg():
 
     # Time-stepping
     while t < T:
-
-    # Assemble vector and apply boundary conditions
+        # Assemble vector and apply boundary conditions
         b = assemble(L)
         bc.apply(b)
 
@@ -126,20 +126,18 @@ def test_supg():
 
     if False:
         # TODO: Not implemented.
-        success = replay_dolfin()
-
-        if not success:
-            sys.exit(1)
+        assert replay_dolfin()
 
     u = u0
     J = assemble(u0*u0*dx)
     Jhat = ReducedFunctional(J, param)
+
+    assert_approx_equal(Jhat(f), J)
+
     h = Constant(1.0)
     dJdf = compute_gradient(J, param)
     dJdm = h._ad_dot(dJdf)
 
-    minconv = taylor_test(Jhat, Constant(0.0), h, dJdm=dJdm)
-    assert minconv > 3.9
+    minconv = taylor_test(Jhat, f, h, dJdm=dJdm)
+    assert minconv > 1.9
 
-if __name__ == "__main__":
-    test_supg()
