@@ -162,8 +162,13 @@ class DirichletBCBlock(Block):
     @no_annotations
     def recompute(self):
         # TODO: Here we assume only 1 dependency. Is this always valid?
-        if len(self.get_dependencies()) > 0:
-            self.get_outputs()[0].checkpoint.set_value(self.get_dependencies()[0].checkpoint)
+        deps = self.get_dependencies()
+        if len(deps) > 0:
+            dep = deps[0]
+            value = dep.get_saved_output()
+            if isinstance(value, backend.Expression):
+                value = backend.interpolate(value, self.function_space)
+            self.get_outputs()[0].checkpoint.set_value(value)
 
     def __str__(self):
         return "DirichletBC block"
