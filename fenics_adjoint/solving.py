@@ -383,14 +383,14 @@ class SolveBlock(Block):
             dc = None
             if isinstance(c_rep, backend.Constant):
                 mesh = compat.extract_mesh_from_form(F_form)
-                dc = backend.TrialFunction(c._ad_function_space(mesh))
-                # TODO: should this be a TrialFunction?
+                W = c._ad_function_space(mesh)
             elif isinstance(c, backend.Expression):
                 mesh = F_form.ufl_domain().ufl_cargo()
                 W = c._ad_function_space(mesh)
-                dc = backend.TrialFunction(W)
             else:
-                dc = backend.TrialFunction(V)
+                W = c.function_space()
+
+            dc = backend.TrialFunction(W)
             dFdm = backend.derivative(F_form, c_rep, dc)
             # TODO: Actually implement split annotations properly.
             try:
