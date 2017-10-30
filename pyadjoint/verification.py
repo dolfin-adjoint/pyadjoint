@@ -48,12 +48,13 @@ def taylor_test(J, m, h, dJdm=None, Hm=None):
     return min(convergence_rates(residuals, epsilons))
 
 
-def taylor_test_multiple(J, m, h):
+def taylor_test_multiple(J, m, h, dJdm=None):
     with stop_annotating():
         Jm = J(m)
-        dJdm = 0
-        for i, delta in enumerate(J.derivative()):
-            dJdm += h[i]._ad_dot(delta)
+        if dJdm is None:
+            dJdm = 0
+            for i, delta in enumerate(J.derivative()):
+                dJdm += h[i]._ad_dot(delta)
 
         residuals = []
         epsilons = [0.01/2**i for i in range(4)]
