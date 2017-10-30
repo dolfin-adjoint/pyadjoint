@@ -148,7 +148,7 @@ else:
             return bc
         return backend.DirichletBC(bc.function_space(),
                                    value,
-                                   *bc.domain_args, method=bc.method())
+                                   *bc.domain_args)
 
     def function_from_vector(V, vector):
         """Create a new Function sharing data.
