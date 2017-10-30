@@ -277,3 +277,10 @@ class NegBlock(FloatOperatorBlock):
             return
 
         self.terms[0].add_adj_output(float.__neg__(adj_input))
+
+    def evaluate_tlm(self):
+        tlm_input = self.terms[0].tlm_value
+        if tlm_input is None:
+            return
+
+        self.get_outputs()[0].add_tlm_output(float.__neg__(tlm_input))
