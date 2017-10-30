@@ -22,7 +22,8 @@ class Hessian(object):
         self.functional = J
         self.controls = Enlist(m)
 
-    def __call__(self, m_dot, options={}):
+    def __call__(self, m_dot, options=None):
+        options = {} if options is None else options
         m_dot = Enlist(m_dot)
         for i, value in enumerate(m_dot):
             self.controls[i].set_initial_tlm_input(m_dot[i])
