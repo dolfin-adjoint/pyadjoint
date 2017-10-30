@@ -243,11 +243,11 @@ class SolveBlock(Block):
             c = block_output.get_output()
             c_rep = replaced_coeffs.get(c, c)
 
-            if c == self.func:
+            if c == self.func and not self.linear:
                 continue
 
             if isinstance(c, backend.Function):
-                #dFdm = -backend.derivative(F_form, c_rep, backend.Function(V, tlm_value))
+                # TODO: If tlm_value is a Sum, will this crash in some instances? Should we project?
                 dFdm = -backend.derivative(F_form, c_rep, tlm_value)
                 dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
 
@@ -292,6 +292,9 @@ class SolveBlock(Block):
         V = u.function_space()
 
         if hessian_input is None:
+            return
+
+        if tlm_output is None:
             return
 
         # Process the equation forms, replacing values with checkpoints,
@@ -346,7 +349,7 @@ class SolveBlock(Block):
             c_rep = replaced_coeffs.get(c, c)
             tlm_input = bo.tlm_value
 
-            if c == self.func or tlm_input is None:
+            if (c == self.func and not self.linear) or tlm_input is None:
                 continue
 
             if not isinstance(c, backend.DirichletBC):
@@ -419,6 +422,7 @@ class SolveBlock(Block):
                 if c2 == self.func and not self.linear:
                     continue
 
+                # TODO: If tlm_input is a Sum, this crashes in some instances?
                 d2Fdm2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdm, c2_rep, tlm_input))
                 if d2Fdm2.empty():
                     continue
