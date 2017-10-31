@@ -5,7 +5,7 @@ setup(name='dolfin_adjoint2',
       description='High-level automatic differentiation library for FEniCS.',
       author='Sebastian Kenji Mitusch',
       author_email='sebastkm@math.uio.no',
-      packages=['fenics_adjoint', 'pyadjoint', 'firedrake_adjoint'],
+      packages=['fenics_adjoint', 'fenics_adjoint.types', 'pyadjoint', 'firedrake_adjoint'],
       package_dir = {'fenics_adjoint': 'fenics_adjoint', 'pyadjoint': 'pyadjoint',
                      'firedrake_adjoint': 'firedrake_adjoint'},
      )
