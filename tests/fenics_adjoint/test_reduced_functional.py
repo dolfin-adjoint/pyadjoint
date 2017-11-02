@@ -5,6 +5,7 @@ from fenics import *
 from fenics_adjoint import *
 
 from numpy.random import rand
+from numpy.testing import assert_approx_equal
 
 def test_constant():
     mesh = IntervalMesh(10, 0, 1)
@@ -664,3 +665,22 @@ def test_recompute_expression_bc():
     h = Function(V)
     h.vector()[:] = rand(V.dim())
     assert taylor_test(Jhat, f, h) > 1.9
+
+
+def test_wrong_number_of_values():
+    mesh = IntervalMesh(10, 0, 1)
+    V = FunctionSpace(mesh, "CG", 1)
+    f = Constant(1.0)
+    g = Constant(2.0)
+    h = AdjFloat(3.0)
+
+    J = h*assemble(f*g*dx(domain=mesh))
+    Jhat = ReducedFunctional(J, [Control(f), Control(g), Control(h)])
+
+    with pytest.raises(ValueError):
+        Jhat(Constant(1.0))
+
+    with pytest.raises(ValueError):
+        Jhat([Constant(1.0), Constant(2.0)])
+
+    assert_approx_equal(Jhat([Constant(1.0), Constant(2.0), AdjFloat(3.0)]), J)

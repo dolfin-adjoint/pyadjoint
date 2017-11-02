@@ -51,8 +51,10 @@ class ReducedFunctional(object):
         """Computes the reduced functional with supplied control value.
 
         Args:
-            values (:obj:`OverloadedType`): Should be an object of the same type
-                as the control.
+            values ([OverloadedType]): If you have multiple controls this should be a list of
+                new values for each control in the order you listed the controls to the constructor.
+                If you have a single control it can either be a list or a single object.
+                Each new value should have the same type as the corresponding control.
 
         Returns:
             :obj:`OverloadedType`: The computed value. Typically of instance
@@ -60,6 +62,9 @@ class ReducedFunctional(object):
 
         """
         values = Enlist(values)
+        if len(values) != len(self.controls):
+            raise ValueError("values should be a list of same length as controls.")
+
         for i, value in enumerate(values):
             self.controls[i].update(value)
 
