@@ -112,6 +112,19 @@ class AdjFloat(OverloadedType, float):
     def _ad_dot(self, other):
         return float.__mul__(self, other)
 
+    @staticmethod
+    def _ad_assign_numpy(dst, src, offset):
+        dst = float(src[offset:offset+1])
+        offset += 1
+        return dst, offset
+
+    @staticmethod
+    def _ad_to_list(value):
+        return [value]
+
+    def _ad_copy(self):
+        return self
+
 
 class FloatOperatorBlock(Block):
 

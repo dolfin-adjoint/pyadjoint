@@ -175,6 +175,30 @@ class OverloadedType(object):
         """
         return True
 
+    @staticmethod
+    def _ad_assign_numpy(dst, src, offset):
+        """This method must be overriden.
+
+        The method should implement a routine for assigning the values from
+        a numpy array `src` to the checkpoint `dst`. `dst` should be an instance
+        of the implementing class.
+
+        Args:
+            dst (obj): The object which should be assigned new values.
+                The type will most likely be an OverloadedType or similar.
+            src (numpy.ndarray): The numpy array to use as a source for the assignment.
+                `src` should have the same underlying dimensions as `dst`.
+            offset:
+
+        Returns:
+            obj: The `dst` object. If `dst` is mutable it is preferred to be the same
+                instance as supplied to the function call. Otherwise a new instance
+                must be initialized and returned with the correct `src` values.
+            int: The new offset.
+
+        """
+        raise NotImplementedError
+
 
 class FloatingType(OverloadedType):
     def __init__(self, *args, **kwargs):

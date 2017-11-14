@@ -56,6 +56,20 @@ class Control(object):
         else:
             self.block_output.checkpoint = value
 
+    def update_numpy(self, value, offset):
+        return self.assign_numpy(self.block_output.checkpoint, value, offset)
+
+    def assign_numpy(self, dst, src, offset):
+        self.block_output.checkpoint, offset \
+            = self.control._ad_assign_numpy(dst, src, offset)
+        return offset
+
+    def fetch_numpy(self, value):
+        return self.control._ad_to_list(value)
+
+    def copy_data(self):
+        return self.control._ad_copy()
+
     def __getattr__(self, item):
         return getattr(self.control, item)
 

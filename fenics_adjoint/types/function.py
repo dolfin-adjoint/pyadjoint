@@ -4,6 +4,7 @@ from pyadjoint.adjfloat import AdjFloat
 from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, no_annotations
 from pyadjoint.block import Block
 from pyadjoint.overloaded_type import OverloadedType, FloatingType
+from .compat import gather
 
 
 class Function(FloatingType, backend.Function):
@@ -110,6 +111,30 @@ class Function(FloatingType, backend.Function):
 
     def _ad_dot(self, other):
         return self.vector().inner(other.vector())
+
+    @staticmethod
+    def _ad_assign_numpy(dst, src, offset):
+        range_begin, range_end = dst.vector().local_range()
+        m_a_local = src[offset + range_begin:offset + range_end]
+        dst.vector().set_local(m_a_local)
+        dst.vector().apply('insert')
+        offset += dst.vector().size()
+        return dst, offset
+
+    @staticmethod
+    def _ad_to_list(m):
+        if not hasattr(m, "gather"):
+            m_v = m.vector()
+        else:
+            m_v = m
+        m_a = gather(m_v)
+
+        return m_a.tolist()
+
+    def _ad_copy(self):
+        r = Function(self.function_space())
+        backend.Function.assign(r, self)
+        return r
 
 
 class AssignBlock(Block):

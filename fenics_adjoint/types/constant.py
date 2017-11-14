@@ -3,7 +3,8 @@ from pyadjoint.tape import get_working_tape, no_annotations
 from pyadjoint.overloaded_type import OverloadedType
 from .compat import constant_function_firedrake_compat
 from pyadjoint.block import Block
-from .types import create_overloaded_object
+
+import numpy
 
 
 class Constant(OverloadedType, backend.Constant):
@@ -12,6 +13,8 @@ class Constant(OverloadedType, backend.Constant):
         backend.Constant.__init__(self, *args, **kwargs)
 
     def assign(self, *args, **kwargs):
+        from .types import create_overloaded_object
+
         annotate_tape = kwargs.pop("annotate_tape", True)
         if annotate_tape:
             other = args[0]
@@ -72,6 +75,23 @@ class Constant(OverloadedType, backend.Constant):
 
     def _ad_dot(self, other):
         return sum(self.values()*other.values())
+
+    @staticmethod
+    def _ad_assign_numpy(dst, src, offset):
+        dst.assign(backend.Constant(numpy.reshape(src[offset:offset + dst.value_size()], dst.ufl_shape)))
+        offset += dst.value_size()
+        return dst, offset
+
+    @staticmethod
+    def _ad_to_list(m):
+        a = numpy.zeros(m.value_size())
+        p = numpy.zeros(m.value_size())
+        m.eval(a, p)
+        return a.tolist()
+
+    def _ad_copy(self):
+        values = ufl_shape_workaround(self.values())
+        return Constant(values)
 
 
 def ufl_shape_workaround(values):

@@ -13,7 +13,7 @@ from pyadjoint import (Tape, set_working_tape, get_working_tape,
                        ReducedFunctional,
                        taylor_test, taylor_test_multiple,
                        compute_gradient, Hessian,
-                       AdjFloat, Control)
+                       AdjFloat, Control, minimize)
 
 tape = Tape()
 set_working_tape(tape)

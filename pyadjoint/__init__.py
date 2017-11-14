@@ -15,3 +15,4 @@ from .drivers import compute_gradient, Hessian
 from .verification import taylor_test, taylor_test_multiple
 from .overloaded_type import OverloadedType
 from .control import Control
+from .optimization.optimization import minimize
