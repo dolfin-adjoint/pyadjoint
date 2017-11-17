@@ -4,3 +4,8 @@
 docs/_build/*
 *.egg-info
 
+
+# Generated files
+*.pvd
+*.vtu
+*.dot

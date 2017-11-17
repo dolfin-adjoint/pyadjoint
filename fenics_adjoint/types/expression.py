@@ -189,10 +189,11 @@ class Expression(backend.Expression):
 
     def __init__(self, *args, **kwargs):
         self._ad_attributes_dict = {}
-        self._ad_ignored_attributes = None
+        self._ad_ignored_attributes = []
         self.user_defined_derivatives = {}
 
     def __setattr__(self, k, v):
+        # TODO: Maybe only add to dict if annotation is enabled?
         if k not in _IGNORED_EXPRESSION_ATTRIBUTES:
             self._ad_attributes_dict[k] = v
         backend.Expression.__setattr__(self, k, v)
@@ -258,9 +259,7 @@ class ExpressionBlock(Block):
 
                 for key in self.expression._ad_attributes_dict:
                     # TODO: If _ad_ignored_attributes is used directly by the user. Should it not have the _ad_ prefix?
-                    if (self.expression._ad_ignored_attributes is None
-                        or key not in self.expression._ad_ignored_attributes):
-
+                    if key not in self.expression._ad_ignored_attributes:
                         setattr(self.expression.user_defined_derivatives[c], key, self.expression._ad_attributes_dict[key])
 
                 interp = backend.interpolate(self.expression.user_defined_derivatives[c], V)
@@ -294,8 +293,7 @@ class ExpressionBlock(Block):
                 continue
 
             for key in self.expression._ad_attributes_dict:
-                if (self.expression._ad_ignored_attributes is None
-                    or key not in self.expression._ad_ignored_attributes):
+                if key not in self.expression._ad_ignored_attributes:
                     setattr(self.expression.user_defined_derivatives[c], key, self.expression._ad_attributes_dict[key])
 
             tlm_input = block_output.tlm_value
@@ -317,8 +315,7 @@ class ExpressionBlock(Block):
 
             first_deriv = self.expression.user_defined_derivatives[c1]
             for key in self.expression._ad_attributes_dict:
-                if (self.expression._ad_ignored_attributes is None
-                    or key not in self.expression._ad_ignored_attributes):
+                if key not in self.expression._ad_ignored_attributes:
                     setattr(first_deriv, key, self.expression._ad_attributes_dict[key])
 
             for bo2 in self.get_dependencies():
@@ -333,8 +330,7 @@ class ExpressionBlock(Block):
 
                 second_deriv = first_deriv.user_defined_derivatives[c2]
                 for key in self.expression._ad_attributes_dict:
-                    if (self.expression._ad_ignored_attributes is None
-                        or key not in self.expression._ad_ignored_attributes):
+                    if key not in self.expression._ad_ignored_attributes:
                         setattr(second_deriv, key, self.expression._ad_attributes_dict[key])
 
                 for adj_pair in adj_inputs:

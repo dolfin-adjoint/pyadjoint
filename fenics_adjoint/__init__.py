@@ -11,4 +11,7 @@ if not 'backend' in sys.modules:
     sys.modules['backend'] = fenics
 backend = sys.modules['backend']
 
+if backend.__name__ != "firedrake":
+    from .types import genericmatrix
+
 from .ui import *

@@ -70,9 +70,9 @@ class SolveBlock(Block):
 
             self.forward_kwargs = kwargs.copy()
             if "J" in self.kwargs:
-                self.kwargs["J"] = adjoint(self.kwargs["J"])
+                self.kwargs["J"] = backend.adjoint(self.kwargs["J"])
             if "Jp" in self.kwargs:
-                self.kwargs["Jp"] = adjoint(self.kwargs["Jp"])
+                self.kwargs["Jp"] = backend.adjoint(self.kwargs["Jp"])
 
             if "M" in self.kwargs:
                 raise NotImplemented("Annotation of adaptive solves not implemented.")
@@ -92,8 +92,12 @@ class SolveBlock(Block):
 
             self.lhs = A.form
             self.rhs = b.form
-            self.bcs = A.bcs
+            self.bcs = A.bcs if hasattr(A, "bcs") else []
             self.func = u.function
+
+            self.kwargs = kwargs
+            self.forward_kwargs = kwargs.copy()
+            self.assemble_kwargs = {}
 
         if isinstance(self.lhs, ufl.Form) and isinstance(self.rhs, ufl.Form):
             self.linear = True
@@ -160,7 +164,7 @@ class SolveBlock(Block):
             bcs.append(bc)
             bc.apply(dFdu, dJdu)
 
-        backend.solve(dFdu, adj_var.vector(), dJdu, **self.kwargs)
+        backend.solve(dFdu, adj_var.vector(), dJdu)
 
         adj_var_bdy = compat.function_from_vector(V, dJdu_copy - compat.assemble_adjoint_value(backend.action(dFdu_form, adj_var)))
         for block_output in self.get_dependencies():
@@ -239,11 +243,11 @@ class SolveBlock(Block):
             c = block_output.get_output()
             c_rep = replaced_coeffs.get(c, c)
 
-            if c == self.func:
+            if c == self.func and not self.linear:
                 continue
 
             if isinstance(c, backend.Function):
-                #dFdm = -backend.derivative(F_form, c_rep, backend.Function(V, tlm_value))
+                # TODO: If tlm_value is a Sum, will this crash in some instances? Should we project?
                 dFdm = -backend.derivative(F_form, c_rep, tlm_value)
                 dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
 
@@ -273,7 +277,7 @@ class SolveBlock(Block):
                     bc.apply(dFdm)
 
             dudm = Function(V)
-            backend.solve(dFdu, dudm.vector(), dFdm, **self.kwargs)
+            backend.solve(dFdu, dudm.vector(), dFdm)
 
             fwd_block_output.add_tlm_output(dudm)
 
@@ -288,6 +292,9 @@ class SolveBlock(Block):
         V = u.function_space()
 
         if hessian_input is None:
+            return
+
+        if tlm_output is None:
             return
 
         # Process the equation forms, replacing values with checkpoints,
@@ -328,13 +335,13 @@ class SolveBlock(Block):
         # TODO: First-order adjoint solution should be possible to obtain from the earlier adjoint computations.
         adj_sol = backend.Function(V)
         # Solve the (first order) adjoint equation
-        backend.solve(dFdu, adj_sol.vector(), adj_input, **self.kwargs)
+        backend.solve(dFdu, adj_sol.vector(), adj_input)
 
         # Second-order adjoint (soa) solution
         adj_sol2 = backend.Function(V)
 
         # Start piecing together the rhs of the soa equation
-        b = hessian_input
+        b = hessian_input.copy()
         b_form = d2Fdu2
 
         for bo in self.get_dependencies():
@@ -342,7 +349,7 @@ class SolveBlock(Block):
             c_rep = replaced_coeffs.get(c, c)
             tlm_input = bo.tlm_value
 
-            if c == self.func or tlm_input is None:
+            if (c == self.func and not self.linear) or tlm_input is None:
                 continue
 
             if not isinstance(c, backend.DirichletBC):
@@ -358,7 +365,7 @@ class SolveBlock(Block):
             bc.apply(dFdu, b)
 
         # Solve the soa equation
-        backend.solve(dFdu, adj_sol2.vector(), b, **self.kwargs)
+        backend.solve(dFdu, adj_sol2.vector(), b)
 
         adj_sol2_bdy = compat.function_from_vector(V, b_copy - compat.assemble_adjoint_value(backend.action(dFdu_form, adj_sol2)))
 
@@ -415,6 +422,7 @@ class SolveBlock(Block):
                 if c2 == self.func and not self.linear:
                     continue
 
+                # TODO: If tlm_input is a Sum, this crashes in some instances?
                 d2Fdm2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdm, c2_rep, tlm_input))
                 if d2Fdm2.empty():
                     continue
@@ -447,7 +455,10 @@ class SolveBlock(Block):
 
     @no_annotations
     def recompute(self):
-        func = self.func
+        if self.get_outputs()[0].is_control:
+            return
+
+        func = self.get_outputs()[0].get_saved_output()
         replace_lhs_coeffs = {}
         replace_rhs_coeffs = {}
         bcs = []
@@ -461,7 +472,7 @@ class SolveBlock(Block):
                 if c in self.lhs.coefficients():
                     replace_lhs_coeffs[c] = c_rep
                     if c == self.func:
-                        func = c_rep._ad_create_checkpoint()
+                        backend.Function.assign(func, c_rep)
                         replace_lhs_coeffs[c] = func
 
                 if self.linear and c in self.rhs.coefficients():

@@ -1,0 +1,175 @@
+[1;37;34mRunning forward ... [0m
+Assembling matrix over cells [=====================>                  ] 53.9%
+Assembling matrix over cells [========================================] 100.0%
+Assembling matrix over cells [=====================>                  ] 53.9%
+Assembling matrix over cells [========================================] 100.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Time-iteration [=====================>                                ] 40.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Time-iteration [===========================================>          ] 80.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Time-iteration [======================================================] 100.0%
+[1;37;34mRunning adjoint ... [0m
+Assembling matrix over cells [=====================>                  ] 53.9%
+Assembling matrix over cells [========================================] 100.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Assembling matrix over cells [=====================>                  ] 53.9%
+Assembling matrix over cells [========================================] 100.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+349.50user 7.47system 4:04.63elapsed 145%CPU (0avgtext+0avgdata 32646000maxresident)k
+1920inputs+104outputs (4major+2224233minor)pagefaults 0swaps
+[1;37;34mRunning forward ... [0m
+Assembling matrix over cells [=====================>                  ] 53.9%
+Assembling matrix over cells [========================================] 100.0%
+Assembling matrix over cells [=====================>                  ] 53.9%
+Assembling matrix over cells [========================================] 100.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Time-iteration [=====================>                                ] 40.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Time-iteration [===========================================>          ] 80.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Time-iteration [======================================================] 100.0%
+[1;37;34mRunning adjoint ... [0m
+Assembling matrix over cells [=====================>                  ] 53.9%
+Assembling matrix over cells [========================================] 100.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Assembling matrix over cells [=====================>                  ] 53.9%
+Assembling matrix over cells [========================================] 100.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+342.67user 7.02system 3:59.99elapsed 145%CPU (0avgtext+0avgdata 32646000maxresident)k
+0inputs+104outputs (3major+2224135minor)pagefaults 0swaps
+[1;37;34mRunning forward ... [0m
+Assembling matrix over cells [=====================>                  ] 53.9%
+Assembling matrix over cells [========================================] 100.0%
+Assembling matrix over cells [=====================>                  ] 53.9%
+Assembling matrix over cells [========================================] 100.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Time-iteration [=====================>                                ] 40.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Time-iteration [===========================================>          ] 80.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Time-iteration [======================================================] 100.0%
+[1;37;34mRunning adjoint ... [0m
+Assembling matrix over cells [=====================>                  ] 53.9%
+Assembling matrix over cells [========================================] 100.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Assembling matrix over cells [=====================>                  ] 53.9%
+Assembling matrix over cells [========================================] 100.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+336.82user 7.34system 3:54.50elapsed 146%CPU (0avgtext+0avgdata 32646000maxresident)k
+0inputs+104outputs (3major+2224506minor)pagefaults 0swaps
+[1;37;34mRunning forward ... [0m
+Assembling matrix over cells [=====================>                  ] 53.9%
+Assembling matrix over cells [========================================] 100.0%
+Assembling matrix over cells [=====================>                  ] 53.9%
+Assembling matrix over cells [========================================] 100.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Time-iteration [=====================>                                ] 40.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Time-iteration [===========================================>          ] 80.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Time-iteration [======================================================] 100.0%
+[1;37;34mRunning adjoint ... [0m
+Assembling matrix over cells [=====================>                  ] 53.9%
+Assembling matrix over cells [========================================] 100.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Assembling matrix over cells [=====================>                  ] 53.9%
+Assembling matrix over cells [========================================] 100.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+355.54user 6.91system 4:09.55elapsed 145%CPU (0avgtext+0avgdata 32646080maxresident)k
+0inputs+104outputs (3major+2224236minor)pagefaults 0swaps
+[1;37;34mRunning forward ... [0m
+Assembling matrix over cells [=====================>                  ] 53.9%
+Assembling matrix over cells [========================================] 100.0%
+Assembling matrix over cells [=====================>                  ] 53.9%
+Assembling matrix over cells [========================================] 100.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Time-iteration [=====================>                                ] 40.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Time-iteration [===========================================>          ] 80.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Time-iteration [======================================================] 100.0%
+[1;37;34mRunning adjoint ... [0m
+Assembling matrix over cells [=====================>                  ] 53.9%
+Assembling matrix over cells [========================================] 100.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Assembling matrix over cells [=====================>                  ] 53.9%
+Assembling matrix over cells [========================================] 100.0%
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+Solving linear system of size 86976 x 86976 (PETSc LU solver, umfpack).
+353.83user 7.59system 4:08.39elapsed 145%CPU (0avgtext+0avgdata 32646000maxresident)k
+0inputs+104outputs (3major+2224562minor)pagefaults 0swaps
