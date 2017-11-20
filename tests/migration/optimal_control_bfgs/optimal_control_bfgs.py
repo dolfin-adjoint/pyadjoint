@@ -1,12 +1,12 @@
 """ Solves the optimal control problem for the heat equation """
-from dolfin import *
-from dolfin_adjoint import *
+from fenics import *
+from fenics_adjoint import *
 
 # Setup
 mesh = Mesh("mesh.xml")
 V = FunctionSpace(mesh, "CG", 1)
 u = Function(V, name="State")
-m = project(Constant(-5), V, name="Control")
+m = project(Constant(-5), V)
 v = TestFunction(V)
 
 # Run the forward model once to create the simulation record
@@ -18,10 +18,10 @@ solve(F == 0, u, bc)
 # and simulated temperature profile
 x = SpatialCoordinate(mesh)
 u_desired = exp(-1/(1-x[0]*x[0])-1/(1-x[1]*x[1]))
-J = Functional((0.5*inner(u-u_desired, u-u_desired))*dx*dt[FINISH_TIME])
+J = assemble(0.5*inner(u-u_desired, u-u_desired)*dx)
 
 # Run the optimisation
-rf = ReducedFunctional(J, Control(m, value=m))
+rf = ReducedFunctional(J, Control(m))
 ub = 0.5
 lb = interpolate(Constant(-1), V) # Test 2 different ways of imposing bounds
 

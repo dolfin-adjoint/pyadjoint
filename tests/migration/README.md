@@ -67,7 +67,7 @@ Currently working tests:
 - [ ] ode_tentusscher (PointIntegralSolver is not implemented)
 - [ ] ode_tentusscher_quick (PointIntegralSolver is not implemented)
 - [ ] ode_vector (PointIntegralSolver is not implemented)
-- [ ] optimal_control_bfgs (optimization is not implemented)
+- [x] optimal_control_bfgs (optimization is not implemented)
 - [ ] optimal_control_mms (optimization is not implemented)
 - [ ] optimization_checkpointing (optimization is not implemented)
 - [ ] optimization_moola (optimization is not implemented)

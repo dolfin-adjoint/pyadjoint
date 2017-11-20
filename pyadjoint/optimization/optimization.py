@@ -25,7 +25,7 @@ def serialise_bounds(rf_np, bounds):
         for j in range(len(bounds[i])):
             bound = bounds[i][j]
             if type(bound) in [int,  float, np.int32, np.int64, np.float32, np.float64]:
-                bound_len = len(get_global(rf_np.controls[j].data()))
+                bound_len = len(rf_np.get_global(rf_np.controls[j]))
                 const_bound = bound*np.ones(bound_len)
 
                 bounds_arr[i] += const_bound.tolist()

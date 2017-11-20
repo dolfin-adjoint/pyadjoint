@@ -3,6 +3,7 @@ from .reduced_functional import ReducedFunctional
 from .tape import stop_annotating
 from .enlisting import Enlist
 from .drivers import Hessian
+from .control import Control
 
 import numpy
 
@@ -61,12 +62,22 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         return m
 
     def get_global(self, m):
+        """
         m_global = []
         for i, control in enumerate(self.controls):
             # This is a little ugly, but we need to go through the control to get to the OverloadedType.
             # There is no guarantee that dJdm[i] is an OverloadedType and not a backend type.
             m_global += control.fetch_numpy(m[i])
 
+        return numpy.array(m_global, dtype="d")
+        """
+        m_global = []
+        for i in Enlist(m):
+            if isinstance(i, Control):
+                # TODO: Consider if you want this design.
+                m_global += i.fetch_numpy(i.control)
+            else:
+                m_global += i._ad_to_list(i)
         return numpy.array(m_global, dtype="d")
 
     def derivative(self, m_array=None, forget=True, project=False):
@@ -97,33 +108,9 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         ''' An implementation of the reduced functional hessian action evaluation
             that accepts the controls as an array of scalars. If m_array is None,
             the Hessian action at the latest forward run is returned. '''
-
-        """
-        if not hasattr(self, "H"):
-            raise NotImplementedError("Hessian computation not supported.")
-
-        m = [p.data() for p in self.controls]
-        if m_array is not None:
-            # In case the control values have changed since the last forward run,
-            # we first need to rerun the forward model with the new controls to have the
-            # correct forward solutions
-            if (m_array != self.get_global(m)).any():
-                self(m_array)
-
-                # Clear the adjoint solution as we need to recompute them
-                for i in range(adjointer.equation_count):
-                    adjointer.forget_adjoint_values(i)
-
-            self.set_local(m, m_array)
-
-        m_dot = [copy_data(p.data()) for p in self.controls]
-        self.set_local(m_dot, m_dot_array)
-
-        hess = self.__base_hessian__(m_dot)
-        hess_array = get_global(hess)
-
-        return hess_array
-        """
+        # TODO: Consider if we really need to run __call__ and derivative here.
+        self.__call__(m_array)
+        self.derivative()
         H = Hessian(self.functional, self.controls)
         m_copies = [control.copy_data() for control in self.controls]
         Hm = H(self.set_local(m_copies, m_dot_array))
