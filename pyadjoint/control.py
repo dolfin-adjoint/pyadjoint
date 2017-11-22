@@ -57,11 +57,15 @@ class Control(object):
             self.block_output.checkpoint = value
 
     def update_numpy(self, value, offset):
-        return self.assign_numpy(self.block_output.checkpoint, value, offset)
+        self.block_output.checkpoint, offset =\
+            self.assign_numpy(self.block_output.checkpoint, value, offset)
+        return offset
 
     def assign_numpy(self, dst, src, offset):
-        offset = self.control._ad_assign_numpy(dst, src, offset)
-        return offset
+        # This returns dst and offset. dst needs to be returned in case
+        # it is immutable. Because then we cannot assign in-place, but need
+        # to create a new object.
+        return self.control._ad_assign_numpy(dst, src, offset)
 
     def fetch_numpy(self, value):
         return self.control._ad_to_list(value)

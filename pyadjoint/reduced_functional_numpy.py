@@ -57,7 +57,7 @@ class ReducedFunctionalNumPy(ReducedFunctional):
     def set_local(self, m, m_array):
         offset = 0
         for i, control in enumerate(self.controls):
-            offset = control.assign_numpy(m[i], m_array, offset)
+            _, offset = control.assign_numpy(m[i], m_array, offset)
 
         return m
 
