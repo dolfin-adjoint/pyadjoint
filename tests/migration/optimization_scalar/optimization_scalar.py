@@ -1,6 +1,6 @@
 from __future__ import print_function
-from dolfin import *
-from dolfin_adjoint import *
+from fenics import *
+from fenics_adjoint import *
 import sys
 
 dolfin.set_log_level(ERROR)
@@ -29,7 +29,6 @@ def main(nu):
         solve(F == 0, u_next, bc)
         u.assign(u_next)
         t += float(timestep)
-        adj_inc_timestep()
 
 def eval_cb(j, m):
     print("j = %f, m = %f." % (j, float(m)))
@@ -46,14 +45,10 @@ if __name__ == "__main__":
     # Run the forward model once to have the annotation
     main(nu)
 
-    J = Functional(inner(u, u)*dx*dt[FINISH_TIME])
+    J = assemble(inner(u, u)*dx)
 
     # Run the optimisation
-    reduced_functional = ReducedFunctional(J, ConstantControl("Nu"),
-                                           eval_cb_post= eval_cb,
-                                           derivative_cb_post=derivative_cb,
-                                           replay_cb=replay_cb,
-                                           scale=2.0)
+    reduced_functional = ReducedFunctional(J, Control(nu))
     try:
         nu_opt = minimize(reduced_functional, 'SLSQP')
 
@@ -62,4 +57,4 @@ if __name__ == "__main__":
             print('Test failed: Optimised functional value exceeds tolerance: ', reduced_functional(nu_opt), ' > ', tol, '.')
             sys.exit(1)
     except ImportError:
-        info_red("No suitable scipy version found. Aborting test.")
+        print("No suitable scipy version found. Aborting test.")

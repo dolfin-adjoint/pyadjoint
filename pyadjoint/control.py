@@ -60,8 +60,7 @@ class Control(object):
         return self.assign_numpy(self.block_output.checkpoint, value, offset)
 
     def assign_numpy(self, dst, src, offset):
-        self.block_output.checkpoint, offset \
-            = self.control._ad_assign_numpy(dst, src, offset)
+        offset = self.control._ad_assign_numpy(dst, src, offset)
         return offset
 
     def fetch_numpy(self, value):

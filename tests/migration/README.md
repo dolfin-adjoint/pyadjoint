@@ -67,17 +67,17 @@ Currently working tests:
 - [ ] ode_tentusscher (PointIntegralSolver is not implemented)
 - [ ] ode_tentusscher_quick (PointIntegralSolver is not implemented)
 - [ ] ode_vector (PointIntegralSolver is not implemented)
-- [x] optimal_control_bfgs (optimization is not implemented)
-- [ ] optimal_control_mms (optimization is not implemented)
+- [x] optimal_control_bfgs
+- [x] optimal_control_mms
 - [ ] optimization_checkpointing (optimization is not implemented)
 - [ ] optimization_moola (optimization is not implemented)
 - [ ] optimization_optizelle (optimization is not implemented)
 - [ ] optimization_optizelle_algebra (optimization is not implemented)
 - [ ] optimization_pyipopt (optimization is not implemented)
 - [ ] optimization_pyopt (optimization is not implemented)
-- [ ] optimization_scalar (optimization is not implemented)
-- [ ] optimization_scipy (optimization is not implemented)
-- [ ] optimization_tao (optimization is not implemented)
+- [x] optimization_scalar
+- [x] optimization_scipy
+- [ ] optimization_tao (TaoSolver is not implemented, maybe it should live in fenics_adjoint?)
 - [ ] periodic (PeriodicBC is not implemented)
 - [ ] petsckrylov_reevaluate (PETScKrylovSolver is not implemented)
 - [x] picard-linearisation

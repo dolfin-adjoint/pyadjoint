@@ -1,6 +1,6 @@
 from __future__ import print_function
 from .reduced_functional import ReducedFunctional
-from .tape import stop_annotating
+from .tape import stop_annotating, no_annotations, get_working_tape
 from .enlisting import Enlist
 from .drivers import Hessian
 from .control import Control
@@ -80,6 +80,7 @@ class ReducedFunctionalNumPy(ReducedFunctional):
                 m_global += i._ad_to_list(i)
         return numpy.array(m_global, dtype="d")
 
+    @no_annotations
     def derivative(self, m_array=None, forget=True, project=False):
         ''' An implementation of the reduced functional derivative evaluation
             that accepts the controls as an array of scalars. If no control values are given,
@@ -93,6 +94,8 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         #if m_array is not None and (m_array != self.get_global(m)).any():
         #    info_red("Rerunning forward model before computing derivative")
         #    self(m_array)
+        if m_array is not None:
+            self.__call__(m_array)
         dJdm = ReducedFunctional.derivative(self)
         dJdm = Enlist(dJdm)
 
@@ -104,12 +107,14 @@ class ReducedFunctionalNumPy(ReducedFunctional):
 
         return numpy.array(m_global, dtype="d")
 
+    @no_annotations
     def hessian(self, m_array, m_dot_array):
         ''' An implementation of the reduced functional hessian action evaluation
             that accepts the controls as an array of scalars. If m_array is None,
             the Hessian action at the latest forward run is returned. '''
         # TODO: Consider if we really need to run __call__ and derivative here.
-        self.__call__(m_array)
+        if m_array is not None:
+            self.__call__(m_array)
         self.derivative()
         H = Hessian(self.functional, self.controls)
         m_copies = [control.copy_data() for control in self.controls]
@@ -121,6 +126,9 @@ class ReducedFunctionalNumPy(ReducedFunctional):
             # This is a little ugly, but we need to go through the control to get to the OverloadedType.
             # There is no guarantee that dJdm[i] is an OverloadedType and not a backend type.
             m_global += control.fetch_numpy(Hm[i])
+
+        tape = get_working_tape()
+        tape.reset_variables()
 
         return numpy.array(m_global, dtype="d")
 

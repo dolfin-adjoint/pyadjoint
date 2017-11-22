@@ -44,9 +44,6 @@ class OverloadedType(object):
     def set_initial_tlm_input(self, value):
         self.original_block_output.set_initial_tlm_input(value)
 
-    def reset_variables(self):
-        self.original_block_output.reset_variables()
-
     def _ad_convert_type(self, value, options={}):
         """This method must be overridden.
 
@@ -177,7 +174,7 @@ class OverloadedType(object):
 
     @staticmethod
     def _ad_assign_numpy(dst, src, offset):
-        """This method must be overriden.
+        """This method must be overridden.
 
         The method should implement a routine for assigning the values from
         a numpy array `src` to the checkpoint `dst`. `dst` should be an instance
@@ -195,6 +192,35 @@ class OverloadedType(object):
                 instance as supplied to the function call. Otherwise a new instance
                 must be initialized and returned with the correct `src` values.
             int: The new offset.
+
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def _ad_to_list(m):
+        """This method must be overridden.
+
+        The method should implement a routine for converting `m` into a
+        list type. `m` should be an instance of the same type as the class
+        this is method is implemented in. Although maybe the backend version
+        of this class, meaning it is not necessarily an OverloadedType.
+
+        Args:
+            m (obj): The object to be converted into a list.
+
+        Returns:
+            list: A list representation of the data structure of `m`.
+
+        """
+        raise NotImplementedError
+
+    def _ad_copy(self):
+        """This method must be overridden.
+
+        The method should implement a routine for copying itself.
+
+        Returns:
+            OverloadedType: A (deep) copy of `self`.
 
         """
         raise NotImplementedError

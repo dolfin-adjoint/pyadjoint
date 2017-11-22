@@ -42,8 +42,15 @@ class BlockOutput(object):
     def set_initial_tlm_input(self, value):
         self.tlm_value = value
 
-    def reset_variables(self):
-        self.adj_value = None
+    def reset_variables(self, types):
+        if "adjoint" in types:
+            self.adj_value = None
+
+        if "hessian" in types:
+            self.hessian_value = None
+
+        if "tlm" in types:
+            self.tlm_value = None
 
     # TODO: Make this just an attribute. Extend with Property if needed later.
     def get_output(self):

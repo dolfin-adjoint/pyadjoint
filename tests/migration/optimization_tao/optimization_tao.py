@@ -1,13 +1,13 @@
 """ Solves a MMS problem with smooth control """
 from __future__ import print_function
-from dolfin import *
-from dolfin_adjoint import *
+from fenics import *
+from fenics_adjoint import *
 try:
     from petsc4py import PETSc
     PETSc.TAO
 except Exception:
     import sys
-    info_blue("PETSc bindings with TAO support unavailable, skipping test")
+    print("PETSc bindings with TAO support unavailable, skipping test")
     sys.exit(0)
 
 
@@ -43,13 +43,13 @@ if __name__ == "__main__":
 
     u_d = 1/(2*pi**2)*sin(pi*x[0])*sin(pi*x[1])
 
-    J = Functional((inner(u-u_d, u-u_d))*dx*dt[FINISH_TIME])
-
     # Run the forward model once to create the annotation
     solve_pde(u, V, m)
 
+    J = assemble((inner(u-u_d, u-u_d))*dx)
+
     # Run the optimisation
-    rf = ReducedFunctional(J, FunctionControl(m, value=m))
+    rf = ReducedFunctional(J, Control(m))
     problem = MinimizationProblem(rf)
     parameters = { 'method': 'nls',
                    'max_it': 20,

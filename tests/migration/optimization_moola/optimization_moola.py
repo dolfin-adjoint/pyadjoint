@@ -1,11 +1,11 @@
 """ Solves a MMS problem with smooth control """
-from dolfin import *
-from dolfin_adjoint import *
+from fenics import *
+from fenics_adjoint import *
 try:
     import moola
 except ImportError:
     import sys
-    info_blue("moola bindings unavailable, skipping test")
+    print("moola bindings unavailable, skipping test")
     sys.exit(0)
 
 
@@ -33,13 +33,13 @@ if __name__ == "__main__":
 
     u_d = 1/(2*pi**2)*sin(pi*x[0])*sin(pi*x[1])
 
-    J = Functional((inner(u-u_d, u-u_d))*dx*dt[FINISH_TIME])
-
     # Run the forward model once to create the annotation
     solve_pde(u, V, m, n)
 
+    J = assemble((inner(u-u_d, u-u_d))*dx)
+
     # Run the optimisation
-    controls = [Control(m, value=m), Control(n, value=n)]
+    controls = [Control(m), Control(n)]
     rf = ReducedFunctional(J, controls)
     problem = MoolaOptimizationProblem(rf, memoize=False)
 
