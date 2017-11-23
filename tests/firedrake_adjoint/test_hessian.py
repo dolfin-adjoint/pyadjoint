@@ -92,7 +92,6 @@ def test_mixed_derivatives():
     assert conv_mixed(J, f, g, m_1, m_2, h, h, dJdm, Hm) > 2.9
 
 
-@pytest.mark.xfail(reason='See https://github.com/firedrakeproject/firedrake/issues/1141')
 def test_function():
     tape = Tape()
     set_working_tape(tape)
