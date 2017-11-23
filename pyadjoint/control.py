@@ -56,6 +56,26 @@ class Control(object):
         else:
             self.block_output.checkpoint = value
 
+    def update_numpy(self, value, offset):
+        self.block_output.checkpoint, offset =\
+            self.assign_numpy(self.block_output.checkpoint, value, offset)
+        return offset
+
+    def assign_numpy(self, dst, src, offset):
+        # This returns dst and offset. dst needs to be returned in case
+        # it is immutable. Because then we cannot assign in-place, but need
+        # to create a new object.
+        return self.control._ad_assign_numpy(dst, src, offset)
+
+    def fetch_numpy(self, value):
+        return self.control._ad_to_list(value)
+
+    def copy_data(self):
+        return self.control._ad_copy()
+
+    def set_initial_tlm_input(self, m):
+        self.block_output.set_initial_tlm_input(m)
+
     def __getattr__(self, item):
         return getattr(self.control, item)
 

@@ -1,9 +1,10 @@
 from .tape import get_working_tape, stop_annotating
 from .enlisting import Enlist
 
-def compute_gradient(J, m, block_idx=0, options={}, tape=None):
+def compute_gradient(J, m, block_idx=0, options=None, tape=None):
     '''Compute the gradient of J with respect to the initialisation value of m, 
     that is the value of m at its creation.'''
+    options = {} if options is None else options
     tape = get_working_tape() if tape is None else tape
     tape.reset_variables()
     J.set_initial_adj_input(1.0)
@@ -22,7 +23,13 @@ class Hessian(object):
         self.functional = J
         self.controls = Enlist(m)
 
-    def __call__(self, m_dot, options={}):
+    def __call__(self, m_dot, options=None, tape=None):
+        tape = get_working_tape() if tape is None else tape
+        options = {} if options is None else options
+
+        tape.reset_tlm_values()
+        tape.reset_hessian_values()
+
         m_dot = Enlist(m_dot)
         for i, value in enumerate(m_dot):
             self.controls[i].set_initial_tlm_input(m_dot[i])
@@ -30,7 +37,7 @@ class Hessian(object):
         with stop_annotating():
             self.tape.evaluate_tlm()
 
-        self.functional.block_output.hessian_value = 0
+        self.functional.block_output.hessian_value = 0.0
         self.tape.evaluate_hessian()
 
         r = [v.get_hessian(options=options) for v in self.controls]

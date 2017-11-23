@@ -1,3 +1,6 @@
+from .tape import no_annotations
+
+
 class BlockOutput(object):
     """References a block output variable.
 
@@ -39,13 +42,21 @@ class BlockOutput(object):
     def set_initial_tlm_input(self, value):
         self.tlm_value = value
 
-    def reset_variables(self):
-        self.adj_value = None
+    def reset_variables(self, types):
+        if "adjoint" in types:
+            self.adj_value = None
+
+        if "hessian" in types:
+            self.hessian_value = None
+
+        if "tlm" in types:
+            self.tlm_value = None
 
     # TODO: Make this just an attribute. Extend with Property if needed later.
     def get_output(self):
         return self.output
 
+    @no_annotations
     def save_output(self, overwrite=True):
         if overwrite or not self.checkpoint:
             self._checkpoint = self.output._ad_create_checkpoint()

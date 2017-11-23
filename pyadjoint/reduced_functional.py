@@ -1,4 +1,4 @@
-from .tape import get_working_tape, stop_annotating, Tape
+from .tape import get_working_tape, stop_annotating, Tape, no_annotations
 from .drivers import compute_gradient
 from .overloaded_type import OverloadedType
 from .control import Control
@@ -47,6 +47,7 @@ class ReducedFunctional(object):
                                        tape=self.tape)
         return self.controls.delist(derivatives)
 
+    @no_annotations
     def __call__(self, values):
         """Computes the reduced functional with supplied control value.
 

@@ -2,10 +2,13 @@ import backend
 from .assembly import assemble, assemble_system
 from .solving import solve
 from .projection import project
+from .interpolation import interpolate
 from .types import Function, Constant, DirichletBC, FunctionSpace
 if backend.__name__ != "firedrake":
     from .types import Expression
     from .types import io
+    from .newton_solver import NewtonSolver
+    from .lusolver import LUSolver
 from .variational_solver import (NonlinearVariationalProblem, NonlinearVariationalSolver,
                                  LinearVariationalProblem, LinearVariationalSolver)
 from pyadjoint import (Tape, set_working_tape, get_working_tape,
@@ -13,7 +16,7 @@ from pyadjoint import (Tape, set_working_tape, get_working_tape,
                        ReducedFunctional,
                        taylor_test, taylor_test_multiple,
                        compute_gradient, Hessian,
-                       AdjFloat, Control)
+                       AdjFloat, Control, minimize)
 
 tape = Tape()
 set_working_tape(tape)

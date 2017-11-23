@@ -109,6 +109,10 @@ if backend.__name__ == "firedrake":
             return result.vector()
         else:
             return result
+
+    def gather(vec):
+        return vec.gather()
+
 else:
     MatrixType = (backend.cpp.Matrix, backend.GenericMatrix)
     VectorType = backend.cpp.la.GenericVector
@@ -148,7 +152,7 @@ else:
             return bc
         return backend.DirichletBC(bc.function_space(),
                                    value,
-                                   *bc.domain_args, method=bc.method())
+                                   *bc.domain_args)
 
     def function_from_vector(V, vector):
         """Create a new Function sharing data.
@@ -198,3 +202,22 @@ else:
         return value
 
     assemble_adjoint_value = backend.assemble
+
+    def gather(vec):
+        import numpy
+        if isinstance(vec, backend.cpp.Function):
+            vec = vec.vector()
+
+        if isinstance(vec, backend.cpp.GenericVector):
+            try:
+                arr = backend.cpp.DoubleArray(vec.size())
+                vec.gather(arr, numpy.arange(vec.size(), dtype='I'))
+                arr = arr.array().tolist()
+            except TypeError:
+                arr = vec.gather(numpy.arange(vec.size(), dtype='intc'))
+        elif isinstance(vec, list):
+            return list(map(gather, vec))
+        else:
+            arr = vec  # Assume it's a gathered numpy array already
+
+        return arr

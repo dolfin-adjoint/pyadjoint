@@ -58,15 +58,17 @@ class Block(object):
         """
         return self._outputs
 
-    def reset_variables(self):
+    def reset_variables(self, types=None):
         """Resets all adjoint variables in the block dependencies and outputs.
 
         """
+        types = ("adjoint") if types is None else types
+
         for dep in self._dependencies:
-            dep.reset_variables()
+            dep.reset_variables(types)
 
         for output in self._outputs:
-            output.reset_variables()
+            output.reset_variables(types)
 
     def evaluate_adj(self):
         """This method must be overriden.

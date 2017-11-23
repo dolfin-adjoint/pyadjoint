@@ -34,20 +34,26 @@ class DirichletBC(FloatingType, backend.DirichletBC):
         self._ad_args = args
         self._ad_kwargs = kwargs
 
-    def _ad_create_checkpoint(self):
-        if self.block is None:
-            return None
+    def apply(self, *args, **kwargs):
+        for arg in args:
+            if not hasattr(arg, "bcs"):
+                arg.bcs = []
+            arg.bcs.append(self)
+        return backend.DirichletBC.apply(self, *args, **kwargs)
 
+    def _ad_create_checkpoint(self):
         deps = self.block.get_dependencies()
         if len(deps) <= 0:
             # We don't have any dependencies so the supplied value was not an OverloadedType.
             # Most probably it was just a float that is immutable so will never change.
-            return self
+            return None
 
-        return compat.create_bc(self, deps[0].get_saved_output())
+        return deps[0]
 
     def _ad_restore_at_checkpoint(self, checkpoint):
-        return checkpoint
+        if checkpoint is not None:
+            self.set_value(checkpoint.get_saved_output())
+        return self
 
 
 class DirichletBCBlock(Block):
@@ -161,14 +167,9 @@ class DirichletBCBlock(Block):
 
     @no_annotations
     def recompute(self):
-        # TODO: Here we assume only 1 dependency. Is this always valid?
-        deps = self.get_dependencies()
-        if len(deps) > 0:
-            dep = deps[0]
-            value = dep.get_saved_output()
-            if isinstance(value, backend.Expression):
-                value = backend.interpolate(value, self.function_space)
-            self.get_outputs()[0].checkpoint.set_value(value)
+        # There is nothing to do. The checkpoint is weak,
+        # so it changes automatically with the dependency checkpoint.
+        return
 
     def __str__(self):
         return "DirichletBC block"

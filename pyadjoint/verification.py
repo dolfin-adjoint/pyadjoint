@@ -48,28 +48,30 @@ def taylor_test(J, m, h, dJdm=None, Hm=None):
     return min(convergence_rates(residuals, epsilons))
 
 
-def taylor_test_multiple(J, m, h):
-    Jm = J(m)
-    dJdm = 0
-    for i, delta in enumerate(J.derivative()):
-        dJdm += h[i]._ad_dot(delta)
+def taylor_test_multiple(J, m, h, dJdm=None):
+    with stop_annotating():
+        Jm = J(m)
+        if dJdm is None:
+            dJdm = 0
+            for i, delta in enumerate(J.derivative()):
+                dJdm += h[i]._ad_dot(delta)
 
-    residuals = []
-    epsilons = [0.01/2**i for i in range(4)]
-    for eps in epsilons:
+        residuals = []
+        epsilons = [0.01/2**i for i in range(4)]
+        for eps in epsilons:
 
-        perts = []
-        for i, pert in enumerate(h):
-            perturbation = pert._ad_mul(eps)
-            perts.append(m[i]._ad_add(perturbation))
-        Jp = J(perts)
+            perts = []
+            for i, pert in enumerate(h):
+                perturbation = pert._ad_mul(eps)
+                perts.append(m[i]._ad_add(perturbation))
+            Jp = J(perts)
 
-        res = abs(Jp - Jm - eps*dJdm)
-        residuals.append(res)
+            res = abs(Jp - Jm - eps*dJdm)
+            residuals.append(res)
 
-    if min(residuals) < 1E-15:
-        logging.warning("The taylor remainder is close to machine precision.")
-    print(residuals)
+        if min(residuals) < 1E-15:
+            logging.warning("The taylor remainder is close to machine precision.")
+        print(residuals)
     return min(convergence_rates(residuals, epsilons))
 
 

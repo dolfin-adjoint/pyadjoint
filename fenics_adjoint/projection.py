@@ -39,6 +39,3 @@ class ProjectBlock(SolveBlock):
         L = backend.inner(w, v)*backend.dx
 
         super(ProjectBlock, self).__init__(a == L, output, bcs)
-
-    def recompute(self):
-        SolveBlock.recompute(self)

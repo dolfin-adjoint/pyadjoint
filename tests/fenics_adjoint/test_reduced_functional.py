@@ -361,7 +361,8 @@ def test_multiple_control():
         u_.assign(u)
         t.assign(t.values()[0] + dt)
 
-    a = p_value.copy(deepcopy=True)
+    # If we don't do annotate=False we have control that depends on the other.
+    a = p_value.copy(deepcopy=True, annotate=False)
     c = [c, Control(a)]
 
     J = assemble(a*a*inner(u, u)*dx)

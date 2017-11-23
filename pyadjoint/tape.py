@@ -113,9 +113,17 @@ class Tape(object):
         for i in range(len(self._blocks)-1, -1, -1):
             self._blocks[i].evaluate_hessian()
 
-    def reset_variables(self):
+    def reset_variables(self, types=None):
         for i in range(len(self._blocks)-1, -1, -1):
-            self._blocks[i].reset_variables()
+            self._blocks[i].reset_variables(types)
+
+    def reset_hessian_values(self):
+        for i in range(len(self._blocks)-1, -1, -1):
+            self._blocks[i].reset_variables(types=("hessian"))
+
+    def reset_tlm_values(self):
+        for i in range(len(self._blocks)-1, -1, -1):
+            self._blocks[i].reset_variables(types=("tlm"))
 
     def copy(self):
         """Returns a shallow copy of the tape.
