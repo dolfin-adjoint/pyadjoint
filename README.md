@@ -10,7 +10,7 @@ First install [FEniCS](http://fenicsproject.org) or [Firedrake](http://firedrake
 
 Then clone the repository:
 
-    git clone git@bitbucket.org:dolfin-adjoint/pyadjoint.git
+    git clone https://bitbucket.org/dolfin-adjoint/pyadjoint.git
 
 and install with
 
