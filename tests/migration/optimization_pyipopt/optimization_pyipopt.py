@@ -4,10 +4,9 @@ the pyipopt Python bindings to IPOPT"""
 from __future__ import print_function
 import sys
 
-from dolfin import *
-from dolfin_adjoint import *
+from fenics import *
+from fenics_adjoint import *
 import numpy
-import libadjoint
 
 try:
     import pyipopt
@@ -39,13 +38,11 @@ def main(u, annotate=False):
 
     t = 0.0
     end = 0.2
-    adjointer.time.start(t)
     while (t <= end):
         solve(F == 0, u_next, bc, annotate=annotate)
         u.assign(u_next, annotate=annotate)
 
         t += float(timestep)
-        adj_inc_timestep(time=t, finished = t>end)
 
 def derivative_cb(j, dj, m):
     print("j = %f, max(dj) = %f, max(m) = %f." % (j, dj.vector().max(), m.vector().max()))
@@ -55,18 +52,18 @@ if __name__ == "__main__":
     ic = project(Expression("sin(2*pi*x[0])", degree=1),  V)
     u = Function(V)
 
-    J = Functional(u*u*dx*dt[FINISH_TIME])
-
     # Run the model once to create the annotation
     u.assign(ic)
     main(u, annotate=True)
+
+    J = assemble(u*u*dx)
 
     # Run the optimisation
     lb = interpolate(Constant(-1),  V)
     ub = interpolate(Constant(1.0e200), V)
 
     # Define the reduced funtional
-    rf = ReducedFunctional(J, Control(u, value=ic), derivative_cb_post=derivative_cb)
+    rf = ReducedFunctional(J, Control(ic))
 
     problem = MinimizationProblem(rf, bounds=(lb, ub))
 

@@ -21,7 +21,7 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         if isinstance(functional, ReducedFunctional):
             rf = functional
             super(ReducedFunctionalNumPy, self).__init__(rf.functional,
-                                                         rf.controls,
+                                                         rf.controls.delist(),
                                                          rf.tape)
             return
 
@@ -72,12 +72,14 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         return numpy.array(m_global, dtype="d")
         """
         m_global = []
-        for i in Enlist(m):
-            if isinstance(i, Control):
+        for i, v in enumerate(Enlist(m)):
+            if isinstance(v, Control):
                 # TODO: Consider if you want this design.
-                m_global += i.fetch_numpy(i.control)
+                m_global += v.fetch_numpy(v.control)
+            elif hasattr(v, "_ad_to_list"):
+                m_global += v._ad_to_list(v)
             else:
-                m_global += i._ad_to_list(i)
+                m_global += self.controls[i].control._ad_to_list(v)
         return numpy.array(m_global, dtype="d")
 
     @no_annotations
@@ -244,3 +246,17 @@ def copy_data(m):
     else:
         raise TypeError('Unknown control type %s.' % str(type(m)))
 
+
+def set_local(coeffs, m_array):
+    offset = 0
+    for m in Enlist(coeffs):
+        _, offset = m._ad_assign_numpy(m, m_array, offset)
+
+    return coeffs
+
+
+def gather(m):
+    if isinstance(m, list):
+        return list(map(gather, m))
+    else:
+        return m._ad_to_list()

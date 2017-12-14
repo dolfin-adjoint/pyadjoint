@@ -73,7 +73,7 @@ Currently working tests:
 - [ ] optimization_moola (optimization is not implemented)
 - [ ] optimization_optizelle (optimization is not implemented)
 - [ ] optimization_optizelle_algebra (optimization is not implemented)
-- [ ] optimization_pyipopt (optimization is not implemented)
+- [x] optimization_pyipopt
 - [ ] optimization_pyopt (optimization is not implemented)
 - [x] optimization_scalar
 - [x] optimization_scipy

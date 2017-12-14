@@ -3,11 +3,8 @@ from .optimization_solver import OptimizationSolver
 from .optimization_problem import MaximizationProblem
 from ..reduced_functional_numpy import ReducedFunctionalNumPy
 from . import constraints
-from ..compatibility import rank
-from ..enlisting import delist
-from ..utils import gather
 
-import backend
+from ..reduced_functional_numpy import gather
 import numpy
 
 class IPOPTSolver(OptimizationSolver):
@@ -59,10 +56,15 @@ class IPOPTSolver(OptimizationSolver):
 
         pyipopt.set_loglevel(1)                 # turn off annoying pyipopt logging
 
+        """
         if rank(self.problem.reduced_functional.mpi_comm()) > 0:
             nlp.int_option('print_level', 0)    # disable redundant IPOPT output in parallel
         else:
             nlp.int_option('print_level', 6)    # very useful IPOPT output
+        """
+        # TODO: Earlier the commented out code above was present.
+        # Figure out how to solve parallel output cases like these in pyadjoint.
+        nlp.int_option("print_level", 6)
 
         if isinstance(self.problem, MaximizationProblem):
             # multiply objective function by -1 internally in
@@ -84,26 +86,21 @@ class IPOPTSolver(OptimizationSolver):
             ub_list = [] # a list of numpy arrays, one for each control
 
             for (bound, control) in zip(bounds, self.rfn.controls):
-                len_control = len(self.rfn.get_global(control.data()))
-                general_lb, general_ub = bound # could be float, Constant, or Function
+                general_lb, general_ub = bound  # could be float, Constant, or Function
 
-                if isinstance(general_lb, (float, int, backend.Constant)):
+                if isinstance(general_lb, (float, int)):
+                    len_control = len(self.rfn.get_global(control))
                     lb = numpy.array([float(general_lb)]*len_control)
-                elif isinstance(general_lb, backend.Function):
-                    assert general_lb.function_space().dim() == control.data().function_space().dim()
-                    lb = self.rfn.get_global(general_lb)
                 else:
-                    raise TypeError("Unknown bound type %s" % general_lb.__class__)
+                    lb = self.rfn.get_global(general_lb)
 
                 lb_list.append(lb)
 
-                if isinstance(general_ub, (float, int, backend.Constant)):
+                if isinstance(general_ub, (float, int)):
+                    len_control = len(self.rfn.get_global(control))
                     ub = numpy.array([float(general_ub)]*len_control)
-                elif isinstance(general_ub, backend.Function):
-                    assert general_ub.function_space().dim() == control.data().function_space().dim()
-                    ub = self.rfn.get_global(general_ub)
                 else:
-                    raise TypeError("Unknown bound type %s" % general_ub.__class__)
+                    ub = self.rfn.get_global(general_ub)
 
                 ub_list.append(ub)
 
@@ -170,7 +167,8 @@ class IPOPTSolver(OptimizationSolver):
                     cols = list(range(ncontrols)) * nconstraints
                     return (numpy.array(rows), numpy.array(cols))
                 else:
-                    return numpy.array(gather(constraint.jacobian(x)))
+                    j = constraint.jacobian(x)
+                    return numpy.array(gather(j))
 
             # The bounds for the constraint: by the definition of our
             # constraint type, the lower bound is always zero,
@@ -211,21 +209,11 @@ class IPOPTSolver(OptimizationSolver):
                     else:
                         raise ValueError("Don't know how to deal with parameter %s (a %s)" % (param, out.__class__))
 
-    def __copy_data(self, m):
-        """Returns a deep copy of the given Function/Constant."""
-        if hasattr(m, "vector"):
-            return backend.Function(m.function_space())
-        elif hasattr(m, "value_size"):
-            return backend.Constant(m(()))
-        else:
-            raise TypeError('Unknown control type %s.' % str(type(m)))
-
     def solve(self):
         """Solve the optimization problem and return the optimized controls."""
         guess = self.rfn.get_controls()
         results = self.pyipopt_problem.solve(guess)
-        new_params = [self.__copy_data(p.data()) for p in self.rfn.controls]
+        new_params = [control.copy_data() for control in self.rfn.controls]
         self.rfn.set_local(new_params, results[0])
 
-        return delist(new_params,
-                list_type=self.problem.reduced_functional.controls)
+        return self.rfn.controls.delist(new_params)
