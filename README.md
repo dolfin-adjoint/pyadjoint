@@ -14,8 +14,9 @@ Then clone the repository:
 
 and install with
 
+    cd pyadjoint
     pip install -r requirements.txt
-
+    pip install .
 
 # Reporting bugs
 
