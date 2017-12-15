@@ -3,7 +3,8 @@ class Enlist(list):
         self.listed = isinstance(x, (list, tuple))
         super(Enlist, self).__init__(x if self.listed else [x])
 
-    def delist(self, y):
+    def delist(self, y=None):
+        y = self if y is None else y
         if self.listed:
             return y
         else:

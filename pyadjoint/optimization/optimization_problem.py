@@ -1,7 +1,7 @@
 from ..reduced_functional import ReducedFunctional
 from .constraints import Constraint, canonicalise
 import collections
-from ..compatibility import function_type
+from ..overloaded_type import OverloadedType
 
 __all__ = ['MinimizationProblem', 'MaximizationProblem']
 
@@ -70,7 +70,7 @@ class OptimizationProblem(object):
 
         if len(bounds) == 2: # support 'bounds=(lb, ub)' as well as 'bounds=[(lb, ub)]'
             for bound in bounds:
-                if isinstance(bound, collections.Iterable) and not isinstance(bound, function_type):
+                if isinstance(bound, collections.Iterable) and not isinstance(bound, OverloadedType):
                     should_i_make_a_damn_list = False
 
         if should_i_make_a_damn_list:
