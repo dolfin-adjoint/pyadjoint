@@ -32,7 +32,7 @@ where the model is implemented in the Python interface to DOLFIN.
 News
 ====
 **31.12.2017**: dolfin-adjoint 2017.2 released (compatible with FEniCS 2017.2).
-                **Important**: This release is of a full re-write of dolfin-adjoint based on `pyadjoint`_. 
+                **Important**: This release is of a full re-write of dolfin-adjoint based on `pyadjoint`_ (see this `poster`_).
                 A release of the previous code-based that supports FEniCS 2017.2 is still available `here`_, 
                 but will be deprecated from FEniCS 2018.1.
                 The new code-base is superior in some features (e.g. full Hessian support, flexible objective functional definitions,
@@ -57,6 +57,7 @@ News
 .. _pyadjoint: https://bitbucket.org/dolfin-adjoint/pyadjoint
 .. _here: https://bitbucket.org/dolfin-adjoint/dolfin-adjoint
 .. _Wilkinson prize for numerical software: http://www.nag.co.uk/other/WilkinsonPrize.html
+.. _poster: https://drive.google.com/file/d/1NjIFj07u_QMfuXB2Z8uv5f2LUDwY1XeM/view?usp=sharing
 
 Features
 ========
