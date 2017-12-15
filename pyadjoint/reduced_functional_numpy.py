@@ -20,9 +20,14 @@ class ReducedFunctionalNumPy(ReducedFunctional):
     def __init__(self, functional, controls=None, tape=None):
         if isinstance(functional, ReducedFunctional):
             rf = functional
-            super(ReducedFunctionalNumPy, self).__init__(rf.functional,
-                                                         rf.controls,
-                                                         rf.tape)
+            super(ReducedFunctionalNumPy, self).__init__(functional=rf.functional,
+                                                         controls=rf.controls,
+                                                         tape=rf.tape,
+                                                         eval_cb_pre=rf.eval_cb_pre,
+                                                         eval_cb_post=rf.eval_cb_post,
+                                                         derivative_cb_pre=rf.derivative_cb_pre,
+                                                         derivative_cb_post=rf.derivative_cb_post
+                                                         )
             return
 
         super(ReducedFunctionalNumPy, self).__init__(functional, controls, tape)
@@ -112,9 +117,7 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         ''' An implementation of the reduced functional hessian action evaluation
             that accepts the controls as an array of scalars. If m_array is None,
             the Hessian action at the latest forward run is returned. '''
-        # TODO: Consider if we really need to run __call__ and derivative here.
-        if m_array is not None:
-            self.__call__(m_array)
+        # TODO: Consider if we really need to run derivative here.
         self.derivative()
         H = Hessian(self.functional, self.controls)
         m_copies = [control.copy_data() for control in self.controls]

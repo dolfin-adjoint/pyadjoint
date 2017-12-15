@@ -685,3 +685,54 @@ def test_wrong_number_of_values():
         Jhat([Constant(1.0), Constant(2.0)])
 
     assert_approx_equal(Jhat([Constant(1.0), Constant(2.0), AdjFloat(3.0)]), J)
+
+
+def test_eval_callback():
+    mesh = IntervalMesh(10, 0, 1)
+    V = FunctionSpace(mesh, "CG", 1)
+    f = Constant(1.0)
+
+    u = TrialFunction(V)
+    v = TestFunction(V)
+
+    sol = Function(V)
+    a = u*v*dx
+    L = f*v*dx
+    solve(a == L, sol)
+
+    J = assemble(sol**2*dx)
+
+    calls_counter = {
+        "eval_cb_pre_calls": 0,
+        "eval_cb_post_calls": 0,
+        "derivative_cb_pre_calls": 0,
+        "derivative_cb_post_calls": 0
+    }
+
+    def eval_cb_pre(values):
+        calls_counter["eval_cb_pre_calls"] += 1
+
+    def eval_cb_post(functional_value, values):
+        calls_counter["eval_cb_post_calls"] += 1
+        assert calls_counter["eval_cb_pre_calls"] == calls_counter["eval_cb_post_calls"]
+
+    def derivative_cb_pre(values):
+        calls_counter["derivative_cb_pre_calls"] += 1
+
+    def derivative_cb_post(functional_value, derivatives, values):
+        calls_counter["derivative_cb_post_calls"] += 1
+        assert calls_counter["derivative_cb_post_calls"] == calls_counter["derivative_cb_pre_calls"]
+
+    Jhat = ReducedFunctional(J, Control(f),
+                             eval_cb_pre=eval_cb_pre,
+                             eval_cb_post=eval_cb_post,
+                             derivative_cb_pre=derivative_cb_pre,
+                             derivative_cb_post=derivative_cb_post)
+
+    Jhat(Constant(2.0))
+    assert calls_counter["derivative_cb_post_calls"] == calls_counter["derivative_cb_pre_calls"]
+    assert calls_counter["derivative_cb_post_calls"] == 0
+    Jhat.derivative()
+    assert calls_counter["eval_cb_pre_calls"] == 1
+    assert calls_counter["derivative_cb_pre_calls"] == 1
+

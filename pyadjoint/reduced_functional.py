@@ -20,10 +20,18 @@ class ReducedFunctional(object):
             instance instead of a list.
 
     """
-    def __init__(self, functional, controls, tape=None):
+    def __init__(self, functional, controls, tape=None,
+                 eval_cb_pre=lambda *args: None,
+                 eval_cb_post=lambda *args: None,
+                 derivative_cb_pre=lambda *args: None,
+                 derivative_cb_post=lambda *args: None):
         self.functional = functional
         self.tape = get_working_tape() if tape is None else tape
         self.controls = Enlist(controls)
+        self.eval_cb_pre = eval_cb_pre
+        self.eval_cb_post = eval_cb_post
+        self.derivative_cb_pre = derivative_cb_pre
+        self.derivative_cb_post = derivative_cb_post
 
     def derivative(self, options={}):
         """Returns the derivative of the functional w.r.t. the control.
@@ -41,10 +49,20 @@ class ReducedFunctional(object):
                 Should be an instance of the same type as the control.
 
         """
+        # Call callback
+        values = [c.data() for c in self.controls]
+        self.derivative_cb_pre(self.controls.delist(values))
+
         derivatives = compute_gradient(self.functional,
                                        self.controls,
                                        options=options,
                                        tape=self.tape)
+
+        # Call callback
+        self.derivative_cb_post(self.functional.block_output.checkpoint,
+                                self.controls.delist(derivatives),
+                                self.controls.delist(values))
+
         return self.controls.delist(derivatives)
 
     @no_annotations
@@ -66,6 +84,9 @@ class ReducedFunctional(object):
         if len(values) != len(self.controls):
             raise ValueError("values should be a list of same length as controls.")
 
+        # Call callback.
+        self.eval_cb_pre(self.controls.delist(values))
+
         for i, value in enumerate(values):
             self.controls[i].update(value)
 
@@ -75,7 +96,12 @@ class ReducedFunctional(object):
                 for i in range(len(blocks)):
                     blocks[i].recompute()
 
-        return self.functional.block_output.checkpoint
+        func_value = self.functional.block_output.checkpoint
+
+        # Call callback
+        self.eval_cb_post(func_value, self.controls.delist(values))
+
+        return func_value
 
     def optimize(self):
         self.tape.optimize(
