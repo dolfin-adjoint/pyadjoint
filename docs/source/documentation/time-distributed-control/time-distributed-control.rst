@@ -117,7 +117,7 @@ function is captured in the `dolfin-adjoint` tape:
   
       t = float(dt)
   
-      J = 0
+      j = 0.5*float(dt)*assemble((u_0 - d)**2*dx)
   
       while t <= T:
           # Update source term from control array
@@ -130,14 +130,20 @@ function is captured in the `dolfin-adjoint` tape:
           # Solve PDE
           solve(a == L, u_0, bc)
   
+          # Implement a trapezoidal rule 
+          if t > T - float(dt):
+             weight = 0.5
+          else:
+             weight = 1
+  
+          j += weight*float(dt)*assemble((u_0 - d)**2*dx)
+  
           # Update time
           t += float(dt)
   
-          J += dt*(u-d)**2*dx
+      return u_0, d, j
   
-      return u_0, d, J
-  
-  u, d, J = solve_heat(ctrls)
+  u, d, j = solve_heat(ctrls)
   
 With this preparation steps, we are now ready to define the functional.
 First we discretise the regularisation term
@@ -169,16 +175,11 @@ In code this is translates to:
   regularisation = alpha/2*sum([1/dt*(fb-fa)**2*dx for fb, fa in
       zip(list(ctrls.values())[1:], list(ctrls.values())[:-1])])
   
-We add the regularisation term to the functional value:
+We add the regularisation term to the functional value and define define the controls:
 
 ::
 
-  J += regularisation
-  
-Next, we define the controls:
-
-::
-
+  J = j + assemble(regularisation)
   m = [Control(c) for c in ctrls.values()]
   
 Finally, we define the reduced functional and solve the optimisation problem:

@@ -76,7 +76,6 @@
 # We start the implementation by importing the :py:mod:`dolfin` and
 # :py:mod:`fenics_adjoint` modules.
 
-from __future__ import print_function
 from fenics import *
 from fenics_adjoint import *
 

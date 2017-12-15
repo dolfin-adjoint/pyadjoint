@@ -78,7 +78,6 @@ We start the implementation by importing the :py:mod:`dolfin` and
 
 ::
 
-  from __future__ import print_function
   from fenics import *
   from fenics_adjoint import *
   
@@ -199,14 +198,14 @@ the sensitivity with respect to the initial condition :math:`g`:
   m = Control(g)
   
   adj_timer = Timer("Adjoint run")
-  dJdm = compute_gradient(J, m, project=True)
+  dJdm = compute_gradient(J, m, options={"riesz_representation": "L2"})
   adj_time = adj_timer.stop()
   
-Note the project=True flag for :py:func:`compute_gradient`. It indicates that
-the gradient should not be returned as an operator, that is not in the dual
-space :math:`V^*`, but instead its Riesz representation in the primal space
-:math:`V`. This is necessary to plot the sensitivities without seeing mesh
-dependent features.
+Note that we set the "riesz_representation" option to "L2" in
+:py:func:`compute_gradient`.  It indicates that the gradient should not be
+returned as an operator, that is not in the dual space :math:`V^*`, but
+instead its Riesz representation in the primal space :math:`V`. This is
+necessary to plot the sensitivities without seeing mesh dependent features.
 
 Next we plot the computed sensitivity and print timing statistics comparing
 the runtime of the forward and adjoint solves.
