@@ -99,6 +99,7 @@ class Function(FloatingType, backend.Function):
     def _ad_create_checkpoint(self):
         if self.block is None:
             # TODO: This might crash if annotate=False, but still using a sub-function.
+            #       Because subfunction.copy(deepcopy=True) raises the can't access vector error.
             return self.copy(deepcopy=True)
 
         dep = self.block.get_dependencies()[0]
@@ -185,6 +186,10 @@ class AssignBlock(Block):
         deps = self.get_dependencies()
         other_bo = deps[1]
         # TODO: This is a quick-fix, so should be reviewed later.
+        #       Introduced because Control values work by not letting their checkpoint property be overwritten.
+        #       However this circumvents that by using assign. An alternative would be to create a
+        #       Function, assign the values to the new function, and then set the checkpoint to this function.
+        #       However that is rather memory inefficient I would say.
         if not self.get_outputs()[0].is_control:
             backend.Function.assign(self.get_outputs()[0].get_saved_output(), other_bo.get_saved_output())
 
