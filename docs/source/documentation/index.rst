@@ -42,11 +42,6 @@ how to use fenics-adjoint and the main features of fenics-adjoint, and
 includes introductory examples. For more use cases, see the
 :ref:`examples <fenics-adjoint-examples>`.
 
-.. only:: html
-
-  There is also a `pdf version <../_static/dolfin-adjoint-all.pdf>`_
-  of the documentation available.
-
 .. raw:: html
 
   <h2>The mathematical background</h2>

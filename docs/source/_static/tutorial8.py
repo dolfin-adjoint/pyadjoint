@@ -39,4 +39,4 @@ for i in range(1, len(Jlist)):
     J += 0.5*(Jlist[i-1] + Jlist[i])*float(timestep)
 
 h = Constant(nu)
-taylor_test(ReducedFunctional(J, nu), nu, h)
+taylor_test(ReducedFunctional(J, Control(nu)), nu, h)

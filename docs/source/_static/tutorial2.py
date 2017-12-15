@@ -28,4 +28,4 @@ while (t <= end):
     t += float(timestep)
 
 J = assemble(inner(u, u)*dx)
-dJdu, dJdnu = compute_gradient(J, [u, nu])
+dJdu, dJdnu = compute_gradient(J, [Control(u), Control(nu)])

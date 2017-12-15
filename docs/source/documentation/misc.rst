@@ -31,7 +31,7 @@ class must be used:
 
 A full example is given in the following code.
 
-.. literalinclude:: ../_static/tutorial9.py
+.. literalinclude:: ../_static/overloading/tutorial9.py
     :emphasize-lines: 32,36,46
 
 Similarly, it is possible to give :py:class:`Functions <dolfin_adjoint.Function>` names:
@@ -49,7 +49,7 @@ which can then be used in other places with :py:class:`FunctionControl <dolfin_a
 
 A full example is given in the following code.
 
-.. literalinclude:: ../_static/tutorial10.py
+.. literalinclude:: ../_static/overloading/tutorial10.py
     :emphasize-lines: 12,13,36,46
 
 **********************

@@ -34,9 +34,11 @@ the problem:
 Contacting the authors
 ======================
 
-Patrick would love to hear any stories of scientists and engineers
-using dolfin-adjoint, good and bad. Please feel free to `contact him
-<mailto:patrick.farrell@maths.ox.ac.uk>`_!
+Use our `Slack channel <https://fenicsproject.slack.com/messages/dolfin-adjoint/>`_ to get in contact with us directly (or send us an email)!
+
+
+
+
 
 .. toctree::
     :hidden:

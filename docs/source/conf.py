@@ -62,6 +62,8 @@ class Mock(object):
             return Mock()
 
 MOCK_MODULES = ['dolfin', 'ffc', 'backend.fem', 'backend.fem.projection', 'backend.PeriodicBC',
+                'backend.HDF5File',
+                'backend.HDF5File.read',
                 'backend', 'ufl', 'numpy', 'scipy', 'scipy.optimize', 'ufl.classes',
                 'ufl.algorithms', 'ufl.operators']
 for mod_name in MOCK_MODULES:
@@ -75,6 +77,13 @@ backend.__name__ = "dolfin"
 
 class MockMeta(type):
     pass
+
+class MockClass(object):
+    pass
+
+
+backend.HDF5File = MockClass()
+backend.HDF5File.read = None
 
 MOCK_META_CLASSES = ["ExpressionMetaClass"]
 
