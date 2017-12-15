@@ -1,0 +1,6 @@
+# dolfin-adjoint stable version image
+
+This image provides the most recent stable release of dolfin-adjoint
+(<http://dolfin-adjoint.org>). The FEniCS installation is built against the
+stable image (<https://quay.io/repository/fenicsproject/dev-env/>)
+which contains an up-to-date stable build of FEniCS, PETSc and SLEPc.
