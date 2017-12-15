@@ -11,7 +11,7 @@ def HDF5File_read(self, *args, **kwargs):
 
     if annotate:
         func = args[0]
-        func.create_block_output()
+        func.create_block_variable()
     return output
 
 backend.HDF5File.read = HDF5File_read

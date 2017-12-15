@@ -28,7 +28,7 @@ class Constant(OverloadedType, backend.Constant):
         ret = backend.Constant.assign(self, *args, **kwargs)
 
         if annotate_tape:
-            block.add_output(self.create_block_output())
+            block.add_output(self.create_block_variable())
 
         return ret
 
@@ -36,10 +36,10 @@ class Constant(OverloadedType, backend.Constant):
         return Constant(value)
 
     def get_derivative(self, options={}):
-        return self._ad_convert_type(self.get_adj_output(), options=options)
+        return self._ad_convert_type(self.adj_value, options=options)
 
     def adj_update_value(self, value):
-        self.original_block_output.checkpoint = value._ad_create_checkpoint()
+        self.original_block_variable.checkpoint = value._ad_create_checkpoint()
 
     def _ad_convert_type(self, value, options={}):
         value = constant_function_firedrake_compat(value)
@@ -114,11 +114,11 @@ def ufl_shape_workaround(values):
 class AssignBlock(Block):
     def __init__(self, func, other):
         super(AssignBlock, self).__init__()
-        self.add_dependency(func.get_block_output())
-        self.add_dependency(other.get_block_output())
+        self.add_dependency(func.block_variable)
+        self.add_dependency(other.block_variable)
 
     def evaluate_adj(self):
-        adj_input = self.get_outputs()[0].get_adj_output()
+        adj_input = self.get_outputs()[0].adj_value
         self.get_dependencies()[1].add_adj_output(adj_input)
 
     def evaluate_tlm(self):
@@ -133,5 +133,5 @@ class AssignBlock(Block):
         deps = self.get_dependencies()
         other_bo = deps[1]
 
-        backend.Constant.assign(self.get_outputs()[0].get_saved_output(), other_bo.get_saved_output())
+        backend.Constant.assign(self.get_outputs()[0].saved_output, other_bo.saved_output)
 

@@ -36,9 +36,9 @@ def test_tlm_assemble():
     h = Function(V)
     h.vector()[:] = rand(h.dof_dset.size)
     g = f.copy(deepcopy=True)
-    f.set_initial_tlm_input(h)
+    f.tlm_value = h
     tape.evaluate_tlm()
-    assert (taylor_test(Jhat, g, h, dJdm=J.block_output.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, g, h, dJdm=J.block_variable.tlm_value) > 1.9)
 
 
 def test_tlm_bc():
@@ -61,10 +61,10 @@ def test_tlm_bc():
     J = assemble(c ** 2 * u * dx)
     Jhat = ReducedFunctional(J, Control(c))
 
-    c.set_initial_tlm_input(Constant(1))
+    c.tlm_value = Constant(1)
     tape.evaluate_tlm()
 
-    assert (taylor_test(Jhat, Constant(c), Constant(1), dJdm=J.block_output.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, Constant(c), Constant(1), dJdm=J.block_variable.tlm_value) > 1.9)
 
 
 def test_tlm_func():
@@ -91,10 +91,10 @@ def test_tlm_func():
     h = Function(V)
     h.vector()[:] = rand(h.dof_dset.size)
     g = c.copy(deepcopy=True)
-    c.set_initial_tlm_input(h)
+    c.tlm_value = h
     tape.evaluate_tlm()
 
-    assert (taylor_test(Jhat, g, h, dJdm=J.block_output.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, g, h, dJdm=J.block_variable.tlm_value) > 1.9)
 
 
 @pytest.mark.parametrize("solve_type",
@@ -147,9 +147,9 @@ def test_time_dependent(solve_type):
     Jhat = ReducedFunctional(J, control)
     h = Function(V)
     h.vector()[:] = rand(h.dof_dset.size)
-    u_1.set_initial_tlm_input(h)
+    u_1.tlm_value = h
     tape.evaluate_tlm()
-    assert (taylor_test(Jhat, control.data(), h, dJdm=J.block_output.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, control.data(), h, dJdm=J.block_variable.tlm_value) > 1.9)
 
 
 def test_burgers():
@@ -200,9 +200,9 @@ def test_burgers():
     h = Function(V)
     h.vector()[:] = rand(h.dof_dset.size)
     g = ic.copy(deepcopy=True)
-    ic.set_initial_tlm_input(h)
+    ic.tlm_value = h
     tape.evaluate_tlm()
-    assert (taylor_test(Jhat, g, h, dJdm=J.block_output.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, g, h, dJdm=J.block_variable.tlm_value) > 1.9)
 
 
 @pytest.mark.xfail(reason="Expression annotation not yet done")
@@ -240,9 +240,9 @@ def test_expression():
     h = Function(V)
     h.vector()[:] = rand(V.dim())
     g = a.copy(deepcopy=True)
-    a.set_initial_tlm_input(h)
+    a.tlm_value = h
     tape.evaluate_tlm()
-    assert (taylor_test(Jhat, g, h, dJdm=J.block_output.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, g, h, dJdm=J.block_variable.tlm_value) > 1.9)
 
 
 def test_projection():
@@ -269,9 +269,9 @@ def test_projection():
     J = assemble(u_**2*dx)
     Jhat = ReducedFunctional(J, Control(k))
 
-    k.set_initial_tlm_input(Constant(1))
+    k.tlm_value = Constant(1)
     tape.evaluate_tlm()
-    assert(taylor_test(Jhat, Constant(k), Constant(1), dJdm=J.block_output.tlm_value) > 1.9)
+    assert(taylor_test(Jhat, Constant(k), Constant(1), dJdm=J.block_variable.tlm_value) > 1.9)
 
 
 def test_projection_function():
@@ -302,9 +302,9 @@ def test_projection_function():
     h = Function(V)
     h.vector()[:] = rand(h.dof_dset.size)
     m = g.copy(deepcopy=True)
-    g.set_initial_tlm_input(h)
+    g.tlm_value = h
     tape.evaluate_tlm()
-    assert (taylor_test(Jhat, m, h, dJdm=J.block_output.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, m, h, dJdm=J.block_variable.tlm_value) > 1.9)
 
 
 @pytest.mark.xfail(reason="Expression annotation not supported")
@@ -330,6 +330,6 @@ def test_assemble_recompute():
     h = Function(V)
     h.vector()[:] = rand(V.dim())
     g = f.copy(deepcopy=True)
-    f.set_initial_tlm_input(h)
+    f.tlm_value = h
     tape.evaluate_tlm()
-    assert (taylor_test(Jhat, g, h, dJdm=J.block_output.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, g, h, dJdm=J.block_variable.tlm_value) > 1.9)

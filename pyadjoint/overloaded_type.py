@@ -1,5 +1,5 @@
 from .tape import get_working_tape, annotate_tape
-from .block_output import BlockOutput
+from .block_variable import BlockVariable
 
 
 class OverloadedType(object):
@@ -14,27 +14,27 @@ class OverloadedType(object):
 
     """
     def __init__(self, *args, **kwargs):
-        self.original_block_output = self.create_block_output()
+        self.original_block_variable = self.create_block_variable()
 
-    def create_block_output(self):
-        block_output = BlockOutput(self)
-        self.set_block_output(block_output)
-        return block_output
+    def create_block_variable(self):
+        self.block_variable = BlockVariable(self)
+        return self.block_variable
 
-    def set_block_output(self, block_output):
-        self.block_output = block_output
+    @property
+    def adj_value(self):
+        return self.original_block_variable.adj_value
 
-    def get_block_output(self):
-        return self.block_output
+    @adj_value.setter
+    def adj_value(self, value):
+        self.block_variable.adj_value = value
 
-    def get_adj_output(self):
-        return self.original_block_output.get_adj_output()
+    @property
+    def tlm_value(self):
+        return self.original_block_variable.tlm_value
 
-    def set_initial_adj_input(self, value):
-        self.block_output.set_initial_adj_input(value)
-
-    def set_initial_tlm_input(self, value):
-        self.original_block_output.set_initial_tlm_input(value)
+    @tlm_value.setter
+    def tlm_value(self, value):
+        self.original_block_variable.tlm_value = value
 
     def _ad_convert_type(self, value, options={}):
         """This method must be overridden.
@@ -234,10 +234,10 @@ class FloatingType(OverloadedType):
         self._ad_outputs = kwargs.pop("_ad_outputs", [])
         OverloadedType.__init__(self, *args, **kwargs)
 
-    def create_block_output(self):
-        block_output = OverloadedType.create_block_output(self)
-        block_output.floating_type = True
-        return block_output
+    def create_block_variable(self):
+        block_variable = OverloadedType.create_block_variable(self)
+        block_variable.floating_type = True
+        return block_variable
 
     def _ad_will_add_as_dependency(self):
         if self._ad_floating_active:
@@ -262,10 +262,10 @@ class FloatingType(OverloadedType):
         block = self.block_class(*self._ad_args, **self._ad_kwargs)
         self.block = block
         tape.add_block(block)
-        block.add_output(self.block_output)
+        block.add_output(self.block_variable)
 
         # Need to create a new block output for future use.
-        self.create_block_output()
+        self.create_block_variable()
 
     def _ad_annotate_output_block(self):
         if self.output_block_class is None:
@@ -279,7 +279,7 @@ class FloatingType(OverloadedType):
         self.output_block = block
         tape.add_block(block)
         for output in self._ad_outputs:
-            block.add_output(output.create_block_output())
+            block.add_output(output.create_block_variable())
 
     class stop_floating(object):
         def __init__(self, obj):

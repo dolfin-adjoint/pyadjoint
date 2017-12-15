@@ -27,6 +27,6 @@ class NewtonSolver(backend.NewtonSolver):
         out = backend.NewtonSolver.solve(*newargs, **kwargs)
 
         if annotate:
-            block.add_output(u.create_block_output())
+            block.add_output(u.create_block_variable())
 
         return out

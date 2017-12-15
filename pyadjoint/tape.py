@@ -146,7 +146,7 @@ class Tape(object):
         # TODO: Consider if we want Enlist wherever it is possible. Like in this case.
         # TODO: Consider warning/message on empty tape.
         blocks = self.get_blocks()
-        nodes = set([control.block_output for control in controls])
+        nodes = set([control.block_variable for control in controls])
         valid_blocks = []
 
         for block in blocks:
@@ -165,7 +165,7 @@ class Tape(object):
 
     def optimize_for_functionals(self, functionals):
         blocks = self.get_blocks()
-        nodes = set([functional.block_output for functional in functionals])
+        nodes = set([functional.block_variable for functional in functionals])
         valid_blocks = []
 
         for block in reversed(blocks):

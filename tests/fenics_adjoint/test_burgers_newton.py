@@ -91,10 +91,10 @@ def _test_adjoint(J, f, solve_type):
         Jp = J(pertubed_ic, solve_type)
         tape.clear_tape()
         Jm = J(f, solve_type)
-        Jm.set_initial_adj_input(1.0)
+        Jm.adj_value = 1.0
         tape.evaluate()
 
-        dJdf = f.get_adj_output()
+        dJdf = f.adj_value
         #print dJdf.array()
 
         residual = abs(Jp - Jm - eps*dJdf.inner(h.vector()))

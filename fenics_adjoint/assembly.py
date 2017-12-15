@@ -25,7 +25,7 @@ def assemble(*args, **kwargs):
             tape = get_working_tape()
             tape.add_block(block)
 
-            block.add_output(output.get_block_output())
+            block.add_output(output.block_variable)
     else:
         # Assembled a vector or matrix
         output.form = form
@@ -62,26 +62,26 @@ class AssembleBlock(Block):
         super(AssembleBlock, self).__init__()
         self.form = form
         for c in self.form.coefficients():
-            self.add_dependency(c.get_block_output())
+            self.add_dependency(c.block_variable)
 
     def __str__(self):
         return str(self.form)
 
     @no_annotations
     def evaluate_adj(self):
-        adj_input = self.get_outputs()[0].get_adj_output()
+        adj_input = self.get_outputs()[0].adj_value
         if adj_input is None:
             return
 
         replaced_coeffs = {}
-        for block_output in self.get_dependencies():
-            coeff = block_output.get_output()
-            replaced_coeffs[coeff] = block_output.get_saved_output()
+        for block_variable in self.get_dependencies():
+            coeff = block_variable.output
+            replaced_coeffs[coeff] = block_variable.saved_output
 
         form = backend.replace(self.form, replaced_coeffs)
 
-        for block_output in self.get_dependencies():
-            c = block_output.get_output()
+        for block_variable in self.get_dependencies():
+            c = block_variable.output
             c_rep = replaced_coeffs.get(c, c)
 
             if isinstance(c, backend.Expression):
@@ -93,7 +93,7 @@ class AssembleBlock(Block):
 
                 dform = backend.derivative(form, c_rep, dc)
                 output = compat.assemble_adjoint_value(dform)
-                block_output.add_adj_output([[adj_input * output, V]])
+                block_variable.add_adj_output([[adj_input * output, V]])
                 continue
 
             if isinstance(c, backend.Function):
@@ -104,21 +104,21 @@ class AssembleBlock(Block):
 
             dform = backend.derivative(form, c_rep, dc)
             output = compat.assemble_adjoint_value(dform)
-            block_output.add_adj_output(adj_input * output)
+            block_variable.add_adj_output(adj_input * output)
 
     @no_annotations
     def evaluate_tlm(self):
         replaced_coeffs = {}
-        for block_output in self.get_dependencies():
-            coeff = block_output.get_output()
-            replaced_coeffs[coeff] = block_output.get_saved_output()
+        for block_variable in self.get_dependencies():
+            coeff = block_variable.output
+            replaced_coeffs[coeff] = block_variable.saved_output
 
         form = backend.replace(self.form, replaced_coeffs)
 
-        for block_output in self.get_dependencies():
-            c = block_output.get_output()
+        for block_variable in self.get_dependencies():
+            c = block_variable.output
             c_rep = replaced_coeffs.get(c, c)
-            tlm_value = block_output.tlm_value
+            tlm_value = block_variable.tlm_value
 
             if tlm_value is None:
                 continue
@@ -147,14 +147,14 @@ class AssembleBlock(Block):
             return
 
         replaced_coeffs = {}
-        for block_output in self.get_dependencies():
-            coeff = block_output.get_output()
-            replaced_coeffs[coeff] = block_output.get_saved_output()
+        for block_variable in self.get_dependencies():
+            coeff = block_variable.output
+            replaced_coeffs[coeff] = block_variable.saved_output
 
         form = backend.replace(self.form, replaced_coeffs)
 
         for bo1 in self.get_dependencies():
-            c1 = bo1.get_output()
+            c1 = bo1.output
             c1_rep = replaced_coeffs.get(c1, c1)
 
             if isinstance(c1, backend.Function):
@@ -172,7 +172,7 @@ class AssembleBlock(Block):
             dform = backend.derivative(form, c1_rep, dc)
 
             for bo2 in self.get_dependencies():
-                c2 = bo2.get_output()
+                c2 = bo2.output
                 c2_rep = replaced_coeffs.get(c2, c2)
                 tlm_input = bo2.tlm_value
 
@@ -203,9 +203,9 @@ class AssembleBlock(Block):
     @no_annotations
     def recompute(self):
         replaced_coeffs = {}
-        for block_output in self.get_dependencies():
-            coeff = block_output.get_output()
-            replaced_coeffs[coeff] = block_output.get_saved_output()
+        for block_variable in self.get_dependencies():
+            coeff = block_variable.output
+            replaced_coeffs[coeff] = block_variable.saved_output
 
         form = backend.replace(self.form, replaced_coeffs)
 

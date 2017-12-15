@@ -35,7 +35,7 @@ def annotate_operator(operator):
 
             tape = get_working_tape()
             tape.add_block(block)
-            block.add_output(output.get_block_output())
+            block.add_output(output.block_variable)
 
         return output
 
@@ -94,7 +94,7 @@ class AdjFloat(OverloadedType, float):
         return AdjFloat(value)
 
     def adj_update_value(self, value):
-        self.original_block_output.checkpoint = value
+        self.original_block_variable.checkpoint = value
 
     def _ad_create_checkpoint(self):
         # Floats are immutable.
@@ -137,12 +137,12 @@ class FloatOperatorBlock(Block):
         # this is because get_dependencies() only returns the terms with
         # duplicates taken out; for evaluation however order and position
         # of the terms is significant
-        self.terms = [arg.get_block_output() for arg in args]
+        self.terms = [arg.block_variable for arg in args]
         for term in self.terms:
             self.add_dependency(term)
 
     def recompute(self):
-        self.get_outputs()[0].checkpoint = self.operator(*(term.get_saved_output() for term in self.terms))
+        self.get_outputs()[0].checkpoint = self.operator(*(term.saved_output for term in self.terms))
 
 
 class PowBlock(FloatOperatorBlock):
@@ -157,8 +157,8 @@ class PowBlock(FloatOperatorBlock):
         base = self.terms[0]
         exponent = self.terms[1]
 
-        base_value = base.get_saved_output()
-        exponent_value = exponent.get_saved_output()
+        base_value = base.saved_output
+        exponent_value = exponent.saved_output
 
         base_adj = float.__mul__(float.__mul__(adj_input, exponent_value),
                                  float.__pow__(base_value, exponent_value-1))
@@ -175,7 +175,7 @@ class AddBlock(FloatOperatorBlock):
     operator = staticmethod(float.__add__)
 
     def evaluate_adj(self):
-        adj_input = self.get_outputs()[0].get_adj_output()
+        adj_input = self.get_outputs()[0].adj_value
         if adj_input is None:
             return
 
@@ -206,7 +206,7 @@ class SubBlock(FloatOperatorBlock):
     operator = staticmethod(float.__sub__)
 
     def evaluate_adj(self):
-        adj_input = self.get_outputs()[0].get_adj_output()
+        adj_input = self.get_outputs()[0].adj_value
         if adj_input is None:
             return
 
@@ -219,12 +219,12 @@ class MulBlock(FloatOperatorBlock):
     operator = staticmethod(float.__mul__)
 
     def evaluate_adj(self):
-        adj_input = self.get_outputs()[0].get_adj_output()
+        adj_input = self.get_outputs()[0].adj_value
         if adj_input is None:
             return
 
-        self.terms[0].add_adj_output(float.__mul__(adj_input, self.terms[1].get_saved_output()))
-        self.terms[1].add_adj_output(float.__mul__(adj_input, self.terms[0].get_saved_output()))
+        self.terms[0].add_adj_output(float.__mul__(adj_input, self.terms[1].saved_output))
+        self.terms[1].add_adj_output(float.__mul__(adj_input, self.terms[0].saved_output))
 
     def evaluate_tlm(self):
         output = self.get_outputs()[0]
@@ -235,12 +235,12 @@ class MulBlock(FloatOperatorBlock):
             if tlm_input is None:
                 continue
 
-            output.add_tlm_output(float.__mul__(tlm_input, self.terms[j].get_saved_output()))
+            output.add_tlm_output(float.__mul__(tlm_input, self.terms[j].saved_output))
 
     def evaluate_hessian(self):
         output = self.get_outputs()[0]
         hessian_input = output.hessian_value
-        adj_input = output.get_adj_output()
+        adj_input = output.adj_value
 
         if hessian_input is None:
             return
@@ -254,7 +254,7 @@ class MulBlock(FloatOperatorBlock):
                 mixed = float.__mul__(adj_input, self.terms[j].tlm_value)
 
             self.terms[i].add_hessian_output(
-                float.__add__(mixed, float.__mul__(hessian_input, self.terms[j].get_saved_output()))
+                float.__add__(mixed, float.__mul__(hessian_input, self.terms[j].saved_output))
             )
 
 
@@ -263,19 +263,19 @@ class DivBlock(FloatOperatorBlock):
     operator = staticmethod(float.__truediv__)
 
     def evaluate_adj(self):
-        adj_input = self.get_outputs()[0].get_adj_output()
+        adj_input = self.get_outputs()[0].adj_value
         if adj_input is None:
             return
 
         self.terms[0].add_adj_output(float.__mul__(
             adj_input,
-            float.__truediv__(1., self.terms[1].get_saved_output())
+            float.__truediv__(1., self.terms[1].saved_output)
         ))
         self.terms[1].add_adj_output(float.__mul__(
             adj_input,
             float.__neg__(float.__truediv__(
-                self.terms[0].get_saved_output(),
-                float.__pow__(self.terms[1].get_saved_output(), 2)
+                self.terms[0].saved_output,
+                float.__pow__(self.terms[1].saved_output, 2)
             ))
         ))
 
@@ -285,7 +285,7 @@ class NegBlock(FloatOperatorBlock):
     operator = staticmethod(float.__neg__)
 
     def evaluate_adj(self):
-        adj_input = self.get_outputs()[0].get_adj_output()
+        adj_input = self.get_outputs()[0].adj_value
         if adj_input is None:
             return
 

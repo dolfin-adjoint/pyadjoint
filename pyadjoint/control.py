@@ -36,29 +36,29 @@ class Control(object):
     """
     def __init__(self, control):
         self.control = control
-        self.block_output = control.get_block_output()
+        self.block_variable = control.block_variable
 
     def data(self):
-        return self.block_output.checkpoint
+        return self.block_variable.checkpoint
 
     def get_derivative(self, options={}):
-        return self.control._ad_convert_type(self.block_output.adj_value, options=options)
+        return self.control._ad_convert_type(self.block_variable.adj_value, options=options)
 
     def get_hessian(self, options={}):
-        return self.control._ad_convert_type(self.block_output.hessian_value, options=options)
+        return self.control._ad_convert_type(self.block_variable.hessian_value, options=options)
 
     def update(self, value):
         # In the future we might want to call a static method
         # for converting a value to the correct type.
         # As this might depend on the OverloadedType control.
         if isinstance(value, OverloadedType):
-            self.block_output.checkpoint = value._ad_create_checkpoint()
+            self.block_variable.checkpoint = value._ad_create_checkpoint()
         else:
-            self.block_output.checkpoint = value
+            self.block_variable.checkpoint = value
 
     def update_numpy(self, value, offset):
-        self.block_output.checkpoint, offset =\
-            self.assign_numpy(self.block_output.checkpoint, value, offset)
+        self.block_variable.checkpoint, offset =\
+            self.assign_numpy(self.block_variable.checkpoint, value, offset)
         return offset
 
     def assign_numpy(self, dst, src, offset):
@@ -73,16 +73,21 @@ class Control(object):
     def copy_data(self):
         return self.control._ad_copy()
 
-    def set_initial_tlm_input(self, m):
-        self.block_output.set_initial_tlm_input(m)
+    @property
+    def tlm_value(self):
+        return self.block_variable.tlm_value
+
+    @tlm_value.setter
+    def tlm_value(self, value):
+        self.block_variable.tlm_value = value
 
     def __getattr__(self, item):
         return getattr(self.control, item)
 
     def mark_as_control(self):
-        self.block_output.is_control = True
+        self.block_variable.is_control = True
 
     def unmark_as_control(self):
-        self.block_output.is_control = False
+        self.block_variable.is_control = False
 
 
