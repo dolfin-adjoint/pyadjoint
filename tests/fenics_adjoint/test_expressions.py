@@ -180,7 +180,7 @@ def test_time_dependent_class():
         u_1.vector()[:] = 1 
         expr = UserDefinedExpr(m=f, t=dt, degree=1)
         expr_deriv = UserDefinedExpr(m=1.0, t=dt, degree=1, annotate=False)
-        expr._ad_ignored_attributes = ["m"]
+        expr.ad_ignored_attributes = ["m"]
         expr.user_defined_derivatives = {f: expr_deriv}
 
         a = u_1*u*v*dx + dt*expr*inner(grad(u),grad(v))*dx

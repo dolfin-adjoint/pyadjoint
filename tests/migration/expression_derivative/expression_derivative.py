@@ -32,7 +32,7 @@ if __name__ == "__main__":
     d = Constant(3)
 
     f = SourceExpression(c, d, degree=3)
-    f._ad_ignored_attributes = ["derivative"]
+    f.ad_ignored_attributes = ["derivative"]
 
     # Provide the derivative coefficients
     f.user_defined_derivatives = {c: SourceExpression(c, d, derivative=c, degree=3),
