@@ -200,14 +200,7 @@ class Expression(backend.Expression):
 
     def _ad_function_space(self, mesh):
         element = self.ufl_element()
-        args = [element.family(), mesh.ufl_cell(), element.degree()]
-
-        # TODO: In newer versions of FEniCS we may use FiniteElement.reconstruct and avoid the if-test
-        #       and just write element.reconstruct(cell=mesh.ufl_cell()).
-        if isinstance(element, backend.VectorElement):
-            fs_element = element.__class__(*args, dim=len(element.sub_elements()))
-        else:
-            fs_element = element.__class__(*args)
+        fs_element = element.reconstruct(cell=mesh.ufl_cell())
         return backend.FunctionSpace(mesh, fs_element)
 
     def _ad_create_checkpoint(self):
