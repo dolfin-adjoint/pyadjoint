@@ -32,9 +32,6 @@ def solve(*args, **kwargs):
         output = backend.solve(*args, **kwargs)
 
     if annotate:
-        # TODO: Consider if this should be here or in the block constructor.
-        #       The immediate reason output isn't added in the block constructor is because it should happen after
-        #       the backend call, but the block must be constructed (add dependencies) before the backend call.
         if hasattr(args[1], "create_block_output"):
             block_output = args[1].create_block_output()
         else:
@@ -119,12 +116,16 @@ class SolveBlock(Block):
 
     @no_annotations
     def evaluate_adj(self):
-        #t = backend.Timer("Solve:evaluate_adj")
-        #t4 = backend.Timer("Solve:adj:Prolog")
         fwd_block_output = self.get_outputs()[0]
         u = fwd_block_output.get_output()
         V = u.function_space()
         adj_var = Function(V)
+
+        # Get dJdu from previous calculations.
+        dJdu = fwd_block_output.get_adj_output()
+
+        if dJdu is None:
+            return
 
         if self.linear:
             tmp_u = Function(self.func.function_space()) # Replace later? Maybe save function space on initialization.
@@ -146,13 +147,6 @@ class SolveBlock(Block):
         dFdu = backend.derivative(F_form, fwd_block_output.get_saved_output(), backend.TrialFunction(u.function_space()))
         dFdu_form = backend.adjoint(dFdu)
         dFdu = compat.assemble_adjoint_value(dFdu_form, **self.assemble_kwargs)
-
-        # Get dJdu from previous calculations.
-        dJdu = fwd_block_output.get_adj_output()
-
-        # TODO: It might make sense to move this so we don't have to do the computations above.
-        if dJdu is None:
-            return
 
         dJdu = dJdu.copy()
         dJdu_copy = dJdu.copy()

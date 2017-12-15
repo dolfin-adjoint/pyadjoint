@@ -176,7 +176,6 @@ else:
         to.  Vtarget is the target (collapsed) space."""
         assigner = backend.FunctionAssigner(Vtarget, bc.function_space())
         output = backend.Function(Vtarget)
-        # TODO: This is not a general solution
         assigner.assign(output, extract_subfunction(value, bc.function_space()))
         return output.vector()
 

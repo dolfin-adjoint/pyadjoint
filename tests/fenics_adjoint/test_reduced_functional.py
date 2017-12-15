@@ -374,7 +374,6 @@ def test_multiple_control():
     assert taylor_test_multiple(Jhat, [p_value, p_value], [h, h2]) > 1.9
 
 
-# TODO: Fix this! The time values are not updated properly on forward replay!
 def test_dirichlet_updating():
     tape = Tape()
     set_working_tape(tape)
