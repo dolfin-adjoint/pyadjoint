@@ -4,10 +4,6 @@
 Installing dolfin-adjoint
 *************************
 
-Make sure that you have `FEniCS`_ installed, see `their installation instructions`_.
-
-Then install dolfin-adjoint with:
-
     pip install git+https://bitbucket.org/dolfin-adjoint/pyadjoint.git@master
 
 Test your installation by running:

@@ -37,7 +37,7 @@ construction at <https://fenics-containers.readthedocs.org/>.
 ## Images
 
 We currently offer following end-user images.
-
+ 
 | Image name       | Build status                                                                                                                                                                            | Description                                   |
 |------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------|
 | dolfin-adjoint   | [![Docker Repository on Quay](https://quay.io/repository/dolfinadjoint/dolfin-adjoint/status "Docker Repository on Quay")](https://quay.io/repository/dolfinadjoint/dolfin-adjoint)      | As `quay.io/fenicsproject/stable:current`, but with dolfin-adjoint.         |
