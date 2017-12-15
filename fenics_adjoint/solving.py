@@ -65,8 +65,6 @@ class SolveBlock(Block):
             # make sure self.bcs is always a list
             if self.bcs is None:
                 self.bcs = []
-            if not isinstance(self.bcs, list):
-                self.bcs = [self.bcs]
 
             self.forward_kwargs = kwargs.copy()
             if "J" in self.kwargs:
@@ -98,6 +96,9 @@ class SolveBlock(Block):
             self.kwargs = kwargs
             self.forward_kwargs = kwargs.copy()
             self.assemble_kwargs = {}
+
+        if not isinstance(self.bcs, list):
+            self.bcs = [self.bcs]
 
         if isinstance(self.lhs, ufl.Form) and isinstance(self.rhs, ufl.Form):
             self.linear = True
