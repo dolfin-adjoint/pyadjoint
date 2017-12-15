@@ -74,11 +74,11 @@
 # **************
 
 # We start the implementation by importing the :py:mod:`dolfin` and
-# :py:mod:`dolfin_adjoint` modules.
+# :py:mod:`fenics_adjoint` modules.
 
 from __future__ import print_function
-from dolfin import *
-from dolfin_adjoint import *
+from fenics import *
+from fenics_adjoint import *
 
 # Next we load a triangulation of the Klein bottle as a mesh file.
 mesh = Mesh()
@@ -170,7 +170,6 @@ while t <= T:
     fwd_time += fwd_timer.stop()
 
     u_pvd << u
-    adj_inc_timestep()
 
 # At the beginning of the time loop, the initial condition :math:`g` is copied
 # into :math:`u_{\textrm{old}}`. Note the annotate=True argument, which tells
@@ -181,10 +180,10 @@ while t <= T:
 # function indicates the end of a time step and is only required with
 # checkpointing enabled.
 
-# At this point, we can define the objective functional :math:`J` and compute
+# At this point, we can compute the objective functional :math:`J` and compute
 # the sensitivity with respect to the initial condition :math:`g`:
 
-J = Functional(inner(u, u)*dx*dt[FINISH_TIME])
+J = assemble(inner(u, u)*dx)
 m = Control(g)
 
 adj_timer = Timer("Adjoint run")
