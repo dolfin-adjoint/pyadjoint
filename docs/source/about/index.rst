@@ -31,6 +31,13 @@ where the model is implemented in the Python interface to DOLFIN.
 
 News
 ====
+**31.12.2017**: dolfin-adjoint 2017.2 released (compatible with FEniCS 2017.2).
+                **Important**: This release is of a full re-write of dolfin-adjoint based on `pyadjoint`_. 
+                A release of the previous code-based that supports FEniCS 2017.2 is still available `here`_, 
+                but will be deprecated from FEniCS 2018.1.
+                The new code-base is superior in some features (e.g. full Hessian support, flexible objective functional definitions,
+                and Dirichlet BC control), but is also lacking features that were supported in the previous code-base, `see here`_. 
+
 **31.05.2017**: dolfin-adjoint 2017.1 released (compatible with FEniCS 2017.1) `ChangeLog`_.
 
 **21.02.2017**: dolfin-adjoint 2016.2 is now available as Conda package.
@@ -46,6 +53,9 @@ News
 **11.6.2015**: P. E. Farrell, S. W. Funke, D. A. Ham and M. E. Rognes were awarded the 2015 `Wilkinson prize for numerical software`_ for dolfin-adjoint.
 
 .. _Changelog: https://bitbucket.org/dolfin-adjoint/dolfin-adjoint/raw/master/ChangeLog
+.. _see here: https://bitbucket.org/dolfin-adjoint/pyadjoint/src/master/tests/migration/README.md?at=master&fileviewer=file-view-default
+.. _pyadjoint: https://bitbucket.org/dolfin-adjoint/pyadjoint
+.. _here: https://bitbucket.org/dolfin-adjoint/dolfin-adjoint
 .. _Wilkinson prize for numerical software: http://www.nag.co.uk/other/WilkinsonPrize.html
 
 Features
@@ -95,18 +105,16 @@ then composed with the chain rule.
 .. _algorithmic differentiation: http://www.autodiff.org
 
 The dolfin-adjoint project is instead based on a very different
-approach.  The model is considered as *a sequence of equation
-solves*. This abstraction is similar to the fundamental abstraction of
+approach.  The model is considered as *a graph of high-level operations*. 
+This abstraction is similar to the fundamental abstraction of
 algorithmic differentiation, but operates at a much higher level of
 abstraction. This idea is implemented in a software library,
-`libadjoint`_. When this new idea is combined with the high-level
+`pyadjoint`_. When this new idea is combined with the high-level
 abstraction of the FEniCS system, many of the difficult problems
 associated with algorithmic differentiation dissolve.
 
-For more technical details on libadjoint and dolfin-adjoint, :doc:`see
+For more technical details on pyadjoint and dolfin-adjoint, :doc:`see
 the papers <../citing/index>`.
-
-.. _libadjoint: http://bitbucket.org/dolfin-adjoint/libadjoint
 
 Contributors
 ============
@@ -114,10 +122,11 @@ Contributors
 The dolfin-adjoint project is developed and maintained by the
 following authors:
 
+- Sebastian Mitusch (Simula Research Laboratory)
 - `Patrick E. Farrell <http://pefarrell.org>`__ (Mathematical Institute, University of Oxford)
-- `Simon W. Funke <http://simonfunke.com>`__ (Center for Biomedical Computing, Simula Research Laboratory)
+- `Simon W. Funke <http://simonfunke.com>`__ (Simula Research Laboratory)
 - `David A. Ham <http://www.ic.ac.uk/people/david.ham>`__ (Department of Mathematics and Department of Computing, Imperial College London)
-- `Marie E. Rognes <http://home.simula.no/~meg/>`__ (Center for Biomedical Computing, Simula Research Laboratory)
+- `Marie E. Rognes <http://home.simula.no/~meg/>`__ (Simula Research Laboratory)
 - `James R. Maddison <http://www.maths.ed.ac.uk/people/show?person-364>`__ (School of Mathematics, University of Edinburgh)
 
 License
