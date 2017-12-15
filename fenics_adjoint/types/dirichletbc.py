@@ -65,7 +65,7 @@ class DirichletBCBlock(Block):
             self.parent_space = self.function_space._ad_parent_space
 
         if len(args) >= 2 and isinstance(args[1], OverloadedType):
-            self.add_dependency(args[1].block_output)
+            self.add_dependency(args[1].block_variable)
         else:
             # TODO: Implement the other cases.
             #       Probably just a BC without dependencies?
@@ -86,19 +86,19 @@ class DirichletBCBlock(Block):
             return
 
         for adj_input in adj_inputs:
-            for block_output in self.get_dependencies():
-                c = block_output.output
+            for block_variable in self.get_dependencies():
+                c = block_variable.output
                 if isinstance(c, Constant):
                     adj_value = backend.Function(self.parent_space)
                     adj_input.apply(adj_value.vector())
                     if adj_value.ufl_shape == () or adj_value.ufl_shape[0] <= 1:
-                        block_output.add_adj_output(adj_value.vector().sum())
+                        block_variable.add_adj_output(adj_value.vector().sum())
                     else:
                         adj_output = []
                         for i in range(adj_value.ufl_shape[0]):
                             # TODO: This might not be the optimal way to extract the subfunction vectors.
                             adj_output.append(adj_value.sub(i, deepcopy=True).vector().sum())
-                        block_output.add_adj_output(numpy.array(adj_output))
+                        block_variable.add_adj_output(numpy.array(adj_output))
                 elif isinstance(c, Function):
                     # TODO: This gets a little complicated.
                     #       The function may belong to a different space,
@@ -109,20 +109,20 @@ class DirichletBCBlock(Block):
                     adj_value = backend.Function(self.parent_space)
                     adj_input.apply(adj_value.vector())
                     adj_output = compat.extract_bc_subvector(adj_value, c.function_space(), bc)
-                    block_output.add_adj_output(adj_output)
+                    block_variable.add_adj_output(adj_output)
 
     @no_annotations
     def evaluate_tlm(self):
         output = self.get_outputs()[0]
         bc = output.saved_output
 
-        for block_output in self.get_dependencies():
-            tlm_input = block_output.tlm_value
+        for block_variable in self.get_dependencies():
+            tlm_input = block_variable.tlm_value
             if tlm_input is None:
                 continue
 
-            if isinstance(block_output.output, backend.Function):
-                m = compat.function_from_vector(block_output.output.function_space(), tlm_input)
+            if isinstance(block_variable.output, backend.Function):
+                m = compat.function_from_vector(block_variable.output.function_space(), tlm_input)
             else:
                 m = tlm_input
 
@@ -140,19 +140,19 @@ class DirichletBCBlock(Block):
             return
 
         for hessian_input in hessian_inputs:
-            for block_output in self.get_dependencies():
-                c = block_output.output
+            for block_variable in self.get_dependencies():
+                c = block_variable.output
                 if isinstance(c, Constant):
                     hessian_value = backend.Function(self.parent_space)
                     hessian_input.apply(hessian_value.vector())
                     if hessian_value.ufl_shape == () or hessian_value.ufl_shape[0] <= 1:
-                        block_output.add_hessian_output(hessian_value.vector().sum())
+                        block_variable.add_hessian_output(hessian_value.vector().sum())
                     else:
                         hessian_output = []
                         for i in range(hessian_value.ufl_shape[0]):
                             # TODO: This might not be the optimal way to extract the subfunction vectors.
                             hessian_output.append(hessian_value.sub(i, deepcopy=True).vector().sum())
-                        block_output.add_hessian_output(numpy.array(hessian_output))
+                        block_variable.add_hessian_output(numpy.array(hessian_output))
                 elif isinstance(c, Function):
                     # TODO: This gets a little complicated.
                     #       The function may belong to a different space,
@@ -163,7 +163,7 @@ class DirichletBCBlock(Block):
                     hessian_value = backend.Function(self.parent_space)
                     hessian_input.apply(hessian_value.vector())
                     hessian_output = compat.extract_bc_subvector(hessian_value, c.function_space(), bc)
-                    block_output.add_hessian_output(hessian_output)
+                    block_variable.add_hessian_output(hessian_output)
 
     @no_annotations
     def recompute(self):

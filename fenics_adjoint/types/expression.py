@@ -17,7 +17,7 @@ from pyadjoint.adjfloat import AdjFloat
 # probably ever be sent to __setattr__. However this saves us from making this manually. An idea might be to filter out methods,
 # but that will be something for a later time.
 # Might also consider moving this to a separate file if it ruins this file.
-_IGNORED_EXPRESSION_ATTRIBUTES = ['tape', 'ufl_function_space', '_ufl_all_handler_names_', 'compute_vertex_values', '__init__', '_ad_mul', '_ufl_all_classes_', '__class__', '_ufl_expr_reconstruct_', 'ufl_enable_profiling', 'ufl_operands', '_ufl_function_space', 'label', '_count', '__del__', '__div__', 'T', '__len__', '__nonzero__', '_repr', 'output_block', 'id', 'ufl_index_dimensions', '__new__', 'ufl_disable_profiling', '__gt__', '_ufl_is_restriction_', '_ad_initialized', 'thisown', 'str', '__call__', '_function_space', 'get_block_output', '_ufl_is_terminal_', '_ufl_shape', '_ufl_is_terminal_modifier_', 'parameters', '__sizeof__', '_ufl_coerce_', '_ufl_compute_hash_', '__reduce__', '__slots__', '__floordiv__', '__neg__', '_ufl_is_evaluation_', '__iter__', '_ufl_is_scalar_', '__swig_destroy__', 'eval', 'ufl_domain', 'update', '_ufl_handler_name_', '__init_subclass__', '_ad_copy', '__sub__', 'geometric_dimension', '__reduce_ex__', '_ufl_class_', '_ufl_language_operators_', 'user_defined_derivatives', '_ad_output_args', '_ufl_num_typecodes_', 'ufl_evaluate', '_ad_create_checkpoint', '_ufl_num_ops_', 'block_output', 'value_rank', '_value_shape', '__rsub__', '__dir__', '_ufl_typecode_', '_ad_floating_active', '__hash__', '_ufl_evaluate_scalar_', '_ufl_profiling__del__', '_ufl_regular__del__', 'ufl_element', '_ad_annotate_output_block', '_ad_output_kwargs', '__pow__', 'ufl_free_indices', '_ufl_is_shaping_', '_ad_will_add_as_output', '_ufl_obj_del_counts_', 'ufl_shape', '__disown__', 'create_block_output', 'block', '__pos__', '__add__', 'user_parameters', '__getitem__', '__radd__', '_ufl_profiling__init__', '__float__', '__bool__', '_ufl_is_literal_', 'annotate_tape', 'ufl_domains', 'value_dimension', 'original_block_output', '__eq__', '__getattribute__', '_ad_to_list', '_ad_kwargs', '_ufl_regular__init__', 'dx', 'restrict', '_ad_function_space', 'output_block_class', '_ad_convert_type', '_ufl_required_methods_', '__ge__', 'block_class', '_ad_will_add_as_dependency', '__lt__', 'get_adj_output', 'this', 'stop_floating', '_ufl_noslots_', '__mul__', '_globalcount', '_repr_latex_', 'value_shape', 'evaluate', '_ufl_is_abstract_', '__abs__', 'name', '__module__', 'eval_cell', '_ad_add', '__doc__', '__rpow__', 'set_block_output', 'cppcode', '__rdiv__', '_ad_attributes_dict', '__format__', 'set_initial_tlm_input', 'count', '_ufl_err_str_', 'rename', '__dict__', '__weakref__', '__xor__', '_repr_png_', '_ad_ignored_attributes', '_hash', '__unicode__', '__round__', '__truediv__', '__rtruediv__', '__subclasshook__', '_ad_args', '_ad_outputs', 'set_initial_adj_input', '_ad_dot', '_ufl_required_properties_', 'adj_update_value', '__repr__', '__rmul__', '__delattr__', '_ufl_terminal_modifiers_', '_ad_assign_numpy', '__setattr__', '_ufl_is_in_reference_frame_', '_ad_restore_at_checkpoint', '_ufl_signature_data_', '__ne__', 'is_cellwise_constant', '_ufl_is_differential_', 'value_size', '_ufl_obj_init_counts_', '__str__', '_ufl_is_index_free_', '__getnewargs__', '_ad_annotate_block', '__le__']
+_IGNORED_EXPRESSION_ATTRIBUTES = ['tape', 'ufl_function_space', '_ufl_all_handler_names_', 'compute_vertex_values', '__init__', '_ad_mul', '_ufl_all_classes_', '__class__', '_ufl_expr_reconstruct_', 'ufl_enable_profiling', 'ufl_operands', '_ufl_function_space', 'label', '_count', '__del__', '__div__', 'T', '__len__', '__nonzero__', '_repr', 'output_block', 'id', 'ufl_index_dimensions', '__new__', 'ufl_disable_profiling', '__gt__', '_ufl_is_restriction_', '_ad_initialized', 'thisown', 'str', '__call__', '_function_space', 'get_block_variable', '_ufl_is_terminal_', '_ufl_shape', '_ufl_is_terminal_modifier_', 'parameters', '__sizeof__', '_ufl_coerce_', '_ufl_compute_hash_', '__reduce__', '__slots__', '__floordiv__', '__neg__', '_ufl_is_evaluation_', '__iter__', '_ufl_is_scalar_', '__swig_destroy__', 'eval', 'ufl_domain', 'update', '_ufl_handler_name_', '__init_subclass__', '_ad_copy', '__sub__', 'geometric_dimension', '__reduce_ex__', '_ufl_class_', '_ufl_language_operators_', 'user_defined_derivatives', '_ad_output_args', '_ufl_num_typecodes_', 'ufl_evaluate', '_ad_create_checkpoint', '_ufl_num_ops_', 'block_variable', 'value_rank', '_value_shape', '__rsub__', '__dir__', '_ufl_typecode_', '_ad_floating_active', '__hash__', '_ufl_evaluate_scalar_', '_ufl_profiling__del__', '_ufl_regular__del__', 'ufl_element', '_ad_annotate_output_block', '_ad_output_kwargs', '__pow__', 'ufl_free_indices', '_ufl_is_shaping_', '_ad_will_add_as_output', '_ufl_obj_del_counts_', 'ufl_shape', '__disown__', 'create_block_variable', 'block', '__pos__', '__add__', 'user_parameters', '__getitem__', '__radd__', '_ufl_profiling__init__', '__float__', '__bool__', '_ufl_is_literal_', 'annotate_tape', 'ufl_domains', 'value_dimension', 'original_block_variable', '__eq__', '__getattribute__', '_ad_to_list', '_ad_kwargs', '_ufl_regular__init__', 'dx', 'restrict', '_ad_function_space', 'output_block_class', '_ad_convert_type', '_ufl_required_methods_', '__ge__', 'block_class', '_ad_will_add_as_dependency', '__lt__', 'get_adj_output', 'this', 'stop_floating', '_ufl_noslots_', '__mul__', '_globalcount', '_repr_latex_', 'value_shape', 'evaluate', '_ufl_is_abstract_', '__abs__', 'name', '__module__', 'eval_cell', '_ad_add', '__doc__', '__rpow__', 'set_block_variable', 'cppcode', '__rdiv__', '_ad_attributes_dict', '__format__', 'set_initial_tlm_input', 'count', '_ufl_err_str_', 'rename', '__dict__', '__weakref__', '__xor__', '_repr_png_', '_ad_ignored_attributes', '_hash', '__unicode__', '__round__', '__truediv__', '__rtruediv__', '__subclasshook__', '_ad_args', '_ad_outputs', 'set_initial_adj_input', '_ad_dot', '_ufl_required_properties_', 'adj_update_value', '__repr__', '__rmul__', '__delattr__', '_ufl_terminal_modifiers_', '_ad_assign_numpy', '__setattr__', '_ufl_is_in_reference_frame_', '_ad_restore_at_checkpoint', '_ufl_signature_data_', '__ne__', 'is_cellwise_constant', '_ufl_is_differential_', 'value_size', '_ufl_obj_init_counts_', '__str__', '_ufl_is_index_free_', '__getnewargs__', '_ad_annotate_block', '__le__']
 
 _backend_ExpressionMetaClass = backend.functions.expression.ExpressionMetaClass
 
@@ -215,7 +215,7 @@ class Expression(backend.Expression):
         for k in self._ad_attributes_dict:
             v = self._ad_attributes_dict[k]
             if isinstance(v, OverloadedType):
-                ret[k] = v.block_output.saved_output
+                ret[k] = v.block_variable.saved_output
             else:
                 ret[k] = v
         return ret
@@ -237,7 +237,7 @@ class ExpressionBlock(Block):
         for key in expression._ad_attributes_dict:
             parameter = expression._ad_attributes_dict[key]
             if isinstance(parameter, OverloadedType):
-                self.add_dependency(parameter.block_output)
+                self.add_dependency(parameter.block_variable)
                 self.dependency_keys[parameter] = key
 
     def evaluate_adj(self):
@@ -247,8 +247,8 @@ class ExpressionBlock(Block):
             # No adjoint inputs, so nothing to compute.
             return
 
-        for block_output in self.get_dependencies():
-            c = block_output.output
+        for block_variable in self.get_dependencies():
+            c = block_variable.output
 
             if c not in self.expression.user_defined_derivatives:
                 continue
@@ -265,7 +265,7 @@ class ExpressionBlock(Block):
                 interp = backend.interpolate(self.expression.user_defined_derivatives[c], V)
                 if isinstance(c, (backend.Constant, AdjFloat)):
                     adj_output = adj_input.inner(interp.vector())
-                    block_output.add_adj_output(adj_output)
+                    block_variable.add_adj_output(adj_output)
                 else:
                     adj_output = adj_input*interp.vector()
 
@@ -277,18 +277,18 @@ class ExpressionBlock(Block):
                             adj_output += backend.interpolate(adj_func.sub(i), c.function_space()).vector()
                     else:
                         adj_output = backend.interpolate(adj_func, c.function_space()).vector()
-                    block_output.add_adj_output(adj_output)
+                    block_variable.add_adj_output(adj_output)
 
     def evaluate_tlm(self):
         output = self.get_outputs()[0]
         # Restore _ad_attributes_dict.
         output.saved_output
 
-        for block_output in self.get_dependencies():
-            if block_output.tlm_value is None:
+        for block_variable in self.get_dependencies():
+            if block_variable.tlm_value is None:
                 continue
 
-            c = block_output.output
+            c = block_variable.output
             if c not in self.expression.user_defined_derivatives:
                 continue
 
@@ -296,7 +296,7 @@ class ExpressionBlock(Block):
                 if key not in self.expression._ad_ignored_attributes:
                     setattr(self.expression.user_defined_derivatives[c], key, self.expression._ad_attributes_dict[key])
 
-            tlm_input = block_output.tlm_value
+            tlm_input = block_variable.tlm_value
 
             output.add_tlm_output(tlm_input * self.expression.user_defined_derivatives[c])
 
@@ -381,9 +381,9 @@ class ExpressionBlock(Block):
         checkpoint = self.get_outputs()[0].checkpoint
 
         if checkpoint:
-            for block_output in self.get_dependencies():
-                key = self.dependency_keys[block_output.output]
-                checkpoint[key] = block_output.saved_output
+            for block_variable in self.get_dependencies():
+                key = self.dependency_keys[block_variable.output]
+                checkpoint[key] = block_variable.saved_output
 
     def __str__(self):
         return "Expression block"

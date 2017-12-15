@@ -35,7 +35,7 @@ def annotate_operator(operator):
 
             tape = get_working_tape()
             tape.add_block(block)
-            block.add_output(output.block_output)
+            block.add_output(output.block_variable)
 
         return output
 
@@ -94,7 +94,7 @@ class AdjFloat(OverloadedType, float):
         return AdjFloat(value)
 
     def adj_update_value(self, value):
-        self.original_block_output.checkpoint = value
+        self.original_block_variable.checkpoint = value
 
     def _ad_create_checkpoint(self):
         # Floats are immutable.
@@ -137,7 +137,7 @@ class FloatOperatorBlock(Block):
         # this is because get_dependencies() only returns the terms with
         # duplicates taken out; for evaluation however order and position
         # of the terms is significant
-        self.terms = [arg.block_output for arg in args]
+        self.terms = [arg.block_variable for arg in args]
         for term in self.terms:
             self.add_dependency(term)
 

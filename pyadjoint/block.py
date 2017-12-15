@@ -18,10 +18,10 @@ class Block(object):
         """Adds object to the block dependencies if it has not already been added.
         
         Will also save the output if it has not been saved before. Which should only happen if the
-        BlockOutput was not created by a Block (but by the user).
+        BlockVariable was not created by a Block (but by the user).
 
         Args:
-            dep (:class:`BlockOutput`): The object to be added.
+            dep (:class:`BlockVariable`): The object to be added.
 
         """
         if dep not in self._dependencies:  # Can be optimized if we have need for huge lists.
@@ -32,7 +32,7 @@ class Block(object):
         """Returns the list of dependencies.
 
         Returns:
-            :obj:`list`: A list of :class:`BlockOutput` instances.
+            :obj:`list`: A list of :class:`BlockVariable` instances.
 
         """
         return self._dependencies
@@ -43,7 +43,7 @@ class Block(object):
         Will also save the output.
 
         Args:
-            obj (:class:`BlockOutput`): The object to be added.
+            obj (:class:`BlockVariable`): The object to be added.
 
         """
         obj.will_add_as_output()
@@ -53,7 +53,7 @@ class Block(object):
         """Returns the list of block outputs.
 
         Returns:
-            :obj:`list`: A list of :class:`BlockOutput` instances.
+            :obj:`list`: A list of :class:`BlockVariable` instances.
 
         """
         return self._outputs
@@ -82,7 +82,7 @@ class Block(object):
         """This method must be overridden.
         
         The method should implement a routine for computing the tangent linear model of the block.
-        Using BlockOutput.tlm_value to propagate TLM information.
+        Using BlockVariable.tlm_value to propagate TLM information.
         
         """
         raise NotImplementedError
@@ -93,7 +93,7 @@ class Block(object):
         The method should implement a routine for evaluating the hessian of the block.
         It is preferable that a "Forward-over-Reverse" scheme is used. Thus the hessians
         are evaluated in reverse (starting with the last block on the tape). Using the 
-        BlockOutput.hessian_value to propagate hessian information.
+        BlockVariable.hessian_value to propagate hessian information.
 
         """
         raise NotImplementedError
@@ -104,7 +104,7 @@ class Block(object):
         The method should implement a routine for recomputing the block in the forward model.
         
         Currently the designed way of doing the recomputing is to use the saved outputs/checkpoints in the
-        BlockOutput dependencies, and write to the saved output/checkpoint of the BlockOuput outputs. Thus the
+        BlockVariable dependencies, and write to the saved output/checkpoint of the BlockOuput outputs. Thus the
         recomputes are always working with the checkpoints. However I welcome suggestions of other ways to implement
         the recompute.
 

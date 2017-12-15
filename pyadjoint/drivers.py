@@ -37,7 +37,7 @@ class Hessian(object):
         with stop_annotating():
             self.tape.evaluate_tlm()
 
-        self.functional.block_output.hessian_value = 0.0
+        self.functional.block_variable.hessian_value = 0.0
         self.tape.evaluate_hessian()
 
         r = [v.get_hessian(options=options) for v in self.controls]

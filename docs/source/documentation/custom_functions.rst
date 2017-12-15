@@ -105,7 +105,7 @@ Now we are ready to write the overloaded function:
     output = create_overloaded_object(output)
 
     if annotate:
-        block.add_output(output.create_block_output())
+        block.add_output(output.create_block_variable())
 
     return output
 
@@ -153,12 +153,12 @@ In our example the constructor may look like this
       def __init__(self, func, **kwargs):
           super(NormaliseBlock, self).__init__()
           self.kwargs = kwargs
-          self.add_dependency(func.block_output)
+          self.add_dependency(func.block_variable)
 
 We call the superclass constructor and  save the key word arguments.
 Then we tell pyadjoint that the operation this block represents depends
 on the function :py:data:`func`. As :py:data:`func` should be an overloaded object it has a
-:py:meth:`block_output` attribute.
+:py:meth:`block_variable` attribute.
 
 Next we can define a :py:meth:`__str__` method. This gives a name to the block,
 so the output of this is for example how the block is represented in graphs made

@@ -28,7 +28,7 @@ class Constant(OverloadedType, backend.Constant):
         ret = backend.Constant.assign(self, *args, **kwargs)
 
         if annotate_tape:
-            block.add_output(self.create_block_output())
+            block.add_output(self.create_block_variable())
 
         return ret
 
@@ -39,7 +39,7 @@ class Constant(OverloadedType, backend.Constant):
         return self._ad_convert_type(self.adj_value, options=options)
 
     def adj_update_value(self, value):
-        self.original_block_output.checkpoint = value._ad_create_checkpoint()
+        self.original_block_variable.checkpoint = value._ad_create_checkpoint()
 
     def _ad_convert_type(self, value, options={}):
         value = constant_function_firedrake_compat(value)
@@ -121,8 +121,8 @@ def ufl_shape_workaround(values):
 class AssignBlock(Block):
     def __init__(self, func, other):
         super(AssignBlock, self).__init__()
-        self.add_dependency(func.block_output)
-        self.add_dependency(other.block_output)
+        self.add_dependency(func.block_variable)
+        self.add_dependency(other.block_variable)
 
     def evaluate_adj(self):
         adj_input = self.get_outputs()[0].adj_value

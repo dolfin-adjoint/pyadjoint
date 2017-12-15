@@ -57,7 +57,7 @@ class ReducedFunctionalNumPy(ReducedFunctional):
                 for i in range(len(blocks)):
                     blocks[i].recompute()
 
-        return self.functional.block_output.checkpoint
+        return self.functional.block_variable.checkpoint
 
     def set_local(self, m, m_array):
         offset = 0

@@ -23,7 +23,7 @@ def normalise(func, **kwargs):
     output = create_overloaded_object(output)
 
     if annotate:
-        block.add_output(output.create_block_output())
+        block.add_output(output.create_block_variable())
 
     return output
 
@@ -32,7 +32,7 @@ class NormaliseBlock(Block):
     def __init__(self, func, **kwargs):
         super(NormaliseBlock, self).__init__()
         self.kwargs = kwargs
-        self.add_dependency(func.block_output)
+        self.add_dependency(func.block_variable)
 
     def __str__(self):
         return 'NormaliseBlock'

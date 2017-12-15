@@ -50,7 +50,7 @@ class NonlinearVariationalSolver(backend.NonlinearVariationalSolver):
             out = super(NonlinearVariationalSolver, self).solve()
 
         if annotate:
-            block.add_output(self._ad_problem._ad_u.create_block_output())
+            block.add_output(self._ad_problem._ad_u.create_block_variable())
 
         return out
 
@@ -101,6 +101,6 @@ class LinearVariationalSolver(backend.LinearVariationalSolver):
             out = super(LinearVariationalSolver, self).solve()
 
         if annotate:
-            block.add_output(self._ad_problem._ad_u.create_block_output())
+            block.add_output(self._ad_problem._ad_u.create_block_variable())
 
         return out

@@ -38,7 +38,7 @@ def test_tlm_assemble():
     g = f.copy(deepcopy=True)
     f.tlm_value = h
     tape.evaluate_tlm()
-    assert (taylor_test(Jhat, g, h, dJdm=J.block_output.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, g, h, dJdm=J.block_variable.tlm_value) > 1.9)
 
 
 def test_tlm_bc():
@@ -64,7 +64,7 @@ def test_tlm_bc():
     c.tlm_value = Constant(1)
     tape.evaluate_tlm()
 
-    assert (taylor_test(Jhat, Constant(c), Constant(1), dJdm=J.block_output.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, Constant(c), Constant(1), dJdm=J.block_variable.tlm_value) > 1.9)
 
 def test_tlm_func():
     tape = Tape()
@@ -93,7 +93,7 @@ def test_tlm_func():
     c.tlm_value = h
     tape.evaluate_tlm()
 
-    assert (taylor_test(Jhat, g, h, dJdm=J.block_output.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, g, h, dJdm=J.block_variable.tlm_value) > 1.9)
 
 @pytest.mark.parametrize("solve_type",
                          ["solve", "LVS"])
@@ -154,7 +154,7 @@ def test_time_dependent(solve_type):
     h.vector()[:] = rand(V.dim())
     u_1.tlm_value = h
     tape.evaluate_tlm()
-    assert (taylor_test(Jhat, control.data(), h, dJdm=J.block_output.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, control.data(), h, dJdm=J.block_variable.tlm_value) > 1.9)
 
 
 def test_burgers():
@@ -206,7 +206,7 @@ def test_burgers():
     g = ic.copy(deepcopy=True)
     ic.tlm_value = h
     tape.evaluate_tlm()
-    assert (taylor_test(Jhat, g, h, dJdm=J.block_output.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, g, h, dJdm=J.block_variable.tlm_value) > 1.9)
 
 
 def test_expression():
@@ -245,7 +245,7 @@ def test_expression():
     g = a.copy(deepcopy=True)
     a.tlm_value = h
     tape.evaluate_tlm()
-    assert (taylor_test(Jhat, g, h, dJdm=J.block_output.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, g, h, dJdm=J.block_variable.tlm_value) > 1.9)
 
 
 def test_projection():
@@ -274,7 +274,7 @@ def test_projection():
 
     k.tlm_value = Constant(1)
     tape.evaluate_tlm()
-    assert(taylor_test(Jhat, Constant(k), Constant(1), dJdm=J.block_output.tlm_value) > 1.9)
+    assert(taylor_test(Jhat, Constant(k), Constant(1), dJdm=J.block_variable.tlm_value) > 1.9)
 
 
 def test_projection_function():
@@ -307,7 +307,7 @@ def test_projection_function():
     m = g.copy(deepcopy=True)
     g.tlm_value = h
     tape.evaluate_tlm()
-    assert (taylor_test(Jhat, m, h, dJdm=J.block_output.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, m, h, dJdm=J.block_variable.tlm_value) > 1.9)
 
 
 def test_assemble_recompute():
@@ -334,7 +334,7 @@ def test_assemble_recompute():
     g = f.copy(deepcopy=True)
     f.tlm_value = h
     tape.evaluate_tlm()
-    assert (taylor_test(Jhat, g, h, dJdm=J.block_output.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, g, h, dJdm=J.block_variable.tlm_value) > 1.9)
 
 
 

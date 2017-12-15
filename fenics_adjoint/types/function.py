@@ -32,7 +32,7 @@ class Function(FloatingType, backend.Function):
                 block = AssignBlock(func, self)
                 tape = get_working_tape()
                 tape.add_block(block)
-                block.add_output(func.create_block_output())
+                block.add_output(func.create_block_variable())
             else:
                 # TODO: Implement. Here we would need to use floating types.
                 pass
@@ -55,7 +55,7 @@ class Function(FloatingType, backend.Function):
             ret = super(Function, self).assign(other, *args, **kwargs)
 
         if annotate:
-            block.add_output(self.create_block_output())
+            block.add_output(self.create_block_variable())
 
         return ret
 
@@ -108,7 +108,7 @@ class Function(FloatingType, backend.Function):
 
     @no_annotations
     def adj_update_value(self, value):
-        self.original_block_output.checkpoint = value._ad_create_checkpoint()
+        self.original_block_variable.checkpoint = value._ad_create_checkpoint()
 
     @no_annotations
     def _ad_mul(self, other):
@@ -153,8 +153,8 @@ class Function(FloatingType, backend.Function):
 class AssignBlock(Block):
     def __init__(self, func, other):
         super(AssignBlock, self).__init__()
-        self.add_dependency(func.block_output)
-        self.add_dependency(other.block_output)
+        self.add_dependency(func.block_variable)
+        self.add_dependency(other.block_variable)
 
     @no_annotations
     def evaluate_adj(self):
@@ -191,7 +191,7 @@ class AssignBlock(Block):
 class SplitBlock(Block):
     def __init__(self, func, idx):
         super(SplitBlock, self).__init__()
-        self.add_dependency(func.block_output)
+        self.add_dependency(func.block_variable)
         self.idx = idx
 
     def evaluate_adj(self):
@@ -224,7 +224,7 @@ class SplitBlock(Block):
 class MergeBlock(Block):
     def __init__(self, func, idx):
         super(MergeBlock, self).__init__()
-        self.add_dependency(func.block_output)
+        self.add_dependency(func.block_variable)
         self.idx = idx
 
     def evaluate_adj(self):

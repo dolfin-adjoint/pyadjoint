@@ -80,11 +80,11 @@ def test_mixed_derivatives():
     tape.evaluate()
     tape.evaluate_tlm()
 
-    J.block_output.hessian_value = 0
+    J.block_variable.hessian_value = 0
     tape.evaluate_hessian()
 
-    dJdm = J.block_output.tlm_value
-    Hm = f.original_block_output.hessian_value.vector().inner(h.vector()) + g.original_block_output.hessian_value.vector().inner(h.vector())
+    dJdm = J.block_variable.tlm_value
+    Hm = f.original_block_variable.hessian_value.vector().inner(h.vector()) + g.original_block_variable.hessian_value.vector().inner(h.vector())
 
     m_1 = f.copy(deepcopy=True)
     m_2 = g.copy(deepcopy=True)
@@ -123,13 +123,13 @@ def test_function():
     tape.evaluate()
     tape.evaluate_tlm()
 
-    J.block_output.hessian_value = 0
+    J.block_variable.hessian_value = 0
     tape.evaluate_hessian()
 
     g = f.copy(deepcopy=True)
 
-    dJdm = J.block_output.tlm_value
-    Hm = f.original_block_output.hessian_value.vector().inner(h.vector()) + c.original_block_output.hessian_value
+    dJdm = J.block_variable.tlm_value
+    Hm = f.original_block_variable.hessian_value.vector().inner(h.vector()) + c.original_block_variable.hessian_value
 
     assert conv_mixed(J, f, c, g, Constant(4), h, Constant(1), dJdm=dJdm, Hm=Hm) > 2.9
 
@@ -163,13 +163,13 @@ def test_nonlinear():
     tape.evaluate()
     tape.evaluate_tlm()
 
-    J.block_output.hessian_value = 0
+    J.block_variable.hessian_value = 0
     tape.evaluate_hessian()
 
     g = f.copy(deepcopy=True)
 
-    dJdm = J.block_output.tlm_value
-    Hm = f.original_block_output.hessian_value.vector().inner(h.vector())
+    dJdm = J.block_variable.tlm_value
+    Hm = f.original_block_variable.hessian_value.vector().inner(h.vector())
     assert taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9
 
 
@@ -204,14 +204,14 @@ def test_dirichlet():
     tape.evaluate()
     tape.evaluate_tlm()
 
-    J.block_output.hessian_value = 0
+    J.block_variable.hessian_value = 0
     tape.evaluate_hessian()
 
     g = c.copy(deepcopy=True)
 
-    dJdm = J.block_output.tlm_value
+    dJdm = J.block_variable.tlm_value
 
-    Hm = c.original_block_output.hessian_value.vector().inner(h.vector())
+    Hm = c.original_block_variable.hessian_value.vector().inner(h.vector())
     assert taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9
 
 
@@ -247,14 +247,14 @@ def test_expression():
     tape.evaluate()
     tape.evaluate_tlm()
 
-    J.block_output.hessian_value = 0
+    J.block_variable.hessian_value = 0
     tape.evaluate_hessian()
 
     g = Constant(1)
 
-    dJdm = J.block_output.tlm_value
+    dJdm = J.block_variable.tlm_value
 
-    Hm = c.original_block_output.hessian_value
+    Hm = c.original_block_variable.hessian_value
     assert taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9
 
 
@@ -311,11 +311,11 @@ def test_burgers():
     tape.evaluate()
     tape.evaluate_tlm()
 
-    J.block_output.hessian_value = 0
+    J.block_variable.hessian_value = 0
     tape.evaluate_hessian()
 
-    dJdm = J.block_output.tlm_value
-    Hm = ic.original_block_output.hessian_value.vector().inner(h.vector())
+    dJdm = J.block_variable.tlm_value
+    Hm = ic.original_block_variable.hessian_value.vector().inner(h.vector())
     assert taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9
 
 
@@ -330,7 +330,7 @@ def conv_mixed(J, f, g, m_1, m_2, h_1, h_2, dJdm, Hm):
         for i in range(len(blocks)):
             blocks[i].recompute()
 
-        return J.block_output.saved_output
+        return J.block_variable.saved_output
 
     Jm = J_eval(m_1, m_2)
 

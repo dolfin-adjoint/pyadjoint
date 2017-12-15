@@ -59,7 +59,7 @@ class ReducedFunctional(object):
                                        tape=self.tape)
 
         # Call callback
-        self.derivative_cb_post(self.functional.block_output.checkpoint,
+        self.derivative_cb_post(self.functional.block_variable.checkpoint,
                                 self.controls.delist(derivatives),
                                 self.controls.delist(values))
 
@@ -96,7 +96,7 @@ class ReducedFunctional(object):
                 for i in range(len(blocks)):
                     blocks[i].recompute()
 
-        func_value = self.functional.block_output.checkpoint
+        func_value = self.functional.block_variable.checkpoint
 
         # Call callback
         self.eval_cb_post(func_value, self.controls.delist(values))

@@ -98,6 +98,6 @@ class LUSolver(backend.LUSolver):
         out = backend.LUSolver.solve(self, *args, **kwargs)
 
         if annotate:
-            block.add_output(x.create_block_output())
+            block.add_output(x.create_block_variable())
 
         return out

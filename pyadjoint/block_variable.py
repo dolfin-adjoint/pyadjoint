@@ -1,7 +1,7 @@
 from .tape import no_annotations
 
 
-class BlockOutput(object):
+class BlockVariable(object):
     """References a block output variable.
 
     """
