@@ -63,6 +63,7 @@ class Function(FloatingType, backend.Function):
         deepcopy = kwargs.get("deepcopy", False)
         annotate = annotate_tape(kwargs)
         if deepcopy or not annotate:
+            # TODO: This is wrong for deepcopy=True. You need to convert every subfunction into an OverloadedType.
             return backend.Function.split(self, *args, **kwargs)
 
         num_sub_spaces = backend.Function.function_space(self).num_sub_spaces()
