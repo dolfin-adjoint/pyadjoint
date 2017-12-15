@@ -14,14 +14,6 @@ class OverloadedType(object):
 
     """
     def __init__(self, *args, **kwargs):
-        # TODO: Do we actually need to store the tape? I don't think this is used at all.
-        tape = kwargs.pop("tape", None)
-
-        if tape:
-            self.tape = tape
-        else:
-            self.tape = get_working_tape()
-
         self.original_block_output = self.create_block_output()
 
     def create_block_output(self):
