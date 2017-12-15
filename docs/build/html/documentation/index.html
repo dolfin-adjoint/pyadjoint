@@ -1,0 +1,203 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>fenics-adjoint documentation</title>
+    <link rel="stylesheet" href="../_static/fenics.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '2017.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+<link rel="stylesheet" href="../_static/featured.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="../_static/slides.min.jquery.js"></script>
+  <script>
+	$(function(){
+		$('#products').slides({
+			preload: true,
+			preloadImage: 'img/loading.gif',
+			effect: 'slide, fade',
+			crossfade: true,
+			slideSpeed: 350,
+			fadeSpeed: 500,
+			generateNextPrev: false,
+			generatePagination: false,
+	                play: 5000,
+                        hoverPause: false,
+                        animationStart: function(current){
+				$('.caption').animate({
+					bottom:-35
+				},100);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationStart on slide: ', current);
+				};
+			},
+			animationComplete: function(current){
+				$('.caption').animate({
+					bottom:0
+				},200);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationComplete on slide: ', current);
+				};
+			},
+			slidesLoaded: function() {
+				$('.caption').animate({
+					bottom:0
+				},200);
+			}
+		});
+	});
+  </script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-31806773-1']);
+  _gaq.push(['_setDomainName', 'dolfin-adjoint.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<!-- Load the flex slider library -->
+<link rel="stylesheet" href="_static/flexslider/flexslider.css" type="text/css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="_static/flexslider/jquery.flexslider.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+  $(window).load(function() {
+  $('.flexslider').flexslider();
+  });
+</script>
+
+<!-- Load the code highlight library -->
+<link rel="stylesheet" href="_static/highlight/styles/zenburn.css">
+<script src="_static/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<link rel="shortcut icon" href="../_static/icon.ico" />
+
+
+  </head>
+  <body>
+<div class="wrapper">
+  <a href="../"><img src="../_static/banner.png" width="900px" alt="dolfin-adjoint Project Banner" /></a>
+  <div id="access">
+    <div class="menu">
+      <ul>
+          <li class="page_item"><a href="../about/index.html" title="Find out more about dolfin-adjoint">About</a></li>
+          <li class="page_item"><a href="../features/index.html" title="Features of dolfin-adjoint">Features</a></li>
+          <li class="page_item"><a href="#" title="Learn how to use dolfin-adjoint">Documentation</a></li>
+          <li class="page_item"><a href="../download/index.html" title="Obtain the dolfin-adjoint code">Download</a></li>
+          <li class="page_item"><a href="../citing/index.html" title="Learn how to cite the dolfin-adjoint project">Citing</a></li>
+          <li class="page_item"><a href="../support/index.html" title="Where to go for more help">Support</a></li>
+      </ul>
+    </div><!-- .menu -->
+  </div><!-- #access -->
+</div><!-- #wrapper -->
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="documentation-for-fenics-adjoint-version">
+<span id="fenics-adjoint-documentation"></span><h1>Documentation for fenics-adjoint 2017.1<a class="headerlink" href="#documentation-for-fenics-adjoint-version" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="quickstart">
+<h2>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this headline">¶</a></h2>
+<p>Have you just discovered fenics-adjoint and want to get up and running
+quickly? Then, we suggest you</p>
+<blockquote>
+<div><ul class="simple">
+<li>Start by going through the first steps of the
+<a class="reference internal" href="tutorial.html#fenics-adjoint-tutorial"><span class="std std-ref">fenics-adjoint tutorial</span></a>.</li>
+<li>Move on to look at the more detailed <span class="xref std std-ref">Stokes Dirichlet BC control example</span>.</li>
+<li>Install <a class="reference internal" href="../download/index.html#download"><span class="std std-ref">dolfin-adjoint and its dependencies</span></a>.</li>
+</ul>
+</div></blockquote>
+<p>Next, feel free to take a look at the complete <a class="reference internal" href="manual.html#fenics-adjoint-manual"><span class="std std-ref">introduction to
+fenics-adjoint</span></a>, more <a class="reference internal" href="examples.html#fenics-adjoint-examples"><span class="std std-ref">fenics-adjoint
+examples</span></a>, an introduction to the
+<a class="reference internal" href="maths/index.html#fenics-adjoint-mathematical-background"><span class="std std-ref">mathematical background of adjoints</span></a>,
+or the <a class="reference internal" href="api.html#fenics-adjoint-api-reference"><span class="std std-ref">fenics-adjoint</span></a>
+and <a class="reference internal" href="pyadjoint_api.html#pyadjoint-api-reference"><span class="std std-ref">pyadjoint</span></a> API references.</p>
+</div>
+<div class="section" id="resources">
+<h2>Resources<a class="headerlink" href="#resources" title="Permalink to this headline">¶</a></h2>
+<div id="main">
+<div id="container" class="feature">
+  <div id="content">
+    <div id="sub-feature">
+      <div id="front-block-1" class="front-block block">
+        <h2> dolfin-adjoint manual </h2><p>The <a class="reference internal" href="manual.html#fenics-adjoint-manual"><span class="std std-ref">fenics-adjoint manual</span></a> describes
+how to use fenics-adjoint and the main features of fenics-adjoint, and
+includes introductory examples. For more use cases, see the
+<a class="reference internal" href="examples.html#fenics-adjoint-examples"><span class="std std-ref">examples</span></a>.</p>
+<h2>The mathematical background</h2><p>Are you not that familiar with adjoints? Adjoints show up in many
+applications, and in many computational techniques. You might be
+interested in a <a class="reference internal" href="maths/index.html#fenics-adjoint-mathematical-background"><span class="std std-ref">mathematical introduction to adjoints and
+their applications</span></a>.</p>
+</div><!-- #front-block-1 .front-block .block-->
+
+<div id="front-block-2" class="front-block block">
+
+<h2>Examples of fenics-adjoint usage</h2><p>We have implemented and documented a number of <a class="reference internal" href="examples.html#fenics-adjoint-examples"><span class="std std-ref">examples</span></a> using fenics-adjoint.</p>
+<p>Many more examples of dolfin-adjoint usage can be found in the
+separate <a class="reference external" href="http://bitbucket.org/dolfin-adjoint/da-applications">dolfin-adjoint applications repository</a> on Bitbucket.</p>
+<h2>fenics-adjoint API reference</h2><p>Are you looking for the complete reference documentation? Look no
+further, it is right here: <a class="reference internal" href="api.html#fenics-adjoint-api-reference"><span class="std std-ref">fenics-adjoint API reference</span></a>, <a class="reference internal" href="pyadjoint_api.html#pyadjoint-api-reference"><span class="std std-ref">pyadjoint API reference</span></a>.</p>
+</div><!-- #front-block-2 .front-block .block-->
+</div><!-- #sub-feature -->
+  </div><!-- #content -->
+    </div><!-- #container .feature -->
+      </div><!-- #main --></div>
+<div class="section" id="frequently-asked-questions">
+<h2>Frequently asked questions:<a class="headerlink" href="#frequently-asked-questions" title="Permalink to this headline">¶</a></h2>
+<p>Some questions are asked more often than others: take a look at our
+<a class="reference internal" href="faq.html#dolfin-adjoint-faq"><span class="std std-ref">Frequently asked questions</span></a> before
+<a class="reference internal" href="../support/index.html#support"><span class="std std-ref">seeking support</span></a>.</p>
+<div class="toctree-wrapper compound">
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Sebastian Mitusch.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.5.
+    </div>
+  </body>
+</html>

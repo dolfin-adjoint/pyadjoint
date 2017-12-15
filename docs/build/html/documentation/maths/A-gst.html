@@ -1,0 +1,429 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Generalised stability theory</title>
+    <link rel="stylesheet" href="../../_static/fenics.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2017.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+<link rel="stylesheet" href="../../_static/featured.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="../../_static/slides.min.jquery.js"></script>
+  <script>
+	$(function(){
+		$('#products').slides({
+			preload: true,
+			preloadImage: 'img/loading.gif',
+			effect: 'slide, fade',
+			crossfade: true,
+			slideSpeed: 350,
+			fadeSpeed: 500,
+			generateNextPrev: false,
+			generatePagination: false,
+	                play: 5000,
+                        hoverPause: false,
+                        animationStart: function(current){
+				$('.caption').animate({
+					bottom:-35
+				},100);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationStart on slide: ', current);
+				};
+			},
+			animationComplete: function(current){
+				$('.caption').animate({
+					bottom:0
+				},200);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationComplete on slide: ', current);
+				};
+			},
+			slidesLoaded: function() {
+				$('.caption').animate({
+					bottom:0
+				},200);
+			}
+		});
+	});
+  </script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-31806773-1']);
+  _gaq.push(['_setDomainName', 'dolfin-adjoint.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<!-- Load the flex slider library -->
+<link rel="stylesheet" href="_static/flexslider/flexslider.css" type="text/css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="_static/flexslider/jquery.flexslider.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+  $(window).load(function() {
+  $('.flexslider').flexslider();
+  });
+</script>
+
+<!-- Load the code highlight library -->
+<link rel="stylesheet" href="_static/highlight/styles/zenburn.css">
+<script src="_static/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<link rel="shortcut icon" href="../../_static/icon.ico" />
+
+
+  </head>
+  <body>
+<div class="wrapper">
+  <a href="../../"><img src="../../_static/banner.png" width="900px" alt="dolfin-adjoint Project Banner" /></a>
+  <div id="access">
+    <div class="menu">
+      <ul>
+          <li class="page_item"><a href="../../about/index.html" title="Find out more about dolfin-adjoint">About</a></li>
+          <li class="page_item"><a href="../../features/index.html" title="Features of dolfin-adjoint">Features</a></li>
+          <li class="page_item"><a href="../index.html" title="Learn how to use dolfin-adjoint">Documentation</a></li>
+          <li class="page_item"><a href="../../download/index.html" title="Obtain the dolfin-adjoint code">Download</a></li>
+          <li class="page_item"><a href="../../citing/index.html" title="Learn how to cite the dolfin-adjoint project">Citing</a></li>
+          <li class="page_item"><a href="../../support/index.html" title="Where to go for more help">Support</a></li>
+      </ul>
+    </div><!-- .menu -->
+  </div><!-- #access -->
+</div><!-- #wrapper -->
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="generalised-stability-theory">
+<h1>Generalised stability theory<a class="headerlink" href="#generalised-stability-theory" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>The stability of a physical system is a classical problem of
+mechanics, with contributions from authors such as Lagrange, Dirichlet
+and Lyapunov <a class="reference internal" href="#leine2010" id="id1">[AM-Lei10]</a>. Stability investigates the response of
+the system to small perturbations in its initial condition: if the
+solutions of the perturbed systems remain within a neighbourhood of
+the unperturbed solution, then the system is stable; otherwise, the
+system is unstable at that initial condition.</p>
+<p>The traditional approach for investigating the stability of physical
+systems was given by Lyapunov <a class="reference internal" href="#lyapunov1892" id="id2">[AM-Lya92]</a>. The (nonlinear)
+equations of motion are linearised about a base solution, and the
+eigenvalues of the linearised system are computed. If all eigenvalues
+have negative real part, then there exists a finite region of
+stability around the initial condition: perturbations within that
+region decay to zero, and the system is asymptotically stable
+<a class="reference internal" href="#parks1992" id="id3">[AM-Par92]</a>.</p>
+<p>While this approach has had many successes, several authors have noted
+that it does not give a complete description of the finite-time
+stability of a physical system. While the eigendecomposition
+determines the asymptotic stability of the linearised equations as
+<span class="math">\(t \rightarrow \infty\)</span>, some systems permit transient
+perturbations which grow in magnitude, before being predicted to
+decay. However, if the perturbations grow too large, the linearised
+equations may cease to hold, and the system may become unstable due to
+nonlinear effects. More specifically, this transient growth occurs
+when the system is non-normal, i.e. when the eigenfunctions of the
+system do not form an orthogonal basis <a class="reference internal" href="5-applications.html#schmid2007" id="id4">[5M-Sch07]</a>.  For
+example, Trefethen <a class="reference internal" href="1-foreword.html#trefethen1993" id="id5">[1M-TTRD93]</a> describes how the traditional
+approach fails to give accurate stability predictions for several
+classical problems in fluid mechanics, and resolves the problem by
+analysing the nonnormality of the system in terms of pseudospectra
+<a class="reference internal" href="5-applications.html#trefethen2006" id="id6">[5M-TE05]</a>.</p>
+<p>Therefore, this motivates the development of a finite-time theory of
+stability, to investigate and predict the transient growth of
+perturbations. While Lorenz <a class="reference internal" href="5-applications.html#lorenz1965" id="id7">[5M-Lor65]</a> discussed the core
+ideas (without using modern nomenclature), the development of this
+so-called generalised stability theory (GST) has been driven by the
+work of B. F. Farrell and co-workers <a class="reference internal" href="#farrell1982a" id="id8">[AM-Far82]</a>
+<a class="reference internal" href="#farrell1985" id="id9">[AM-Far85]</a> <a class="reference internal" href="1-foreword.html#farrell1996" id="id10">[1M-FI96]</a> <a class="reference internal" href="#farrell1996b" id="id11">[AM-FI96]</a>. The main
+idea is to consider the linearised <em>propagator</em> of the system, the
+operator (linearised about the time-dependent trajectory) that maps
+perturbations in the initial conditions to perturbations in the final
+state. Essentially, the propagator is the inverse of the tangent
+linear system associated with the nonlinear forward model, along with
+operators to load the initial perturbation and select the final
+perturbation. The perturbations that grow maximally over the time
+window are given by the singular functions of the propagator
+associated with the largest singular values. Since the linearised
+propagator depends on the base solution, it follows that the
+predictability of the system depends on the conditions of the base
+solution itself: some states are inherently more predictable than
+others <a class="reference internal" href="5-applications.html#lorenz1965" id="id12">[5M-Lor65]</a> <a class="reference internal" href="5-applications.html#kalnay2002" id="id13">[5M-Kal02]</a>.</p>
+</div>
+<div class="section" id="the-singular-value-decomposition-of-the-propagator">
+<h2>The singular value decomposition of the propagator<a class="headerlink" href="#the-singular-value-decomposition-of-the-propagator" title="Permalink to this headline">¶</a></h2>
+<p>This presentation of generalised stability theory will consider the
+stability of the system to perturbations in the initial conditions,
+but the same approach can be applied to analysing the stability of the
+system to perturbations in other parameters.</p>
+<p>Consider the solution of the model at the final time <span class="math">\(u_T\)</span> as a
+pure function of the initial condition <span class="math">\(u_0\)</span>:</p>
+<div class="math">
+\[u_T = M(u_0),\]</div>
+<p>where <span class="math">\(M\)</span> is the <em>nonlinear propagator</em> that advances the
+solution in time over a given finite time window <span class="math">\([0, T]\)</span>.
+Other parameters necessary for the solution (e.g. boundary conditions,
+material parameters, etc.)  are considered fixed. Assuming the model
+is sufficiently differentiable, the response of the model <span class="math">\(M\)</span> to
+a perturbation <span class="math">\(\delta u_0\)</span> in <span class="math">\(u_0\)</span> is given by</p>
+<div class="math">
+\[\delta u_T = M(u_0 + \delta u_0) - M(u_0) = \frac{\textrm{d} M}{\textrm{d} u_0} \delta u_0 + O(\left|\left|\delta u_0\right|\right|^2).\]</div>
+<p>Neglecting higher-order terms, the linearised perturbation to the
+final state is given by</p>
+<div class="math">
+\[\delta u_T \approx L \delta u_0,\]</div>
+<p>where <span class="math">\(L\)</span> is the <em>linearised propagator</em> (or just propagator)
+<span class="math">\({\textrm{d} M}/{\textrm{d} u_0}\)</span> that advances perturbations in
+the initial conditions to perturbations to the final solution.</p>
+<p>To quantify the stability of the system, we wish to identify
+perturbations <span class="math">\(\delta u_0\)</span> that grow the most over the time
+window <span class="math">\([0, T]\)</span>.  For simplicity, equip both the initial
+condition and final solutions with the conventional inner product
+<span class="math">\(\left\langle \cdot, \cdot \right\rangle\)</span>.  We seek the initial
+perturbation <span class="math">\(\delta u_0\)</span> of unit norm <span class="math">\(\left|\left|\delta
+u_0\right|\right| = \sqrt{\left\langle \delta u_0, \delta u_0
+\right\rangle} = 1\)</span> such that</p>
+<div class="math">
+\[\delta u_0 = \operatorname*{arg\,max}_{\left|\left|\delta u_0\right|\right|} \left\langle \delta u_T, \delta u_T \right\rangle.\]</div>
+<p>Expanding <span class="math">\(\delta u_T\)</span> in terms of the propagator,</p>
+<div class="math">
+\[\left\langle \delta u_T, \delta u_T \right\rangle = \left\langle L \delta u_0, L \delta u_0 \right\rangle = \left\langle \delta u_0, L^*L \delta u_0 \right\rangle,\]</div>
+<p>we see that the leading perturbation is the eigenfunction of
+<span class="math">\(L^*L\)</span> associated with the largest eigenvalue <span class="math">\(\mu\)</span>, and
+the growth of the norm of the perturbation is given by
+<span class="math">\(\sqrt{\mu}\)</span>. In other words, the leading initial perturbation
+<span class="math">\(\delta u_0\)</span> is the leading right singular function of
+<span class="math">\(L\)</span>, the resulting final perturbation <span class="math">\(\delta u_T\)</span> is the
+associated left singular function, and the growth rate of the
+perturbation is given by the associated singular value
+<span class="math">\(\sigma\)</span>. The remaining singular functions offer a similar
+physical interpretation: if a singular function <span class="math">\(v\)</span> has an
+associated singular value <span class="math">\(\sigma &gt; 1\)</span>, the perturbation will
+grow over the finite time window <span class="math">\([0, T]\)</span>; if <span class="math">\(\sigma &lt;
+1\)</span>, the perturbation will decay over that time window.</p>
+<p>If the initial condition and final solution spaces are equipped with
+inner products <span class="math">\(\left\langle \cdot, \cdot \right\rangle_I \equiv
+\left\langle \cdot, X_I \cdot \right\rangle\)</span> and <span class="math">\(\left\langle
+\cdot, \cdot \right\rangle_F \equiv \left\langle \cdot, X_F \cdot
+\right\rangle\)</span> respectively, then the leading perturbations are given
+by the eigenfunctions</p>
+<div class="math">
+\[X_I^{-1} L^* X_F L \delta u_0 = \mu \delta u_0.\]</div>
+<p>The operators <span class="math">\(X_I\)</span> and <span class="math">\(X_F\)</span> must be symmetric
+positive-definite. In the finite element context, <span class="math">\(X_I\)</span> and
+<span class="math">\(X_F\)</span> are often the mass matrices associated with the input and
+output spaces, as these matrices induce the functional <span class="math">\(L_2\)</span>
+norm.</p>
+</div>
+<div class="section" id="computing-the-propagator">
+<h2>Computing the propagator<a class="headerlink" href="#computing-the-propagator" title="Permalink to this headline">¶</a></h2>
+<p>In general, the nonlinear propagator <span class="math">\(M\)</span> that maps initial
+conditions to final solutions is not available as an explicit
+function; instead, a PDE is solved. For clarity, let <span class="math">\(m\)</span> denote
+the data supplied for the initial condition. The PDE may be written in
+the abstract implicit form</p>
+<div class="math">
+\[F(u, m) = 0,\]</div>
+<p>with the understanding that <span class="math">\(u_0 = m\)</span>. We assume that for any
+initial condition <span class="math">\(m\)</span>, the PDE can be solved for the solution
+trajectory <span class="math">\(u\)</span>, and the nonlinear propagator <span class="math">\(M\)</span> can then
+be computed by returning the solution at the final
+time. Differentiating the PDE with respect to the initial condition
+data <span class="math">\(m\)</span> yields</p>
+<div class="math">
+\[\frac{\partial F}{\partial u} \frac{\textrm{d}u}{\textrm{d}m} = - \frac{\partial F}{\partial m},\]</div>
+<p>the <em>tangent linear system</em> associated with the PDE.  The term
+<span class="math">\({\partial F}/{\partial u}\)</span> is the PDE operator linearised about
+the solution trajectory <span class="math">\(u\)</span>: therefore, it is linear, even when
+the original PDE is nonlinear. <span class="math">\({\partial F}/{\partial m}\)</span>
+describes how the equations change as the initial condition data
+<span class="math">\(m\)</span> changes, and acts as the source term for the tangent linear
+system. <span class="math">\({\textrm{d}u}/{\textrm{d}m}\)</span> is the prognostic variable
+of the tangent linear system, and describes how the solution changes
+with changes to <span class="math">\(m\)</span>. To evaluate the action of the propagator
+<span class="math">\(L\)</span> on a given perturbation <span class="math">\(\delta m\)</span>, the tangent linear
+system is solved with that particular perturbation, and evaluated at
+the final time:</p>
+<div class="math">
+\[L \delta m \equiv - \left.\left(\frac{\partial F}{\partial u}\right)^{-1}\frac{\partial F}{\partial m} \delta m\right|_T.\]</div>
+<p>Therefore, to automate the generalised stability analysis of a PDE, it
+is necessary to automatically derive and solve the associated tangent
+linear system. Furthermore, as the GST analysis also requires the
+adjoint of the propagator, it is also necessary to automatically
+derive and solve the adjoint of the tangent linear system. This is why
+GST is considered as an application of adjoints.</p>
+</div>
+<div class="section" id="singular-value-computation">
+<h2>Singular value computation<a class="headerlink" href="#singular-value-computation" title="Permalink to this headline">¶</a></h2>
+<p>Once the propagator <span class="math">\(L\)</span> is available, its singular value
+decomposition may be computed.  There are two main computational
+approaches. The first approach is to compute the eigendecomposition of
+the <em>cross product</em> matrix <span class="math">\(L^*L\)</span> (or <span class="math">\(LL^*\)</span>, whichever is
+smaller). The second is to compute the eigendecomposition of the
+<em>cyclic</em> matrix</p>
+<div class="math">
+\[\begin{split}H(L) =
+\begin{pmatrix} 0 &amp; L \\
+              L^* &amp; 0
+\end{pmatrix}\end{split}\]</div>
+<p>As explained in <a class="reference internal" href="5-applications.html#trefethen1997" id="id14">[5M-TB97]</a>, the latter option is more
+accurate for computing the small singular values, but is more
+expensive. As we are only interested in a small number of the largest
+singular triplets, the cross product approach is used throughout this
+work. Note that regardless of which approach is taken, the adjoint
+propagator <span class="math">\(L^*\)</span> is necessary to compute the SVD of <span class="math">\(L\)</span>.</p>
+<p>The algorithm used to compute the eigendecomposition of the cross
+product matrix is the Krylov-Schur algorithm <a class="reference internal" href="#stewart2001" id="id15">[AM-Ste01]</a>, as
+implemented in <a class="reference external" href="http://www.grycap.upv.es/slepc/">SLEPc</a>
+<a class="reference internal" href="#hernandez2005" id="id16">[AM-HRV05]</a> <a class="reference internal" href="#hernandez2007b" id="id17">[AM-HRTV07]</a>. As the matrix is
+Hermitian (whether norms are used or not), this algorithm reduces to
+the thick-restart variant <a class="reference internal" href="#wu2000" id="id18">[AM-WS00]</a> of the Lanczos method
+<a class="reference internal" href="#lanczos1950" id="id19">[AM-Lan50]</a>.  This algorithm was found experimentally to be
+faster than all other algorithms implemented in SLEPc for the
+computation of a small number of singular triplets, which is the case
+of interest in stability analysis.</p>
+<p>Rather than representing the propagator as a matrix, the action of the
+propagator is computed in a matrix-free fashion, using the tangent
+linear model. In turn, the entire time-dependent tangent linear model
+is not stored, but its action is computed in a global-matrix-free
+fashion, using the matrices associated with each individual equation
+solve.  In turn, the solution of each equation solve may optionally be
+achieved in a matrix-free fashion; the automatic derivation of the
+tangent linear and adjoint systems supports such an approach.
+Similarly, the adjoint propagator is computed in a matrix-free fashion
+using the adjoint model. SLEPc elegantly supports such matrix-free
+computations through the use of PETSc shell matrices <a class="reference internal" href="#balay2010" id="id20">[AM-BBB+11]</a>
+<a class="reference internal" href="#balay1997" id="id21">[AM-BGMS97]</a>.</p>
+<p>For more information on how to perform a generalised stability
+analysis with dolfin-adjoint, see the <span class="xref std std-doc">chapter in the
+documentation on generalised stability analysis</span>.</p>
+<p class="rubric">References</p>
+<p id="bibtex-bibliography-documentation/maths/A-gst-0"><table class="docutils citation" frame="void" id="balay2010" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id20">[AM-BBB+11]</a></td><td>S.&nbsp;Balay, J.&nbsp;Brown, K.&nbsp;Buschelman, V.&nbsp;Eijkhout, W.&nbsp;D. Gropp, D.&nbsp;Kaushik, M.&nbsp;G. Knepley, L.&nbsp;C. McInnes, B.&nbsp;F. Smith, and H.&nbsp;Zhang. PETSc users manual. Technical Report ANL-95/11, Argonne National Laboratory, 2011. Revision 3.2.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="balay1997" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id21">[AM-BGMS97]</a></td><td>S.&nbsp;Balay, W.&nbsp;D. Gropp, L.&nbsp;C. McInnes, and B.&nbsp;F. Smith. Efficient management of parallelism in object oriented numerical software libraries. In E.&nbsp;Arge, A.&nbsp;M. Bruaset, and H.&nbsp;P. Langtangen, editors, <em>Modern Software Tools in Scientific Computing</em>, 163–202. Birkhäuser Press, 1997.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="farrell1982a" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id8">[AM-Far82]</a></td><td>B.&nbsp;F. Farrell. The initial growth of disturbances in a baroclinic flow. <em>Journal of Atmospheric Sciences</em>, 39(8):1663–1686, 1982. <a class="reference external" href="https://doi.org/10.1175/1520-0469(1982)039&lt;1663:TIGODI&gt;2.0.CO;2">doi:10.1175/1520-0469(1982)039&lt;1663:TIGODI&gt;2.0.CO;2</a>.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="farrell1985" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id9">[AM-Far85]</a></td><td>B.&nbsp;F. Farrell. Transient growth of damped baroclinic waves. <em>Journal of Atmospheric Sciences</em>, 42(24):2718–2727, 1985. <a class="reference external" href="https://doi.org/10.1175/1520-0469(1985)042&lt;2718:TGODBW&gt;2.0.CO;2">doi:10.1175/1520-0469(1985)042&lt;2718:TGODBW&gt;2.0.CO;2</a>.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="farrell1996b" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id11">[AM-FI96]</a></td><td>B.&nbsp;F. Farrell and P.&nbsp;J. Ioannou. Generalized stability theory. Part II: Nonautonomous operators. <em>Journal of Atmospheric Sciences</em>, 53(14):2041–2053, 1996. <a class="reference external" href="https://doi.org/10.1175/1520-0469(1996)053&lt;2041:GSTPIN&gt;2.0.CO;2">doi:10.1175/1520-0469(1996)053&lt;2041:GSTPIN&gt;2.0.CO;2</a>.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="hernandez2007b" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id17">[AM-HRTV07]</a></td><td>V.&nbsp;Hernandez, J.&nbsp;E. Roman, A.&nbsp;Tomas, and V.&nbsp;Vidal. Krylov-Schur methods in SLEPc. Technical Report STR-7, Universitat Politècnica de València, 2007.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="hernandez2005" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id16">[AM-HRV05]</a></td><td>V.&nbsp;Hernandez, J.&nbsp;E. Roman, and V.&nbsp;Vidal. SLEPc: a scalable and flexible toolkit for the solution of eigenvalue problems. <em>ACM Transactions on Mathematical Software</em>, 31(3):351–362, 2005. <a class="reference external" href="https://doi.org/hernandez2005">doi:hernandez2005</a>.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="lanczos1950" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id19">[AM-Lan50]</a></td><td>C.&nbsp;Lanczos. An iteration method for the solution of the eigenvalue problem of linear differential and integral operators. <em>Journal of Research of the National Bureau of Standards</em>, 45(4):255–282, 1950.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="leine2010" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[AM-Lei10]</a></td><td>R.&nbsp;Leine. The historical development of classical stability concepts: Lagrange, Poisson and Lyapunov stability. <em>Nonlinear Dynamics</em>, 59(1):173–182, 2010. <a class="reference external" href="https://doi.org/10.1007/s11071-009-9530-z">doi:10.1007/s11071-009-9530-z</a>.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="lyapunov1892" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id2">[AM-Lya92]</a></td><td>A.&nbsp;M. Lyapunov. <em>The General Problem of the Stability of Motion</em>. Control Theory and Applications Series. Taylor &amp; Francis, 1892. ISBN 978-0748400621. Translated by A. T. Fuller.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="parks1992" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id3">[AM-Par92]</a></td><td>P.&nbsp;C. Parks. A. M. Lyapunov’s stability theory—100 years on. <em>IMA Journal of Mathematical Control and Information</em>, 9(4):275–303, 1992. <a class="reference external" href="https://doi.org/10.1093/imamci/9.4.275">doi:10.1093/imamci/9.4.275</a>.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="stewart2001" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id15">[AM-Ste01]</a></td><td>G.&nbsp;Stewart. A Krylov–Schur algorithm for large eigenproblems. <em>SIAM Journal on Matrix Analysis and Applications</em>, 23(3):601–614, 2001. <a class="reference external" href="https://doi.org/10.1137/S0895479800371529">doi:10.1137/S0895479800371529</a>.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="wu2000" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id18">[AM-WS00]</a></td><td>K.&nbsp;Wu and H.&nbsp;Simon. Thick-restart Lanczos method for large symmetric eigenvalue problems. <em>SIAM Journal on Matrix Analysis and Applications</em>, 22(2):602–616, 2000. <a class="reference external" href="https://doi.org/10.1137/S0895479898334605">doi:10.1137/S0895479898334605</a>.</td></tr>
+</tbody>
+</table>
+</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Sebastian Mitusch.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.5.
+    </div>
+  </body>
+</html>

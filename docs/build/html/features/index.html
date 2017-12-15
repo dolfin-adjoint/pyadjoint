@@ -1,0 +1,237 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>fenics-adjoint features</title>
+    <link rel="stylesheet" href="../_static/fenics.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '2017.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+<link rel="stylesheet" href="../_static/featured.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="../_static/slides.min.jquery.js"></script>
+  <script>
+	$(function(){
+		$('#products').slides({
+			preload: true,
+			preloadImage: 'img/loading.gif',
+			effect: 'slide, fade',
+			crossfade: true,
+			slideSpeed: 350,
+			fadeSpeed: 500,
+			generateNextPrev: false,
+			generatePagination: false,
+	                play: 5000,
+                        hoverPause: false,
+                        animationStart: function(current){
+				$('.caption').animate({
+					bottom:-35
+				},100);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationStart on slide: ', current);
+				};
+			},
+			animationComplete: function(current){
+				$('.caption').animate({
+					bottom:0
+				},200);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationComplete on slide: ', current);
+				};
+			},
+			slidesLoaded: function() {
+				$('.caption').animate({
+					bottom:0
+				},200);
+			}
+		});
+	});
+  </script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-31806773-1']);
+  _gaq.push(['_setDomainName', 'dolfin-adjoint.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<!-- Load the flex slider library -->
+<link rel="stylesheet" href="_static/flexslider/flexslider.css" type="text/css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="_static/flexslider/jquery.flexslider.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+  $(window).load(function() {
+  $('.flexslider').flexslider();
+  });
+</script>
+
+<!-- Load the code highlight library -->
+<link rel="stylesheet" href="_static/highlight/styles/zenburn.css">
+<script src="_static/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<link rel="shortcut icon" href="../_static/icon.ico" />
+
+
+  </head>
+  <body>
+<div class="wrapper">
+  <a href="../"><img src="../_static/banner.png" width="900px" alt="dolfin-adjoint Project Banner" /></a>
+  <div id="access">
+    <div class="menu">
+      <ul>
+          <li class="page_item"><a href="../about/index.html" title="Find out more about dolfin-adjoint">About</a></li>
+          <li class="page_item"><a href="#" title="Features of dolfin-adjoint">Features</a></li>
+          <li class="page_item"><a href="../documentation/index.html" title="Learn how to use dolfin-adjoint">Documentation</a></li>
+          <li class="page_item"><a href="../download/index.html" title="Obtain the dolfin-adjoint code">Download</a></li>
+          <li class="page_item"><a href="../citing/index.html" title="Learn how to cite the dolfin-adjoint project">Citing</a></li>
+          <li class="page_item"><a href="../support/index.html" title="Where to go for more help">Support</a></li>
+      </ul>
+    </div><!-- .menu -->
+  </div><!-- #access -->
+</div><!-- #wrapper -->
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="features-of-fenics-adjoint">
+<h1>Features of fenics-adjoint<a class="headerlink" href="#features-of-fenics-adjoint" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="generality">
+<h2>Generality<a class="headerlink" href="#generality" title="Permalink to this headline">¶</a></h2>
+<p>fenics-adjoint works for both steady and time-dependent models, and for both linear
+and nonlinear models. The user interface is exactly the same in both cases. For an example
+of adjoining a nonlinear time-dependent model, see the <a class="reference internal" href="../documentation/tutorial.html"><span class="doc">tutorial</span></a>.</p>
+</div>
+<div class="section" id="ease-of-use">
+<h2>Ease of use<a class="headerlink" href="#ease-of-use" title="Permalink to this headline">¶</a></h2>
+<p>fenics-adjoint has been carefully designed to try to make its use as easy as possible. In many cases
+the only change to the forward model is to add</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">fenics_adjoint</span> <span class="kn">import</span> <span class="o">*</span>
+</pre></div>
+</div>
+<p>at the top of the model. For example, deriving the adjoint of <a class="reference internal" href="../documentation/tutorial.html"><span class="doc">the tutorial example</span></a> requires <strong>adding
+precisely three lines to the forward model</strong>. dolfin-adjoint also makes it extremely easy to <a class="reference internal" href="../documentation/verification.html"><span class="doc">verify the correctness of the adjoint model</span></a>.
+It offers a powerful syntax for <a class="reference internal" href="../documentation/functionals.html"><span class="doc">expressing general functionals</span></a>.</p>
+</div>
+<div class="section" id="efficiency">
+<h2>Efficiency<a class="headerlink" href="#efficiency" title="Permalink to this headline">¶</a></h2>
+<p>Efficiency of the resulting model is absolutely crucial for real applications. The efficiency of
+an adjoint model is measured as (time for forward and adjoint run)/(time for forward run). <a class="reference external" href="http://dx.doi.org/10.1137/1.9781611972078">Naumann (2011)</a> states
+that a typical value for this ratio when using algorithmic differentiation tools is in the range 3–30. By contrast, dolfin-adjoint is <strong>extremely efficient</strong>;
+consider the following examples from <a class="reference internal" href="../citing/index.html"><span class="doc">the papers</span></a>:</p>
+<table border="1" class="colwidths-given center docutils">
+<colgroup>
+<col width="38%" />
+<col width="25%" />
+<col width="38%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">PDE</th>
+<th class="head">Theoretical optimum</th>
+<th class="head">Achieved efficiency</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Cahn-Hilliard</td>
+<td>1.2</td>
+<td>1.22</td>
+</tr>
+<tr class="row-odd"><td>Stokes</td>
+<td>2.0</td>
+<td>1.86</td>
+</tr>
+<tr class="row-even"><td>Viscoelasticity</td>
+<td>2.0</td>
+<td>2.029</td>
+</tr>
+<tr class="row-odd"><td>Gross-Pitaevskii</td>
+<td>1.5</td>
+<td>1.54</td>
+</tr>
+<tr class="row-even"><td>Gray-Scott</td>
+<td>2.0</td>
+<td>2.04</td>
+</tr>
+<tr class="row-odd"><td>Navier-Stokes</td>
+<td>1.33</td>
+<td>1.41</td>
+</tr>
+<tr class="row-even"><td>Mathematical programming with equilibrium constraints</td>
+<td>1.125</td>
+<td>1.126</td>
+</tr>
+<tr class="row-odd"><td>Shallow water</td>
+<td>1.125</td>
+<td>1.125</td>
+</tr>
+<tr class="row-even"><td>Wetting and drying</td>
+<td>1.5</td>
+<td>1.55</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="parallelism">
+<h2>Parallelism<a class="headerlink" href="#parallelism" title="Permalink to this headline">¶</a></h2>
+<p>Parallelism is ubiquitous in modern computational science. However,
+applying algorithmic differentiation to parallel codes is still a
+major research challenge. Algorithmic differentiation tools must be
+specially modified to understand MPI and OpenMP directives, and
+translate them into their parallel equivalents. By contrast, <em>because
+of the high-level abstraction taken in libadjoint, the problem of
+parallelism simply disappears</em>. In fact, there is no code whatsoever
+in either fenics-adjoint or pyadjoint to handle parallelism; by
+deriving the adjoint at the right level of abstraction, the problem no
+longer exists.  <strong>If the forward model runs in parallel, the adjoint
+model also runs in parallel, with no modification.</strong></p>
+<p>For more details, see <a class="reference internal" href="../documentation/parallel.html"><span class="doc">the manual section on parallelism</span></a> and <a class="reference internal" href="../citing/index.html"><span class="doc">the dolfin-adjoint paper</span></a>.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Sebastian Mitusch.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.5.
+    </div>
+  </body>
+</html>

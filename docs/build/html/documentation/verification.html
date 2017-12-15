@@ -1,0 +1,296 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Verification</title>
+    <link rel="stylesheet" href="../_static/fenics.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '2017.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+<link rel="stylesheet" href="../_static/featured.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="../_static/slides.min.jquery.js"></script>
+  <script>
+	$(function(){
+		$('#products').slides({
+			preload: true,
+			preloadImage: 'img/loading.gif',
+			effect: 'slide, fade',
+			crossfade: true,
+			slideSpeed: 350,
+			fadeSpeed: 500,
+			generateNextPrev: false,
+			generatePagination: false,
+	                play: 5000,
+                        hoverPause: false,
+                        animationStart: function(current){
+				$('.caption').animate({
+					bottom:-35
+				},100);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationStart on slide: ', current);
+				};
+			},
+			animationComplete: function(current){
+				$('.caption').animate({
+					bottom:0
+				},200);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationComplete on slide: ', current);
+				};
+			},
+			slidesLoaded: function() {
+				$('.caption').animate({
+					bottom:0
+				},200);
+			}
+		});
+	});
+  </script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-31806773-1']);
+  _gaq.push(['_setDomainName', 'dolfin-adjoint.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<!-- Load the flex slider library -->
+<link rel="stylesheet" href="_static/flexslider/flexslider.css" type="text/css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="_static/flexslider/jquery.flexslider.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+  $(window).load(function() {
+  $('.flexslider').flexslider();
+  });
+</script>
+
+<!-- Load the code highlight library -->
+<link rel="stylesheet" href="_static/highlight/styles/zenburn.css">
+<script src="_static/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<link rel="shortcut icon" href="../_static/icon.ico" />
+
+
+  </head>
+  <body>
+<div class="wrapper">
+  <a href="../"><img src="../_static/banner.png" width="900px" alt="dolfin-adjoint Project Banner" /></a>
+  <div id="access">
+    <div class="menu">
+      <ul>
+          <li class="page_item"><a href="../about/index.html" title="Find out more about dolfin-adjoint">About</a></li>
+          <li class="page_item"><a href="../features/index.html" title="Features of dolfin-adjoint">Features</a></li>
+          <li class="page_item"><a href="index.html" title="Learn how to use dolfin-adjoint">Documentation</a></li>
+          <li class="page_item"><a href="../download/index.html" title="Obtain the dolfin-adjoint code">Download</a></li>
+          <li class="page_item"><a href="../citing/index.html" title="Learn how to cite the dolfin-adjoint project">Citing</a></li>
+          <li class="page_item"><a href="../support/index.html" title="Where to go for more help">Support</a></li>
+      </ul>
+    </div><!-- .menu -->
+  </div><!-- #access -->
+</div><!-- #wrapper -->
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="verification">
+<h1>Verification<a class="headerlink" href="#verification" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="taylor-remainder-convergence-test">
+<h2>Taylor remainder convergence test<a class="headerlink" href="#taylor-remainder-convergence-test" title="Permalink to this headline">¶</a></h2>
+<p>The fundamental tool used in verification of gradients is the
+<em>Taylor remainder convergence test</em>. Let <span class="math">\(\widehat{J}(m)\)</span> be the functional, considered
+as a pure function of the parameter of interest,
+let <span class="math">\(\nabla \widehat{J}\)</span> be its gradient, and let <span class="math">\(\delta m\)</span> be a perturbation to
+<span class="math">\(m\)</span>. This test is based on the observation that</p>
+<div class="math">
+\[\left|\widehat{J}(m + h\delta m) - \widehat{J}(m)\right| \rightarrow 0 \quad \mathrm{at} \ O(h),\]</div>
+<p>but that</p>
+<div class="math">
+\[\left|\widehat{J}(m + h\delta m) - \widehat{J}(m) - h\nabla \widehat{J} \cdot \delta m\right| \rightarrow 0 \quad \mathrm{at} \ O(h^2),\]</div>
+<p>by Taylor’s theorem. The quantity <span class="math">\(\left|\widehat{J}(m + h\delta m) - \widehat{J}(m)\right|\)</span> is called the <em>first-order
+Taylor remainder</em> (because it’s supposed to be first-order), and the quantity <span class="math">\(\left|\widehat{J}(m + h\delta m) - \widehat{J}(m) - h\nabla \widehat{J} \cdot \delta m\right|\)</span>
+is called the <em>second-order Taylor remainder</em>.</p>
+<p>Suppose someone gives you two functions <span class="math">\(\widehat{J}\)</span> and <span class="math">\(d\widehat{J}\)</span>, and claims that <span class="math">\(d\widehat{J}\)</span> is the gradient of
+<span class="math">\(\widehat{J}\)</span>. Then their claim can be rigorously verified by computing the second-order Taylor remainder for some
+choice of <span class="math">\(h\)</span> and <span class="math">\(\delta m\)</span>, then repeatedly halving <span class="math">\(h\)</span> and checking that the result decreases
+by a factor of 4.</p>
+</div>
+<div class="section" id="applying-this-in-fenics-adjoint">
+<h2>Applying this in fenics-adjoint<a class="headerlink" href="#applying-this-in-fenics-adjoint" title="Permalink to this headline">¶</a></h2>
+<p>In the case of PDE-constrained optimisation, computing <span class="math">\(\widehat{J}(m)\)</span> involves solving the PDE
+for that choice of <span class="math">\(m\)</span> to compute the solution <span class="math">\(u\)</span>, and then evaluating the functional <span class="math">\(J\)</span>.
+The main function in fenics-adjoint for applying the Taylor remainder convergence test is <code class="xref py py-func docutils literal"><span class="pre">taylor_test</span></code>.
+To see how this works, let us again consider our example with Burgers’ equation <span class="math">\(\nu\)</span>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">fenics</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">fenics_adjoint</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="n">n</span> <span class="o">=</span> <span class="mi">30</span>
+<span class="n">mesh</span> <span class="o">=</span> <span class="n">UnitSquareMesh</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+<span class="n">V</span> <span class="o">=</span> <span class="n">VectorFunctionSpace</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="s2">&quot;CG&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+<span class="n">u</span> <span class="o">=</span> <span class="n">project</span><span class="p">(</span><span class="n">Expression</span><span class="p">((</span><span class="s2">&quot;sin(2*pi*x[0])&quot;</span><span class="p">,</span> <span class="s2">&quot;cos(2*pi*x[1])&quot;</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>  <span class="n">V</span><span class="p">)</span>
+
+<span class="n">u_next</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+<span class="n">v</span> <span class="o">=</span> <span class="n">TestFunction</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+
+<span class="n">nu</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">)</span>
+
+<span class="n">timestep</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+
+<span class="n">F</span> <span class="o">=</span> <span class="p">(</span><span class="n">inner</span><span class="p">((</span><span class="n">u_next</span> <span class="o">-</span> <span class="n">u</span><span class="p">)</span><span class="o">/</span><span class="n">timestep</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+     <span class="o">+</span> <span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">u_next</span><span class="p">)</span><span class="o">*</span><span class="n">u_next</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+     <span class="o">+</span> <span class="n">nu</span><span class="o">*</span><span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">u_next</span><span class="p">),</span> <span class="n">grad</span><span class="p">(</span><span class="n">v</span><span class="p">)))</span><span class="o">*</span><span class="n">dx</span>
+
+<span class="n">bc</span> <span class="o">=</span> <span class="n">DirichletBC</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="s2">&quot;on_boundary&quot;</span><span class="p">)</span>
+
+<span class="n">t</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">end</span> <span class="o">=</span> <span class="mf">0.1</span>
+<span class="k">while</span> <span class="p">(</span><span class="n">t</span> <span class="o">&lt;=</span> <span class="n">end</span><span class="p">):</span>
+    <span class="n">solve</span><span class="p">(</span><span class="n">F</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">u_next</span><span class="p">,</span> <span class="n">bc</span><span class="p">)</span>
+    <span class="n">u</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">u_next</span><span class="p">)</span>
+    <span class="n">t</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">timestep</span><span class="p">)</span>
+
+<span class="n">J</span> <span class="o">=</span> <span class="n">assemble</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="p">)</span>
+<span class="n">dJdnu</span> <span class="o">=</span> <span class="n">compute_gradient</span><span class="p">(</span><span class="n">J</span><span class="p">,</span> <span class="n">nu</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>As you can see, we here find the gradient only with respect to <code class="xref py py-data docutils literal"><span class="pre">nu</span></code>.
+Now let’s see how to use <code class="xref py py-func docutils literal"><span class="pre">taylor_test</span></code>:
+Instead of</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">dJdnu</span> <span class="o">=</span> <span class="n">compute_gradient</span><span class="p">(</span><span class="n">J</span><span class="p">,</span> <span class="n">nu</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>we write</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">h</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">)</span>
+<span class="n">Jhat</span> <span class="o">=</span> <span class="n">ReducedFunctional</span><span class="p">(</span><span class="n">J</span><span class="p">,</span> <span class="n">nu</span><span class="p">)</span>
+<span class="n">conv_rate</span> <span class="o">=</span> <span class="n">taylor_test</span><span class="p">(</span><span class="n">Jhat</span><span class="p">,</span> <span class="n">nu</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here, <code class="xref py py-data docutils literal"><span class="pre">h</span></code> is the direction of perturbation.
+<code class="xref py py-data docutils literal"><span class="pre">h</span></code> must be the same type as what we are differentiating with respect to, so in this case since <code class="xref py py-data docutils literal"><span class="pre">nu</span></code> is a <a class="reference internal" href="api.html#fenics_adjoint.Constant" title="fenics_adjoint.Constant"><code class="xref py py-class docutils literal"><span class="pre">Constant</span></code></a> <code class="xref py py-data docutils literal"><span class="pre">h</span></code> must also be a <a class="reference internal" href="api.html#fenics_adjoint.Constant" title="fenics_adjoint.Constant"><code class="xref py py-class docutils literal"><span class="pre">Constant</span></code></a>.
+It is also a good idea to make sure that <code class="xref py py-data docutils literal"><span class="pre">h</span></code> is the same order of magnitude as <code class="xref py py-data docutils literal"><span class="pre">nu</span></code>, so that the perturbations are not too large.
+<code class="xref py py-data docutils literal"><span class="pre">Jhat</span></code> is the functional reduced to a pure function of <code class="xref py py-data docutils literal"><span class="pre">nu</span></code>, it is a <a class="reference internal" href="pyadjoint_api.html#pyadjoint.ReducedFunctional" title="pyadjoint.ReducedFunctional"><code class="xref py py-class docutils literal"><span class="pre">ReducedFunctional</span></code></a> object.
+We could also have taken the taylor test on the gradient with respect to the <a class="reference internal" href="api.html#fenics_adjoint.Function" title="fenics_adjoint.Function"><code class="xref py py-class docutils literal"><span class="pre">Function</span></code></a>
+<code class="xref py py-data docutils literal"><span class="pre">u</span></code>. In that case <code class="xref py py-data docutils literal"><span class="pre">h</span></code> must also be a <a class="reference internal" href="api.html#fenics_adjoint.Function" title="fenics_adjoint.Function"><code class="xref py py-class docutils literal"><span class="pre">Function</span></code></a>.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">h</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+<span class="n">h</span><span class="o">.</span><span class="n">vector</span><span class="p">()[:]</span> <span class="o">=</span> <span class="mf">0.1</span>
+<span class="n">conv_rate</span> <span class="o">=</span> <span class="n">taylor_test</span><span class="p">(</span><span class="n">RestrictedFunctional</span><span class="p">(</span><span class="n">J</span><span class="p">,</span> <span class="n">u</span><span class="p">),</span> <span class="n">u</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here is the full program to check that we compute <code class="xref py py-data docutils literal"><span class="pre">dJdnu</span></code> correctly:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">fenics</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">fenics_adjoint</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="n">n</span> <span class="o">=</span> <span class="mi">30</span>
+<span class="n">mesh</span> <span class="o">=</span> <span class="n">UnitSquareMesh</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+<span class="n">V</span> <span class="o">=</span> <span class="n">VectorFunctionSpace</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="s2">&quot;CG&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+<span class="n">u</span> <span class="o">=</span> <span class="n">project</span><span class="p">(</span><span class="n">Expression</span><span class="p">((</span><span class="s2">&quot;sin(2*pi*x[0])&quot;</span><span class="p">,</span> <span class="s2">&quot;cos(2*pi*x[1])&quot;</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>  <span class="n">V</span><span class="p">)</span>
+
+<span class="n">u_next</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+<span class="n">v</span> <span class="o">=</span> <span class="n">TestFunction</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+
+<span class="n">nu</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">)</span>
+
+<span class="n">timestep</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+
+<span class="n">F</span> <span class="o">=</span> <span class="p">(</span><span class="n">inner</span><span class="p">((</span><span class="n">u_next</span> <span class="o">-</span> <span class="n">u</span><span class="p">)</span><span class="o">/</span><span class="n">timestep</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+     <span class="o">+</span> <span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">u_next</span><span class="p">)</span><span class="o">*</span><span class="n">u_next</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+     <span class="o">+</span> <span class="n">nu</span><span class="o">*</span><span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">u_next</span><span class="p">),</span> <span class="n">grad</span><span class="p">(</span><span class="n">v</span><span class="p">)))</span><span class="o">*</span><span class="n">dx</span>
+
+<span class="n">bc</span> <span class="o">=</span> <span class="n">DirichletBC</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="s2">&quot;on_boundary&quot;</span><span class="p">)</span>
+
+<span class="n">t</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">end</span> <span class="o">=</span> <span class="mf">0.1</span>
+<span class="k">while</span> <span class="p">(</span><span class="n">t</span> <span class="o">&lt;=</span> <span class="n">end</span><span class="p">):</span>
+    <span class="n">solve</span><span class="p">(</span><span class="n">F</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">u_next</span><span class="p">,</span> <span class="n">bc</span><span class="p">)</span>
+    <span class="n">u</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">u_next</span><span class="p">)</span>
+    <span class="n">t</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">timestep</span><span class="p">)</span>
+
+<span class="n">J</span> <span class="o">=</span> <span class="n">assemble</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="p">)</span>
+<span class="n">dJdnu</span> <span class="o">=</span> <span class="n">compute_gradient</span><span class="p">(</span><span class="n">J</span><span class="p">,</span> <span class="n">nu</span><span class="p">)</span>
+
+<span class="n">h</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">)</span>  <span class="c1"># the direction of the perturbation</span>
+<span class="n">Jhat</span> <span class="o">=</span> <span class="n">ReducedFunctional</span><span class="p">(</span><span class="n">J</span><span class="p">,</span> <span class="n">Control</span><span class="p">(</span><span class="n">nu</span><span class="p">))</span>  <span class="c1"># the functional as a pure function of nu</span>
+<span class="n">conv_rate</span> <span class="o">=</span> <span class="n">taylor_test</span><span class="p">(</span><span class="n">Jhat</span><span class="p">,</span> <span class="n">nu</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><img alt="more info" class="align-middle" src="../_images/more.png" /> Download the <a class="reference external" href="../_static/tutorial4.py">adjoint code with verification</a>.</p>
+<p>Running this program yields the following output:</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>$ python tutorial4.py
+...
+Computed residuals: [8.7896393952526051e-07, 2.2008124772799524e-07, 5.5062930799269294e-08, 1.3771065357994394e-08]
+Computed convergence rates: [1.9977677544105585, 1.9988829175084986, 1.9994412277283045]
+</pre></div>
+</div>
+<p>The first line gives the values computed for the second-order Taylor remainder. As you can see, each value is approximately one quarter of the previous one.
+The second line gives the convergence orders of the second-order Taylor remainder: if the gradient has been computed correctly these numbers should be 2.
+As we can see they are in fact very close to 2, so we are calculating the gradient correctly.</p>
+<p>If you want to see if some object is the gradient you can pass the inner product of that object and the direction <code class="xref py py-data docutils literal"><span class="pre">h</span></code> with the named argument <code class="xref py py-data docutils literal"><span class="pre">dJdm</span></code>.
+For example we may want to check that the convergence orders of the first-order Taylor remainder are 1. This is achieved by passing a proposed gradient 0:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">conv_rate</span> <span class="o">=</span> <span class="n">taylor_test</span><span class="p">(</span><span class="n">Jhat</span><span class="p">,</span> <span class="n">Constant</span><span class="p">(</span><span class="n">nu</span><span class="p">),</span> <span class="n">h</span><span class="p">,</span> <span class="n">dJdm</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Adding this we get the output</p>
+<div class="highlight-none"><div class="highlight"><pre><span></span>$ python tutorial4.py
+...
+Computed residuals: [0.00025403832691939243, 0.00012723856418173085, 6.367425978393015e-05, 3.185089029200672e-05]
+Computed convergence rates: [0.99751017666093167, 0.99875380873361586, 0.99937658413144936]
+</pre></div>
+</div>
+<p>We see that the residuals are halved and the convergence rates are 1 as expected.</p>
+<p>So, what if the Taylor remainders are not correct? Such a situation could occur if the model
+manually modifies <a class="reference internal" href="api.html#fenics_adjoint.Function" title="fenics_adjoint.Function"><code class="xref py py-class docutils literal"><span class="pre">Function</span></code></a> values, or if the model modifies the entries of assembled matrices and
+vectors, or if the model is not differentiable, or if there is a bug in fenics-adjoint. fenics-adjoint offers ways to pinpoint
+precisely where an error might lie; these are discussed in the <a class="reference internal" href="debugging.html"><span class="doc">next section on debugging</span></a>.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Sebastian Mitusch.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.5.
+    </div>
+  </body>
+</html>

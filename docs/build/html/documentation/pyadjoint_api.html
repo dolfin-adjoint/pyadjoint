@@ -1,0 +1,309 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>pyadjoint API reference</title>
+    <link rel="stylesheet" href="../_static/fenics.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '2017.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+<link rel="stylesheet" href="../_static/featured.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="../_static/slides.min.jquery.js"></script>
+  <script>
+	$(function(){
+		$('#products').slides({
+			preload: true,
+			preloadImage: 'img/loading.gif',
+			effect: 'slide, fade',
+			crossfade: true,
+			slideSpeed: 350,
+			fadeSpeed: 500,
+			generateNextPrev: false,
+			generatePagination: false,
+	                play: 5000,
+                        hoverPause: false,
+                        animationStart: function(current){
+				$('.caption').animate({
+					bottom:-35
+				},100);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationStart on slide: ', current);
+				};
+			},
+			animationComplete: function(current){
+				$('.caption').animate({
+					bottom:0
+				},200);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationComplete on slide: ', current);
+				};
+			},
+			slidesLoaded: function() {
+				$('.caption').animate({
+					bottom:0
+				},200);
+			}
+		});
+	});
+  </script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-31806773-1']);
+  _gaq.push(['_setDomainName', 'dolfin-adjoint.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<!-- Load the flex slider library -->
+<link rel="stylesheet" href="_static/flexslider/flexslider.css" type="text/css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="_static/flexslider/jquery.flexslider.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+  $(window).load(function() {
+  $('.flexslider').flexslider();
+  });
+</script>
+
+<!-- Load the code highlight library -->
+<link rel="stylesheet" href="_static/highlight/styles/zenburn.css">
+<script src="_static/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<link rel="shortcut icon" href="../_static/icon.ico" />
+
+
+  </head>
+  <body>
+<div class="wrapper">
+  <a href="../"><img src="../_static/banner.png" width="900px" alt="dolfin-adjoint Project Banner" /></a>
+  <div id="access">
+    <div class="menu">
+      <ul>
+          <li class="page_item"><a href="../about/index.html" title="Find out more about dolfin-adjoint">About</a></li>
+          <li class="page_item"><a href="../features/index.html" title="Features of dolfin-adjoint">Features</a></li>
+          <li class="page_item"><a href="index.html" title="Learn how to use dolfin-adjoint">Documentation</a></li>
+          <li class="page_item"><a href="../download/index.html" title="Obtain the dolfin-adjoint code">Download</a></li>
+          <li class="page_item"><a href="../citing/index.html" title="Learn how to cite the dolfin-adjoint project">Citing</a></li>
+          <li class="page_item"><a href="../support/index.html" title="Where to go for more help">Support</a></li>
+      </ul>
+    </div><!-- .menu -->
+  </div><!-- #access -->
+</div><!-- #wrapper -->
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="pyadjoint-api-reference">
+<span id="id1"></span><h1>pyadjoint API reference<a class="headerlink" href="#pyadjoint-api-reference" title="Permalink to this headline">¶</a></h1>
+<p>See also the <a class="reference internal" href="api.html"><span class="doc">fenics-adjoint API reference</span></a>.</p>
+<span class="target" id="module-pyadjoint"></span><div class="section" id="overloaded-objects">
+<h2>Overloaded objects<a class="headerlink" href="#overloaded-objects" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pyadjoint.AdjFloat">
+<em class="property">class </em><code class="descclassname">pyadjoint.</code><code class="descname">AdjFloat</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyadjoint.AdjFloat" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="pyadjoint.OverloadedType">
+<em class="property">class </em><code class="descclassname">pyadjoint.</code><code class="descname">OverloadedType</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyadjoint.OverloadedType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for OverloadedType types.</p>
+<p>The purpose of each OverloadedType is to extend a type such that
+it can be referenced by blocks as well as overload basic mathematical
+operations such as __mul__, __add__, where they are needed.</p>
+<dl class="docutils">
+<dt>Abstract methods:</dt>
+<dd><code class="xref py py-func docutils literal"><span class="pre">adj_update_value()</span></code></dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="annotation">
+<h2>Annotation<a class="headerlink" href="#annotation" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pyadjoint.Block">
+<em class="property">class </em><code class="descclassname">pyadjoint.</code><code class="descname">Block</code><a class="headerlink" href="#pyadjoint.Block" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for all Tape Block types.</p>
+<p>Each instance of a Block type represents an elementary operation in the
+forward model.</p>
+<dl class="docutils">
+<dt>Abstract methods</dt>
+<dd><code class="xref py py-func docutils literal"><span class="pre">evaluate_adj()</span></code></dd>
+</dl>
+<dl class="method">
+<dt id="pyadjoint.Block.__init__">
+<code class="descname">__init__</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyadjoint.Block.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pyadjoint.Tape">
+<em class="property">class </em><code class="descclassname">pyadjoint.</code><code class="descname">Tape</code><span class="sig-paren">(</span><em>blocks=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pyadjoint.Tape" title="Permalink to this definition">¶</a></dt>
+<dd><p>The tape.</p>
+<p>The tape consists of blocks, <a class="reference internal" href="#pyadjoint.Block" title="pyadjoint.Block"><code class="xref py py-class docutils literal"><span class="pre">Block</span></code></a> instances.
+Each block represents one operation in the forward model.</p>
+<dl class="method">
+<dt id="pyadjoint.Tape.visualise">
+<code class="descname">visualise</code><span class="sig-paren">(</span><em>filename=None</em>, <em>scale=1.0</em>, <em>dot=False</em><span class="sig-paren">)</span><a class="headerlink" href="#pyadjoint.Tape.visualise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes a visualisation of the tape as a graph.</p>
+<p>For bigger tapes it is recommended to set the keyword argument
+<cite>dot</cite> to True. It should then save a file in dot format and you
+can render it using Graphviz dot.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><p class="first">filename (str|None): File to save the visualisation. Default None.
+scale (float): Scales the distances between nodes.</p>
+<blockquote>
+<div>Only relevant for dot set to False. Default 1.0.</div></blockquote>
+<dl class="last docutils">
+<dt>dot (bool): Write to specified file in dot-format. Default False.</dt>
+<dd>If this is True, then filename must be set.</dd>
+</dl>
+</dd>
+<dt>Raises:</dt>
+<dd>NotImplementedError: If you choose dot-format but supply no filename.</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="driver-functions">
+<h2>Driver functions<a class="headerlink" href="#driver-functions" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="pyadjoint.compute_gradient">
+<code class="descclassname">pyadjoint.</code><code class="descname">compute_gradient</code><span class="sig-paren">(</span><em>J</em>, <em>m</em>, <em>block_idx=0</em>, <em>options=None</em>, <em>tape=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pyadjoint.compute_gradient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the gradient of J with respect to the initialisation value of m, 
+that is the value of m at its creation.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="reducedfunctional-object">
+<h2><a class="reference internal" href="#pyadjoint.ReducedFunctional" title="pyadjoint.ReducedFunctional"><code class="xref py py-data docutils literal"><span class="pre">ReducedFunctional</span></code></a> object<a class="headerlink" href="#reducedfunctional-object" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pyadjoint.ReducedFunctional">
+<em class="property">class </em><code class="descclassname">pyadjoint.</code><code class="descname">ReducedFunctional</code><span class="sig-paren">(</span><em>functional</em>, <em>controls</em>, <em>tape=None</em>, <em>eval_cb_pre=&lt;function ReducedFunctional.&lt;lambda&gt;&gt;</em>, <em>eval_cb_post=&lt;function ReducedFunctional.&lt;lambda&gt;&gt;</em>, <em>derivative_cb_pre=&lt;function ReducedFunctional.&lt;lambda&gt;&gt;</em>, <em>derivative_cb_post=&lt;function ReducedFunctional.&lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#pyadjoint.ReducedFunctional" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class representing the reduced functional.</p>
+<p>A reduced functional maps a control value to the provided functional.
+It may also be used to compute the derivative of the functional with
+respect to the control.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>functional (<a class="reference internal" href="#pyadjoint.OverloadedType" title="pyadjoint.OverloadedType"><code class="xref py py-obj docutils literal"><span class="pre">OverloadedType</span></code></a>): An instance of an OverloadedType,</dt>
+<dd>usually <a class="reference internal" href="#pyadjoint.AdjFloat" title="pyadjoint.AdjFloat"><code class="xref py py-class docutils literal"><span class="pre">AdjFloat</span></code></a>. This should be the return value of the
+functional you want to reduce.</dd>
+<dt>controls (list[Control]): A list of Control instances, which you want</dt>
+<dd>to map to the functional. It is also possible to supply a single Control
+instance instead of a list.</dd>
+</dl>
+</dd>
+</dl>
+<dl class="method">
+<dt id="pyadjoint.ReducedFunctional.__call__">
+<code class="descname">__call__</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#pyadjoint.ReducedFunctional.__call__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyadjoint.ReducedFunctional.derivative">
+<code class="descname">derivative</code><span class="sig-paren">(</span><em>options={}</em><span class="sig-paren">)</span><a class="headerlink" href="#pyadjoint.ReducedFunctional.derivative" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the derivative of the functional w.r.t. the control.</p>
+<p>Using the adjoint method, the derivative of the functional with
+respect to the control, around the last supplied value of the control,
+is computed and returned.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>options (dict): A dictionary of options. To find a list of available options</dt>
+<dd>have a look at the specific control type.</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>OverloadedType: The derivative with respect to the control.</dt>
+<dd>Should be an instance of the same type as the control.</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="verification">
+<h2>Verification<a class="headerlink" href="#verification" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="pyadjoint.taylor_test">
+<code class="descclassname">pyadjoint.</code><code class="descname">taylor_test</code><span class="sig-paren">(</span><em>J</em>, <em>m</em>, <em>h</em>, <em>dJdm=None</em>, <em>Hm=None</em><span class="sig-paren">)</span><a class="headerlink" href="#pyadjoint.taylor_test" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run a taylor test on the functional J around point m in direction h.</p>
+<p>Given a functional J, a point in control space m, and a direction in
+control space h, the function computes the taylor remainders and
+returns the convergence rate.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>J (reduced_functional.ReducedFunctional): The functional to evaluate the taylor remainders of.</dt>
+<dd>Must be an instance of <a class="reference internal" href="#pyadjoint.ReducedFunctional" title="pyadjoint.ReducedFunctional"><code class="xref py py-class docutils literal"><span class="pre">ReducedFunctional</span></code></a>, or something with a similar
+interface.</dd>
+<dt>m (overloaded_type.OverloadedType): The point in control space. Must be of same type as the</dt>
+<dd>control.</dd>
+<dt>h (overloaded_type.OverloadedType): The direction of perturbations. Must be of same type as</dt>
+<dd>the control.</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd>float: The smallest computed convergence rate of the tested perturbations.</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Sebastian Mitusch.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.5.
+    </div>
+  </body>
+</html>

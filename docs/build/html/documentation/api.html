@@ -1,0 +1,270 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>fenics-adjoint API reference</title>
+    <link rel="stylesheet" href="../_static/fenics.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '2017.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+<link rel="stylesheet" href="../_static/featured.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="../_static/slides.min.jquery.js"></script>
+  <script>
+	$(function(){
+		$('#products').slides({
+			preload: true,
+			preloadImage: 'img/loading.gif',
+			effect: 'slide, fade',
+			crossfade: true,
+			slideSpeed: 350,
+			fadeSpeed: 500,
+			generateNextPrev: false,
+			generatePagination: false,
+	                play: 5000,
+                        hoverPause: false,
+                        animationStart: function(current){
+				$('.caption').animate({
+					bottom:-35
+				},100);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationStart on slide: ', current);
+				};
+			},
+			animationComplete: function(current){
+				$('.caption').animate({
+					bottom:0
+				},200);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationComplete on slide: ', current);
+				};
+			},
+			slidesLoaded: function() {
+				$('.caption').animate({
+					bottom:0
+				},200);
+			}
+		});
+	});
+  </script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-31806773-1']);
+  _gaq.push(['_setDomainName', 'dolfin-adjoint.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<!-- Load the flex slider library -->
+<link rel="stylesheet" href="_static/flexslider/flexslider.css" type="text/css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="_static/flexslider/jquery.flexslider.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+  $(window).load(function() {
+  $('.flexslider').flexslider();
+  });
+</script>
+
+<!-- Load the code highlight library -->
+<link rel="stylesheet" href="_static/highlight/styles/zenburn.css">
+<script src="_static/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<link rel="shortcut icon" href="../_static/icon.ico" />
+
+
+  </head>
+  <body>
+<div class="wrapper">
+  <a href="../"><img src="../_static/banner.png" width="900px" alt="dolfin-adjoint Project Banner" /></a>
+  <div id="access">
+    <div class="menu">
+      <ul>
+          <li class="page_item"><a href="../about/index.html" title="Find out more about dolfin-adjoint">About</a></li>
+          <li class="page_item"><a href="../features/index.html" title="Features of dolfin-adjoint">Features</a></li>
+          <li class="page_item"><a href="index.html" title="Learn how to use dolfin-adjoint">Documentation</a></li>
+          <li class="page_item"><a href="../download/index.html" title="Obtain the dolfin-adjoint code">Download</a></li>
+          <li class="page_item"><a href="../citing/index.html" title="Learn how to cite the dolfin-adjoint project">Citing</a></li>
+          <li class="page_item"><a href="../support/index.html" title="Where to go for more help">Support</a></li>
+      </ul>
+    </div><!-- .menu -->
+  </div><!-- #access -->
+</div><!-- #wrapper -->
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="fenics-adjoint-api-reference">
+<span id="id1"></span><h1>fenics-adjoint API reference<a class="headerlink" href="#fenics-adjoint-api-reference" title="Permalink to this headline">¶</a></h1>
+<p>See also the <a class="reference internal" href="pyadjoint_api.html"><span class="doc">pyadjoint API reference</span></a>.</p>
+<span class="target" id="module-fenics_adjoint"></span><div class="section" id="overloaded-functions">
+<h2>Overloaded functions<a class="headerlink" href="#overloaded-functions" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="fenics_adjoint.assemble">
+<code class="descclassname">fenics_adjoint.</code><code class="descname">assemble</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.assemble" title="Permalink to this definition">¶</a></dt>
+<dd><p>When a form is assembled, the information about its nonlinear dependencies is lost,
+and it is no longer easy to manipulate. Therefore, fenics_adjoint overloads the <code class="xref py py-func docutils literal"><span class="pre">dolfin.assemble()</span></code>
+function to <em>attach the form to the assembled object</em>. This lets the automatic annotation work,
+even when the user calls the lower-level <code class="xref py py-data docutils literal"><span class="pre">solve(A,</span> <span class="pre">x,</span> <span class="pre">b)</span></code>.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="fenics_adjoint.assemble_system">
+<code class="descclassname">fenics_adjoint.</code><code class="descname">assemble_system</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.assemble_system" title="Permalink to this definition">¶</a></dt>
+<dd><p>When a form is assembled, the information about its nonlinear dependencies is lost,
+and it is no longer easy to manipulate. Therefore, fenics_adjoint overloads the <code class="xref py py-func docutils literal"><span class="pre">dolfin.assemble_system()</span></code>
+function to <em>attach the form to the assembled object</em>. This lets the automatic annotation work,
+even when the user calls the lower-level <code class="xref py py-data docutils literal"><span class="pre">solve(A,</span> <span class="pre">x,</span> <span class="pre">b)</span></code>.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="fenics_adjoint.solve">
+<code class="descclassname">fenics_adjoint.</code><code class="descname">solve</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>This solve routine wraps the real Dolfin solve call. Its purpose is to annotate the model,
+recording what solves occur and what forms are involved, so that the adjoint and tangent linear models may be
+constructed automatically by pyadjoint.</p>
+<p>To disable the annotation, just pass <code class="xref py py-data docutils literal"><span class="pre">annotate=False</span></code> to this routine, and it acts exactly like the
+Dolfin solve call. This is useful in cases where the solve is known to be irrelevant or diagnostic
+for the purposes of the adjoint computation (such as projecting fields to other function spaces
+for the purposes of visualisation).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="fenics_adjoint.project">
+<code class="descclassname">fenics_adjoint.</code><code class="descname">project</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.project" title="Permalink to this definition">¶</a></dt>
+<dd><p>The project call performs an equation solve, and so it too must be annotated so that the
+adjoint and tangent linear models may be constructed automatically by pyadjoint.</p>
+<p>To disable the annotation of this function, just pass <code class="xref py py-data docutils literal"><span class="pre">annotate=False</span></code>. This is useful in
+cases where the solve is known to be irrelevant or diagnostic for the purposes of the adjoint
+computation (such as projecting fields to other function spaces for the purposes of
+visualisation).</p>
+</dd></dl>
+
+</div>
+<div class="section" id="overloaded-objects">
+<h2>Overloaded objects<a class="headerlink" href="#overloaded-objects" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="fenics_adjoint.NonlinearVariationalSolver">
+<em class="property">class </em><code class="descclassname">fenics_adjoint.</code><code class="descname">NonlinearVariationalSolver</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.NonlinearVariationalSolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>This object is overloaded so that solves using this class are automatically annotated,
+so that pyadjoint can automatically derive the adjoint and tangent linear models.</p>
+<dl class="method">
+<dt id="fenics_adjoint.NonlinearVariationalSolver.solve">
+<code class="descname">solve</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.NonlinearVariationalSolver.solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>To disable the annotation, just pass <code class="xref py py-data docutils literal"><span class="pre">annotate=False</span></code> to this routine, and it acts exactly like the
+Dolfin solve call. This is useful in cases where the solve is known to be irrelevant or diagnostic
+for the purposes of the adjoint computation (such as projecting fields to other function spaces
+for the purposes of visualisation).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="fenics_adjoint.NonlinearVariationalProblem">
+<em class="property">class </em><code class="descclassname">fenics_adjoint.</code><code class="descname">NonlinearVariationalProblem</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.NonlinearVariationalProblem" title="Permalink to this definition">¶</a></dt>
+<dd><p>This object is overloaded so that solves using this class are automatically annotated,
+so that pyadjoint can automatically derive the adjoint and tangent linear models.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="fenics_adjoint.LinearVariationalSolver">
+<em class="property">class </em><code class="descclassname">fenics_adjoint.</code><code class="descname">LinearVariationalSolver</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.LinearVariationalSolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>This object is overloaded so that solves using this class are automatically annotated,
+so that pyadjoint can automatically derive the adjoint and tangent linear models.</p>
+<dl class="method">
+<dt id="fenics_adjoint.LinearVariationalSolver.solve">
+<code class="descname">solve</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.LinearVariationalSolver.solve" title="Permalink to this definition">¶</a></dt>
+<dd><p>To disable the annotation, just pass <code class="xref py py-data docutils literal"><span class="pre">annotate=False</span></code> to this routine, and it acts exactly like the
+Dolfin solve call. This is useful in cases where the solve is known to be irrelevant or diagnostic
+for the purposes of the adjoint computation (such as projecting fields to other function spaces
+for the purposes of visualisation).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="fenics_adjoint.LinearVariationalProblem">
+<em class="property">class </em><code class="descclassname">fenics_adjoint.</code><code class="descname">LinearVariationalProblem</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.LinearVariationalProblem" title="Permalink to this definition">¶</a></dt>
+<dd><p>This object is overloaded so that solves using this class are automatically annotated,
+so that pyadjoint can automatically derive the adjoint and tangent linear models.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="fenics_adjoint.Function">
+<em class="property">class </em><code class="descclassname">fenics_adjoint.</code><code class="descname">Function</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.Function" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="fenics_adjoint.Function.assign">
+<code class="descname">assign</code><span class="sig-paren">(</span><em>other</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.Function.assign" title="Permalink to this definition">¶</a></dt>
+<dd><p>To disable the annotation, just pass <code class="xref py py-data docutils literal"><span class="pre">annotate=False</span></code> to this routine, and it acts exactly like the
+Dolfin assign call.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="fenics_adjoint.Constant">
+<em class="property">class </em><code class="descclassname">fenics_adjoint.</code><code class="descname">Constant</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.Constant" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="fenics_adjoint.DirichletBC">
+<em class="property">class </em><code class="descclassname">fenics_adjoint.</code><code class="descname">DirichletBC</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.DirichletBC" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="fenics_adjoint.Expression">
+<em class="property">class </em><code class="descclassname">fenics_adjoint.</code><code class="descname">Expression</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#fenics_adjoint.Expression" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded Expression class.</p>
+<p>This class acts as a base class where backend.Expression would be a base class.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Sebastian Mitusch.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.5.
+    </div>
+  </body>
+</html>

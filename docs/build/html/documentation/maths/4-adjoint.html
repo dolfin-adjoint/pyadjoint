@@ -1,0 +1,399 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Properties of the adjoint equations</title>
+    <link rel="stylesheet" href="../../_static/fenics.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2017.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+<link rel="stylesheet" href="../../_static/featured.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="../../_static/slides.min.jquery.js"></script>
+  <script>
+	$(function(){
+		$('#products').slides({
+			preload: true,
+			preloadImage: 'img/loading.gif',
+			effect: 'slide, fade',
+			crossfade: true,
+			slideSpeed: 350,
+			fadeSpeed: 500,
+			generateNextPrev: false,
+			generatePagination: false,
+	                play: 5000,
+                        hoverPause: false,
+                        animationStart: function(current){
+				$('.caption').animate({
+					bottom:-35
+				},100);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationStart on slide: ', current);
+				};
+			},
+			animationComplete: function(current){
+				$('.caption').animate({
+					bottom:0
+				},200);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationComplete on slide: ', current);
+				};
+			},
+			slidesLoaded: function() {
+				$('.caption').animate({
+					bottom:0
+				},200);
+			}
+		});
+	});
+  </script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-31806773-1']);
+  _gaq.push(['_setDomainName', 'dolfin-adjoint.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<!-- Load the flex slider library -->
+<link rel="stylesheet" href="_static/flexslider/flexslider.css" type="text/css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="_static/flexslider/jquery.flexslider.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+  $(window).load(function() {
+  $('.flexslider').flexslider();
+  });
+</script>
+
+<!-- Load the code highlight library -->
+<link rel="stylesheet" href="_static/highlight/styles/zenburn.css">
+<script src="_static/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<link rel="shortcut icon" href="../../_static/icon.ico" />
+
+
+  </head>
+  <body>
+<div class="wrapper">
+  <a href="../../"><img src="../../_static/banner.png" width="900px" alt="dolfin-adjoint Project Banner" /></a>
+  <div id="access">
+    <div class="menu">
+      <ul>
+          <li class="page_item"><a href="../../about/index.html" title="Find out more about dolfin-adjoint">About</a></li>
+          <li class="page_item"><a href="../../features/index.html" title="Features of dolfin-adjoint">Features</a></li>
+          <li class="page_item"><a href="../index.html" title="Learn how to use dolfin-adjoint">Documentation</a></li>
+          <li class="page_item"><a href="../../download/index.html" title="Obtain the dolfin-adjoint code">Download</a></li>
+          <li class="page_item"><a href="../../citing/index.html" title="Learn how to cite the dolfin-adjoint project">Citing</a></li>
+          <li class="page_item"><a href="../../support/index.html" title="Where to go for more help">Support</a></li>
+      </ul>
+    </div><!-- .menu -->
+  </div><!-- #access -->
+</div><!-- #wrapper -->
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="properties-of-the-adjoint-equations">
+<h1>Properties of the adjoint equations<a class="headerlink" href="#properties-of-the-adjoint-equations" title="Permalink to this headline">¶</a></h1>
+<p>The adjoint equations have a reputation for being
+counterintuitive. When told the adjoint equations run backwards in
+time, this can strike the novice as bizarre. Therefore, it is worth
+taking some time to explore these properties, until it is <em>obvious</em>
+that the adjoint system should run backwards in time, and (more
+generally) reverse the propagation of information. In fact, these
+supposedly confusing properties are induced by nothing more exotic
+than simple transposition.</p>
+<div class="section" id="the-adjoint-reverses-the-propagation-of-information">
+<h2>The adjoint reverses the propagation of information<a class="headerlink" href="#the-adjoint-reverses-the-propagation-of-information" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="a-simple-advection-example">
+<h3>A simple advection example<a class="headerlink" href="#a-simple-advection-example" title="Permalink to this headline">¶</a></h3>
+<p>Suppose we are are solving a one-dimensional advection-type equation
+on a mesh with three nodes, at <span class="math">\(x_0=0\)</span>, <span class="math">\(x_1=0.5\)</span>, and
+<span class="math">\(x_2=1\)</span>.  The velocity goes from left to right, and so we impose
+an inflow boundary condition at the left-most node <span class="math">\(x_0\)</span>. A
+simple sketch of the linear system that might describe this
+configuration could look as follows:</p>
+<div class="math">
+\[\begin{split}\begin{pmatrix} 1 &amp; 0 &amp; 0 \\
+                a &amp; b &amp; 0 \\
+                c &amp; d &amp; e \end{pmatrix}
+\begin{pmatrix} u_0 \\ u_1 \\ u_2 \end{pmatrix}
+=
+\begin{pmatrix} 1 \\ 0 \\ 0 \end{pmatrix},\end{split}\]</div>
+<p>where <span class="math">\(a, b, c, d\)</span> and <span class="math">\(e\)</span> are some coefficients of the
+matrix arising from a discretisation of the equation. The equation for
+<span class="math">\(u_1\)</span> does not depend on <span class="math">\(u_2\)</span>, as information is flowing
+from left to right.  The structure of the matrix dictates the
+propagation of information of the system: first <span class="math">\(u_0\)</span> is set to
+the boundary condition value, then <span class="math">\(u_1\)</span> may be computed, and
+then finally <span class="math">\(u_2\)</span>. The <em>lower-triangular nature of the matrix
+reflects the rightward propagation of information.</em></p>
+<p>Notice that <span class="math">\(u_0\)</span> is <em>prescribed</em>: that is, the value of
+<span class="math">\(u_0\)</span> does not depend on the values at any other nodes; all
+off-diagonal entries on the row for <span class="math">\(u_0\)</span> are zero. Notice
+further that the value <span class="math">\(u_2\)</span> is <em>diagnostic</em>: no other nodes
+depend on its value; all off-diagonal entries on its column are zero.</p>
+<p>Now suppose that we take the adjoint of this system with respect to
+some functional <span class="math">\(J(u)\)</span>. The operator is linear (no entry in the
+matrix depends on <span class="math">\(u\)</span>), and so the adjoint of this system is
+just its transpose:</p>
+<div class="math">
+\[\begin{split}\begin{pmatrix} 1 &amp; a &amp; c \\
+                0 &amp; b &amp; d \\
+                0 &amp; 0 &amp; e \end{pmatrix}
+\begin{pmatrix} \lambda_0 \\ \lambda_1 \\ \lambda_2 \end{pmatrix}
+=
+\begin{pmatrix} {\partial J}/{\partial u_0} \\ {\partial J}/{\partial u_1} \\ {\partial J}/{\partial u_2} \end{pmatrix},\end{split}\]</div>
+<div class="sidebar">
+<p class="first sidebar-title">The adjoint of the advection equation</p>
+<p class="last">If the forward equation is <span class="math">\(u \cdot \nabla T\)</span>, where <span class="math">\(u\)</span>
+is the advecting velocity and <span class="math">\(T\)</span> is the advected tracer, then
+its corresponding adjoint term is <span class="math">\(-u \cdot \nabla \lambda\)</span>.
+The adjoint advection equation is itself an advection equation, with
+the reverse of the forward velocity.</p>
+</div>
+<p>where <span class="math">\(\lambda\)</span> is the adjoint variable corresponding to
+<span class="math">\(u\)</span>. Observe that transposing the forward system yields an
+upper-triangular adjoint system: <em>the adjoint propagates information
+from right to left, in the opposite sense to the propagation of the
+forward system</em>. To solve this system, one would first solve for
+<span class="math">\(\lambda_2\)</span>, then compute <span class="math">\(\lambda_1\)</span>, and finally
+<span class="math">\(\lambda_0\)</span>.</p>
+<p>Further notice that <span class="math">\(\lambda_2\)</span> is now prescribed: it can be
+computed directly from the data, with no dependencies on the values of
+other adjoint variables; all of the off-diagonal entries in its row
+are zero. <span class="math">\(\lambda_0\)</span> is now diagnostic: no other variables
+depend on its value; all off-diagonal entries in its column are zero.</p>
+<div class="sidebar">
+<p class="first sidebar-title">Prescribed and diagnostic variables</p>
+<p class="last">This is a general pattern. Variables that are prescribed in the
+forward model are diagnostic in the adjoint; variables that are
+diagnostic in the forward model are prescribed in the adjoint.</p>
+</div>
+</div>
+<div class="section" id="a-time-dependent-example">
+<h3>A time-dependent example<a class="headerlink" href="#a-time-dependent-example" title="Permalink to this headline">¶</a></h3>
+<p>Now consider a time-dependent system. For convenience, we assume the
+system is linear, but the result holds true in exactly the same way
+for nonlinear systems. We start with an initial condition <span class="math">\(f_0\)</span>
+for <span class="math">\(u_0\)</span> (where the subscript denotes the timestep, rather than
+the node). We then use this information to compute the value at the
+next timestep, <span class="math">\(u_1\)</span>. This information is then used to compute
+<span class="math">\(u_2\)</span>, and so on. This temporal structure can be represented as
+a <em>block-structured</em> matrix:</p>
+<div class="math">
+\[\begin{split}\begin{pmatrix} I &amp; 0 &amp; 0 \\
+                A &amp; B &amp; 0 \\
+                C &amp; D &amp; E \end{pmatrix}
+\begin{pmatrix} u_0 \\ u_1 \\ u_2 \end{pmatrix}
+=
+\begin{pmatrix} f_0 \\ f_1 \\ f_2 \end{pmatrix},\end{split}\]</div>
+<p>where <span class="math">\(I\)</span> is the identity operator, <span class="math">\(A, B, C, D\)</span> and
+<span class="math">\(E\)</span> are some operators arising from the discretisation of the
+time-dependent system, <span class="math">\(f_0\)</span> is the initial condition for
+<span class="math">\(u_0\)</span>, and <span class="math">\(f_n\)</span> is the source term for the equation for
+<span class="math">\(u_n\)</span>.</p>
+<p>Again, the <em>temporal propagation of information forward in time is
+reflected in the lower-triangular structure of the matrix</em>. This
+reflects the fact that it is possible to timestep the system, and
+solve for parts of the solution <span class="math">\(u\)</span> at a time. If the discrete
+operator were not lower-triangular, all timesteps of the solution
+<span class="math">\(u\)</span> would be coupled, and would have to be solved for together.</p>
+<p>Notice again that the value at the initial time <span class="math">\(u_0\)</span> is
+prescribed, and the value at the final time <span class="math">\(u_2\)</span> is diagnostic.</p>
+<p>Now let us take the adjoint of this system. Since the operator has
+been assumed to be linear, the adjoint of this system is given by the
+block-structured matrix</p>
+<div class="math">
+\[\begin{split}\begin{pmatrix} I &amp; A^* &amp; C^* \\
+                0 &amp; B^* &amp; D^* \\
+                0 &amp; 0   &amp; E^* \end{pmatrix}
+\begin{pmatrix} \lambda_0 \\ \lambda_1 \\ \lambda_2 \end{pmatrix}
+=
+\begin{pmatrix} {\partial J}/{\partial u_0} \\ {\partial J}/{\partial u_1} \\ {\partial J}/{\partial u_2} \end{pmatrix},\end{split}\]</div>
+<p>where <span class="math">\(\lambda\)</span> is the adjoint variable corresponding to
+<span class="math">\(u\)</span>. Observe that the adjoint system is now upper-triangular:
+<em>the adjoint propagates information from later times to earlier times,
+in the opposite sense to the propagation of the forward system</em>. To
+solve this system, one would first solve for <span class="math">\(\lambda_2\)</span>, then
+compute <span class="math">\(\lambda_1\)</span>, and finally <span class="math">\(\lambda_0\)</span>.</p>
+<p>Notice once more that the prescribed-diagnostic relationship
+applies. In the forward model, the initial condition is prescribed,
+and the solution at the final time is diagnostic. In the adjoint
+model, the solution at the final time is prescribed (a so-called
+<em>terminal condition</em>, rather than an initial condition), and the
+solution at the beginning of time is diagnostic. This is why when the
+adjoint of a continuous system is derived, the formulation always
+includes the specification of a terminal condition on the adjoint
+system.</p>
+</div>
+</div>
+<div class="section" id="the-adjoint-equation-is-linear">
+<h2>The adjoint equation is linear<a class="headerlink" href="#the-adjoint-equation-is-linear" title="Permalink to this headline">¶</a></h2>
+<p>As noted in the previous section, the operator of the tangent linear
+system is the linearisation of the operator about the solution
+<span class="math">\(u\)</span>; therefore, the adjoint system is always linear in
+<span class="math">\(\lambda\)</span>.</p>
+<div class="sidebar">
+<p class="first sidebar-title">Unconverged nonlinear iterations</p>
+<p>Note that the nonlinear iteration <em>has to converge</em> for the
+linearisation about the solution at that timestep to be valid. If
+the model does not drive the nonlinear problem to convergence
+(perhaps it only does a fixed number of Picard iterations, say),
+then it is not consistent to see the nonlinear solve as one
+equation, and to trade it for a linear solve in the adjoint. In
+other words, if the nonlinear solve does not converge, then each
+iteration of the <em>unconverged</em> nonlinear solve induces a linear
+solve in the adjoint system, and so the adjoint will take
+approximately the same runtime as the forward model.</p>
+<p class="last">Converging your nonlinear problem is not only more accurate, it
+makes the adjoint relatively much more efficient!</p>
+</div>
+<p>This has two major effects. The first is a beneficial effect on the
+computation time of the adjoint run: while the forward model may be
+nonlinear, <em>the adjoint is always linear, and so it can be much
+cheaper to solve than the forward model</em>.  For example, if the forward
+model employs a Newton solver for the nonlinear problem that uses on
+average <span class="math">\(5\)</span> linear solves to converge to machine precision, then
+a rough estimate for the adjoint computation is that it will take
+<span class="math">\(1/5\)</span> the runtime of the forward model.</p>
+<p>The second major effect is on the storage requirements of the adjoint
+run. Unfortunately, this effect is not beneficial.  The adjoint
+operator is a linearisation of the nonlinear operator about the
+solution <span class="math">\(u\)</span>: therefore, <em>if the forward model is nonlinear, the
+forward solution must be available to assemble the adjoint system</em>. If
+the forward model is steady, this is not a significant difficulty:
+however, <em>if the forward model is time-dependent, the entire solution
+trajectory through time must be available</em>.</p>
+<p>The obvious approach to making the entire solution trajectory
+available is to store the value of every variable solved for. This
+approach is the simplest, and it is the most efficient option if
+enough storage is available on the machine to store the entire
+solution at once. However, for long simulations with many degrees of
+freedom, it is usually impractical to store the entire solution
+trajectory, and therefore some alternative approach must be
+implemented.</p>
+<p>The space cost of storing all variables is linear in time (double the
+timesteps, double the storage) and the time cost is constant (no extra
+recomputation is required). The opposite strategy, of storing nothing
+and recomputing everything when it becomes necessary, is quadratic in
+time and constant in space. A <em>checkpointing algorithm</em> attempts to
+strike a balance between these two extremes to control both the
+spatial requirements (storage space) and temporal requirements
+(recomputation).</p>
+<div class="sidebar">
+<p class="first sidebar-title">Checkpointing in dolfin-adjoint</p>
+<p class="last">Libadjoint, the library that is the backbone of dolfin-adjoint,
+embeds the revolve algorithm of Griewank and Walther. Activating
+checkpointing is a simple matter of adding two function calls. For
+more details, see <span class="xref std std-doc">the manual section on checkpointing</span>.</p>
+</div>
+<p>Checkpointing algorithms have been well studied in the literature,
+usually in the context of algorithmic differentiation
+<a class="reference internal" href="#griewank1992" id="id1">[4M-Gri92]</a> <a class="reference internal" href="#hinze2005" id="id2">[4M-HS05]</a> <a class="reference internal" href="#stumm2010" id="id3">[4M-SW10]</a>
+<a class="reference internal" href="#wang2009" id="id4">[4M-WMI09]</a>.  There are two categories of checkpointing
+algorithms: <em>offline</em> algorithms and <em>online</em> algorithms.  In the
+offline case, the number of timesteps is known in advance, and so the
+optimal distribution of checkpoints may be computed a priori (and
+hence “offline”), while in the online case, the number of timesteps is
+not known in advance, and so the distribution of checkpoints must be
+computed during the run itself. Of particular note is the revolve
+software of Griewank and Walther, which achieves logarithmic growth of
+both space <em>and</em> time <a class="reference internal" href="#griewank2000" id="id5">[4M-GW00]</a>.  This algorithm is
+provably optimal for the offline case <a class="reference internal" href="#grimm1996" id="id6">[4M-GPRS96]</a>.</p>
+<div class="section" id="summary">
+<h3>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h3>
+<p>Now that the adjoint and tangent linear equations have been
+introduced, and some of their properties discussed, let us see in more
+detail the applications of these concepts. This is discussed in
+<a class="reference internal" href="5-applications.html"><span class="doc">the next section</span></a>.</p>
+<p class="rubric">References</p>
+<p id="bibtex-bibliography-documentation/maths/4-adjoint-0"><table class="docutils citation" frame="void" id="griewank1992" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[4M-Gri92]</a></td><td>A.&nbsp;Griewank. Achieving logarithmic growth of temporal and spatial complexity in reverse automatic differentiation. <em>Optimization Methods and Software</em>, 1(1):35–54, 1992. <a class="reference external" href="https://doi.org/10.1080/10556789208805505">doi:10.1080/10556789208805505</a>.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="griewank2000" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id5">[4M-GW00]</a></td><td>A.&nbsp;Griewank and A.&nbsp;Walther. Algorithm 799: revolve: an implementation of checkpointing for the reverse or adjoint mode of computational differentiation. <em>ACM Transactions on Mathematical Software</em>, 26(1):19–45, 2000. <a class="reference external" href="https://doi.org/10.1145/347837.347846">doi:10.1145/347837.347846</a>.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="grimm1996" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id6">[4M-GPRS96]</a></td><td>J.&nbsp;Grimm, L.&nbsp;Pottier, and N.&nbsp;Rostaing-Schmidt. Optimal time and minimum space-time product for reversing a certain class of programs. In M.&nbsp;Berz, C.&nbsp;H. Bischof, G.&nbsp;F. Corliss, and A.&nbsp;Griewank, editors, <em>Computational Differentiation: Techniques, Applications, and Tools</em>, 95–106. Philadelphia, PA, 1996. SIAM.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="hinze2005" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id2">[4M-HS05]</a></td><td>M.&nbsp;Hinze and J.&nbsp;Sternberg. A-revolve: an adaptive memory-reduced procedure for calculating adjoints; with an application to computing adjoints of the instationary Navier–Stokes system. <em>Optimization Methods and Software</em>, 20(6):645–663, 2005. <a class="reference external" href="https://doi.org/10.1080/10556780410001684158">doi:10.1080/10556780410001684158</a>.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="stumm2010" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id3">[4M-SW10]</a></td><td>P.&nbsp;Stumm and A.&nbsp;Walther. New algorithms for optimal online checkpointing. <em>SIAM Journal on Scientific Computing</em>, 32(2):836–854, 2010. <a class="reference external" href="https://doi.org/10.1137/080742439">doi:10.1137/080742439</a>.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="wang2009" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id4">[4M-WMI09]</a></td><td>Q.&nbsp;Wang, P.&nbsp;Moin, and G.&nbsp;Iaccarino. Minimal repetition dynamic checkpointing algorithm for unsteady adjoint calculation. <em>SIAM Journal on Scientific Computing</em>, 31(4):2549–2567, 2009. <a class="reference external" href="https://doi.org/10.1137/080727890">doi:10.1137/080727890</a>.</td></tr>
+</tbody>
+</table>
+</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Sebastian Mitusch.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.5.
+    </div>
+  </body>
+</html>

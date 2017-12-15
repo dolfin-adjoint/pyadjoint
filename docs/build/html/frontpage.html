@@ -1,0 +1,213 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Automating the derivation of adjoint and tangent linear models</title>
+    <link rel="stylesheet" href="_static/fenics.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '2017.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+<link rel="stylesheet" href="_static/featured.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="_static/slides.min.jquery.js"></script>
+  <script>
+	$(function(){
+		$('#products').slides({
+			preload: true,
+			preloadImage: 'img/loading.gif',
+			effect: 'slide, fade',
+			crossfade: true,
+			slideSpeed: 350,
+			fadeSpeed: 500,
+			generateNextPrev: false,
+			generatePagination: false,
+	                play: 5000,
+                        hoverPause: false,
+                        animationStart: function(current){
+				$('.caption').animate({
+					bottom:-35
+				},100);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationStart on slide: ', current);
+				};
+			},
+			animationComplete: function(current){
+				$('.caption').animate({
+					bottom:0
+				},200);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationComplete on slide: ', current);
+				};
+			},
+			slidesLoaded: function() {
+				$('.caption').animate({
+					bottom:0
+				},200);
+			}
+		});
+	});
+  </script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-31806773-1']);
+  _gaq.push(['_setDomainName', 'dolfin-adjoint.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<!-- Load the flex slider library -->
+<link rel="stylesheet" href="_static/flexslider/flexslider.css" type="text/css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="_static/flexslider/jquery.flexslider.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+  $(window).load(function() {
+  $('.flexslider').flexslider();
+  });
+</script>
+
+<!-- Load the code highlight library -->
+<link rel="stylesheet" href="_static/highlight/styles/zenburn.css">
+<script src="_static/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<link rel="shortcut icon" href="_static/icon.ico" />
+
+
+  </head>
+  <body>
+<div class="wrapper">
+  <a href="./"><img src="_static/banner.png" width="900px" alt="dolfin-adjoint Project Banner" /></a>
+  <div id="access">
+    <div class="menu">
+      <ul>
+          <li class="page_item"><a href="about/index.html" title="Find out more about dolfin-adjoint">About</a></li>
+          <li class="page_item"><a href="features/index.html" title="Features of dolfin-adjoint">Features</a></li>
+          <li class="page_item"><a href="documentation/index.html" title="Learn how to use dolfin-adjoint">Documentation</a></li>
+          <li class="page_item"><a href="download/index.html" title="Obtain the dolfin-adjoint code">Download</a></li>
+          <li class="page_item"><a href="citing/index.html" title="Learn how to cite the dolfin-adjoint project">Citing</a></li>
+          <li class="page_item"><a href="support/index.html" title="Where to go for more help">Support</a></li>
+      </ul>
+    </div><!-- .menu -->
+  </div><!-- #access -->
+</div><!-- #wrapper -->
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <p>The dolfin-adjoint project automatically derives the discrete adjoint
+and tangent linear models from a forward model written in the Python
+interface to DOLFIN.</p>
+  <style type="text/css">
+      .codeblock {
+        display: inline-block;
+          width: 500px;
+      }
+      .imageblock {
+        display: inline-block;
+          width: 260px;
+          margin: 1em;
+      }
+  </style>
+
+  <div id="slider" class="flexslider">
+    <ul class="slides">
+
+    <!-- -------------------- Klein bottle -------------------------------- -->
+      <li>
+        <h2>
+        Sensitivity analysis on a Klein bottle.
+        </h2>
+        <div class="codeblock">
+              <pre><code class="f1 python"># Define variational formulation
+F = inner(grad(u), grad(v))*dx - inner(m, v)*dx
+
+# Solve the variational form
+solve(F == 0, u)
+
+# Compute the sensitivity
+J = Functional(inner(u, u)*dx)
+m = Control(f)
+dJdm = compute_gradient(J, m)
+
+# Plot the results
+plot(dJdm)</code></pre>
+          </div>
+          <div class="imageblock">
+              <img src="_static/slider/klein.png" style="width:256px;height=256px"/>
+          </div>
+      </li>
+
+    <!-- -------------------- Poisson topology -------------------------------- -->
+      <li>
+        <h2>
+        Growing the optimal heat-sink.
+        </h2>
+        <div class="codeblock">
+              <pre><code class="f1 python"># Define variational formulation
+F = inner(grad(v), k(a)*grad(T))*dx - f*v*dx
+
+# Specify control and compliance as objective
+J = Functional(f*T*dx)
+m = Control(a)
+Jhat = ReducedFunctional(J, m)
+
+# Run optimization
+constraint = VolumeConstraint(V=0.4)
+nlp = rfn.pyipopt_problem(bounds=(lb, ub),
+                 constraints=constraint)
+a_opt = nlp.solve(full=False)</code></pre>
+          </div>
+          <div class="imageblock">
+              <img src="_static/slider/poisson-topology.png" style="width:256px;height=256px"/>
+          </div>
+      </li>
+
+    </ul>
+  </div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Sebastian Mitusch.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.5.
+    </div>
+  </body>
+</html>

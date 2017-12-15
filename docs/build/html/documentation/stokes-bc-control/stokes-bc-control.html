@@ -1,0 +1,239 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Dirichlet BC control of the Stokes equations</title>
+    <link rel="stylesheet" href="../../_static/fenics.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2017.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+<link rel="stylesheet" href="../../_static/featured.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="../../_static/slides.min.jquery.js"></script>
+  <script>
+	$(function(){
+		$('#products').slides({
+			preload: true,
+			preloadImage: 'img/loading.gif',
+			effect: 'slide, fade',
+			crossfade: true,
+			slideSpeed: 350,
+			fadeSpeed: 500,
+			generateNextPrev: false,
+			generatePagination: false,
+	                play: 5000,
+                        hoverPause: false,
+                        animationStart: function(current){
+				$('.caption').animate({
+					bottom:-35
+				},100);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationStart on slide: ', current);
+				};
+			},
+			animationComplete: function(current){
+				$('.caption').animate({
+					bottom:0
+				},200);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationComplete on slide: ', current);
+				};
+			},
+			slidesLoaded: function() {
+				$('.caption').animate({
+					bottom:0
+				},200);
+			}
+		});
+	});
+  </script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-31806773-1']);
+  _gaq.push(['_setDomainName', 'dolfin-adjoint.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<!-- Load the flex slider library -->
+<link rel="stylesheet" href="_static/flexslider/flexslider.css" type="text/css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="_static/flexslider/jquery.flexslider.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+  $(window).load(function() {
+  $('.flexslider').flexslider();
+  });
+</script>
+
+<!-- Load the code highlight library -->
+<link rel="stylesheet" href="_static/highlight/styles/zenburn.css">
+<script src="_static/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<link rel="shortcut icon" href="../../_static/icon.ico" />
+
+
+  </head>
+  <body>
+<div class="wrapper">
+  <a href="../../"><img src="../../_static/banner.png" width="900px" alt="dolfin-adjoint Project Banner" /></a>
+  <div id="access">
+    <div class="menu">
+      <ul>
+          <li class="page_item"><a href="../../about/index.html" title="Find out more about dolfin-adjoint">About</a></li>
+          <li class="page_item"><a href="../../features/index.html" title="Features of dolfin-adjoint">Features</a></li>
+          <li class="page_item"><a href="../index.html" title="Learn how to use dolfin-adjoint">Documentation</a></li>
+          <li class="page_item"><a href="../../download/index.html" title="Obtain the dolfin-adjoint code">Download</a></li>
+          <li class="page_item"><a href="../../citing/index.html" title="Learn how to cite the dolfin-adjoint project">Citing</a></li>
+          <li class="page_item"><a href="../../support/index.html" title="Where to go for more help">Support</a></li>
+      </ul>
+    </div><!-- .menu -->
+  </div><!-- #access -->
+</div><!-- #wrapper -->
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="dirichlet-bc-control-of-the-stokes-equations">
+<h1>Dirichlet BC control of the Stokes equations<a class="headerlink" href="#dirichlet-bc-control-of-the-stokes-equations" title="Permalink to this headline">¶</a></h1>
+<p>This example demonstrates how to compute the sensitivity with respect to the Dirichlet
+boundary conditions in pyadjoint.</p>
+<div class="section" id="problem-definition">
+<h2>Problem definition<a class="headerlink" href="#problem-definition" title="Permalink to this headline">¶</a></h2>
+<p>Consider the Stokes equations</p>
+<div class="math">
+\[\begin{split}-\nu \Delta u + \nabla p &amp;= 0  \qquad \mathrm{in} \ \Omega \\
+                  \mathrm{div }\  u &amp;= 0  \qquad \mathrm{in} \ \Omega  \\\end{split}\]</div>
+<p>with Dirichlet boundary conditions</p>
+<div class="math">
+\[\begin{split}u &amp;= g  \qquad \mathrm{on} \ \partial \Omega_{\textrm{cirlce}} \\
+u &amp;= f  \qquad \mathrm{on} \ \partial \Omega_{\textrm{in}} \\
+u &amp;= 0  \qquad \mathrm{on} \ \partial \Omega_{\textrm{walls}} \\
+p &amp;= 0  \qquad \mathrm{on} \ \partial \Omega_{\textrm{out}} \\\end{split}\]</div>
+<p>where <span class="math">\(\Omega\)</span> is the domain of interest (visualised below),
+<span class="math">\(u:\Omega \to \mathbb R^2\)</span> is the unknown velocity,
+<span class="math">\(p:\Omega \to \mathbb R\)</span> is the unknown pressure, <span class="math">\(\nu\)</span>
+is the viscosity, <span class="math">\(\alpha\)</span> is the regularisation parameter,
+<span class="math">\(f\)</span> denotes the value for the Dirichlet inflow boundary
+condition, and <span class="math">\(g\)</span> is the control variable that specifies the
+Dirichlet boundary condition on the circle.</p>
+<a class="reference internal image-reference" href="../../_images/stokes_bc_control_domain.png"><img alt="../../_images/stokes_bc_control_domain.png" class="align-center" src="../../_images/stokes_bc_control_domain.png" style="width: 735.0px; height: 256.9px;" /></a>
+<p>The goal is to compute the sensitivity of the functional</p>
+<div class="math">
+\[\begin{split}\frac{1}{2}\int_{\Omega} \nabla u \cdot \nabla u~\textrm{d}x \\\end{split}\]</div>
+</div>
+<div class="section" id="implementation">
+<h2>Implementation<a class="headerlink" href="#implementation" title="Permalink to this headline">¶</a></h2>
+<p>First, the <code class="xref py py-mod docutils literal"><span class="pre">fenics</span></code> and <code class="xref py py-mod docutils literal"><span class="pre">fenics_adjoint</span></code> modules are imported:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">fenics</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">fenics_adjoint</span> <span class="k">import</span> <span class="o">*</span>
+</pre></div>
+</div>
+<p>Next, we load the mesh. The mesh was generated with mshr; see make-mesh.py
+in the same directory.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">mesh_xdmf</span> <span class="o">=</span> <span class="n">XDMFFile</span><span class="p">(</span><span class="n">mpi_comm_world</span><span class="p">(),</span> <span class="s2">&quot;rectangle-less-circle.xdmf&quot;</span><span class="p">)</span>
+<span class="n">mesh</span> <span class="o">=</span> <span class="n">Mesh</span><span class="p">()</span>
+<span class="n">mesh_xdmf</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">mesh</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Then, we define the discrete function spaces. A Taylor-Hood
+finite-element pair is a suitable choice for the Stokes equations.
+The control function is the Dirichlet boundary value on the velocity
+field and is hence be a function on the velocity space (note: FEniCS
+cannot restrict functions to boundaries, hence the control is
+defined over the entire domain).</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">V_h</span> <span class="o">=</span> <span class="n">VectorElement</span><span class="p">(</span><span class="s2">&quot;CG&quot;</span><span class="p">,</span> <span class="n">mesh</span><span class="o">.</span><span class="n">ufl_cell</span><span class="p">(),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">Q_h</span> <span class="o">=</span> <span class="n">FiniteElement</span><span class="p">(</span><span class="s2">&quot;CG&quot;</span><span class="p">,</span> <span class="n">mesh</span><span class="o">.</span><span class="n">ufl_cell</span><span class="p">(),</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">W</span> <span class="o">=</span> <span class="n">FunctionSpace</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="n">V_h</span> <span class="o">*</span> <span class="n">Q_h</span><span class="p">)</span>
+<span class="n">V</span><span class="p">,</span> <span class="n">Q</span> <span class="o">=</span> <span class="n">W</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+
+<span class="n">v</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">TestFunctions</span><span class="p">(</span><span class="n">W</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">TrialFunction</span><span class="p">(</span><span class="n">W</span><span class="p">)</span>
+<span class="n">u</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">s</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">W</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;State&quot;</span><span class="p">)</span>
+<span class="n">V_collapse</span> <span class="o">=</span> <span class="n">V</span><span class="o">.</span><span class="n">collapse</span><span class="p">()</span>
+<span class="n">g</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">V_collapse</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Control&quot;</span><span class="p">)</span>
+
+
+<span class="c1"># Set parameter values</span>
+<span class="n">nu</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>     <span class="c1"># Viscosity coefficient</span>
+
+<span class="c1"># Define boundary conditions</span>
+<span class="n">u_inflow</span> <span class="o">=</span> <span class="n">Expression</span><span class="p">((</span><span class="s2">&quot;x[1]*(10-x[1])/25&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">noslip</span> <span class="o">=</span> <span class="n">DirichletBC</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                     <span class="s2">&quot;on_boundary &amp;&amp; (x[1] &gt;= 9.9 || x[1] &lt; 0.1)&quot;</span><span class="p">)</span>
+<span class="n">inflow</span> <span class="o">=</span> <span class="n">DirichletBC</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">u_inflow</span><span class="p">,</span> <span class="s2">&quot;on_boundary &amp;&amp; x[0] &lt;= 0.1&quot;</span><span class="p">)</span>
+<span class="n">circle</span> <span class="o">=</span> <span class="n">DirichletBC</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">g</span><span class="p">,</span> <span class="s2">&quot;on_boundary &amp;&amp; (pow((x[0]-10),2) + pow((x[1]-5),2)  &lt; 3*3)&quot;</span><span class="p">)</span>
+<span class="n">bcs</span> <span class="o">=</span> <span class="p">[</span><span class="n">inflow</span><span class="p">,</span> <span class="n">noslip</span><span class="p">,</span> <span class="n">circle</span><span class="p">]</span>
+
+<span class="n">a</span> <span class="o">=</span> <span class="p">(</span><span class="n">nu</span><span class="o">*</span><span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">u</span><span class="p">),</span> <span class="n">grad</span><span class="p">(</span><span class="n">v</span><span class="p">))</span><span class="o">*</span><span class="n">dx</span>
+     <span class="o">-</span> <span class="n">inner</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">div</span><span class="p">(</span><span class="n">v</span><span class="p">))</span><span class="o">*</span><span class="n">dx</span>
+     <span class="o">-</span> <span class="n">inner</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">div</span><span class="p">(</span><span class="n">u</span><span class="p">))</span><span class="o">*</span><span class="n">dx</span>
+     <span class="p">)</span>
+<span class="n">f</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">V_collapse</span><span class="p">)</span>
+<span class="n">L</span> <span class="o">=</span> <span class="n">inner</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span>
+
+<span class="n">A</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">assemble_system</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">bcs</span><span class="p">)</span>
+<span class="n">solve</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">vector</span><span class="p">(),</span> <span class="n">b</span><span class="p">)</span>
+
+<span class="n">u</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+<span class="n">alpha</span> <span class="o">=</span> <span class="n">Constant</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="n">J</span> <span class="o">=</span> <span class="n">assemble</span><span class="p">(</span><span class="mf">1.</span><span class="o">/</span><span class="mi">2</span><span class="o">*</span><span class="n">inner</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">dx</span><span class="p">)</span>
+<span class="n">dJdm</span> <span class="o">=</span> <span class="n">compute_gradient</span><span class="p">(</span><span class="n">J</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+
+<span class="n">h</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">V_collapse</span><span class="p">)</span>
+<span class="n">h</span><span class="o">.</span><span class="n">vector</span><span class="p">()[:]</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">taylor_test</span><span class="p">(</span><span class="n">ReducedFunctional</span><span class="p">(</span><span class="n">J</span><span class="p">,</span><span class="n">g</span><span class="p">),</span><span class="n">g</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">deepcopy</span> <span class="o">=</span> <span class="kc">True</span><span class="p">),</span><span class="n">h</span><span class="p">,</span><span class="n">dJdm</span><span class="o">=</span><span class="n">dJdm</span><span class="o">.</span><span class="n">vector</span><span class="p">()</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">vector</span><span class="p">()))</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Sebastian Mitusch.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.5.
+    </div>
+  </body>
+</html>

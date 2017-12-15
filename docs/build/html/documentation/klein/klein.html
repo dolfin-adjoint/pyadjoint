@@ -1,0 +1,383 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Sensitivity analysis of the heat equation on a Gray’s Klein bottle</title>
+    <link rel="stylesheet" href="../../_static/fenics.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2017.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+<link rel="stylesheet" href="../../_static/featured.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script src="../../_static/slides.min.jquery.js"></script>
+  <script>
+	$(function(){
+		$('#products').slides({
+			preload: true,
+			preloadImage: 'img/loading.gif',
+			effect: 'slide, fade',
+			crossfade: true,
+			slideSpeed: 350,
+			fadeSpeed: 500,
+			generateNextPrev: false,
+			generatePagination: false,
+	                play: 5000,
+                        hoverPause: false,
+                        animationStart: function(current){
+				$('.caption').animate({
+					bottom:-35
+				},100);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationStart on slide: ', current);
+				};
+			},
+			animationComplete: function(current){
+				$('.caption').animate({
+					bottom:0
+				},200);
+				if (window.console && console.log) {
+					// example return of current slide number
+					console.log('animationComplete on slide: ', current);
+				};
+			},
+			slidesLoaded: function() {
+				$('.caption').animate({
+					bottom:0
+				},200);
+			}
+		});
+	});
+  </script>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-31806773-1']);
+  _gaq.push(['_setDomainName', 'dolfin-adjoint.org']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+<!-- Load the flex slider library -->
+<link rel="stylesheet" href="_static/flexslider/flexslider.css" type="text/css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="_static/flexslider/jquery.flexslider.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+  $(window).load(function() {
+  $('.flexslider').flexslider();
+  });
+</script>
+
+<!-- Load the code highlight library -->
+<link rel="stylesheet" href="_static/highlight/styles/zenburn.css">
+<script src="_static/highlight/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<link rel="shortcut icon" href="../../_static/icon.ico" />
+
+
+  </head>
+  <body>
+<div class="wrapper">
+  <a href="../../"><img src="../../_static/banner.png" width="900px" alt="dolfin-adjoint Project Banner" /></a>
+  <div id="access">
+    <div class="menu">
+      <ul>
+          <li class="page_item"><a href="../../about/index.html" title="Find out more about dolfin-adjoint">About</a></li>
+          <li class="page_item"><a href="../../features/index.html" title="Features of dolfin-adjoint">Features</a></li>
+          <li class="page_item"><a href="../index.html" title="Learn how to use dolfin-adjoint">Documentation</a></li>
+          <li class="page_item"><a href="../../download/index.html" title="Obtain the dolfin-adjoint code">Download</a></li>
+          <li class="page_item"><a href="../../citing/index.html" title="Learn how to cite the dolfin-adjoint project">Citing</a></li>
+          <li class="page_item"><a href="../../support/index.html" title="Where to go for more help">Support</a></li>
+      </ul>
+    </div><!-- .menu -->
+  </div><!-- #access -->
+</div><!-- #wrapper -->
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="sensitivity-analysis-of-the-heat-equation-on-a-gray-s-klein-bottle">
+<span id="klein"></span><h1>Sensitivity analysis of the heat equation on a Gray’s Klein bottle<a class="headerlink" href="#sensitivity-analysis-of-the-heat-equation-on-a-gray-s-klein-bottle" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="background">
+<h2>Background<a class="headerlink" href="#background" title="Permalink to this headline">¶</a></h2>
+<p>When working with computational models, it is often desirable to study the
+impact of input parameters on a particular model output (the objective value).
+The obvious approach to obtain this sensitivity information is to perturb each
+input variable independently and observe how the objective value changes.
+However, this approach quickly becomes infeasible if the number of input
+variables grows or if the model is computationally expensive.</p>
+<p>One of the key advantages of the adjoint method is that the computational cost
+for obtaining sensitivities is nearly independent of the number of input
+variables. This allows us to compute sensitivities with respect to millions
+of input variables, or even with respect to entire input functions!</p>
+<p>In the following example we consider a time-dependent model and apply
+dolfin-adjoint to determine the sensitivity of the final solution with respect
+to changes in its initial condition.</p>
+</div>
+<div class="section" id="problem-definition">
+<h2>Problem definition<a class="headerlink" href="#problem-definition" title="Permalink to this headline">¶</a></h2>
+<p>The partial differential equation for this example is the time-dependent heat-equation:</p>
+<div class="math">
+\[\begin{split}\frac{\partial u}{\partial t} - \nu \nabla^{2} u= 0
+ \quad &amp; \textrm{in\phantom{r} } \Omega \times (0, T), \\
+u = g  \quad &amp; \textrm{for } \Omega \times \{0\}.\end{split}\]</div>
+<p>where <span class="math">\(\Omega\)</span> is the spatial domain, <span class="math">\(T\)</span> is the final time, <span class="math">\(u\)</span>
+is the unkown temperature variation, <span class="math">\(\nu\)</span> is the thermal diffusivity, and
+<span class="math">\(g\)</span> is the initial temperature.</p>
+<p>The objective value, the model output of interest, is the norm of the
+temperature variable at the final time:</p>
+<div class="math">
+\[J(u) := \int_\Omega u(t=T)^2 \textrm{d} \Omega\]</div>
+<p>The aim of this example is to compute the sensitivity of <span class="math">\(J\)</span> with
+respect to the initial condition <span class="math">\(g\)</span>, that is:</p>
+<div class="math">
+\[\frac{\textrm{d}J}{\textrm{d} g}\]</div>
+<p>Note that we did not specify any boundary conditions for the heat equation
+above.  The reason is that for this example the domain <span class="math">\(\Omega\)</span> is a
+closed manifold, that is a manifold without a boundary. More specifically the
+domain is a 2D manifold embedded in 3D, the <a class="reference external" href="http://paulbourke.net/geometry/klein/">Gray’s Klein bottle</a> with parameters a = 2, n = 2 and m =
+1. The meshed Klein bottle looks like this:</p>
+<a class="reference internal image-reference" href="../../_images/klein-bottle.png"><img alt="../../_images/klein-bottle.png" class="align-center" src="../../_images/klein-bottle.png" style="width: 958.0px; height: 520.5px;" /></a>
+</div>
+<div class="section" id="implementation">
+<h2>Implementation<a class="headerlink" href="#implementation" title="Permalink to this headline">¶</a></h2>
+<p>We start the implementation by importing the <code class="xref py py-mod docutils literal"><span class="pre">dolfin</span></code> and
+<a class="reference internal" href="../api.html#module-fenics_adjoint" title="fenics_adjoint"><code class="xref py py-mod docutils literal"><span class="pre">fenics_adjoint</span></code></a> modules.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">from</span> <span class="nn">fenics</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">fenics_adjoint</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="c1"># Next we load a triangulation of the Klein bottle as a mesh file.</span>
+<span class="n">mesh</span> <span class="o">=</span> <span class="n">Mesh</span><span class="p">()</span>
+<span class="n">infile</span> <span class="o">=</span> <span class="n">XDMFFile</span><span class="p">(</span><span class="n">mpi_comm_world</span><span class="p">(),</span> <span class="s1">&#39;klein.xdmf&#39;</span><span class="p">)</span>
+<span class="n">infile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">mesh</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>FEniCS natively supports solving partial differential equations on manifolds
+[rognes2013], so nothing else needs to be done here.  The code for
+generating this mesh, can be found  in <code class="docutils literal"><span class="pre">examples/klein/make_mesh.py</span></code> in the
+<code class="docutils literal"><span class="pre">dolfin-adjoint</span></code> source tree.</p>
+<p>Next we create the required functions to solve the heat equation.  First we
+define a discrete function space based on a linear, continuous finite element.
+Then we create the solution, test and trial functions for the variational
+formulation.  Finally, we define the initial temperature and the thermal
+diffusivity coefficient.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># Function space for the PDE solution</span>
+<span class="n">V</span> <span class="o">=</span> <span class="n">FunctionSpace</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="s2">&quot;CG&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># Solution at the current time level</span>
+<span class="n">u</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+
+<span class="c1"># Solution at the previous time level</span>
+<span class="n">u_old</span> <span class="o">=</span> <span class="n">Function</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+
+<span class="c1"># Test function</span>
+<span class="n">v</span> <span class="o">=</span> <span class="n">TestFunction</span><span class="p">(</span><span class="n">V</span><span class="p">)</span>
+
+<span class="c1"># Initial condition</span>
+<span class="n">g</span> <span class="o">=</span> <span class="n">interpolate</span><span class="p">(</span><span class="n">Expression</span><span class="p">(</span><span class="s2">&quot;sin(x[2])*cos(x[1])&quot;</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">V</span><span class="p">)</span>
+
+<span class="c1"># Thermal diffusivity</span>
+<span class="n">nu</span> <span class="o">=</span> <span class="mf">1.0</span>
+</pre></div>
+</div>
+<p>Now we discretise the problem in time and implement the variational
+formulation of the problem.  By multiplying the heat equation with a
+testfunction <span class="math">\(v \in V\)</span>, integrating the Laplace term by parts, and
+applying a backward Euler time-discretisation, the discrete problem reads:
+Given <span class="math">\(u_{\textrm{old}} \in V\)</span>, find <span class="math">\(u \in V\)</span> such that for all
+<span class="math">\(v \in V\)</span>:</p>
+<div class="math">
+\[\frac{1}{\textrm{step}} \int_\Omega \left( u - u_{\textrm{old}} \right) v \textrm{d} \Omega + \nu \int_\Omega \nabla u \cdot \nabla v \textrm{d}\Omega = 0\]</div>
+<p>or in code:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># Set the options for the time discretization</span>
+<span class="n">T</span> <span class="o">=</span> <span class="mf">1.</span>
+<span class="n">t</span> <span class="o">=</span> <span class="mf">0.0</span>
+<span class="n">step</span> <span class="o">=</span> <span class="mf">0.1</span>
+
+<span class="c1"># Define the variational formulation of the problem</span>
+<span class="n">F</span> <span class="o">=</span> <span class="n">u</span><span class="o">*</span><span class="n">v</span><span class="o">*</span><span class="n">dx</span> <span class="o">-</span> <span class="n">u_old</span><span class="o">*</span><span class="n">v</span><span class="o">*</span><span class="n">dx</span> <span class="o">+</span> <span class="n">step</span><span class="o">*</span><span class="n">nu</span><span class="o">*</span><span class="n">inner</span><span class="p">(</span><span class="n">grad</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">grad</span><span class="p">(</span><span class="n">u</span><span class="p">))</span><span class="o">*</span><span class="n">dx</span>
+</pre></div>
+</div>
+<p>One remark before we continue with solving the forward problem.  Generally,
+the adjoint equations depend on the solutions of the forward model.
+Therefore, dolfin-adjoint stores every forward solution in memory by default.
+While this approach is fast, it requires significant memory which can
+quickly become infeasible for large-scale, time-dependent applications. For
+such situations, an optimal checkpointing strategy based on the revolve
+library <a class="reference internal" href="../maths/4-adjoint.html#griewank2000" id="id2">[4M-GW00]</a> may be used, which trades off memory required
+for additional computational cost. The following code demonstrates how
+checkpointing would be activated:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#adj_checkpointing(&#39;multistage&#39;, steps=11, snaps_on_disk=1, snaps_in_ram=3, verbose=True)</span>
+</pre></div>
+</div>
+<p>We leave checkpointing deactivated for now, but will present runtime results
+with checkpointing at the end of this section.  More information on
+checkpointing can found in the <span class="xref std std-doc">checkpointing section</span>.</p>
+<p>The next step is to solve the time-dependent forward problem.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">fwd_timer</span> <span class="o">=</span> <span class="n">Timer</span><span class="p">(</span><span class="s2">&quot;Forward run&quot;</span><span class="p">)</span>
+<span class="n">fwd_time</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="n">u_pvd</span> <span class="o">=</span> <span class="n">File</span><span class="p">(</span><span class="s2">&quot;output/u.pvd&quot;</span><span class="p">)</span>
+
+<span class="c1"># Execute the time loop</span>
+<span class="n">u_old</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">annotate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">while</span> <span class="n">t</span> <span class="o">&lt;=</span> <span class="n">T</span><span class="p">:</span>
+    <span class="n">t</span> <span class="o">+=</span> <span class="n">step</span>
+
+    <span class="n">fwd_timer</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+    <span class="n">solve</span><span class="p">(</span><span class="n">F</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
+    <span class="n">u_old</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
+    <span class="n">fwd_time</span> <span class="o">+=</span> <span class="n">fwd_timer</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+
+    <span class="n">u_pvd</span> <span class="o">&lt;&lt;</span> <span class="n">u</span>
+</pre></div>
+</div>
+<p>At the beginning of the time loop, the initial condition <span class="math">\(g\)</span> is copied
+into <span class="math">\(u_{\textrm{old}}\)</span>. Note the annotate=True argument, which tells
+dolfin-adjoint that this assignment is part of the forward model computation.
+Without it, the model output would have no dependency on the initial condition
+<span class="math">\(g\)</span> and the sensitivity would just be 0.  Also note the
+<code class="xref py py-func docutils literal"><span class="pre">adj_inc_timestep</span></code> call.  This
+function indicates the end of a time step and is only required with
+checkpointing enabled.</p>
+<p>At this point, we can compute the objective functional <span class="math">\(J\)</span> and compute
+the sensitivity with respect to the initial condition <span class="math">\(g\)</span>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">J</span> <span class="o">=</span> <span class="n">assemble</span><span class="p">(</span><span class="n">inner</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="p">)</span>
+<span class="n">m</span> <span class="o">=</span> <span class="n">Control</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>
+
+<span class="n">adj_timer</span> <span class="o">=</span> <span class="n">Timer</span><span class="p">(</span><span class="s2">&quot;Adjoint run&quot;</span><span class="p">)</span>
+<span class="n">dJdm</span> <span class="o">=</span> <span class="n">compute_gradient</span><span class="p">(</span><span class="n">J</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">project</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">adj_time</span> <span class="o">=</span> <span class="n">adj_timer</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Note the project=True flag for <code class="xref py py-func docutils literal"><span class="pre">compute_gradient()</span></code>. It indicates that
+the gradient should not be returned as an operator, that is not in the dual
+space <span class="math">\(V^*\)</span>, but instead its Riesz representation in the primal space
+<span class="math">\(V\)</span>. This is necessary to plot the sensitivities without seeing mesh
+dependent features.</p>
+<p>Next we plot the computed sensitivity and print timing statistics comparing
+the runtime of the forward and adjoint solves.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">plot</span><span class="p">(</span><span class="n">dJdm</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Sensitivity of ||u(t=</span><span class="si">%f</span><span class="s2">)||_L2 with respect to u(t=0).&quot;</span> <span class="o">%</span> <span class="n">t</span><span class="p">)</span>
+<span class="n">interactive</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Forward time: &quot;</span><span class="p">,</span> <span class="n">fwd_time</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Adjoint time: &quot;</span><span class="p">,</span> <span class="n">adj_time</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Adjoint to forward runtime ratio: &quot;</span><span class="p">,</span> <span class="n">adj_time</span> <span class="o">/</span> <span class="n">fwd_time</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The example code can be found in <code class="docutils literal"><span class="pre">examples/klein</span></code> in the <code class="docutils literal"><span class="pre">dolfin-adjoint</span></code>
+source tree, and executed as follows:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ python klein.py
+...
+Forward time:  <span class="m">8</span>.62722325325
+Adjoint time:  <span class="m">7</span>.75998806953
+Adjoint to forward runtime ratio:  <span class="m">0</span>.899476904879
+</pre></div>
+</div>
+<p>Since the forward model is linear, the theoretical optimum of the adjoint and forward runtime ratio is 1.
+Indeed, the observed value achieves this performances, and even slightly outperforms it.</p>
+<p>The following image on the left shows the initial temperature variation
+<span class="math">\(u(T=0)\)</span> and the image on the right the final temperature variation
+<span class="math">\(u(T=1)\)</span>.  The diffusion of the initial temperature variation over the
+time period is clearly visible.</p>
+<a class="reference internal image-reference" href="../../_images/u_combined.png"><img alt="../../_images/u_combined.png" class="align-center" src="../../_images/u_combined.png" style="width: 599.4px; height: 304.8px;" /></a>
+<p>The next image shows the computed sensitivity <span class="math">\(\textrm{d} (\|u(t=1)\|) /
+\textrm{d}(u(T=0))\)</span>:</p>
+<a class="reference internal image-reference" href="../../_images/klein-sensitivity.png"><img alt="../../_images/klein-sensitivity.png" class="align-center" src="../../_images/klein-sensitivity.png" style="width: 280.8px; height: 280.8px;" /></a>
+<div class="section" id="checkpointing-timings">
+<h3>Checkpointing timings<a class="headerlink" href="#checkpointing-timings" title="Permalink to this headline">¶</a></h3>
+<p>Checkpointing is crucial to limit the memory requirements when running
+large-scale models with many time steps.</p>
+<p>In the following test, we investigate the additional computational cost when
+using checkpointing over the default store-all strategy in dolfin-adjoint.
+The following table compares the slow-down factor with 11 timesteps, no disk
+checkpoints, and with varying memory checkpoints:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="59%" />
+<col width="4%" />
+<col width="4%" />
+<col width="4%" />
+<col width="4%" />
+<col width="23%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Number of memory checkpoints</th>
+<th class="head">2</th>
+<th class="head">3</th>
+<th class="head">4</th>
+<th class="head">5</th>
+<th class="head">11 (no checkpointing)</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>Theoretical optimal adjoint to forward runtime ratio</td>
+<td>5.00</td>
+<td>2.18</td>
+<td>1.63</td>
+<td>1.45</td>
+<td>1.00</td>
+</tr>
+<tr class="row-odd"><td>Observed adjoint to forward runtime ratio</td>
+<td>5.07</td>
+<td>2.26</td>
+<td>1.73</td>
+<td>1.53</td>
+<td>0.90</td>
+</tr>
+</tbody>
+</table>
+<p>These results indicate that the performance of dolfin-adjoint with
+checkpointing is close to the predicted optimal performance.</p>
+<p class="rubric">References</p>
+<p id="bibtex-bibliography-documentation/klein/klein-0"></p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Sebastian Mitusch.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.5.
+    </div>
+  </body>
+</html>

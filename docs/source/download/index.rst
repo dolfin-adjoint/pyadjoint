@@ -4,9 +4,16 @@
 Installing dolfin-adjoint
 *************************
 
+Install dolfin-adjoint and its Python dependencies with pip:
+
+.. code-block:: bash
+
     pip install git+https://bitbucket.org/dolfin-adjoint/pyadjoint.git@master
 
 Test your installation by running:
+
+.. code-block:: bash
+
     python -m "import fenics_adjoint"
 
 Optional dependencies:
