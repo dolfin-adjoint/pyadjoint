@@ -101,7 +101,7 @@ class Function(FloatingType, backend.Function):
             return self.copy(deepcopy=True)
 
         dep = self.block.get_dependencies()[0]
-        return backend.Function.sub(dep.get_saved_output(), self.block.idx, deepcopy=True)
+        return backend.Function.sub(dep.saved_output, self.block.idx, deepcopy=True)
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
@@ -153,12 +153,12 @@ class Function(FloatingType, backend.Function):
 class AssignBlock(Block):
     def __init__(self, func, other):
         super(AssignBlock, self).__init__()
-        self.add_dependency(func.get_block_output())
-        self.add_dependency(other.get_block_output())
+        self.add_dependency(func.block_output)
+        self.add_dependency(other.block_output)
 
     @no_annotations
     def evaluate_adj(self):
-        adj_input = self.get_outputs()[0].get_adj_output()
+        adj_input = self.get_outputs()[0].adj_value
         if adj_input is None:
             return
         if isinstance(self.get_dependencies()[1], AdjFloat):
@@ -185,17 +185,17 @@ class AssignBlock(Block):
         other_bo = deps[1]
         # TODO: This is a quick-fix, so should be reviewed later.
         if not self.get_outputs()[0].is_control:
-            backend.Function.assign(self.get_outputs()[0].get_saved_output(), other_bo.get_saved_output())
+            backend.Function.assign(self.get_outputs()[0].saved_output, other_bo.saved_output)
 
 
 class SplitBlock(Block):
     def __init__(self, func, idx):
         super(SplitBlock, self).__init__()
-        self.add_dependency(func.get_block_output())
+        self.add_dependency(func.block_output)
         self.idx = idx
 
     def evaluate_adj(self):
-        adj_input = self.get_outputs()[0].get_adj_output()
+        adj_input = self.get_outputs()[0].adj_value
         if adj_input is None:
             return
         dep = self.get_dependencies()[0]
@@ -224,11 +224,11 @@ class SplitBlock(Block):
 class MergeBlock(Block):
     def __init__(self, func, idx):
         super(MergeBlock, self).__init__()
-        self.add_dependency(func.get_block_output())
+        self.add_dependency(func.block_output)
         self.idx = idx
 
     def evaluate_adj(self):
-        adj_input = self.get_outputs()[0].get_adj_output()
+        adj_input = self.get_outputs()[0].adj_value
         if adj_input is None:
             return
         dep = self.get_dependencies()[0]

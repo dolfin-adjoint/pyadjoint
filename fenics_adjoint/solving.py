@@ -104,15 +104,15 @@ class SolveBlock(Block):
             self.linear = True
             # Add dependence on coefficients on the right hand side.
             for c in self.rhs.coefficients():
-                self.add_dependency(c.get_block_output())
+                self.add_dependency(c.block_output)
         else:
             self.linear = False
 
         for bc in self.bcs:
-            self.add_dependency(bc.get_block_output())
+            self.add_dependency(bc.block_output)
 
         for c in self.lhs.coefficients():
-            self.add_dependency(c.get_block_output())
+            self.add_dependency(c.block_output)
 
     def __str__(self):
         return "{} = {}".format(str(self.lhs), str(self.rhs))
@@ -122,7 +122,7 @@ class SolveBlock(Block):
         #t = backend.Timer("Solve:evaluate_adj")
         #t4 = backend.Timer("Solve:adj:Prolog")
         fwd_block_output = self.get_outputs()[0]
-        u = fwd_block_output.get_output()
+        u = fwd_block_output.output
         V = u.function_space()
         adj_var = Function(V)
 
@@ -135,20 +135,20 @@ class SolveBlock(Block):
 
         replaced_coeffs = {}
         for block_output in self.get_dependencies():
-            coeff = block_output.get_output()
+            coeff = block_output.output
             if coeff in F_form.coefficients():
-                replaced_coeffs[coeff] = block_output.get_saved_output()
+                replaced_coeffs[coeff] = block_output.saved_output
 
-        replaced_coeffs[tmp_u] = fwd_block_output.get_saved_output()
+        replaced_coeffs[tmp_u] = fwd_block_output.saved_output
 
         F_form = backend.replace(F_form, replaced_coeffs)
 
-        dFdu = backend.derivative(F_form, fwd_block_output.get_saved_output(), backend.TrialFunction(u.function_space()))
+        dFdu = backend.derivative(F_form, fwd_block_output.saved_output, backend.TrialFunction(u.function_space()))
         dFdu_form = backend.adjoint(dFdu)
         dFdu = compat.assemble_adjoint_value(dFdu_form, **self.assemble_kwargs)
 
         # Get dJdu from previous calculations.
-        dJdu = fwd_block_output.get_adj_output()
+        dJdu = fwd_block_output.adj_value
 
         # TODO: It might make sense to move this so we don't have to do the computations above.
         if dJdu is None:
@@ -169,7 +169,7 @@ class SolveBlock(Block):
 
         adj_var_bdy = compat.function_from_vector(V, dJdu_copy - compat.assemble_adjoint_value(backend.action(dFdu_form, adj_var)))
         for block_output in self.get_dependencies():
-            c = block_output.get_output()
+            c = block_output.output
             if c != self.func or self.linear:
                 c_rep = replaced_coeffs.get(c, c)
 
@@ -203,7 +203,7 @@ class SolveBlock(Block):
     @no_annotations
     def evaluate_tlm(self):
         fwd_block_output = self.get_outputs()[0]
-        u = fwd_block_output.get_output()
+        u = fwd_block_output.output
         V = u.function_space()
 
         if self.linear:
@@ -215,16 +215,16 @@ class SolveBlock(Block):
 
         replaced_coeffs = {}
         for block_output in self.get_dependencies():
-            coeff = block_output.get_output()
+            coeff = block_output.output
             if coeff in F_form.coefficients():
-                replaced_coeffs[coeff] = block_output.get_saved_output()
+                replaced_coeffs[coeff] = block_output.saved_output
 
-        replaced_coeffs[tmp_u] = fwd_block_output.get_saved_output()
+        replaced_coeffs[tmp_u] = fwd_block_output.saved_output
 
         F_form = backend.replace(F_form, replaced_coeffs)
 
         # Obtain dFdu.
-        dFdu = backend.derivative(F_form, fwd_block_output.get_saved_output(), backend.TrialFunction(u.function_space()))
+        dFdu = backend.derivative(F_form, fwd_block_output.saved_output, backend.TrialFunction(u.function_space()))
 
         dFdu = backend.assemble(dFdu, **self.assemble_kwargs)
 
@@ -241,7 +241,7 @@ class SolveBlock(Block):
             if tlm_value is None:
                 continue
 
-            c = block_output.get_output()
+            c = block_output.output
             c_rep = replaced_coeffs.get(c, c)
 
             if c == self.func and not self.linear:
@@ -289,7 +289,7 @@ class SolveBlock(Block):
         adj_input = fwd_block_output.adj_value
         hessian_input = fwd_block_output.hessian_value
         tlm_output = fwd_block_output.tlm_value
-        u = fwd_block_output.get_output()
+        u = fwd_block_output.output
         V = u.function_space()
 
         if hessian_input is None:
@@ -309,23 +309,23 @@ class SolveBlock(Block):
 
         replaced_coeffs = {}
         for block_output in self.get_dependencies():
-            coeff = block_output.get_output()
+            coeff = block_output.output
             if coeff in F_form.coefficients():
-                replaced_coeffs[coeff] = block_output.get_saved_output()
+                replaced_coeffs[coeff] = block_output.saved_output
 
-        replaced_coeffs[tmp_u] = fwd_block_output.get_saved_output()
+        replaced_coeffs[tmp_u] = fwd_block_output.saved_output
         F_form = backend.replace(F_form, replaced_coeffs)
 
         # Define the equation Form. This class is an initial step in refactoring
         # the SolveBlock methods.
         F = Form(F_form, transpose=True)
-        F.set_boundary_conditions(self.bcs, fwd_block_output.get_saved_output())
+        F.set_boundary_conditions(self.bcs, fwd_block_output.saved_output)
 
         bcs = F.bcs
 
         # Using the equation Form we derive dF/du, d^2F/du^2 * du/dm * direction.
-        dFdu_form = backend.derivative(F_form, fwd_block_output.get_saved_output())
-        d2Fdu2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdu_form, fwd_block_output.get_saved_output(), tlm_output))
+        dFdu_form = backend.derivative(F_form, fwd_block_output.saved_output)
+        d2Fdu2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdu_form, fwd_block_output.saved_output, tlm_output))
 
         dFdu = backend.adjoint(dFdu_form)
         dFdu = backend.assemble(dFdu, **self.assemble_kwargs)
@@ -346,7 +346,7 @@ class SolveBlock(Block):
         b_form = d2Fdu2
 
         for bo in self.get_dependencies():
-            c = bo.get_output()
+            c = bo.output
             c_rep = replaced_coeffs.get(c, c)
             tlm_input = bo.tlm_value
 
@@ -372,7 +372,7 @@ class SolveBlock(Block):
 
         # Iterate through every dependency to evaluate and propagate the hessian information.
         for bo in self.get_dependencies():
-            c = bo.get_output()
+            c = bo.output
             c_rep = replaced_coeffs.get(c, c)
 
             if c == self.func and not self.linear:
@@ -402,7 +402,7 @@ class SolveBlock(Block):
             dFdm = backend.derivative(F_form, c_rep, dc)
             # TODO: Actually implement split annotations properly.
             try:
-                d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdm, fwd_block_output.get_saved_output(), tlm_output))
+                d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdm, fwd_block_output.saved_output, tlm_output))
             except ufl.log.UFLException:
                 continue
 
@@ -410,7 +410,7 @@ class SolveBlock(Block):
             # We need to add terms from every other dependency
             # i.e. the terms d^2F/dm_1dm_2
             for bo2 in self.get_dependencies():
-                c2 = bo2.get_output()
+                c2 = bo2.output
                 c2_rep = replaced_coeffs.get(c2, c2)
 
                 if isinstance(c2, backend.DirichletBC):
@@ -459,13 +459,13 @@ class SolveBlock(Block):
         if self.get_outputs()[0].is_control:
             return
 
-        func = self.get_outputs()[0].get_saved_output()
+        func = self.get_outputs()[0].saved_output
         replace_lhs_coeffs = {}
         replace_rhs_coeffs = {}
         bcs = []
         for block_output in self.get_dependencies():
             c = block_output.output
-            c_rep = block_output.get_saved_output()
+            c_rep = block_output.saved_output
 
             if isinstance(c, backend.DirichletBC):
                 bcs.append(c_rep)

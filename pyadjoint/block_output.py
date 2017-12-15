@@ -33,15 +33,6 @@ class BlockOutput(object):
         else:
             self.hessian_value += val
 
-    def get_adj_output(self):
-        return self.adj_value
-
-    def set_initial_adj_input(self, value):
-        self.adj_value = value
-
-    def set_initial_tlm_input(self, value):
-        self.tlm_value = value
-
     def reset_variables(self, types):
         if "adjoint" in types:
             self.adj_value = None
@@ -52,16 +43,13 @@ class BlockOutput(object):
         if "tlm" in types:
             self.tlm_value = None
 
-    # TODO: Make this just an attribute. Extend with Property if needed later.
-    def get_output(self):
-        return self.output
-
     @no_annotations
     def save_output(self, overwrite=True):
         if overwrite or not self.checkpoint:
             self._checkpoint = self.output._ad_create_checkpoint()
 
-    def get_saved_output(self):
+    @property
+    def saved_output(self):
         if self.checkpoint is not None:
             return self.output._ad_restore_at_checkpoint(self.checkpoint)
         else:

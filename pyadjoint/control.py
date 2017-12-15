@@ -36,7 +36,7 @@ class Control(object):
     """
     def __init__(self, control):
         self.control = control
-        self.block_output = control.get_block_output()
+        self.block_output = control.block_output
 
     def data(self):
         return self.block_output.checkpoint
@@ -73,8 +73,13 @@ class Control(object):
     def copy_data(self):
         return self.control._ad_copy()
 
-    def set_initial_tlm_input(self, m):
-        self.block_output.set_initial_tlm_input(m)
+    @property
+    def tlm_value(self):
+        return self.block_output.tlm_value
+
+    @tlm_value.setter
+    def tlm_value(self, value):
+        self.block_output.tlm_value = value
 
     def __getattr__(self, item):
         return getattr(self.control, item)

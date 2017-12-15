@@ -7,7 +7,7 @@ def compute_gradient(J, m, block_idx=0, options=None, tape=None):
     options = {} if options is None else options
     tape = get_working_tape() if tape is None else tape
     tape.reset_variables()
-    J.set_initial_adj_input(1.0)
+    J.adj_value = 1.0
 
     with stop_annotating():
         tape.evaluate(block_idx)
@@ -32,7 +32,7 @@ class Hessian(object):
 
         m_dot = Enlist(m_dot)
         for i, value in enumerate(m_dot):
-            self.controls[i].set_initial_tlm_input(m_dot[i])
+            self.controls[i].tlm_value = m_dot[i]
 
         with stop_annotating():
             self.tape.evaluate_tlm()

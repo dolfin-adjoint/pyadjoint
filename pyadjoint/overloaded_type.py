@@ -25,24 +25,24 @@ class OverloadedType(object):
         self.original_block_output = self.create_block_output()
 
     def create_block_output(self):
-        block_output = BlockOutput(self)
-        self.set_block_output(block_output)
-        return block_output
-
-    def set_block_output(self, block_output):
-        self.block_output = block_output
-
-    def get_block_output(self):
+        self.block_output = BlockOutput(self)
         return self.block_output
 
-    def get_adj_output(self):
-        return self.original_block_output.get_adj_output()
+    @property
+    def adj_value(self):
+        return self.original_block_output.adj_value
 
-    def set_initial_adj_input(self, value):
-        self.block_output.set_initial_adj_input(value)
+    @adj_value.setter
+    def adj_value(self, value):
+        self.block_output.adj_value = value
 
-    def set_initial_tlm_input(self, value):
-        self.original_block_output.set_initial_tlm_input(value)
+    @property
+    def tlm_value(self):
+        return self.original_block_output.tlm_value
+
+    @tlm_value.setter
+    def tlm_value(self, value):
+        self.original_block_output.tlm_value = value
 
     def _ad_convert_type(self, value, options={}):
         """This method must be overridden.

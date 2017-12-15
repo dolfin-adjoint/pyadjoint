@@ -32,7 +32,7 @@ class NormaliseBlock(Block):
     def __init__(self, func, **kwargs):
         super(NormaliseBlock, self).__init__()
         self.kwargs = kwargs
-        self.add_dependency(func.get_block_output())
+        self.add_dependency(func.block_output)
 
     def __str__(self):
         return 'NormaliseBlock'
@@ -40,7 +40,7 @@ class NormaliseBlock(Block):
     def evaluate_adj(self):
         adj_input = self.get_outputs()[0].adj_value
         dependency = self.get_dependencies()[0]
-        x = dependency.get_saved_output().vector()
+        x = dependency.saved_output.vector()
 
         adj_output = x.copy()
 
@@ -57,6 +57,6 @@ class NormaliseBlock(Block):
 
     def recompute(self):
         dependencies = self.get_dependencies()
-        func = dependencies[0].get_saved_output()
+        func = dependencies[0].saved_output
         output = backend_normalise(func)
         self.get_outputs()[0].checkpoint = output

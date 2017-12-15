@@ -153,12 +153,12 @@ In our example the constructor may look like this
       def __init__(self, func, **kwargs):
           super(NormaliseBlock, self).__init__()
           self.kwargs = kwargs
-          self.add_dependency(func.get_block_output())
+          self.add_dependency(func.block_output)
 
 We call the superclass constructor and  save the key word arguments.
 Then we tell pyadjoint that the operation this block represents depends
 on the function :py:data:`func`. As :py:data:`func` should be an overloaded object it has a
-:py:meth:`get_block_output` method.
+:py:meth:`block_output` attribute.
 
 Next we can define a :py:meth:`__str__` method. This gives a name to the block,
 so the output of this is for example how the block is represented in graphs made
@@ -177,7 +177,7 @@ recompute the block.
 
    def recompute(self):
        dependencies = self.get_dependencies()
-       func = dependencies[0].get_saved_output()
+       func = dependencies[0].saved_output
        output = backend_normalise(func, **self.kwargs)
        self.get_outputs()[0].checkpoint = output
 
@@ -266,7 +266,7 @@ Now let us look at the implementation:
    def evaluate_adj(self):
        adj_input = self.get_outputs()[0].adj_value
        dependency = self.get_dependencies()[0]
-       x = dependency.get_saved_output().vector()
+       x = dependency.saved_output.vector()
 
 
 :py:data:`adj_input` is the vector :math:`y` above. As we are going *backwards* through the forward model

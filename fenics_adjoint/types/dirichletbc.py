@@ -52,7 +52,7 @@ class DirichletBC(FloatingType, backend.DirichletBC):
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         if checkpoint is not None:
-            self.set_value(checkpoint.get_saved_output())
+            self.set_value(checkpoint.saved_output)
         return self
 
 
@@ -79,8 +79,8 @@ class DirichletBCBlock(Block):
 
     @no_annotations
     def evaluate_adj(self):
-        bc = self.get_outputs()[0].get_saved_output()
-        adj_inputs = self.get_outputs()[0].get_adj_output()
+        bc = self.get_outputs()[0].saved_output
+        adj_inputs = self.get_outputs()[0].adj_value
 
         if adj_inputs is None:
             return
@@ -114,7 +114,7 @@ class DirichletBCBlock(Block):
     @no_annotations
     def evaluate_tlm(self):
         output = self.get_outputs()[0]
-        bc = output.get_saved_output()
+        bc = output.saved_output
 
         for block_output in self.get_dependencies():
             tlm_input = block_output.tlm_value
@@ -133,7 +133,7 @@ class DirichletBCBlock(Block):
     @no_annotations
     def evaluate_hessian(self):
         # TODO: This is the exact same as evaluate_adj for now. Consider refactoring for no duplicate code.
-        bc = self.get_outputs()[0].get_saved_output()
+        bc = self.get_outputs()[0].saved_output
         hessian_inputs = self.get_outputs()[0].hessian_value
 
         if hessian_inputs is None:

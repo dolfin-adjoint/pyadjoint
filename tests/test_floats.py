@@ -55,7 +55,7 @@ def test_float_subtraction():
 
     # this tests AdjFloat.__rsub__
     e = 3.0 - a
-    e.get_block_output()
+    e.block_output
     assert e == 2.0
     rf = ReducedFunctional(e, Control(a))
     assert rf(b) == 1.0
@@ -83,7 +83,7 @@ def test_float_multiplication():
 
     # this tests AdjFloat.__rmul__
     e = 5.0 * a
-    e.get_block_output()
+    e.block_output
     assert e == 15.0
     rf = ReducedFunctional(e, Control(a))
     assert rf(b) == 10.0
@@ -118,7 +118,7 @@ def test_float_division():
 
     # this tests AdjFloat.__rmul__
     e = 5.0 * a
-    e.get_block_output()
+    e.block_output
     assert e == 15.0
     rf = ReducedFunctional(e, Control(a))
     assert rf(b) == 10.0

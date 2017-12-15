@@ -215,7 +215,7 @@ class Expression(backend.Expression):
         for k in self._ad_attributes_dict:
             v = self._ad_attributes_dict[k]
             if isinstance(v, OverloadedType):
-                ret[k] = v.block_output.get_saved_output()
+                ret[k] = v.block_output.saved_output
             else:
                 ret[k] = v
         return ret
@@ -241,7 +241,7 @@ class ExpressionBlock(Block):
                 self.dependency_keys[parameter] = key
 
     def evaluate_adj(self):
-        adj_inputs = self.get_outputs()[0].get_adj_output()
+        adj_inputs = self.get_outputs()[0].adj_value
 
         if adj_inputs is None:
             # No adjoint inputs, so nothing to compute.
@@ -282,7 +282,7 @@ class ExpressionBlock(Block):
     def evaluate_tlm(self):
         output = self.get_outputs()[0]
         # Restore _ad_attributes_dict.
-        output.get_saved_output()
+        output.saved_output
 
         for block_output in self.get_dependencies():
             if block_output.tlm_value is None:
@@ -383,7 +383,7 @@ class ExpressionBlock(Block):
         if checkpoint:
             for block_output in self.get_dependencies():
                 key = self.dependency_keys[block_output.output]
-                checkpoint[key] = block_output.get_saved_output()
+                checkpoint[key] = block_output.saved_output
 
     def __str__(self):
         return "Expression block"
