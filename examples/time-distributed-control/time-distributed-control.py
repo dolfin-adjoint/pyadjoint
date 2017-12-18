@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# .. _klein:
+# .. _time_distributed_control:
 #
 # .. py:currentmodule:: dolfin_adjoint
 #
@@ -104,7 +104,9 @@ def solve_heat(ctrls):
     bc = DirichletBC(V, 0, "on_boundary")
 
     t = float(dt)
-    j = 0
+
+    j = 0.5*float(dt)*assemble((u_0 - d)**2*dx)
+
     while t <= T:
         # Update source term from control array
         f.assign(ctrls[t])
@@ -116,12 +118,16 @@ def solve_heat(ctrls):
         # Solve PDE
         solve(a == L, u_0, bc)
 
+        # Implement a trapezoidal rule 
+        if t > T - float(dt):
+           weight = 0.5
+        else:
+           weight = 1
+
+        j += weight*float(dt)*assemble((u_0 - d)**2*dx)
+
         # Update time
         t += float(dt)
-
-        # For some reason I need constant weight to replicate old dolfin_adjoint in this example?
-        weight = AdjFloat(1.0)
-        j += weight*AdjFloat(dt)*assemble((u_0 - d)**2*dx)
 
     return u_0, d, j
 
@@ -155,11 +161,7 @@ alpha = Constant(1e-3)
 regularisation = alpha/2*sum([1/dt*(fb-fa)**2*dx for fb, fa in
     zip(list(ctrls.values())[1:], list(ctrls.values())[:-1])])
 
-# By default, dolfin-adjoint integrates functionals over the entire time-interval.
-# Since we have manually discretised the regularistation, it is sufficient
-# to tell dolfin-adjoint to evaluate the regularistation at the beginning:
-
-# Next, we define the remaining functional terms and controls:
+# We add the regularisation term to the functional value and define define the controls:
 
 J = j + assemble(regularisation)
 m = [Control(c) for c in ctrls.values()]

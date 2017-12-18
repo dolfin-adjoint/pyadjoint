@@ -9,12 +9,9 @@ pipelines:
             - instant
             - dijitso
           script:
-            - pip2 install -r requirements.txt
             - pip3 install -r requirements.txt
             - cd $BITBUCKET_CLONE_DIR
-            - pip2 install --no-cache-dir --upgrade --prefix=$FENICS_PREFIX .
             - pip3 install --no-cache-dir --upgrade --prefix=$FENICS_PREFIX .
-            - python2 -m pytest -v tests/fenics_adjoint/
             - python3 -m pytest -v tests/fenics_adjoint/
 
 definitions:

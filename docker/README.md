@@ -1,4 +1,4 @@
-# Docker for dolfin-adjoint 
+# Docker for dolfin-adjoint
 
 This repository contains the scripts for building various Docker
 images for dolfin-adjoint (<http://dolfin-adjoint.org>).
