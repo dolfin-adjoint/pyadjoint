@@ -19,7 +19,6 @@ def compute_gradient(J, m, block_idx=0, options=None, tape=None):
 
 class Hessian(object):
     def __init__(self, J, m):
-        self.tape = get_working_tape()
         self.functional = J
         self.controls = Enlist(m)
 
@@ -35,10 +34,10 @@ class Hessian(object):
             self.controls[i].tlm_value = m_dot[i]
 
         with stop_annotating():
-            self.tape.evaluate_tlm()
+            tape.evaluate_tlm()
 
         self.functional.block_variable.hessian_value = 0.0
-        self.tape.evaluate_hessian()
+        tape.evaluate_hessian()
 
         r = [v.get_hessian(options=options) for v in self.controls]
         return self.controls.delist(r)
