@@ -1,5 +1,5 @@
 from .tape import get_working_tape, stop_annotating, Tape, no_annotations
-from .drivers import compute_gradient
+from .drivers import compute_gradient, Hessian
 from .overloaded_type import OverloadedType
 from .control import Control
 from .enlisting import Enlist
@@ -24,14 +24,19 @@ class ReducedFunctional(object):
                  eval_cb_pre=lambda *args: None,
                  eval_cb_post=lambda *args: None,
                  derivative_cb_pre=lambda *args: None,
-                 derivative_cb_post=lambda *args: None):
+                 derivative_cb_post=lambda *args: None,
+                 hessian_cb_pre=lambda *args: None,
+                 hessian_cb_post=lambda *args: None):
         self.functional = functional
         self.tape = get_working_tape() if tape is None else tape
         self.controls = Enlist(controls)
+        self.hessian = Hessian(self.functional, self.controls)
         self.eval_cb_pre = eval_cb_pre
         self.eval_cb_post = eval_cb_post
         self.derivative_cb_pre = derivative_cb_pre
         self.derivative_cb_post = derivative_cb_post
+        self.hessian_cb_pre = hessian_cb_pre
+        self.hessian_cb_post = hessian_cb_post
 
     def derivative(self, options={}):
         """Returns the derivative of the functional w.r.t. the control.
@@ -64,6 +69,37 @@ class ReducedFunctional(object):
                                 self.controls.delist(values))
 
         return self.controls.delist(derivatives)
+
+    @no_annotations
+    def hessian(self, m_dot, options={}):
+        """Returns the action of the Hessian of the functional w.r.t. the control on a vector m_dot.
+
+        Using the second-order adjoint method, the action of the Hessian of the
+        functional with respect to the control, around the last supplied value
+        of the control, is compured and returned.
+
+        Args:
+            m_dot ([OverloadedType]): The direction in which to compute the
+                action of the Hessian. 
+            options (dict): A dictionary of options. To find a list of
+                available options have a look at the specific control type.
+
+        Returns:
+            OverloadedType: The action of the Hessian in the direction m_dot.
+                Should be an instance of the same type as the control.
+        """
+        # Call callback
+        values = [c.data() for c in self.controls]
+        self.hessian_cb_pre(self.controls.delist(values))
+
+        r = self.hessian(m_dot, options=options, tape=self.tape)
+        
+        # Call callback
+        self.hessian_cb_post(self.functional.block_variable.checkpoint,
+                                self.controls.delist(r),
+                                self.controls.delist(values))
+
+        return self.controls.delist(r)
 
     @no_annotations
     def __call__(self, values):
@@ -124,12 +160,3 @@ class marked_controls(object):
     def __exit__(self, *args):
         for control in self.rf.controls:
             control.unmark_as_control()
-
-
-
-
-
-
-
-
-
