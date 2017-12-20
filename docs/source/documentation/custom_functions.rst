@@ -276,10 +276,8 @@ Next, we should compute the value:
 
 .. code-block:: python
 
-        adj_output = x.copy()
-        
         inv_xnorm = 1.0/x.norm('l2')
-        adj_output = inv_xnorm*adj_input - (inv_xnorm)**3*x.inner(adj_input)
+        adj_output = inv_xnorm*adj_input - inv_xnorm**3*x.inner(adj_input)*x
 
         dependency.add_adj_output(adj_output)
 
@@ -306,8 +304,9 @@ This gives the output:
 
 .. code-block:: none
 
-   Computed residuals: [5.719808547972123e-06, 1.4356712128879936e-06, 3.5963468743448646e-07, 8.999840626988198e-08]
-   Computed convergence rates: [1.9942414669485427, 1.997121308032896, 1.9985608192606437]
+   Running Taylor test
+   Computed residuals: [5.719808547999933e-06, 1.4356712128880207e-06, 3.596346874345e-07, 8.999840626988876e-08]
+   Computed convergence rates: [1.99424146695553, 1.9971213080328687, 1.9985608192605893]
 
 It works.
 
