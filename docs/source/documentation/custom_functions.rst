@@ -225,13 +225,13 @@ where
 
 .. math::
 
-   y_{n+1} = \frac{\partial J}{\partial u_n}.
+   y_{n+1} = \frac{\partial J}{\partial u_n}^*.
 
 and
 
 .. math::
 
-   y_0 = \frac{\mathrm{d} J}{\mathrm{d} u_0}
+   y_0 = \frac{\mathrm{d} J}{\mathrm{d} u_0}^*
 
 Each block only needs to find the transpose of its own gradient!
 This is implemented in :py:meth:`evaluate_adj`.
