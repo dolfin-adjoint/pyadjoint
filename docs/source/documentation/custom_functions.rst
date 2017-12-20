@@ -276,23 +276,18 @@ Next, we should compute the value:
 
 .. code-block:: python
 
-       adj_output = x.copy()
+        adj_output = x.copy()
+        
+        inv_xnorm = 1.0/x.norm('l2')
+        adj_output = inv_xnorm*adj_input - (inv_xnorm)**3*x.inner(adj_input)
 
-       xnorm = x.norm('l2')
-
-       const = 0
-       for i in range(len(x)):
-           const += adj_input[i][0]*x[i][0]
-       const /= xnorm**3
-
-       for i in range(len(x)):
-           adj_output[i] = adj_input[i][0]/xnorm - const*x[i][0]
+        dependency.add_adj_output(adj_output)
 
 Finally we save :py:data:`adj_output` so that it may be propagated up the chain
 
 .. code-block:: python
 
-       dependency.add_adj_output(adj_output)
+        dependency.add_adj_output(adj_output)
 
 |more| `download the overloaded module`_
 
