@@ -276,16 +276,16 @@ Next, we should compute the value:
 
 .. code-block:: python
 
-        inv_xnorm = 1.0/x.norm('l2')
-        adj_output = inv_xnorm*adj_input - inv_xnorm**3*x.inner(adj_input)*x
+       inv_xnorm = 1.0/x.norm('l2')
+       adj_output = inv_xnorm*adj_input - inv_xnorm**3*x.inner(adj_input)*x
 
-        dependency.add_adj_output(adj_output)
+       dependency.add_adj_output(adj_output)
 
 Finally we save :py:data:`adj_output` so that it may be propagated up the chain
 
 .. code-block:: python
 
-        dependency.add_adj_output(adj_output)
+       dependency.add_adj_output(adj_output)
 
 |more| `download the overloaded module`_
 
