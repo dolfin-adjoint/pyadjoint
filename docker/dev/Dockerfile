@@ -21,7 +21,7 @@ USER fenics
 ENV IPOPT_VER=3.12.8
 
 COPY dolfin-adjoint.conf $FENICS_HOME/dolfin-adjoint.conf
-RUN /bin/bash -l -c "source $FENICS_HOME/dolfin-adjoint.conf && \
+RUN /bin/bash -l -c "ls -l . && source $FENICS_HOME/dolfin-adjoint.conf && \
                      update_ipopt && \
                      update_pyipopt && \
                      update_optizelle && \
