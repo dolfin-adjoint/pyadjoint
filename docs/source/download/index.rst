@@ -4,6 +4,10 @@
 Installing dolfin-adjoint
 *************************
 
+
+PIP (all platforms, recommended)
+================================
+
 Install dolfin-adjoint and its Python dependencies with pip:
 
 .. code-block:: bash
@@ -33,3 +37,62 @@ Optional dependencies:
 .. _moola: https://github.com/funsim/moola
 .. _Harwell Subroutine Library: http://www.hsl.rl.ac.uk/ipopt/
 .. _their installation instructions: http://fenicsproject.org/download
+
+
+
+
+Docker images (all platforms)
+=============================
+
+`Docker <https://www.docker.com>`_ allows us to build and ship
+consistent high-performance dolfin-adjoint installations with FEniCS for almost any
+platform. To get started, follow these 2 steps:
+
+#. Install Docker. Mac and Windows users should install the `Docker
+   Toolbox <https://www.docker.com/products/docker-toolbox>`_ (this is
+   a simple one-click install) and Linux users should `follow these
+   instructions <https://docs.docker.com/linux/step_one/>`_.
+#. Install the FEniCS Docker script::
+
+    curl -s https://get.fenicsproject.org | bash
+
+If running on Mac or Windows, make sure you run this and other
+commands inside the Docker Quickstart Terminal.
+
+Stable version:
+---------------
+Once both Docker and the FEniCS Docker script have been installed, you can
+easily start a FEniCS session with dolfin-adjoint by running the following
+command::
+
+    fenicsproject run quay.io/dolfinadjoint/pyadjoint
+
+A Jupyter notebook instance with a user defined name (here myproject) can be started with::
+
+    fenicsproject notebook myproject quay.io/dolfinadjoint/pyadjoint
+    fenicsproject start myproject
+
+The FEniCS Docker script can also be used to create persistent sessions::
+
+    fenicsproject create myproject quay.io/dolfinadjoint/pyadjoint
+    fenicsproject start myproject
+
+Development version:
+--------------------
+The development version of dolfin-adjoint and FEniCS is available with::
+
+    fenicsproject run quay.io/dolfinadjoint/dev-pyadjoint
+
+
+To update the development container, run::
+
+    fenicsproject pull quay.io/dolfinadjoint/dev-pyadjoint
+
+To see all the options run::
+
+    fenicsproject help
+
+For more details and tips on how to work with FEniCS and Docker, see
+our `FEniCS Docker page
+<http://fenics-containers.readthedocs.org/en/latest/>`_.
+
