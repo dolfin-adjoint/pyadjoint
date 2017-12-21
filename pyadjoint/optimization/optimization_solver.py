@@ -1,5 +1,4 @@
 from . import optimization_problem
-import backend
 
 class OptimizationSolver(object):
     """An abstract base class that represents an optimization solver."""
@@ -13,6 +12,9 @@ class OptimizationSolver(object):
         self.parameters = parameters
 
     def __check_arguments(self, problem, parameters):
+        # FIXME: Remove backend specific features from pyadjoint
+        import backend
+
         if not isinstance(problem, optimization_problem.OptimizationProblem):
             raise TypeError("problem should be an OptimizationProblem.")
 

@@ -1,12 +1,7 @@
 import pytest
 from math import log
 from numpy.testing import assert_approx_equal
-
-# this test only uses AdjFloat so it should run under both firedrake and fenics
-try:
-    from fenics_adjoint import *
-except ImportError:
-    from firedrake_adjoint import *
+from pyadjoint import *
 
 
 def test_float_addition():

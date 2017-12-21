@@ -2,9 +2,6 @@
 that can be used with different optimisation algorithms."""
 
 import numpy
-import backend
-if backend.__name__  == "dolfin":
-    from backend import cpp
 
 class Constraint(object):
     def function(self, m):
@@ -46,6 +43,11 @@ class Constraint(object):
     def _get_constraint_dim(self):
         """Returns the number of constraint components."""
         workspace = self.output_workspace()
+
+        # FIXME: Remove FEniCS-specific code from pyadjoint
+        import backend
+        if backend.__name__  == "dolfin":
+            from backend import cpp
 
         if isinstance(workspace, numpy.ndarray) or isinstance(workspace, list):
             return len(workspace)

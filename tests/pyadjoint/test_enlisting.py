@@ -1,8 +1,4 @@
-try:
-    from fenics_adjoint import *
-except ImportError:
-    from firedrake_adjoint import *
-
+from pyadjoint import *
 
 def test_compute_gradient():
     a = AdjFloat(1.0)
