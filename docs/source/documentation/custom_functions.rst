@@ -225,13 +225,13 @@ where
 
 .. math::
 
-   y_{n+1} = \frac{\partial J}{\partial u_n}.
+   y_{n+1} = \frac{\partial J}{\partial u_n}^*.
 
 and
 
 .. math::
 
-   y_0 = \frac{\mathrm{d} J}{\mathrm{d} u_0}
+   y_0 = \frac{\mathrm{d} J}{\mathrm{d} u_0}^*
 
 Each block only needs to find the transpose of its own gradient!
 This is implemented in :py:meth:`evaluate_adj`.
@@ -276,17 +276,10 @@ Next, we should compute the value:
 
 .. code-block:: python
 
-       adj_output = x.copy()
+       inv_xnorm = 1.0/x.norm('l2')
+       adj_output = inv_xnorm*adj_input - inv_xnorm**3*x.inner(adj_input)*x
 
-       xnorm = x.norm('l2')
-
-       const = 0
-       for i in range(len(x)):
-           const += adj_input[i][0]*x[i][0]
-       const /= xnorm**3
-
-       for i in range(len(x)):
-           adj_output[i] = adj_input[i][0]/xnorm - const*x[i][0]
+       dependency.add_adj_output(adj_output)
 
 Finally we save :py:data:`adj_output` so that it may be propagated up the chain
 
@@ -311,8 +304,9 @@ This gives the output:
 
 .. code-block:: none
 
-   Computed residuals: [5.719808547972123e-06, 1.4356712128879936e-06, 3.5963468743448646e-07, 8.999840626988198e-08]
-   Computed convergence rates: [1.9942414669485427, 1.997121308032896, 1.9985608192606437]
+   Running Taylor test
+   Computed residuals: [5.719808547999933e-06, 1.4356712128880207e-06, 3.596346874345e-07, 8.999840626988876e-08]
+   Computed convergence rates: [1.99424146695553, 1.9971213080328687, 1.9985608192605893]
 
 It works.
 
