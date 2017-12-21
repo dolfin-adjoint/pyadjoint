@@ -14,7 +14,7 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) sou
 # the i18n builder cannot share the environment and doctrees with the others
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) source
 
-.PHONY: help clean html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest gettext clone_dolfin_adjoint examples
+.PHONY: help clean html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest gettext examples
 
 all: html
 
@@ -183,10 +183,3 @@ doctest:
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
-
-install-web: html latexpdf
-	cp ./build/latex/dolfin-adjoint-all.pdf ./build/html/_static/dolfin-adjoint-all.pdf
-	cp ./build/html/about/index.html ./build/html/index.html
-	cp -r build/html/* /home/dolfinweb/
-	cp /data/pfarrell/dolfin-adjoint-1.4.ova /home/dolfinweb/_static/
-
