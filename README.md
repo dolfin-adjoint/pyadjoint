@@ -21,7 +21,7 @@ We love pull requests from everyone.
 
 Fork, then clone the repository:
 
-    git clone git@bitbucket.org:your-username/dolfin-adjoint/pyadjoint.git
+    git clone https://bitbucket.org/dolfin-adjoint/pyadjoint.git
 
 Make sure the tests pass:
 
