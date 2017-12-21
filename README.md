@@ -1,6 +1,4 @@
-# Next generation dolfin-adjoint
-
-This repository contains a full re-implementation of dolfin-adjoint that is currently under development.
+# The algorithmic differentation tool pyadjoint and add-ons (dolfin-adjoint, firedrake-adjoint)
 
 The full documentation is available [here](http://pyadjoint.readthedocs.io)
 
@@ -8,15 +6,8 @@ The full documentation is available [here](http://pyadjoint.readthedocs.io)
 # Installation
 First install [FEniCS](http://fenicsproject.org) or [Firedrake](http://firedrakeproject.org)
 
-Then clone the repository:
-
-    git clone https://bitbucket.org/dolfin-adjoint/pyadjoint.git
-
-and install with
-
-    cd pyadjoint
-    pip install -r requirements.txt
-    pip install .
+Then install the pyadjoint with:
+    pip install git+https://bitbucket.org/dolfin-adjoint/pyadjoint.git@master
 
 # Reporting bugs
 
