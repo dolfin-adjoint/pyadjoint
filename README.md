@@ -1,4 +1,4 @@
-# The algorithmic differentation tool pyadjoint and add-ons (dolfin-adjoint, firedrake-adjoint)
+# The algorithmic differentation tool pyadjoint and add-ons
 
 The full documentation is available [here](http://pyadjoint.readthedocs.io)
 
