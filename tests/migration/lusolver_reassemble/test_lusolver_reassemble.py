@@ -1,7 +1,9 @@
+import pytest                                                                   
+pytest.importorskip("fenics")
+
 from os import path
 import subprocess
 import dolfin
-import pytest
  
 @pytest.mark.skipif(not hasattr(dolfin, "HDF5File"),
                             reason="requires hdf5 support")

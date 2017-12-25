@@ -1,4 +1,6 @@
 import pytest
+pytest.importorskip("fenics")
+
 from dolfin import *
 from dolfin_adjoint import *
 

@@ -1,4 +1,6 @@
 import pytest
+pytest.importorskip("fenics")
+import pytest
 from os import path
 import subprocess
 

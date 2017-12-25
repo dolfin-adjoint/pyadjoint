@@ -1,11 +1,7 @@
 import pytest
 import importlib
 import numpy.random
-try:
-    from fenics_adjoint import *
-except ImportError:
-    from firedrake_adjoint import *
-
+from pyadjoint import set_working_tape, Tape
 
 @pytest.fixture(autouse=True)
 def skip_by_missing_module(request):
