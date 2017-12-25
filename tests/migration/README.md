@@ -13,7 +13,6 @@ Currently working tests:
 - [ ] checkpoint_stokes (checkpointing is not implemented)
 - [ ] compute_tlm_list_parameter (compute_tlm is not implemented. It is possible to get tlm values, but it involves interacting with tape and block outputs directly)
 - [x] curl-curl
-- [ ] custom_function (invalid - we do not add custom functions in the same way in pyadjoint)
 - [x] default_parameters
 - [x] differentiability-dg-upwind
 - [x] differentiability-stokes
