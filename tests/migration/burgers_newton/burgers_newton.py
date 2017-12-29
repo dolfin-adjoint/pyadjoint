@@ -8,7 +8,8 @@ from __future__ import print_function
 from fenics import *
 from fenics_adjoint import *
 
-from numpy.random import rand
+from numpy.random import rand, seed
+seed(21)
 
 n = 30
 mesh = UnitIntervalMesh(n)

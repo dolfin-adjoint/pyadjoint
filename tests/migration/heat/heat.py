@@ -1,7 +1,8 @@
 from fenics import *
 from fenics_adjoint import *
 
-from numpy.random import rand
+from numpy.random import rand, seed
+seed(21)
 
 
 f = Expression("x[0]*(x[0]-1)*x[1]*(x[1]-1)", degree=4)

@@ -5,6 +5,7 @@ import subprocess
 import pytest
 
 #@pytest.mark.skip("Should probably work, but not tested")
+@pytest.mark.xfail(reason="FunctionAssigner not implemented")
 def test(request):
     test_file = path.split(path.dirname(str(request.fspath)))[1] + ".py"
     test_dir = path.split(str(request.fspath))[0]

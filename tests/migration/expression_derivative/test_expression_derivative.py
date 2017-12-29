@@ -3,6 +3,7 @@ pytest.importorskip("fenics")
 from os import path
 import subprocess
 
+@pytest.mark.xfail(reason="The design of the expression breaks how pyadjoint stores the expression checkpoints - this issue needs to be discussed further")
 def test(request):
     test_file = path.split(path.dirname(str(request.fspath)))[1] + ".py"
     test_dir = path.split(str(request.fspath))[0]

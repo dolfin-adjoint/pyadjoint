@@ -5,6 +5,7 @@ import subprocess
 import pytest
 
 @pytest.mark.slow
+@pytest.mark.xfail(reason="compute_gst is not implemented")
 def test(request):
     test_file = path.split(path.dirname(str(request.fspath)))[1] + ".py"
     test_dir = path.split(str(request.fspath))[0]

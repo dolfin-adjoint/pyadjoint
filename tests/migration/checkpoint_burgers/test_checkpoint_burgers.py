@@ -8,6 +8,7 @@ import dolfin
 @pytest.mark.skipif(not hasattr(dolfin, "HDF5File"),
                             reason="requires hdf5 support")
 @pytest.mark.xfail(reason='Checkpointing is not implemented yet.')
+@pytest.mark.xfail(reason="checkpointing is not implemented")
 def test(request):
     test_file = path.split(path.dirname(str(request.fspath)))[1] + ".py"
     test_dir = path.split(str(request.fspath))[0]

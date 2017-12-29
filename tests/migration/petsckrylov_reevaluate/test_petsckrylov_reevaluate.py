@@ -5,6 +5,7 @@ from os import path
 import subprocess
 
 @pytest.mark.skipif_module_is_missing("petsc4py")
+@pytest.mark.xfail(reason="PETScKrylovSolver is not implemented")
 def test(request):
     test_file = path.split(path.dirname(str(request.fspath)))[1] + ".py"
     test_dir = path.split(str(request.fspath))[0]

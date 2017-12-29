@@ -4,6 +4,7 @@ pytest.importorskip("fenics")
 from dolfin import *
 from dolfin_adjoint import *
 
+@pytest.mark.xfail
 def test_register_interpolate():
     mesh = UnitIntervalMesh(10)
     V = FunctionSpace(mesh, "CG", 1)

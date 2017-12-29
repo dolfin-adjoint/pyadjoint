@@ -4,6 +4,7 @@ from os import path
 import subprocess
 import pytest
 
+@pytest.mark.xfail(reason="compute_tlm is not implemented. It is possible to get tlm values, but it involves interacting with tape and block outputs directly")
 def test(request):
     test_file = path.split(path.dirname(str(request.fspath)))[1] + ".py"
     test_dir = path.split(str(request.fspath))[0]

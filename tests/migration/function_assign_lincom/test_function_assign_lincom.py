@@ -3,6 +3,7 @@ import subprocess
 import pytest
 
 @pytest.mark.xfail(reason="Not supported yet")
+@pytest.mark.xfail(reason="Assign linear combination not implemented")
 def test(request):
     test_file = path.split(path.dirname(str(request.fspath)))[1] + ".py"
     test_dir = path.split(str(request.fspath))[0]

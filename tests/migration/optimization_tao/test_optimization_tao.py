@@ -3,6 +3,7 @@ pytest.importorskip("fenics")
 from os import path
 import subprocess
 
+@pytest.mark.xfail(reason="TaoSolver is not implemented, maybe it should live in fenics_adjoint?")
 def test(request):
     test_file = path.split(path.dirname(str(request.fspath)))[1] + ".py"
     test_dir = path.split(str(request.fspath))[0]

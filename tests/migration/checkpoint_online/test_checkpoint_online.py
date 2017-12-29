@@ -3,6 +3,7 @@ import pytest
 import subprocess
 
 @pytest.mark.skip(reason="Not supported yet")
+@pytest.mark.xfail(reason="checkpointing is not implemented")
 def test(request):
     test_file = path.split(path.dirname(str(request.fspath)))[1] + ".py"
     test_dir = path.split(str(request.fspath))[0]
