@@ -40,7 +40,7 @@ Applying this in fenics-adjoint
 In the case of PDE-constrained optimisation, computing :math:`\widehat{J}(m)` involves solving the PDE
 for that choice of :math:`m` to compute the solution :math:`u`, and then evaluating the functional :math:`J`.
 The main function in fenics-adjoint for applying the Taylor remainder convergence test is :py:func:`taylor_test <fenics_adjoint.taylor_test>`.
-To see how this works, let us again consider our example with Burgers' equation :math:`\nu`:
+To see how this works, let us again consider our example with Burgers' equation:
 
 .. literalinclude:: ../_static/tutorial3.py
 
@@ -50,14 +50,14 @@ Instead of
 
 .. code-block:: python
 
-   dJdnu = compute_gradient(J, nu)
+   dJdnu = compute_gradient(J, Control(nu))
 
 we write
 
 .. code-block:: python
 
    h = Constant(0.0001)
-   Jhat = ReducedFunctional(J, nu)
+   Jhat = ReducedFunctional(J, Control(nu))
    conv_rate = taylor_test(Jhat, nu, h)
 
 Here, :py:data:`h` is the direction of perturbation.
@@ -71,8 +71,15 @@ We could also have taken the taylor test on the gradient with respect to the :py
 
    h = Function(V)
    h.vector()[:] = 0.1
-   conv_rate = taylor_test(RestrictedFunctional(J, u), u, h)
+   conv_rate = taylor_test(ReducedFunctional(J, control), u, h)
 
+where :py:data:`control` is defined as
+
+.. code-block:: python
+
+    control = Control(u)
+
+At the desired time in the code.
 Here is the full program to check that we compute :py:data:`dJdnu` correctly:
 
 .. literalinclude:: ../_static/tutorial4.py

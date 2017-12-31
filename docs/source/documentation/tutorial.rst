@@ -83,32 +83,36 @@ where :py:data:`u` is the final velocity.
 
 Suppose we wish to compute the
 gradient of :math:`J` with respect to the initial condition for
-:math:`u`, using the adjoint.  We can do this with the following code:
+:math:`u`, using the adjoint. Then since :py:data:`u` is updated over time
+we must tell dolfin-adjoint that we are interested in the initial value of :py:data`u` by adding:
 
 .. code-block:: python
 
-    dJdu = compute_gradient(J, u)
+    control = Control(u)
+
+after initializing :py:data:`u`.
+We can then add the following code to compute the gradient:
+
+.. code-block:: python
+
+    dJdu = compute_gradient(J, control)
 
 
 This single function call differentiates the model, assembles each adjoint
 equation in turn, and then uses the adjoint solutions to compute the
-requested gradient. Here we note that even though :py:data:`u` represented the
-*final* velocity when we defined the functional, the differentiation is with
-respect to the *initial* velocity. :py:func:`compute_gradient <pyadjoint.compute_gradient>`
-always differentiates with respect to the value of the second argument at its creation time.
-
+requested gradient.
 
 If we wish instead to take the gradient with respect to the diffusivity
 :math:`\nu`, we can write:
 
 .. code-block:: python
 
-    dJdnu = compute_gradient(J, nu)
+    dJdnu = compute_gradient(J, Control(nu))
 If we want both gradients we can write
 
 .. code-block:: python
 
-    dJdu, dJdnu = compute_gradient(J, [u, nu])
+    dJdu, dJdnu = compute_gradient(J, [control, Control(nu)])
 
 Now our whole program is
 

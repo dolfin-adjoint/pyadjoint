@@ -50,7 +50,7 @@ and
 
 .. code-block:: python
 
-   dJdf = compute_gradient(J,f)
+   dJdf = compute_gradient(J, Control(f))
 
 but that won't work, because pyadjoint does not know that it should record
 the normalisation and it does not know what the derivative of the normalisation is.
