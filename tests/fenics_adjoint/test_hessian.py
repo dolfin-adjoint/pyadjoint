@@ -39,8 +39,44 @@ def test_simple_solve():
     h.vector()[:] = rand(V.dim())
 
     dJdm = Jhat.derivative().vector().inner(h.vector())
-    H = Hessian(J, c)
-    Hm = H(h).vector().inner(h.vector())
+    Hm = compute_hessian(J, c, h).vector().inner(h.vector())
+    assert(taylor_test(Jhat, f, h, dJdm=dJdm, Hm=Hm) > 2.9)
+
+
+def test_simple_solve_rf():
+    tape = Tape()
+    set_working_tape(tape)
+
+    mesh = IntervalMesh(10, 0, 1)
+    V = FunctionSpace(mesh, "Lagrange", 1)
+
+    f = Function(V)
+    f.vector()[:] = 2
+
+    u = TrialFunction(V)
+    v = TestFunction(V)
+
+    a = u*v*dx
+    L = f*v*dx
+
+    u_ = Function(V)
+
+    solve(a == L, u_)
+
+    L = u_*v*dx
+
+    u_sol = Function(V)
+    solve(a == L, u_sol)
+
+    J = assemble(u_sol**4*dx)
+    c = Control(f)
+    Jhat = ReducedFunctional(J, c)
+
+    h = Function(V)
+    h.vector()[:] = rand(V.dim())
+
+    dJdm = Jhat.derivative().vector().inner(h.vector())
+    Hm = Jhat.hessian(h).vector().inner(h.vector())
     assert(taylor_test(Jhat, f, h, dJdm=dJdm, Hm=Hm) > 2.9)
 
 

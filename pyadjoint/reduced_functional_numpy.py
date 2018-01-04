@@ -2,7 +2,7 @@ from __future__ import print_function
 from .reduced_functional import ReducedFunctional
 from .tape import stop_annotating, no_annotations, get_working_tape
 from .enlisting import Enlist
-from .drivers import Hessian
+from .drivers import compute_hessian 
 from .control import Control
 
 import numpy

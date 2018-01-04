@@ -11,7 +11,7 @@ from .tape import (Tape,
                    annotate_tape, stop_annotating, pause_annotation, continue_annotation)
 from .adjfloat import AdjFloat
 from .reduced_functional import ReducedFunctional
-from .drivers import compute_gradient, Hessian
+from .drivers import compute_gradient, compute_hessian
 from .verification import taylor_test, taylor_test_multiple
 from .overloaded_type import OverloadedType
 from .control import Control
