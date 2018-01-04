@@ -31,12 +31,15 @@ where the model is implemented in the Python interface to DOLFIN.
 
 News
 ====
-**31.12.2017**: dolfin-adjoint 2017.2 released (compatible with FEniCS 2017.2).
-                **Important**: This release is of a full re-write of dolfin-adjoint based on `pyadjoint`_ (see this `poster`_).
-                A release of the previous code-based that supports FEniCS 2017.2 is still available `here`_, 
-                but will be deprecated from FEniCS 2018.1.
-                The new code-base is superior in some features (e.g. full Hessian support, flexible objective functional definitions,
-                and Dirichlet BC control), but is also lacking features that were supported in the previous code-base, `see here`_. 
+**08.01.2018**: dolfin-adjoint/pyadjoint 2017.2 released (compatible with FEniCS 2017.2)
+                dolfin-adjoint/libadjoint 2017.2 released (compatible with FEniCS 2017.2) (`documentation`_)
+
+                **Important**: dolfin-adjoint/pyadjoint is a full rewrite based on `pyadjoint`_ (see this `poster`_).
+                dolfin-adjoint/libadjoint will be deprecated from FEniCS 2018.1.0.
+                dolfin-adjoint/pyadjoint is superior in some features (e.g. full Hessian support, flexible objective functional definitions,
+                and Dirichlet BC control), but is still lacking features. A detailed feature list is `available here`_.
+                If you would like to contribute, please `contact us`_.
+                
 
 **31.05.2017**: dolfin-adjoint 2017.1 released (compatible with FEniCS 2017.1) `ChangeLog`_.
 
@@ -53,9 +56,10 @@ News
 **11.6.2015**: P. E. Farrell, S. W. Funke, D. A. Ham and M. E. Rognes were awarded the 2015 `Wilkinson prize for numerical software`_ for dolfin-adjoint.
 
 .. _Changelog: https://bitbucket.org/dolfin-adjoint/dolfin-adjoint/raw/master/ChangeLog
-.. _see here: https://bitbucket.org/dolfin-adjoint/pyadjoint/src/master/tests/migration/README.md?at=master&fileviewer=file-view-default
+.. _available here: https://bitbucket.org/dolfin-adjoint/pyadjoint/src/master/tests/migration/README.md?at=master&fileviewer=file-view-default
+.. _contact us: support/index.html
 .. _pyadjoint: https://bitbucket.org/dolfin-adjoint/pyadjoint
-.. _here: https://bitbucket.org/dolfin-adjoint/dolfin-adjoint
+.. _documentation: http://dolfin-adjoint-doc.readthedocs.io/
 .. _Wilkinson prize for numerical software: http://www.nag.co.uk/other/WilkinsonPrize.html
 .. _poster: https://drive.google.com/file/d/1NjIFj07u_QMfuXB2Z8uv5f2LUDwY1XeM/view?usp=sharing
 
