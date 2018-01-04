@@ -1,5 +1,5 @@
 from .tape import get_working_tape, stop_annotating, Tape, no_annotations
-from .drivers import compute_gradient, Hessian
+from .drivers import compute_gradient, compute_hessian 
 from .overloaded_type import OverloadedType
 from .control import Control
 from .enlisting import Enlist
@@ -30,7 +30,6 @@ class ReducedFunctional(object):
         self.functional = functional
         self.tape = get_working_tape() if tape is None else tape
         self.controls = Enlist(controls)
-        self.hessian = Hessian(self.functional, self.controls)
         self.eval_cb_pre = eval_cb_pre
         self.eval_cb_post = eval_cb_post
         self.derivative_cb_pre = derivative_cb_pre
@@ -76,7 +75,7 @@ class ReducedFunctional(object):
 
         Using the second-order adjoint method, the action of the Hessian of the
         functional with respect to the control, around the last supplied value
-        of the control, is compured and returned.
+        of the control, is computed and returned.
 
         Args:
             m_dot ([OverloadedType]): The direction in which to compute the
@@ -92,12 +91,12 @@ class ReducedFunctional(object):
         values = [c.data() for c in self.controls]
         self.hessian_cb_pre(self.controls.delist(values))
 
-        r = self.hessian(m_dot, options=options, tape=self.tape)
+        r = compute_hessian(self.functional, self.controls, m_dot, options=options, tape=self.tape)
         
         # Call callback
         self.hessian_cb_post(self.functional.block_variable.checkpoint,
-                                self.controls.delist(r),
-                                self.controls.delist(values))
+                             self.controls.delist(r),
+                             self.controls.delist(values))
 
         return self.controls.delist(r)
 

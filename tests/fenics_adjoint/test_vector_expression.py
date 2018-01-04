@@ -139,9 +139,8 @@ def test_simple_constant_hessian():
     control = Control(c)
     Jhat = ReducedFunctional(J, control)
     h = Constant(1)
-    H = Hessian(J, control)
     dJdm = h._ad_dot(Jhat.derivative())
-    Hm = h._ad_dot(H(h))
+    Hm = h._ad_dot(Jhat.hessian(h))
     assert(taylor_test(Jhat, c, h, dJdm=dJdm, Hm=Hm) > 2.9)
 
 
@@ -176,9 +175,8 @@ def test_simple_function_hessian():
 
     h = Function(c.function_space())
     h.vector()[:] = rand(c.function_space().dim())*4.0
-    H = Hessian(J, control)
     dJdm = h._ad_dot(Jhat.derivative())
-    Hm = h._ad_dot(H(h))
+    Hm = h._ad_dot(Jhat.hessian(h))
     assert(taylor_test(Jhat, c, h, dJdm=dJdm, Hm=Hm) > 2.9)
 
 
@@ -201,8 +199,7 @@ def test_assemble_expr_hessian():
 
     h = Function(c.function_space())
     h.vector()[:] = rand(c.function_space().dim())*10.0
-    H = Hessian(J, control)
     dJdm = h._ad_dot(Jhat.derivative())
-    Hm = h._ad_dot(H(h))
+    Hm = h._ad_dot(Jhat.hessian(h))
     assert (taylor_test(Jhat, c, h, dJdm=dJdm, Hm=Hm) > 2.9)
 

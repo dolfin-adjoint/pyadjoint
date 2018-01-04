@@ -17,27 +17,24 @@ def compute_gradient(J, m, block_idx=0, options=None, tape=None):
     return m.delist(grads)
 
 
-class Hessian(object):
-    def __init__(self, J, m):
-        self.functional = J
-        self.controls = Enlist(m)
+def compute_hessian(J, m, m_dot, options=None, tape=None):
+    """Compute the Hessian of J in a direction m_dot at the current value of m"""
+    tape = get_working_tape() if tape is None else tape
+    options = {} if options is None else options
 
-    def __call__(self, m_dot, options=None, tape=None):
-        tape = get_working_tape() if tape is None else tape
-        options = {} if options is None else options
+    tape.reset_tlm_values()
+    tape.reset_hessian_values()
 
-        tape.reset_tlm_values()
-        tape.reset_hessian_values()
+    m = Enlist(m)
+    m_dot = Enlist(m_dot)
+    for i, value in enumerate(m_dot):
+        m[i].tlm_value = m_dot[i]
 
-        m_dot = Enlist(m_dot)
-        for i, value in enumerate(m_dot):
-            self.controls[i].tlm_value = m_dot[i]
+    with stop_annotating():
+        tape.evaluate_tlm()
 
-        with stop_annotating():
-            tape.evaluate_tlm()
+    J.block_variable.hessian_value = 0.0
+    tape.evaluate_hessian()
 
-        self.functional.block_variable.hessian_value = 0.0
-        tape.evaluate_hessian()
-
-        r = [v.get_hessian(options=options) for v in self.controls]
-        return self.controls.delist(r)
+    r = [v.get_hessian(options=options) for v in m]
+    return m.delist(r)

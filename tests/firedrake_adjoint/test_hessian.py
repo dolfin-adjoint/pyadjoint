@@ -43,8 +43,7 @@ def test_simple_solve():
 
     m = f.copy(deepcopy=True)
     dJdm = Jhat.derivative().vector().inner(h.vector())
-    H = Hessian(J, c)
-    Hm = H(h).vector().inner(h.vector())
+    Hm = Jhat.hessian(h).vector().inner(h.vector())
     assert taylor_test(Jhat, m, h, dJdm=dJdm, Hm=Hm) > 2.9
 
 

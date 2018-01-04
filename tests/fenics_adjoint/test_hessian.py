@@ -39,8 +39,7 @@ def test_simple_solve():
     h.vector()[:] = rand(V.dim())
 
     dJdm = Jhat.derivative().vector().inner(h.vector())
-    H = Hessian(J, c)
-    Hm = H(h).vector().inner(h.vector())
+    Hm = compute_hessian(J, c, h).vector().inner(h.vector())
     assert(taylor_test(Jhat, f, h, dJdm=dJdm, Hm=Hm) > 2.9)
 
 
@@ -77,7 +76,7 @@ def test_simple_solve_rf():
     h.vector()[:] = rand(V.dim())
 
     dJdm = Jhat.derivative().vector().inner(h.vector())
-    Hm = (Jhat.hessian(h))[0].vector().inner(h.vector())
+    Hm = Jhat.hessian(h).vector().inner(h.vector())
     assert(taylor_test(Jhat, f, h, dJdm=dJdm, Hm=Hm) > 2.9)
 
 

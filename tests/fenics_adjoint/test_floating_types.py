@@ -33,8 +33,7 @@ def test_loop_split():
     h = Constant([1, 1])
 
     dJdm = h._ad_dot(Jhat.derivative())
-    H = Hessian(J, control)
-    Hm = h._ad_dot(H(h))
+    Hm = h._ad_dot(Jhat.hessian(h))
 
     assert taylor_test(Jhat, c, h, dJdm=dJdm) > 1.9
     assert taylor_test(Jhat, c, h, dJdm=dJdm, Hm=Hm) > 2.9
@@ -69,8 +68,7 @@ def test_split_control():
     h.vector()[:] = rand(V.dim())
 
     dJdm = h._ad_dot(Jhat.derivative())
-    H = Hessian(J, control)
-    Hm = h._ad_dot(H(h))
+    Hm = h._ad_dot(Jhat.hessian(h))
 
     assert taylor_test(Jhat, c_value, h, dJdm=dJdm) > 1.9
     assert taylor_test(Jhat, c_value, h, dJdm=dJdm, Hm=Hm) > 2.9

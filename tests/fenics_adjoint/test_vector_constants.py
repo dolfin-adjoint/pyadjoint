@@ -105,8 +105,7 @@ def test_simple_assemble_hessian():
     Jhat = ReducedFunctional(J, control)
     h = Constant((1.0, 1.0))
     dJdm = h._ad_dot(Jhat.derivative())
-    H = Hessian(J, control)
-    Hm = h._ad_dot(H(h))
+    Hm = h._ad_dot(Jhat.hessian(h))
 
     assert(taylor_test(Jhat, c, h, dJdm=dJdm, Hm=Hm) > 2.9)
 
@@ -134,9 +133,8 @@ def test_solve_assemble_hessian():
     control = Control(c)
     Jhat = ReducedFunctional(J, control)
     h = Constant((1, 1, 1))
-    H = Hessian(J, control)
     dJdm = h._ad_dot(Jhat.derivative())
-    Hm = h._ad_dot(H(h))
+    Hm = h._ad_dot(Jhat.hessian(h))
 
     assert(taylor_test(Jhat, c, h, dJdm=dJdm, Hm=Hm) > 2.9)
 
@@ -167,9 +165,8 @@ def test_dirichlet_bc_hessian():
     control = Control(c)
     Jhat = ReducedFunctional(J, control)
     h = Constant((1,1))
-    H = Hessian(J, control)
     dJdm = h._ad_dot(Jhat.derivative())
-    Hm = h._ad_dot(H(h))
+    Hm = h._ad_dot(Jhat.hessian(h))
 
     assert(taylor_test(Jhat, c, h, dJdm=dJdm, Hm=Hm) > 2.9)
 
