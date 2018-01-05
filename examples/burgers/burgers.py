@@ -10,6 +10,7 @@ def Dt(u, u_, timestep):
 pr = project(Expression("sin(2*pi*x[0])", degree=1), V)
 u_ = Function(V)
 u_.vector()[:] = pr.vector()[:]
+control = Control(u_)
 u = Function(V)
 v = TestFunction(V)
 nu = Constant(0.0001)
@@ -31,5 +32,5 @@ while (t <= end):
 
 h = Function(V)
 h.vector()[:] = 1
-Jhat = ReducedFunctional(J, u_)
-print taylor_test(Jhat, pr.copy(deepcopy=True), h)
+Jhat = ReducedFunctional(J, control)
+print(taylor_test(Jhat, pr.copy(deepcopy=True), h))

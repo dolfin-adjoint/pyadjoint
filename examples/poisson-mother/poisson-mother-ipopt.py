@@ -29,7 +29,7 @@ mesh = refine(mesh, cf)
 V = FunctionSpace(mesh, "CG", 1)
 W = FunctionSpace(mesh, "DG", 0)
 
-f = interpolate(Expression("x[0]+x[1]", degree=1), W, name='Control')
+f = interpolate(Expression("x[0]+x[1]", degree=1), W)
 u = Function(V, name='State')
 v = TestFunction(V)
 
@@ -45,7 +45,7 @@ d = 1/(2*pi**2)
 d = Expression("d*w", d=d, w=w, degree=3)
 
 alpha = Constant(1e-6)
-J = Functional((0.5*inner(u-d, u-d))*dx + alpha/2*f**2*dx)
+J = assemble((0.5*inner(u-d, u-d))*dx + alpha/2*f**2*dx)
 control = Control(f)
 rf = ReducedFunctional(J, control)
 

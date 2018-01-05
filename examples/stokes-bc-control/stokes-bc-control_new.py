@@ -108,8 +108,8 @@ u, p = split(s)
 alpha = Constant(10)
 
 J = assemble(1./2*inner(u, u)**2*dx)
-dJdm = compute_gradient(J, g)
+dJdm = compute_gradient(J, Control(g))
 
 h = Function(V_collapse)
 h.vector()[:] = 1
-taylor_test(ReducedFunctional(J,g),g.copy(deepcopy = True),h,dJdm=dJdm.vector().inner(h.vector()))
+taylor_test(ReducedFunctional(J,Control(g)),g.copy(deepcopy = True),h,dJdm=dJdm.vector().inner(h.vector()))
