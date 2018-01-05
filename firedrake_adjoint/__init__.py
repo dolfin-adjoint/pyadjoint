@@ -1,3 +1,6 @@
+import pyadjoint
+__version__ = pyadjoint.__version__
+
 import sys
 if not 'backend' in sys.modules:
     import firedrake
