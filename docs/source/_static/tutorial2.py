@@ -6,6 +6,7 @@ mesh = UnitSquareMesh(n, n)
 V = VectorFunctionSpace(mesh, "CG", 2)
 
 u = project(Expression(("sin(2*pi*x[0])", "cos(2*pi*x[1])"), degree=2),  V)
+control = Control(u)
 
 u_next = Function(V)
 v = TestFunction(V)
@@ -28,4 +29,4 @@ while (t <= end):
     t += float(timestep)
 
 J = assemble(inner(u, u)*dx)
-dJdu, dJdnu = compute_gradient(J, [Control(u), Control(nu)])
+dJdu, dJdnu = compute_gradient(J, [control, Control(nu)])

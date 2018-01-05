@@ -1,7 +1,7 @@
-.. _fenics-adjoint-manual:
+.. _dolfin-adjoint-manual:
 
 *************************
-How to use fenics-adjoint
+How to use dolfin-adjoint
 *************************
 
 .. sectionauthor:: Patrick E. Farrell <patrick.farrell@maths.ox.ac.uk>,

@@ -5,7 +5,7 @@ Expressing functionals
 In the example presented in the :doc:`tutorial <tutorial>`, the quantity of interest was
 evaluated at the end of the simulation. However, it is very common
 to want to compute integrals over time, or evaluated at certain points
-in time that are not the end. With fenics-adjoint this is very straightforward.
+in time that are not the end. With dolfin-adjoint this is very straightforward.
 
 
 ********

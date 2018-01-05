@@ -1,4 +1,4 @@
-.. _fenics-adjoint-examples:
+.. _dolfin-adjoint-examples:
 
 ********************************
 Examples of using dolfin-adjoint
