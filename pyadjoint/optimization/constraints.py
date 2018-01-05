@@ -3,6 +3,7 @@ that can be used with different optimisation algorithms."""
 
 import numpy
 
+
 class Constraint(object):
     def function(self, m):
         """
@@ -44,19 +45,10 @@ class Constraint(object):
         """Returns the number of constraint components."""
         workspace = self.output_workspace()
 
-        # FIXME: Remove FEniCS-specific code from pyadjoint
-        import backend
-        if backend.__name__  == "dolfin":
-            from backend import cpp
+        if hasattr(workspace, "_ad_dim"):
+            return workspace._ad_dim()
+        return len(workspace)
 
-        if isinstance(workspace, numpy.ndarray) or isinstance(workspace, list):
-            return len(workspace)
-
-        if isinstance(workspace, backend.Constant):
-            return workspace.value_size()
-
-        if isinstance(workspace, cpp.Function):
-            return workspace.function_space().dim()
 
 class EqualityConstraint(Constraint):
     """This class represents equality constraints of the form
@@ -65,6 +57,7 @@ class EqualityConstraint(Constraint):
 
     for 0 <= i < n, where m is the parameter.
     """
+
 
 class InequalityConstraint(Constraint):
     """This class represents constraints of the form

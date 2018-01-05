@@ -217,6 +217,18 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
+    def _ad_dim(self):
+        """This method must be overridden.
+
+        The method should implement a routine for computing the number of components
+        of `self`.
+
+        Returns:
+            int: The number of components of `self`.
+
+        """
+        raise NotImplementedError
+
 
 class FloatingType(OverloadedType):
     def __init__(self, *args, **kwargs):

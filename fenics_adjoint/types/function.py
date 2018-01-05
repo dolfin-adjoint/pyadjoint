@@ -151,6 +151,9 @@ class Function(FloatingType, backend.Function):
         backend.Function.assign(r, self)
         return r
 
+    def _ad_dim(self):
+        return self.function_space().dim()
+
 
 class AssignBlock(Block):
     def __init__(self, func, other):

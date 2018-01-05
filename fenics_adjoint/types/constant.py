@@ -86,6 +86,9 @@ class Constant(OverloadedType, backend.Constant):
         values = ufl_shape_workaround(self.values())
         return Constant(values)
 
+    def _ad_dim(self):
+        return self.value_size()
+
 
 def ufl_shape_workaround(values):
     """Workaround because of the following behaviour in FEniCS/Firedrake
