@@ -45,12 +45,13 @@ if __name__ == "__main__":
     J = assemble(u*u*u*u*dx)
     m = Control(ic)
     dJdm = compute_gradient(J, m)
-    HJm  = Hessian(J, m)
     h = Function(V)
     h.vector()[:] = rand(V.dim())*5000
 
     dJdm = h._ad_dot(dJdm)
-    HJm = h._ad_dot(HJm(h))
+
+    HJm = compute_hessian(J, m, h)
+    HJm = h._ad_dot(HJm)
 
     def J(ic):
         u = main(ic, annotate=False)

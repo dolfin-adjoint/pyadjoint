@@ -51,11 +51,11 @@ if __name__ == "__main__":
     m = Control(dbdt)
 
     dJdc = compute_gradient(J, m)
-    HJc = Hessian(J, m)
 
     h = Constant(1.0)
     dJdc = h._ad_dot(dJdc)
-    HJc = h._ad_dot(HJc(h))
+    HJc = compute_hessian(J, m, h)
+    HJc = h._ad_dot(HJc)
 
     def J(c):
         j = main(c, annotate=False)

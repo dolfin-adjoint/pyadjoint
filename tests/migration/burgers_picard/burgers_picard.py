@@ -52,11 +52,11 @@ if __name__ == "__main__":
     m = Control(ic)
 
     dJdm = compute_gradient(J, m)
-    HJm  = Hessian(J, m)
     h = Function(V)
     h.vector()[:] = rand(V.dim())
+    HJm  = compute_hessian(J, m, h)
     dJdm = h._ad_dot(dJdm)
-    HJm = h._ad_dot(HJm(h))
+    HJm = h._ad_dot(HJm)
 
     def Jfunc(ic):
         forward = main(ic, annotate=False)

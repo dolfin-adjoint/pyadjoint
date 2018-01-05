@@ -27,11 +27,11 @@ if __name__ == "__main__":
 
     J = assemble(inner(u, u)**3*dx + inner(m, m)*dx)
     dJdm = compute_gradient(J, Control(m))
-    HJm  = Hessian(J, Control(m))
     h = Function(V)
     h.vector()[:] = rand(V.dim())
     dJdm = h._ad_dot(dJdm)
-    HJm = h._ad_dot(HJm(h))
+    HJm = compute_hessian(J, Control(m), h)
+    HJm = h._ad_dot(HJm)
 
     def Jhat(m):
         u = main(m)

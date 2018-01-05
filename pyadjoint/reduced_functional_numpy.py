@@ -121,9 +121,8 @@ class ReducedFunctionalNumPy(ReducedFunctional):
             the Hessian action at the latest forward run is returned. '''
         # TODO: Consider if we really need to run derivative here.
         self.derivative()
-        H = Hessian(self.functional, self.controls)
         m_copies = [control.copy_data() for control in self.controls]
-        Hm = H(self.set_local(m_copies, m_dot_array))
+        Hm = compute_hessian(self.functional, self.controls, self.set_local(m_copies, m_dot_array))
         Hm = Enlist(Hm)
 
         m_global = []

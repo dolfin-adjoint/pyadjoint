@@ -58,12 +58,12 @@ if __name__ == "__main__":
         forward = main(ic, annotate=False)
         return assemble(forward*forward*dx + ic*ic*dx)
 
-    HJic = Hessian(J, Control(ic))
     h = Function(V)
     h.vector()[:] = rand(V.dim())
 
     dJdic = h._ad_dot(dJdic)
-    HJic = h._ad_dot(HJic(h))
+    HJic= compute_hessian(J, Control(ic), h)
+    HJic = h._ad_dot(HJic)
 
     minconv = taylor_test(Jfunc, ic, h, dJdic, Hm=HJic)
     assert minconv > 2.7

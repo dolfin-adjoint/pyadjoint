@@ -152,15 +152,14 @@ if __name__ == "__main__":
     J = assemble(inner(soln, soln)**1*dx + inner(ic, ic)*dx)
     rf = ReducedFunctional(J, m)
     dJdm = rf.derivative()
-    HJm  = Hessian(J, m)
     h = Function(V)
     h.vector()[:] = rand(V.dim())
     dJdm = h._ad_dot(dJdm)
 
     print("ic: ", ic)
     print("soln: ", soln)
-
-    HJm = h._ad_dot(HJm(h))
+    HJm = compute_hessian(J, m, h)
+    HJm = h._ad_dot(HJm)
 
     def J(ic):
         soln = main(ic)

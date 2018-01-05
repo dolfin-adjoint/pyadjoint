@@ -110,14 +110,14 @@ if __name__ == "__main__":
     J = j
     c = Control(ic)
     dJdic = compute_gradient(J, c)
-    Hic = Hessian(J, c)
 
     h = Function(ME)
     h.vector()[:] = rand(ME.dim())
     dJdic = h._ad_dot(dJdic)
 
     if False:
-        Hic = h._ad_dot(Hic(h))
+        Hic = compute_hessian(J, c, h)
+        Hic = h._ad_dot(Hic)
 
         def J(ic):
             u, j = main(ic, annotate=False)
