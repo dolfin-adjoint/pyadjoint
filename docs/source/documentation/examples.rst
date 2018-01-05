@@ -23,10 +23,3 @@ Optimization examples
    time-distributed-control/time-distributed-control
    time-dependent-wave/time-dependent-wave
    mpec/mpec
-
-Generalized stability examples
-------------------------------
-
-.. toctree::
-
-   salt-fingering/salt-fingering
