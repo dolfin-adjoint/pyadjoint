@@ -9,7 +9,7 @@ Debugging
 Visualising the system
 *******************************************
 
-It is sometimes useful when debugging a problem to see fenics-adjoint's interpretation of your forward system,
+It is sometimes useful when debugging a problem to see dolfin-adjoint's interpretation of your forward system,
 and the other models it derives from that. The :py:meth:`visualise <pyadjoint.Tape.visualise>` function visualises the system as a graph.
 To do this add
 

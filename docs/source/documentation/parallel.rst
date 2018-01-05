@@ -6,9 +6,9 @@ Applying algorithmic differentiation tools to parallel source code is still
 a major research area, and most adjoint codes that work in parallel manually adjoin the parallel
 communication sections of their code.
 
-One of the major advantages of the new high-level abstraction used in fenics-adjoint is that
+One of the major advantages of the new high-level abstraction used in dolfin-adjoint is that
 the problem of parallelism in adjoint codes simply disappears: indeed, there is not a single
-line of parallel-specific code in fenics-adjoint or pyadjoint. For more details on how this
+line of parallel-specific code in dolfin-adjoint or pyadjoint. For more details on how this
 works, see :doc:`the papers <../citing/index>`.
 
 Therefore, **if your forward model runs in parallel, your adjoint will also, with no modification.**

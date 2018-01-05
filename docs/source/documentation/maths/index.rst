@@ -1,4 +1,4 @@
-.. _fenics-adjoint-mathematical-background:
+.. _dolfin-adjoint-mathematical-background:
 
 ********************************************************
 Mathematical background: adjoints and their applications

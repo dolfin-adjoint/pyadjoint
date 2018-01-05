@@ -4,7 +4,7 @@
 pyadjoint API reference
 ============================
 
-See also the :doc:`fenics-adjoint API reference <api>`.
+See also the :doc:`dolfin-adjoint API reference <api>`.
 
 .. automodule:: pyadjoint
 

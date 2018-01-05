@@ -1,7 +1,7 @@
-.. _fenics-adjoint-api-reference:
+.. _dolfin-adjoint-api-reference:
 
 ============================
-fenics-adjoint API reference
+dolfin-adjoint API reference
 ============================
 
 See also the :doc:`pyadjoint API reference <pyadjoint_api>`.

@@ -1,29 +1,29 @@
 .. features
 
-.. title:: fenics-adjoint features
+.. title:: dolfin-adjoint features
 
 .. py:currentmodule:: fenics_adjoint
 
 **************************
-Features of fenics-adjoint
+Features of dolfin-adjoint
 **************************
 
 Generality
 ==========
 
-fenics-adjoint works for both steady and time-dependent models, and for both linear
+dolfin-adjoint works for both steady and time-dependent models, and for both linear
 and nonlinear models. The user interface is exactly the same in both cases. For an example
 of adjoining a nonlinear time-dependent model, see the :doc:`tutorial <../documentation/tutorial>`.
 
 Ease of use
 ===========
 
-fenics-adjoint has been carefully designed to try to make its use as easy as possible. In many cases
+dolfin-adjoint has been carefully designed to try to make its use as easy as possible. In many cases
 the only change to the forward model is to add
 
 .. code-block:: python
 
-    from fenics_adjoint import *
+    from dolfin_adjoint import *
 
 at the top of the model. For example, deriving the adjoint of :doc:`the tutorial example <../documentation/tutorial>` requires **adding
 precisely three lines to the forward model**. dolfin-adjoint also makes it extremely easy to :doc:`verify the correctness of the adjoint model <../documentation/verification>`.
@@ -116,7 +116,7 @@ specially modified to understand MPI and OpenMP directives, and
 translate them into their parallel equivalents. By contrast, *because
 of the high-level abstraction taken in libadjoint, the problem of
 parallelism simply disappears*. In fact, there is no code whatsoever
-in either fenics-adjoint or pyadjoint to handle parallelism; by
+in either dolfin-adjoint or pyadjoint to handle parallelism; by
 deriving the adjoint at the right level of abstraction, the problem no
 longer exists.  **If the forward model runs in parallel, the adjoint
 model also runs in parallel, with no modification.**

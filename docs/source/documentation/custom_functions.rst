@@ -4,12 +4,12 @@
 Adding Custom Functions
 =======================
 
-As mentioned in the :doc:`first section  <tutorial>` of this tutorial fenics-adjoint
+As mentioned in the :doc:`first section  <tutorial>` of this tutorial dolfin-adjoint
 works by overloading parts of FEniCS so that it may build up an annotation by recording
 each step of the forward model. The list of overloaded functions and objects is found
-in the :doc:`API reference <api>`. The part of fenics-adjoint that takes care of the fundamental
+in the :doc:`API reference <api>`. The part of dolfin-adjoint that takes care of the fundamental
 annotation is pyadjoint, which is independent of FEniCS.
-fenics-adjoint tells pyadjoint how to handle FEniCS types and functions.
+dolfin-adjoint tells pyadjoint how to handle FEniCS types and functions.
 If the forward model uses custom functions rather than the
 standard FEniCS functions, pyadjoint won't know how to record
 these steps, therefore we have to tell it how, by overloading the functions ourselves.
@@ -62,7 +62,7 @@ Overloading a function
 **********************
 
 Let us now create a module overloading the :py:data:`normalise(func)` function.
-We need to start by importing the FEniCS and fenics-adjoint modules, along with
+We need to start by importing the FEniCS and dolfin-adjoint modules, along with
 some specific functions needed for overloading and of course the function we want to
 overload.
 
@@ -191,7 +191,7 @@ The adjoint
 The method :py:meth:`evaluate_adj` should evaluate the adjoint gradient of the block.
 In the :doc:`mathematical background <maths/index>` we discussed the tangent linear model
 and the adjoint on the level of the whole model. Here we consider more concretely
-how fenics-adjoint treats each block. pyadjoint treats a forward model as a series of equation solves.
+how dolfin-adjoint treats each block. pyadjoint treats a forward model as a series of equation solves.
 Some of these equations are complicated PDEs that are solved by the FEniCS function :py:func:`solve <fenics.solve>`,
 but others are of the straightforward form
 
@@ -291,7 +291,7 @@ Finally we save :py:data:`adj_output` so that it may be propagated up the chain
 
 .. _`download the overloaded module`: ../_static/overloading/normalise_overloaded.py
 
-That's it! Now we are ready to use our function :py:data:`normalise` with fenics-adjoint.
+That's it! Now we are ready to use our function :py:data:`normalise` with dolfin-adjoint.
 Let us perform a taylor test to see if it works:
 
 .. literalinclude:: ../_static/overloading/tutorial9_overloading.py

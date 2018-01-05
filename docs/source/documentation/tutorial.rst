@@ -1,4 +1,4 @@
-.. _fenics-adjoint-tutorial:
+.. _dolfin-adjoint-tutorial:
 
 .. py:currentmodule:: fenics_adjoint
 
@@ -37,7 +37,7 @@ look as follows:
 adjoin this code.
 
 The first change necessary to adjoin this code is to import the
-fenics-adjoint module **after** loading FEniCS:
+dolfin-adjoint module **after** loading FEniCS:
 
 .. code-block:: python
 
@@ -45,7 +45,7 @@ fenics-adjoint module **after** loading FEniCS:
     from fenics_adjoint import *
 
 The reason why it is necessary to do it afterwards is because
-fenics-adjoint overloads many of the dolfin API functions to
+dolfin-adjoint overloads many of the dolfin API functions to
 understand what the forward code is doing.  In this particular case,
 the :py:func:`solve <fenics_adjoint.solve>` function and
 :py:meth:`assign <fenics_adjoint.Function.assign>` method have been
@@ -58,14 +58,14 @@ overloaded:
         solve(F == 0, u_next, bc)
         u.assign(u_next)
 
-The fenics-adjoint versions of these functions will *record* each step
+The dolfin-adjoint versions of these functions will *record* each step
 of the model, building an *annotation*, so that it can *symbolically
 manipulate* the recorded equations to derive the tangent linear and
 adjoint models.  Note that no user code had to be changed: it happens
 fully automatically.
 
 In order to talk about adjoints, one needs to consider a particular
-functional. While fenics-adjoint supports arbitrary functionals, let
+functional. While dolfin-adjoint supports arbitrary functionals, let
 us consider a simple nonlinear example.  Suppose our functional of
 interest is the square of the norm of the final velocity:
 
@@ -129,7 +129,7 @@ adjoined Burgers' equation code`_ and compare your results.
 Once you have computed the gradient, how do you know if it is correct?
 
 
-fenics-adjoint offers easy routines to
+dolfin-adjoint offers easy routines to
 rigorously verify the computed results, which is the topic of the
 :doc:`next section <verification>`.
 

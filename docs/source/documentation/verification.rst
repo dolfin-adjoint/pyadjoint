@@ -34,12 +34,12 @@ choice of :math:`h` and :math:`\delta m`, then repeatedly halving :math:`h` and 
 by a factor of 4.
 
 *******************************
-Applying this in fenics-adjoint
+Applying this in dolfin-adjoint
 *******************************
 
 In the case of PDE-constrained optimisation, computing :math:`\widehat{J}(m)` involves solving the PDE
 for that choice of :math:`m` to compute the solution :math:`u`, and then evaluating the functional :math:`J`.
-The main function in fenics-adjoint for applying the Taylor remainder convergence test is :py:func:`taylor_test <fenics_adjoint.taylor_test>`.
+The main function in dolfin-adjoint for applying the Taylor remainder convergence test is :py:func:`taylor_test <fenics_adjoint.taylor_test>`.
 To see how this works, let us again consider our example with Burgers' equation:
 
 .. literalinclude:: ../_static/tutorial3.py
@@ -123,7 +123,7 @@ We see that the residuals are halved and the convergence rates are 1 as expected
 
 So, what if the Taylor remainders are not correct? Such a situation could occur if the model
 manually modifies :py:class:`Function <fenics_adjoint.Function>` values, or if the model modifies the entries of assembled matrices and
-vectors, or if the model is not differentiable, or if there is a bug in fenics-adjoint. fenics-adjoint offers ways to pinpoint
+vectors, or if the model is not differentiable, or if there is a bug in dolfin-adjoint. dolfin-adjoint offers ways to pinpoint
 precisely where an error might lie; these are discussed in the :doc:`next section on debugging
 <debugging>`.
 
