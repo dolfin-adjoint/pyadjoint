@@ -1,4 +1,5 @@
-__version__ = '0.0.1'
+import pyadjoint
+__version__ = pyadjoint.__version__
 __author__  = 'Sebastian Kenji Mitusch'
 __credits__ = []
 __license__ = 'LGPL-3'
