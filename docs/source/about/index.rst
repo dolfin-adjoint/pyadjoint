@@ -34,7 +34,7 @@ News
 **08.01.2018**: dolfin-adjoint/pyadjoint 2017.2 released (compatible with FEniCS 2017.2) (this website)
                 dolfin-adjoint/libadjoint 2017.2 released (compatible with FEniCS 2017.2) (`documentation`_)
 
-                `What is the difference between dolfin-adjoint/pyadjoint and dolfin-adjoint/libadjoint?`_
+                :ref:`dolfin-adjoint-difference`
 
 **31.05.2017**: dolfin-adjoint 2017.1 released (compatible with FEniCS 2017.1) `ChangeLog`_.
 
