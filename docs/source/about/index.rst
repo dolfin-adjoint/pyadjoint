@@ -31,15 +31,10 @@ where the model is implemented in the Python interface to DOLFIN.
 
 News
 ====
-**08.01.2018**: dolfin-adjoint/pyadjoint 2017.2 released (compatible with FEniCS 2017.2)
+**08.01.2018**: dolfin-adjoint/pyadjoint 2017.2 released (compatible with FEniCS 2017.2) (this website)
                 dolfin-adjoint/libadjoint 2017.2 released (compatible with FEniCS 2017.2) (`documentation`_)
 
-                **Important**: dolfin-adjoint/pyadjoint is a full rewrite based on `pyadjoint`_ (see this `poster`_).
-                dolfin-adjoint/libadjoint will be deprecated from FEniCS 2018.1.0.
-                dolfin-adjoint/pyadjoint is superior in some features (e.g. full Hessian support, flexible objective functional definitions,
-                and Dirichlet BC control), but is still lacking features. A detailed feature list is `available here`_.
-                If you would like to contribute, please `contact us`_.
-                
+                `What is the difference between dolfin-adjoint/pyadjoint and dolfin-adjoint/libadjoint?`_
 
 **31.05.2017**: dolfin-adjoint 2017.1 released (compatible with FEniCS 2017.1) `ChangeLog`_.
 
@@ -55,6 +50,7 @@ News
 
 **11.6.2015**: P. E. Farrell, S. W. Funke, D. A. Ham and M. E. Rognes were awarded the 2015 `Wilkinson prize for numerical software`_ for dolfin-adjoint.
 
+.. _What is the difference between dolfin-adjoint/pyadjoint and dolfin-adjoint/libadjoint?: difference.html
 .. _Changelog: https://bitbucket.org/dolfin-adjoint/dolfin-adjoint/raw/master/ChangeLog
 .. _available here: https://bitbucket.org/dolfin-adjoint/pyadjoint/src/master/tests/migration/README.md?at=master&fileviewer=file-view-default
 .. _contact us: support/index.html

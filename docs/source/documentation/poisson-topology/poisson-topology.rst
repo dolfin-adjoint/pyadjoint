@@ -278,7 +278,6 @@ this and pass it to :py:mod:`pyipopt` to solve:
       solver = IPOPTSolver(problem, parameters=parameters)
       a_opt = solver.solve()
   
-      print("Her ja: ", a_opt)
       xdmf_filename = XDMFFile(mpi_comm_world(), "output/final_solution.xdmf")
       xdmf_filename.write(a_opt)
   
