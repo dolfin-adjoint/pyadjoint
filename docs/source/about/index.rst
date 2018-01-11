@@ -50,7 +50,6 @@ News
 
 **11.6.2015**: P. E. Farrell, S. W. Funke, D. A. Ham and M. E. Rognes were awarded the 2015 `Wilkinson prize for numerical software`_ for dolfin-adjoint.
 
-.. _What is the difference between dolfin-adjoint/pyadjoint and dolfin-adjoint/libadjoint?: difference.html
 .. _Changelog: https://bitbucket.org/dolfin-adjoint/dolfin-adjoint/raw/master/ChangeLog
 .. _available here: https://bitbucket.org/dolfin-adjoint/pyadjoint/src/master/tests/migration/README.md?at=master&fileviewer=file-view-default
 .. _contact us: support/index.html

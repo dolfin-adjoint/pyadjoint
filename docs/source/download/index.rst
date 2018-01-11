@@ -6,6 +6,8 @@ Installing dolfin-adjoint
 
 **Note**: If you are looking to install the (deprecated) dolfin-adjoint/libadjoint library, visit the `dolfin-adjoint/libadjoint`_ webpage.
 
+:ref:`dolfin-adjoint-difference`
+
 .. _dolfin-adjoint/libadjoint: http://dolfin-adjoint-doc.readthedocs.io/en/latest/download/index.html
 
 PIP (all platforms, recommended)
