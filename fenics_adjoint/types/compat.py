@@ -114,10 +114,10 @@ if backend.__name__ == "firedrake":
         return vec.gather()
 
 else:
-    MatrixType = (backend.cpp.Matrix, backend.GenericMatrix)
+    MatrixType = (backend.cpp.la.Matrix, backend.cpp.la.GenericMatrix)
     VectorType = backend.cpp.la.GenericVector
-    FunctionType = backend.cpp.Function
-    FunctionSpaceType = backend.cpp.FunctionSpace
+    FunctionType = backend.cpp.function.Function
+    FunctionSpaceType = backend.cpp.function.FunctionSpace
 
     class FunctionSpace(backend.FunctionSpace):
         def sub(self, i):
