@@ -23,7 +23,7 @@ Test your installation by running:
 
 .. code-block:: bash
 
-    python -m "import fenics_adjoint"
+    python -c "import fenics_adjoint"
 
 Optional dependencies:
 ----------------------
