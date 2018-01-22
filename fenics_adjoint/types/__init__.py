@@ -4,7 +4,7 @@ from .constant import Constant
 from .dirichletbc import DirichletBC
 if backend.__name__ != "firedrake":
     # Currently not implemented.
-    from .expression import Expression
+    from .expression import Expression, UserExpression
 from .function import Function
 from .function_space import FunctionSpace
 

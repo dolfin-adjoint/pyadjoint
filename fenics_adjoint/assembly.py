@@ -78,7 +78,7 @@ class AssembleBlock(Block):
             coeff = block_variable.output
             replaced_coeffs[coeff] = block_variable.saved_output
 
-        form = backend.replace(self.form, replaced_coeffs)
+        form = ufl.replace(self.form, replaced_coeffs)
 
         for block_variable in self.get_dependencies():
             c = block_variable.output
@@ -113,7 +113,7 @@ class AssembleBlock(Block):
             coeff = block_variable.output
             replaced_coeffs[coeff] = block_variable.saved_output
 
-        form = backend.replace(self.form, replaced_coeffs)
+        form = ufl.replace(self.form, replaced_coeffs)
 
         for block_variable in self.get_dependencies():
             c = block_variable.output
@@ -151,7 +151,7 @@ class AssembleBlock(Block):
             coeff = block_variable.output
             replaced_coeffs[coeff] = block_variable.saved_output
 
-        form = backend.replace(self.form, replaced_coeffs)
+        form = ufl.replace(self.form, replaced_coeffs)
 
         for bo1 in self.get_dependencies():
             c1 = bo1.output
@@ -207,7 +207,7 @@ class AssembleBlock(Block):
             coeff = block_variable.output
             replaced_coeffs[coeff] = block_variable.saved_output
 
-        form = backend.replace(self.form, replaced_coeffs)
+        form = ufl.replace(self.form, replaced_coeffs)
 
         output = backend.assemble(form)
         output = create_overloaded_object(output)

@@ -142,7 +142,7 @@ class SolveBlock(Block):
 
         replaced_coeffs[tmp_u] = fwd_block_variable.saved_output
 
-        F_form = backend.replace(F_form, replaced_coeffs)
+        F_form = ufl.replace(F_form, replaced_coeffs)
 
         dFdu = backend.derivative(F_form, fwd_block_variable.saved_output, backend.TrialFunction(u.function_space()))
         dFdu_form = backend.adjoint(dFdu)
@@ -185,7 +185,7 @@ class SolveBlock(Block):
                 elif isinstance(c, backend.DirichletBC):
                     tmp_bc = compat.create_bc(c, value=extract_subfunction(adj_var_bdy, c.function_space()))
                     block_variable.add_adj_output([tmp_bc])
-                elif isinstance(c, backend.Expression):
+                elif isinstance(c, backend.function.expression.BaseExpression):
                     mesh = F_form.ufl_domain().ufl_cargo()
                     c_fs = c._ad_function_space(mesh)
                     dFdm = -backend.derivative(F_form, c_rep, backend.TrialFunction(c_fs))
@@ -215,7 +215,7 @@ class SolveBlock(Block):
 
         replaced_coeffs[tmp_u] = fwd_block_variable.saved_output
 
-        F_form = backend.replace(F_form, replaced_coeffs)
+        F_form = ufl.replace(F_form, replaced_coeffs)
 
         # Obtain dFdu.
         dFdu = backend.derivative(F_form, fwd_block_variable.saved_output, backend.TrialFunction(u.function_space()))
@@ -308,7 +308,7 @@ class SolveBlock(Block):
                 replaced_coeffs[coeff] = block_variable.saved_output
 
         replaced_coeffs[tmp_u] = fwd_block_variable.saved_output
-        F_form = backend.replace(F_form, replaced_coeffs)
+        F_form = ufl.replace(F_form, replaced_coeffs)
 
         # Define the equation Form. This class is an initial step in refactoring
         # the SolveBlock methods.
@@ -473,11 +473,11 @@ class SolveBlock(Block):
                 if self.linear and c in self.rhs.coefficients():
                     replace_rhs_coeffs[c] = c_rep
 
-        lhs = backend.replace(self.lhs, replace_lhs_coeffs)
+        lhs = ufl.replace(self.lhs, replace_lhs_coeffs)
 
         rhs = 0
         if self.linear:
-            rhs = backend.replace(self.rhs, replace_rhs_coeffs)
+            rhs = ufl.replace(self.rhs, replace_rhs_coeffs)
 
         # Here we overwrite the checkpoint (if nonlin solve). Is this a good idea?
         # In theory should not matter, but may sometimes lead to
