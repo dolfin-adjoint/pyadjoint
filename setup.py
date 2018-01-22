@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(name='dolfin_adjoint',
-      version='0.0.1',
+      version='2017.2.0',
       description='High-level automatic differentiation library for FEniCS.',
       author='Sebastian Kenji Mitusch',
       author_email='sebastkm@math.uio.no',
