@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import random
 from fenics import *
 from fenics_adjoint import *
@@ -9,9 +7,10 @@ from numpy.random import rand
 
 
 # Class representing the intial conditions
-class InitialConditions(Expression):
+class InitialConditions(UserExpression):
     def __init__(self, **kwargs):
-        random.seed(2 + MPI.rank(mpi_comm_world()))
+        random.seed(2 + MPI.rank(MPI.comm_world))
+        super().__init__(**kwargs)
     def eval(self, values, x):
         values[0] = 0.63 + 0.02*(0.5 - random.random())
         values[1] = 0.0
@@ -27,7 +26,7 @@ theta  = 0.5          # time stepping family, e.g. theta=1 -> backward Euler, th
 # Form compiler options
 parameters["form_compiler"]["optimize"]     = True
 parameters["form_compiler"]["cpp_optimize"] = True
-parameters["form_compiler"]["representation"] = "quadrature"
+parameters["form_compiler"]["representation"] = "uflacs"
 parameters["std_out_all_processes"] = False;
 
 # Create mesh and define function spaces
@@ -103,8 +102,7 @@ def main(ic, annotate=False):
 
 if __name__ == "__main__":
     ic = interpolate(InitialConditions(degree=1), ME)
-    # TODO: interpolate is not overloaded yet. So we need this workaround.
-    ic = Function(ME, ic)
+
     forward, j = main(ic, annotate=True)
 
     J = j
@@ -112,16 +110,15 @@ if __name__ == "__main__":
     dJdic = compute_gradient(J, c)
 
     h = Function(ME)
-    h.vector()[:] = rand(ME.dim())
+    h.vector()[:] = 0.1*rand(ME.dim())
     dJdic = h._ad_dot(dJdic)
 
-    if False:
-        Hic = compute_hessian(J, c, h)
-        Hic = h._ad_dot(Hic)
+    Hic = compute_hessian(J, c, h)
+    Hic = h._ad_dot(Hic)
 
-        def J(ic):
-            u, j = main(ic, annotate=False)
-            return j
+    def J(ic):
+        u, j = main(ic, annotate=False)
+        return j
 
-        minconv = taylor_test(J, ic, h, dJdic, Hm=Hic)
-        assert minconv > 2.8
+    minconv = taylor_test(J, ic, h, dJdic, Hm=Hic)
+    assert minconv > 2.8
