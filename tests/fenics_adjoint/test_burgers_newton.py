@@ -8,7 +8,7 @@ pytest.importorskip("fenics")
 from fenics import *
 from fenics_adjoint import *
 
-set_log_level(CRITICAL)
+set_log_level(LogLevel.CRITICAL)
 
 n = 30
 mesh = UnitIntervalMesh(n)

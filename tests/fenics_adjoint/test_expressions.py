@@ -40,90 +40,92 @@ def test_jit_expression_evaluations():
     assert(f(0.0) == 2)
     assert(f.u == 2)
 
-# def test_ignored_expression_attributes():
-#     ignored_attrs = []
+@pytest.mark.skip(reason="Not implemented with pybind")
+def test_ignored_expression_attributes():
+    ignored_attrs = []
 
-#     class _DummyExpressionClass(UserExpression):
-#         def eval(self, value, x):
-#             pass
+    class _DummyExpressionClass(UserExpression):
+        def eval(self, value, x):
+            pass
 
-#     tmp = _DummyExpressionClass(degree=1, annotate=False)
-#     ignored_attrs += dir(tmp)
-#     tmp = Expression("1", degree=1, annotate=False)
-#     ignored_attrs += dir(tmp)
+    tmp = _DummyExpressionClass(degree=1, annotate=False)
+    ignored_attrs += dir(tmp)
+    tmp = Expression("1", degree=1, annotate=False)
+    ignored_attrs += dir(tmp)
 
-#     from sys import version_info
-#     if version_info.major < 3:
-#         # Attributes added in python3
-#         ignored_attrs.append("__dir__")
-#         ignored_attrs.append("__init_subclass__")
-#     elif version_info.minor < 6:
-#         # Attributes added in python3.6
-#         ignored_attrs.append("__init_subclass__")
+    from sys import version_info
+    if version_info.major < 3:
+        # Attributes added in python3
+        ignored_attrs.append("__dir__")
+        ignored_attrs.append("__init_subclass__")
+    elif version_info.minor < 6:
+        # Attributes added in python3.6
+        ignored_attrs.append("__init_subclass__")
 
-#     from fenics_adjoint.types.expression import _IGNORED_EXPRESSION_ATTRIBUTES 
-#     assert(set(ignored_attrs) == set(_IGNORED_EXPRESSION_ATTRIBUTES))
+    from fenics_adjoint.types.expression import _IGNORED_EXPRESSION_ATTRIBUTES 
+    assert(set(ignored_attrs) == set(_IGNORED_EXPRESSION_ATTRIBUTES))
 
-# def test_cpp_inline():
-#     # An expression that depends on a and b
-#     base_code = '''
-#     #include <pybind11/pybind11.h>
-#     namespace py = pybind11;
-#     #include <dolfin/function/Expression.h>
-#     #include <dolfin/function/Constant.h>
-#     class MyCppExpression : public dolfin::Expression
-#     {
-#     public:
-#           std::shared_ptr<dolfin::Constant> a;
-#           std::shared_ptr<dolfin::Constant> b;
-#       MyCppExpression() : dolfin::Expression() {}
+@pytest.mark.skip(reason="Not implemented with pybind")
+def test_cpp_inline():
+    # An expression that depends on a and b
+    base_code = '''
+    #include <pybind11/pybind11.h>
+    namespace py = pybind11;
+    #include <dolfin/function/Expression.h>
+    #include <dolfin/function/Constant.h>
+    class MyCppExpression : public dolfin::Expression
+    {
+    public:
+          std::shared_ptr<dolfin::Constant> a;
+          std::shared_ptr<dolfin::Constant> b;
+      MyCppExpression() : dolfin::Expression() {}
 
-#       void eval(dolfin::Array<double>& values, const dolfin::Array<double>& x) const
-#       {
-#         double a_ = (double) *a;
-#         double b_ = (double) *b;
-#         values[0] = EXPRESSION;
-#       }
-#     };
+      void eval(dolfin::Array<double>& values, const dolfin::Array<double>& x) const
+      {
+        double a_ = (double) *a;
+        double b_ = (double) *b;
+        values[0] = EXPRESSION;
+      }
+    };
 
-#     PYBIND11_MODULE(SIGNATURE, m)
-#     {
-#     py::class_<MyCppExpression, std::shared_ptr<MyCppExpression>, dolfin::Expression>
-#     (m, "MyCppExpression")
-#     .def(py::init<>())
-#     .def_readwrite("a", &MyCppExpression::a)
-#     .def_readwrite("b", &MyCppExpression::b);
-# }
+    PYBIND11_MODULE(SIGNATURE, m)
+    {
+    py::class_<MyCppExpression, std::shared_ptr<MyCppExpression>, dolfin::Expression>
+    (m, "MyCppExpression")
+    .def(py::init<>())
+    .def_readwrite("a", &MyCppExpression::a)
+    .def_readwrite("b", &MyCppExpression::b);
+}
 
-#     '''
+    '''
 
-#     cpp_code = base_code.replace("EXPRESSION", "(x[0] - a_)*b_*b_*a_")
-#     da_cpp_code = base_code.replace("EXPRESSION", "(x[0] - a_)*b_*b_ - b_*b_*a_")
-#     db_cpp_code = base_code.replace("EXPRESSION", "2*(x[0] - a_)*b_*a_")
+    cpp_code = base_code.replace("EXPRESSION", "(x[0] - a_)*b_*b_*a_")
+    da_cpp_code = base_code.replace("EXPRESSION", "(x[0] - a_)*b_*b_ - b_*b_*a_")
+    db_cpp_code = base_code.replace("EXPRESSION", "2*(x[0] - a_)*b_*a_")
 
-#     mesh = UnitSquareMesh(4, 4)
-#     V = FunctionSpace(mesh, "CG", 1)
+    mesh = UnitSquareMesh(4, 4)
+    V = FunctionSpace(mesh, "CG", 1)
 
-#     a = cpp.function.Constant(0.5)
-#     b = cpp.function.Constant(0.25)
+    a = cpp.function.Constant(0.5)
+    b = cpp.function.Constant(0.25)
 
-#     def J(a):
-#         if not isinstance(a, Constant):
-#             a = cpp.function.Constant(a)
-#             f = CompiledExpression(compile_cpp_code(cpp_code).MyCppExpression(), degree=1)
-#             f.a = a; f.b = b
+    def J(a):
+        if not isinstance(a, Constant):
+            a = cpp.function.Constant(a)
+            f = CompiledExpression(compile_cpp_code(cpp_code).MyCppExpression(), degree=1)
+            f.a = a; f.b = b
 
-#         dfda = Expression(da_cpp_code, degree=1)
-#         dfda.a = a; dfda.b = b
+        dfda = Expression(da_cpp_code, degree=1)
+        dfda.a = a; dfda.b = b
 
-#         dfdb = Expression(db_cpp_code, degree=1)
-#         dfdb.a = a; dfdb.b = b
+        dfdb = Expression(db_cpp_code, degree=1)
+        dfdb.a = a; dfdb.b = b
 
-#         f.user_defined_derivatives = {a: dfda, b: dfdb}
+        f.user_defined_derivatives = {a: dfda, b: dfdb}
 
-#         return assemble(f**2*dx(domain=mesh))
+        return assemble(f**2*dx(domain=mesh))
 
-#     _test_adjoint_constant(J, a)
+    _test_adjoint_constant(J, a)
 
 def test_inline_function_control():
     mesh = IntervalMesh(100, 0, 1)
