@@ -160,6 +160,10 @@ else:
         :arg V: The function space
         :arg vector: The data to share.
         """
+        if not isinstance(vector, backend.Vector):
+            # If vector is a fenics_adjoint.Function, which does not inherit
+            # backend.cpp.function.Function with pybind11
+            vector = vector._cpp_object
         return backend.Function(V, vector)
 
     def inner(a, b):
@@ -174,9 +178,9 @@ else:
         """Extract from value (a function in a mixed space), the sub
         function corresponding to the part of the space bc applies
         to.  Vtarget is the target (collapsed) space."""
-        assigner = backend.FunctionAssigner(Vtarget, bc.function_space())
+        assigner = backend.FunctionAssigner(Vtarget, backend.FunctionSpace(bc.function_space()))
         output = backend.Function(Vtarget)
-        assigner.assign(output, extract_subfunction(value, bc.function_space()))
+        assigner.assign(output, extract_subfunction(value, backend.FunctionSpace(bc.function_space())))
         return output.vector()
 
     def extract_mesh_from_form(form):
