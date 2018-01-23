@@ -65,7 +65,6 @@ def test_solve_assemble():
 
     assert(taylor_test(Jhat, c, Constant((1, 1, 1))) > 1.9)
 
-@pytest.mark.skip(reason="Not implemented with pybind")
 def test_dirichlet_bc():
     tape = Tape()
     set_working_tape(tape)
@@ -138,7 +137,6 @@ def test_solve_assemble_hessian():
 
     assert(taylor_test(Jhat, c, h, dJdm=dJdm, Hm=Hm) > 2.9)
 
-@pytest.mark.skip(reason="Not implemented with pybind")
 def test_dirichlet_bc_hessian():
     tape = Tape()
     set_working_tape(tape)

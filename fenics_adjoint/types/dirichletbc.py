@@ -98,7 +98,10 @@ class DirichletBCBlock(Block):
                         for i in range(adj_value.ufl_shape[0]):
                             # TODO: This might not be the optimal way to extract the subfunction vectors.
                             adj_output.append(adj_value.sub(i, deepcopy=True).vector().sum())
-                        block_variable.add_adj_output(numpy.array(adj_output))
+                        # FIXME: This is not elegant, only needed for dolfin2018.1.0, pybind11
+                        adj_vector = backend.cpp.la.Vector(backend.MPI.comm_world, len(adj_output))
+                        adj_vector[:] = adj_output
+                        block_variable.add_adj_output(adj_vector)
                 elif isinstance(c, Function):
                     # TODO: This gets a little complicated.
                     #       The function may belong to a different space,
@@ -152,7 +155,10 @@ class DirichletBCBlock(Block):
                         for i in range(hessian_value.ufl_shape[0]):
                             # TODO: This might not be the optimal way to extract the subfunction vectors.
                             hessian_output.append(hessian_value.sub(i, deepcopy=True).vector().sum())
-                        block_variable.add_hessian_output(numpy.array(hessian_output))
+                        # FIXME: This is not elegant, only needed for dolfin2018.1.0, pybind11
+                        hessian_vector = backend.cpp.la.Vector(backend.MPI.comm_world, len(hessian_output))
+                        hessian_vector[:] = hessian_output
+                        block_variable.add_hessian_output(hessian_vector)
                 elif isinstance(c, Function):
                     # TODO: This gets a little complicated.
                     #       The function may belong to a different space,
