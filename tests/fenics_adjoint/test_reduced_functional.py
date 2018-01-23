@@ -81,7 +81,7 @@ def test_wrt_function_dirichlet_boundary():
     up = Up()
     down = Down()
 
-    boundary = FacetFunction("size_t", mesh)
+    boundary = MeshFunction("size_t", mesh, mesh.geometric_dimension()-1)
     boundary.set_all(0)
     up.mark(boundary, 1)
     down.mark(boundary,2)
