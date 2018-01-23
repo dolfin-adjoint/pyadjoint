@@ -18,7 +18,7 @@ RUN apt-get -qq update && \
 RUN /bin/bash -l -c "pip3 install git+https://bitbucket.org/dolfin-adjoint/pyadjoint.git@master"
 
 USER fenics
-ENV IPOPT_VER=3.12.8
+ENV IPOPT_VER=3.12.9
 
 COPY dolfin-adjoint.conf $FENICS_HOME/dolfin-adjoint.conf
 RUN /bin/bash -l -c "source $FENICS_HOME/dolfin-adjoint.conf && \
