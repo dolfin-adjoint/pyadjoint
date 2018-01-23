@@ -73,9 +73,9 @@ def get_box():
     # Mark all facets by 0, exterior facets by 1, and then top and
     # bottom by 2
     try:
-        boundaries = FacetFunction("sizet", mesh)
+        boundaries = MeshFunction("sizet", mesh, mesh.geometric_dimension()-1)
     except:
-        boundaries = FacetFunction("size_t", mesh)
+        boundaries = MeshFunction("size_t", mesh, mesh.geometric_dimension()-1)
 
     boundaries.set_all(0)
     on_bdry = AutoSubDomain(lambda x, on_boundary: on_boundary)
@@ -270,7 +270,6 @@ def main(ic, params, amplitude, T=1.0, dt=0.01, annotate=False):
         # Update time and variables
         t += dk
         z_.assign(z)
-
         progress += 1
         iteration += 1
 
@@ -281,7 +280,7 @@ if __name__ == "__main__":
     # Adjust behaviour at will:
     T = 0.05
     dt = 0.01
-    set_log_level(PROGRESS)
+    set_log_level(LogLevel.PROGRESS)
 
     ic = Function(Z)
     # Play forward run
