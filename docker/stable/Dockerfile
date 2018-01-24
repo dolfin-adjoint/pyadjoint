@@ -16,6 +16,7 @@ RUN apt-get -qq update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 RUN /bin/bash -l -c "pip3 install git+https://bitbucket.org/dolfin-adjoint/pyadjoint.git@master"
+RUN /bin/bash -l -c "pip3 install -U scipy"
 
 ENV IPOPT_VER=3.12.9
 
