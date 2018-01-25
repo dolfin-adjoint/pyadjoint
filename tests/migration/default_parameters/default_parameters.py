@@ -7,7 +7,7 @@ params = NonlinearVariationalSolver.default_parameters()
 
 # Setup
 n = 200
-mesh = RectangleMesh(mpi_comm_world(), Point(-1, -1), Point(1, 1), n, n)
+mesh = RectangleMesh(MPI.comm_world, Point(-1, -1), Point(1, 1), n, n)
 V = FunctionSpace(mesh, "CG", 1)
 u = Function(V, name="State")
 m = Function(V, name="Control")

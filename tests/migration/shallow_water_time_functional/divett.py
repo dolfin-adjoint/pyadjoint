@@ -23,7 +23,7 @@ c=sqrt(params["g"]*params["depth"])
 params["finish_time"]=100
 params["dt"]=params["finish_time"]/4000.
 
-class InitialConditions(Expression):
+class InitialConditions(UserExpression):
     def eval(self, values, X):
         values[0]=params['eta0']*sqrt(params['g']*params['depth'])*cos(pi*X[0]/3000)
         values[1]=0.
@@ -32,7 +32,7 @@ class InitialConditions(Expression):
         return (3,)
 
 
-mesh = RectangleMesh(mpi_comm_world(), Point(0, 0), Point(basin_x, basin_y), nx, ny)
+mesh = RectangleMesh(MPI.comm_world, Point(0, 0), Point(basin_x, basin_y), nx, ny)
 mesh.order()
 mesh.init()
 
@@ -55,9 +55,9 @@ sides = Sides()
 
 # Initialize mesh function for boundary domains
 try:
-    boundaries = FacetFunction("sizet", mesh)
+    boundaries = MeshFunction("sizet", mesh, mesh.geometric_dimension()-1)
 except:
-    boundaries = FacetFunction("size_t", mesh)
+    boundaries = MeshFunction("size_t", mesh, mesh.geometric_dimension()-1)
 boundaries.set_all(0)
 left.mark(boundaries, 1)
 right.mark(boundaries, 2)

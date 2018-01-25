@@ -56,7 +56,7 @@ def main(kappa):
 
     # Mesh-related functions
     n = FacetNormal(mesh)
-    h = CellSize(mesh)
+    h = 2*Circumradius(mesh)
     h_avg = (h('+') + h('-'))/2
 
     # ( dot(v, n) + |dot(v, n)| )/2.0

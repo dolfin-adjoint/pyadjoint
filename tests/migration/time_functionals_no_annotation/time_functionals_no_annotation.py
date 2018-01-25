@@ -39,4 +39,4 @@ if __name__ == "__main__":
     J = assemble(inner(u,u)*dx)
     dJdic = compute_gradient(J, Control(u))
     # Work out the solution by hand -- it's 4
-    assert dJdic.vector().array()[0] == 4.0
+    assert dJdic.vector().get_local()[0] == 4.0

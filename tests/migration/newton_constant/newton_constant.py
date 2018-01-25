@@ -5,6 +5,7 @@ import sys
 
 n = 30
 mesh = UnitIntervalMesh(n)
+import dolfin
 if LooseVersion(dolfin.__version__) > LooseVersion('1.3.0'):
     dx = dx(mesh)
 

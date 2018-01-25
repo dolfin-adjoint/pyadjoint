@@ -40,7 +40,7 @@ def test_jit_expression_evaluations():
     assert(f(0.0) == 2)
     assert(f.u == 2)
 
-@pytest.mark.skip(reason="Not implemented with pybind")
+@pytest.mark.xfail(reason="Not implemented with pybind, Issue #988")
 def test_ignored_expression_attributes():
     ignored_attrs = []
 
@@ -65,7 +65,7 @@ def test_ignored_expression_attributes():
     from fenics_adjoint.types.expression import _IGNORED_EXPRESSION_ATTRIBUTES 
     assert(set(ignored_attrs) == set(_IGNORED_EXPRESSION_ATTRIBUTES))
 
-@pytest.mark.skip(reason="Not implemented with pybind")
+@pytest.mark.xfail(reason="Not implemented with pybind")
 def test_cpp_inline():
     # An expression that depends on a and b
     base_code = '''
@@ -106,17 +106,18 @@ def test_cpp_inline():
     mesh = UnitSquareMesh(4, 4)
     V = FunctionSpace(mesh, "CG", 1)
 
-    a = cpp.function.Constant(0.5)
-    b = cpp.function.Constant(0.25)
+    a = 0.5
+    b = Constant(0.25)
 
     def J(a):
         if not isinstance(a, Constant):
-            a = cpp.function.Constant(a)
+            a = Constant(a)
             f = CompiledExpression(compile_cpp_code(cpp_code).MyCppExpression(), degree=1)
-            f.a = a; f.b = b
+            f.a = a._cpp_object
+            f.b = b._cpp_object
 
         dfda = Expression(da_cpp_code, degree=1)
-        dfda.a = a; dfda.b = b
+        dfda.a = a._cpp_object; dfda.b = b._cpp_object
 
         dfdb = Expression(db_cpp_code, degree=1)
         dfdb.a = a; dfdb.b = b

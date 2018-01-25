@@ -6,7 +6,7 @@ from fenics_adjoint import *
 import sys
 
 # Global settings
-set_log_level(ERROR)
+set_log_level(LogLevel.ERROR)
 
 mesh = UnitSquareMesh(10, 10)
 V = FunctionSpace(mesh, "DG", 1)

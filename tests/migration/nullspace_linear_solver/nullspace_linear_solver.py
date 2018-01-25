@@ -43,7 +43,7 @@ nullspace = VectorSpaceBasis([constants])
 as_backend_type(A).set_nullspace(nullspace)
 
 # now we can solve
-solver = LinearSolver(mpi_comm_world(), "default")
+solver = LinearSolver(MPI.comm_world, "default")
 solver.set_nullspace(nullspace)
 solver.solve(A, u.vector(), b)
 
