@@ -58,7 +58,7 @@ for i in range(2):
 V = FunctionSpace(mesh, "CG", 1) # state space
 W = FunctionSpace(mesh, "CG", 1) # control space
 
-f = interpolate(Constant(0), W, name="Control") # zero initial guess
+f = interpolate(Constant(0), W) # zero initial guess
 u = Function(V, name='State')
 v = TestFunction(V)
 
@@ -79,7 +79,7 @@ d = Expression("d*w", d=d, w=w, degree=3)
 
 # Define functional of interest and the reduced functional
 
-J = Functional((0.5*inner(u-d, u-d))*dx + 0.5*alpha*f**2*dx)
+J = assemble((0.5*inner(u-d, u-d))*dx + 0.5*alpha*f**2*dx)
 
 control = Control(f)
 rf = ReducedFunctional(J, control)

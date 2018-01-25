@@ -74,7 +74,6 @@ def forward(excitation, c=Constant(1.), record=False, annotate=False):
     t = 0.0        # Initial time
     T = 3.e-1      # Final time
     times = [t,]
-    if annotate: adj_start_timestep()
     while t < T - .5*float(k):
         excitation.t = t + float(k)
         solve(a == L, u, annotate = annotate)
@@ -85,7 +84,6 @@ def forward(excitation, c=Constant(1.), record=False, annotate=False):
         times.append(t)
         if record:
             rec.append(u1(1.0))
-        if annotate: adj_inc_timestep(t, t > T - .5*float(k))
         i += 1
 
     if record:
@@ -108,8 +106,7 @@ def objective(times, u, observations):
     combined = zip(times, observations)
     area = times[-1] - times[0]
     M = len(times)
-    I = area/M*sum(inner(u - u_obs, u - u_obs)*ds(1)*dt[t]
-                   for (t, u_obs) in combined)
+    I = area/M*sum(assemble(inner(u - u_obs, u - u_obs)*ds(1)) for (t, u_obs) in combined)
     return I
 
 def optimize(dbg=False):
@@ -125,16 +122,6 @@ def optimize(dbg=False):
 
     # Execute first time to annotate and record the tape
     u, times = forward(source, 2*DOLFIN_PI, False, True)
-
-    if dbg:
-        # Check the recorded tape
-        success = replay_dolfin(tol = 0.0, stop = True)
-        print("replay: ", success)
-
-        # for the equations recorded on the forward run
-        adj_html("forward.html", "forward")
-        # for the equations to be assembled on the adjoint run
-        adj_html("adjoint.html", "adjoint")
 
     # Load references
     refs = np.loadtxt("recorded.txt")
@@ -153,8 +140,7 @@ def optimize(dbg=False):
     # Define the control
     control = Control(Omega)
 
-    Jform = objective(times, u, refs)
-    J = Functional(Jform)
+    J = objective(times, u, refs)
     
     # compute the gradient
     dJd0 = compute_gradient(J, control)
@@ -176,7 +162,5 @@ if __name__ == "__main__":
         source = Source(Constant(2e2), degree=3)
         forward(source, 2*DOLFIN_PI, True)
 
-    if '-dbg' in sys.argv:
-        optimize(True)
     else:
         optimize()

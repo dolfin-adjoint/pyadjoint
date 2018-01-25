@@ -207,7 +207,7 @@ def get_ic():
 # seen as a map from the initial salinity to the final salinity.
 
 def project_salinity(z_final):
-    s = project(split(z_final)[-1], S, name="FinalSalinity")
+    s = project(split(z_final)[-1], S) # FinalSalinity
     return s
 
 # The main loop of the forward model. Compute the initial conditions, advance
