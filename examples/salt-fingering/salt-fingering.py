@@ -1,3 +1,7 @@
+import dolfin
+if dolfin.__version__ == "2018.1.0.dev0":
+    print("Not implemented with pybind, Issue #989")
+    import sys; sys.exit(1)
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
@@ -64,7 +68,6 @@
 # We start our implementation by importing the :py:mod:`dolfin` and
 # :py:mod:`dolfin_adjoint` modules
 
-from __future__ import print_function
 from fenics import *
 from fenics_adjoint import *
 
