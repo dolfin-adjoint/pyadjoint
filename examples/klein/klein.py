@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 # .. _klein:
 #
 # .. py:currentmodule:: dolfin_adjoint
@@ -78,10 +77,11 @@
 
 from fenics import *
 from fenics_adjoint import *
+from matplotlib.pyplot import show
 
 # Next we load a triangulation of the Klein bottle as a mesh file.
 mesh = Mesh()
-infile = XDMFFile(mpi_comm_world(), 'klein.xdmf')
+infile = XDMFFile(MPI.comm_world, 'klein.xdmf')
 infile.read(mesh)
 
 # FEniCS natively supports solving partial differential equations on manifolds
@@ -199,7 +199,7 @@ adj_time = adj_timer.stop()
 # the runtime of the forward and adjoint solves.
 
 plot(dJdm, title="Sensitivity of ||u(t=%f)||_L2 with respect to u(t=0)." % t)
-interactive()
+show()
 
 print("Forward time: ", fwd_time)
 print("Adjoint time: ", adj_time)
