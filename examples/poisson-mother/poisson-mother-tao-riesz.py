@@ -9,12 +9,12 @@
 
 
 """
-
+import sys; print("optimization not implemented; exiting"); sys.exit(1)
 from dolfin import *
 from dolfin_adjoint import *
 import numpy.random
 
-set_log_level(ERROR)
+set_log_level(LogLevel.ERROR)
 parameters['std_out_all_processes'] = False
 
 tao_args = """
@@ -42,11 +42,11 @@ mesh = UnitSquareMesh(n, 2*n)
 
 def randomly_refine(initial_mesh, ratio_to_refine= .3):
     numpy.random.seed(0)
-    cf = CellFunction('bool', initial_mesh)
+    cf = MeshFunction('bool', initial_mesh, initial_mesh.geometric_dimension())
     for k in range(len(cf)):
         if numpy.random.rand() < ratio_to_refine:
             cf[k] = True
-    return refine(initial_mesh, cell_markers = cf)
+    return refine(initial_mesh, cf)
 
 # To demonstrate mesh independence, try refining cells at random
 # (increase the loop counter)
@@ -58,7 +58,7 @@ for i in range(2):
 V = FunctionSpace(mesh, "CG", 1) # state space
 W = FunctionSpace(mesh, "CG", 1) # control space
 
-f = interpolate(Constant(0), W, name="Control") # zero initial guess
+f = interpolate(Constant(0,name="Control"), W) # zero initial guess
 u = Function(V, name='State')
 v = TestFunction(V)
 

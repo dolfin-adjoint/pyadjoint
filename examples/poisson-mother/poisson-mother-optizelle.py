@@ -9,7 +9,6 @@
 
 
 """
-from __future__ import print_function
 from dolfin import *
 from dolfin_adjoint import *
 
@@ -17,13 +16,13 @@ import Optizelle
 
 parameters["adjoint"]["cache_factorizations"] = True
 
-set_log_level(ERROR)
+set_log_level(LogLevel.ERROR)
 
 # Create mesh, refined in the center
 n = 64
 mesh = UnitSquareMesh(n, n)
 
-cf = CellFunction("bool", mesh)
+cf = MeshFunction("bool", mesh, mesh.geometric_dimension())
 subdomain = CompiledSubDomain('std::abs(x[0]-0.5)<0.25 && std::abs(x[1]-0.5)<0.25')
 subdomain.mark(cf, True)
 mesh = refine(mesh, cf)

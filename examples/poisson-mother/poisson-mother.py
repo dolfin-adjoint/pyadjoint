@@ -54,6 +54,10 @@
 #
 # We start our implementation by importing the :py:mod:`dolfin` and
 # :py:mod:`dolfin_adjoint` modules:
+import sys;
+print("Optimization is not implemented,exiting")
+exit(1)
+
 
 from fenics import *
 from fenics_adjoint import *
@@ -92,7 +96,7 @@ mesh = refine(mesh, cf)
 V = FunctionSpace(mesh, "CG", 1)
 W = FunctionSpace(mesh, "DG", 0)
 
-f = interpolate(Expression("x[0]+x[1]", degree=1), W, name='Control')
+f = interpolate(Expression("x[0]+x[1]", name='Control', degree=1), W)
 u = Function(V, name='State')
 v = TestFunction(V)
 

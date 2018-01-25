@@ -9,11 +9,13 @@
 
 
 """
-from __future__ import print_function
+import sys;
+print("Optimization not implemented")
+sys.exit(1)
 from dolfin import *
 from dolfin_adjoint import *
 
-set_log_level(ERROR)
+set_log_level(LogLevel.ERROR)
 
 # Create mesh, refined in the center
 n = 64
@@ -28,7 +30,7 @@ mesh = UnitSquareMesh(n, n)
 V = FunctionSpace(mesh, "CG", 1)
 W = FunctionSpace(mesh, "DG", 0)
 
-f = interpolate(Expression("0.0", degree=1), W, name='Control')
+f = interpolate(Expression("0.0", degree=1, name='Control'), W)
 u = Function(V, name='State')
 v = TestFunction(V)
 
