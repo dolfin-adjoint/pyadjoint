@@ -57,7 +57,7 @@ from fenics_adjoint import *
 # Next, we load the mesh. The mesh was generated with mshr; see make-mesh.py
 # in the same directory.
 
-mesh_xdmf = XDMFFile(mpi_comm_world(), "rectangle-less-circle.xdmf")
+mesh_xdmf = XDMFFile(MPI.comm_world, "rectangle-less-circle.xdmf")
 mesh = Mesh()
 mesh_xdmf.read(mesh)
 

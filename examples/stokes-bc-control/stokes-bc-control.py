@@ -60,14 +60,14 @@
 # **************
 #
 # First, the :py:mod:`dolfin` and :py:mod:`dolfin_adjoint` modules are imported:
-
+import sys; print("Optimization not implemented"); sys.exit(1)
 from dolfin import *
 from dolfin_adjoint import *
 
 # Next, we load the mesh. The mesh was generated with mshr; see make-mesh.py
 # in the same directory.
 
-mesh_xdmf = XDMFFile(mpi_comm_world(), "rectangle-less-circle.xdmf")
+mesh_xdmf = XDMFFile(MPI.comm_world, "rectangle-less-circle.xdmf")
 mesh = Mesh()
 mesh_xdmf.read(mesh)
 
@@ -99,7 +99,7 @@ class Circle(SubDomain):
     def inside(self, x, on_boundary):
         return on_boundary and (x[0]-10)**2 + (x[1]-5)**2 < 3**2
 
-facet_marker = FacetFunction("size_t", mesh)
+facet_marker = MeshFunction("size_t", mesh, mesh.geometric_dimension()-1)
 facet_marker.set_all(10)
 Circle().mark(facet_marker, 2)
 
@@ -115,10 +115,10 @@ ds = ds(subdomain_data=facet_marker)
 nu = Constant(1)     # Viscosity coefficient
 gamma = Constant(10)    # Nitsche penalty parameter
 n = FacetNormal(mesh)
-h = CellSize(mesh)
+h = 2*Circumradius(mesh)
 
 # Define boundary conditions
-u_inflow = Expression(("x[1]*(10-x[1])/25", "0"))
+u_inflow = Expression(("x[1]*(10-x[1])/25", "0"),degree=3)
 noslip = DirichletBC(W.sub(0), (0, 0),
                      "on_boundary && (x[1] >= 9.9 || x[1] < 0.1)")
 inflow = DirichletBC(W.sub(0), u_inflow, "on_boundary && x[0] <= 0.1")
