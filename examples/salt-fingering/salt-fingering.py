@@ -1,7 +1,8 @@
 import dolfin
-if dolfin.__version__ == "2018.1.0.dev0":
-    print("Not implemented with pybind, Issue #989")
-    import sys; sys.exit(1)
+import ufl;
+ufl.log.set_level(13)
+dolfin.info_red("""PYBIND11 parallel error, EXITING""")
+exit(1)
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 

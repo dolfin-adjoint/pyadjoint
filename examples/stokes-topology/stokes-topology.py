@@ -74,9 +74,13 @@
 # First, the :py:mod:`dolfin` and :py:mod:`dolfin_adjoint` modules are
 # imported:
 
-from __future__ import print_function
 from fenics import *
 from fenics_adjoint import *
+
+import ufl;
+ufl.log.set_level(13)
+info_red("""PYBIND11 parallel error, EXITING""")
+exit(1)
 
 # Next we import the Python interface to IPOPT. If IPOPT is
 # unavailable on your system, we strongly :doc:`suggest you install it
@@ -116,7 +120,7 @@ N = 10
 delta = 1.5  # The aspect ratio of the domain, 1 high and \delta wide
 V = Constant(1.0/3) * delta  # want the fluid to occupy 1/3 of the domain
 
-mesh = RectangleMesh(mpi_comm_world(), Point(0.0, 0.0), Point(delta, 1.0), N, N)
+mesh = RectangleMesh(MPI.comm_world, Point(0.0, 0.0), Point(delta, 1.0), N, N)
 A = FunctionSpace(mesh, "CG", 1)        # control function space
 
 U_h = VectorElement("CG", mesh.ufl_cell(), 2)
@@ -125,7 +129,7 @@ W = FunctionSpace(mesh, U_h*P_h)          # mixed Taylor-Hood function space
 
 # Define the boundary condition on velocity
 
-class InflowOutflow(Expression):
+class InflowOutflow(UserExpression):
     def eval(self, values, x):
         values[1] = 0.0
         values[0] = 0.0

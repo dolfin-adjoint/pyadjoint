@@ -59,6 +59,11 @@ from fenics import *
 from fenics_adjoint import *
 from collections import OrderedDict
 
+import ufl;
+ufl.log.set_level(13)
+info_red("""PYBIND11 parallel error, EXITING""")
+exit(1)
+
 # Next, we define the expressions for observational data :math:`d` and the
 # viscosity :math:`\nu`.
 

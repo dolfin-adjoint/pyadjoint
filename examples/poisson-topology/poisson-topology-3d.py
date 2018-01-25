@@ -56,10 +56,13 @@
 #
 # First, the :py:mod:`dolfin` and :py:mod:`dolfin_adjoint` modules are
 # imported:
-
-from __future__ import print_function
 from dolfin import *
 from dolfin_adjoint import *
+
+import ufl;
+ufl.log.set_level(13)
+info_red("""PYBIND11 parallel error, EXITING""")
+exit(1)
 
 # Next, we set some PETSc options to govern how the linear systems
 # are to be solved: this sets the number of smoother interations
@@ -88,7 +91,7 @@ parameters["form_compiler"]["cpp_optimize_flags"] = "-O3 -ffast-math -march=nati
 # Next we define some constants, and the Solid Isotropic Material with
 # Penalisation (SIMP) rule.
 
-V = Constant(0.4)      # volume bound on the control
+V = Constant(0.4, name="Control")      # volume bound on the control
 p = Constant(5)        # power used in the solid isotropic material
 # with penalisation (SIMP) rule, to encourage the control solution to attain either 0 or 1
 eps = Constant(1.0e-3) # epsilon used in the solid isotropic material
@@ -123,7 +126,7 @@ class DirichletBoundary(SubDomain):
 # dropping the surface integral after integration by parts
 
 bc = [DirichletBC(P, 0.0, DirichletBoundary())]
-f = interpolate(Constant(1.0e-2), P, name="SourceTerm") # the volume source term for the PDE
+f = interpolate(Constant(1.0e-2, name="SourceTerm"), P) # the volume source term for the PDE
 
 # Next we define a function that given a control :math:`a` solves the
 # forward PDE for the temperature :math:`T`. (The advantage of
@@ -151,7 +154,7 @@ def forward(a):
 # bound constraint are satisfied.
 
 if __name__ == "__main__":
-    a = interpolate(V, A, name="Control") # initial guess.
+    a = interpolate(V, A) # initial guess.
     T = forward(a)                        # solve the forward problem once.
 
 # With the forward problem solved once, :py:mod:`dolfin_adjoint` has

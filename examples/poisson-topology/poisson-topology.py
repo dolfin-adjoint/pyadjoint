@@ -65,7 +65,6 @@
 # First, the :py:mod:`dolfin` and :py:mod:`dolfin_adjoint` modules are
 # imported:
 
-from __future__ import print_function
 from fenics import *
 from fenics_adjoint import *
 
@@ -74,6 +73,10 @@ from fenics_adjoint import *
 # <../../download/index>`; IPOPT is a well-established open-source
 # optimisation algorithm.
 
+import ufl;
+ufl.log.set_level(13)
+info_red("""PYBIND11 parallel error, EXITING""")
+exit(1)
 try:
     import pyipopt
 except ImportError:
@@ -225,7 +228,7 @@ if __name__ == "__main__":
 # Compute the integral of the control over the domain
 
             integral = self.smass.inner(self.tmpvec.vector())
-            if MPI.rank(mpi_comm_world()) == 0:
+            if MPI.rank(MPI.comm_world) == 0:
                 print("Current control integral: ", integral)
             return [self.V - integral]
 
@@ -250,7 +253,7 @@ if __name__ == "__main__":
     solver = IPOPTSolver(problem, parameters=parameters)
     a_opt = solver.solve()
 
-    xdmf_filename = XDMFFile(mpi_comm_world(), "output/final_solution.xdmf")
+    xdmf_filename = XDMFFile(MPI.comm_world, "output/final_solution.xdmf")
     xdmf_filename.write(a_opt)
 
 # The example code can be found in ``examples/poisson-topology/`` in the
