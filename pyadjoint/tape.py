@@ -214,7 +214,7 @@ class Tape(object):
             if filename:
                 write_dot(G, filename)
             else:
-                raise NotImplementedError
+                raise ValueError("No filename provided")
         else:
             import networkx as nx
             import pylab as plt
