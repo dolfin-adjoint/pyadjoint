@@ -55,10 +55,9 @@
 # We start our implementation by importing the :py:mod:`dolfin` and
 # :py:mod:`dolfin_adjoint` modules:
 
-from __future__ import print_function
 from fenics import *
 from fenics_adjoint import *
-set_log_level(ERROR)
+set_log_level(LogLevel.ERROR)
 
 # Next we import the Python interface to Moola. Moola is a collection
 # of optimisation solvers specifically designed for PDE-constrained
@@ -76,7 +75,7 @@ import moola
 n = 64
 mesh = UnitSquareMesh(n, n)
 
-cf = CellFunction("bool", mesh)
+cf = MeshFunction("bool", mesh, mesh.geometric_dimension())
 subdomain = CompiledSubDomain('std::abs(x[0]-0.5) < 0.25 && std::abs(x[1]-0.5) < 0.25')
 subdomain.mark(cf, True)
 mesh = refine(mesh, cf)

@@ -114,10 +114,15 @@
 # First, the :py:mod:`dolfin` and :py:mod:`dolfin_adjoint` modules are
 # imported. We also tell DOLFIN to only print error messages to keep the
 # output comprehensible:
+import dolfin
+if dolfin.__version__ == '2018.1.0.dev0':
+    print("Not supported with Pybind11, parallellizatio error")
+    import sys; sys.exit(1)
+
 
 from fenics import *
 from fenics_adjoint import *
-set_log_level(ERROR)
+set_log_level(LogLevel.ERROR)
 
 # Needed to have a nested conditional
 parameters["form_compiler"]["representation"] = "uflacs"
