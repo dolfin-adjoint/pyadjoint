@@ -150,9 +150,15 @@ else:
             bc = backend.DirichletBC(bc)
             bc.homogenize()
             return bc
-        return backend.DirichletBC(backend.FunctionSpace(bc.function_space()),
-                                   value,
-                                   bc.sub_domain, method=bc.method())
+        try:
+            # FIXME: Not perfect handling of Initialization, wait for development in dolfin.DirihcletBC
+            bc =  backend.DirichletBC(backend.FunctionSpace(bc.function_space()),
+                                      value, *bc.domain_args)
+        except AttributeError:
+            bc = backend.DirichletBC(backend.FunctionSpace(bc.function_space()),
+                                     value,
+                                     bc.sub_domain, method=bc.method())
+            return bc
 
     def function_from_vector(V, vector):
         """Create a new Function sharing data.
@@ -208,16 +214,13 @@ else:
 
     def gather(vec):
         import numpy
-        if isinstance(vec, backend.cpp.Function):
+        if isinstance(vec, backend.cpp.function.Function):
             vec = vec.vector()
 
-        if isinstance(vec, backend.cpp.GenericVector):
-            try:
-                arr = backend.cpp.DoubleArray(vec.size())
-                vec.gather(arr, numpy.arange(vec.size(), dtype='I'))
-                arr = arr.array().tolist()
-            except TypeError:
-                arr = vec.gather(numpy.arange(vec.size(), dtype='intc'))
+        if isinstance(vec, backend.cpp.la.GenericVector):
+            arr = backend.DefaultFactory().create_vector(backend.MPI.comm_self)
+            vec.gather(arr, numpy.arange(vec.size(), dtype='I'))
+            arr = vec.get_local()
         elif isinstance(vec, list):
             return list(map(gather, vec))
         else:
