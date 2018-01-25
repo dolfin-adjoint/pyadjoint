@@ -3,9 +3,11 @@ from dolfin import *
 from dolfin_adjoint import *
 import numpy as np
 import os, sys
+print("NameError: name 'adj_start_timestep' is not defined in pyadjoint")
+sys.exit(1)
 
 # Set log level
-set_log_level(WARNING)
+set_log_level(LogLevel.WARNING)
 
 # Prepare a mesh
 mesh = UnitIntervalMesh(50)
@@ -23,9 +25,10 @@ left.mark(boundary_parts, 0)
 right.mark(boundary_parts, 1)
 ds = Measure("ds", subdomain_data=boundary_parts)
 
-class Source(Expression):
+class Source(UserExpression):
     def __init__(self, omega=Constant(2e2), Source=None, derivative=None, **kwargs):
         """ Construct the source function """
+        super().__init__(**kwargs)
         self.t = 0.0
         self.omega = omega
         self.derivative = derivative
