@@ -49,6 +49,26 @@ def taylor_test(J, m, h, dJdm=None, Hm=None):
 
 
 def taylor_test_multiple(J, m, h, dJdm=None):
+    """Run a taylor test on the functional J around point m in direction h when J takes a list of
+    OverloadedTypes as input and m and h are lists of OverloadedTypes.
+    
+    Given a functional J, a point in control space m, and a direction in
+    control space h, the function computes the taylor remainders and
+    returns the convergence rate.
+
+    Args:
+        J (reduced_functional.ReducedFunctional): The functional to evaluate the taylor remainders of.
+            Must be an instance of :class:`ReducedFunctional`, or something with a similar
+            interface.
+        m (list of overloaded_type.OverloadedType): The point in control space. Must be of same type as the
+            control.
+        h (list of overloaded_type.OverloadedType): The direction of perturbations. Must be of same type as
+            the control.
+
+    Returns:
+        float: The smallest computed convergence rate of the tested perturbations.
+
+    """
     with stop_annotating():
         Jm = J(m)
         if dJdm is None:
