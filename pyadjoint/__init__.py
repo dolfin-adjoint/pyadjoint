@@ -12,7 +12,7 @@ from .tape import (Tape,
 from .adjfloat import AdjFloat
 from .reduced_functional import ReducedFunctional
 from .drivers import compute_gradient, compute_hessian
-from .verification import taylor_test, taylor_test_multiple
+from .verification import taylor_test
 from .overloaded_type import OverloadedType
 from .control import Control
 from .optimization.optimization import minimize
