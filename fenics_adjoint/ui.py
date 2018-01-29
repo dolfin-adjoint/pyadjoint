@@ -14,7 +14,7 @@ from .variational_solver import (NonlinearVariationalProblem, NonlinearVariation
 from pyadjoint import (Tape, set_working_tape, get_working_tape,
                        pause_annotation, continue_annotation,
                        ReducedFunctional,
-                       taylor_test, taylor_test_multiple,
+                       taylor_test,
                        compute_gradient, Hessian,
                        AdjFloat, Control, minimize, MinimizationProblem,
                        IPOPTSolver, InequalityConstraint)
