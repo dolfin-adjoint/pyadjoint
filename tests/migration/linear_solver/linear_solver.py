@@ -87,12 +87,17 @@ solver.set_operators(A, P)
 
 # Solve
 U = Function(W)
-U.vector()[:] = 1.0
-#solver.parameters["monitor_convergence"] = True
+U.vector()[:] = 0.0
 solver.parameters["relative_tolerance"] = 1.0e-14
 solver.parameters["absolute_tolerance"] = 1.0e-12
-solver.parameters["nonzero_initial_guess"] = True
+solver.parameters["nonzero_initial_guess"] = False
 solver.solve(U.vector(), bb)
 
-assert adjglobals.adjointer.equation_count > 0
-assert replay_dolfin(tol=5.0e-9)
+J = assemble(inner(U, U)*inner(U, U)*dx)
+Jhat = ReducedFunctional(J, Control(f))
+assert J == Jhat(f)
+
+h = Constant((1.0, 1.0, 1.0))
+dJdm = h._ad_dot(Jhat.derivative())
+Hm = h._ad_dot(Jhat.hessian(h))
+assert taylor_test(Jhat, f, h, dJdm=dJdm, Hm=Hm) > 2.9

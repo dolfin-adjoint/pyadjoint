@@ -11,6 +11,7 @@ if backend.__name__ != "firedrake":
     from .lusolver import LUSolver
 from .variational_solver import (NonlinearVariationalProblem, NonlinearVariationalSolver,
                                  LinearVariationalProblem, LinearVariationalSolver)
+from .linear_solver import LinearSolver
 from pyadjoint import (Tape, set_working_tape, get_working_tape,
                        pause_annotation, continue_annotation,
                        ReducedFunctional,
