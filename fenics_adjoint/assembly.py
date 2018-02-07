@@ -32,6 +32,7 @@ def assemble(*args, **kwargs):
 
     return output
 
+
 def assemble_system(*args, **kwargs):
     """When a form is assembled, the information about its nonlinear dependencies is lost,
     and it is no longer easy to manipulate. Therefore, fenics_adjoint overloads the :py:func:`dolfin.assemble_system`
@@ -54,8 +55,10 @@ def assemble_system(*args, **kwargs):
     A.bcs = bcs
     b.form = b_form
     b.bcs = bcs
+    A.assemble_system = True
 
     return A, b
+
 
 class AssembleBlock(Block):
     def __init__(self, form):
