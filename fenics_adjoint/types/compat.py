@@ -60,13 +60,19 @@ if backend.__name__ == "firedrake":
 
     def extract_bc_subvector(value, Vtarget, bc):
         """Extract from value (a function in a mixed space), the sub
+        vector corresponding to the part of the space bc applies
+        to.  Vtarget is the target (collapsed) space."""
+        return extract_bc_subfunction(value, Vtarget, bc).vector()
+
+    def extract_bc_subfunction(value, Vtarget, bc):
+        """Extract from value (a function in a mixed space), the sub
         function corresponding to the part of the space bc applies
         to.  Vtarget is the target (collapsed) space."""
         r = value
         for idx in bc._indices:
             r = r.sub(idx)
         assert Vtarget == r.function_space()
-        return r.vector()
+        return r
 
     def extract_mesh_from_form(form):
         """Takes in a form and extracts a mesh which can be used to construct function spaces.
@@ -172,12 +178,18 @@ else:
 
     def extract_bc_subvector(value, Vtarget, bc):
         """Extract from value (a function in a mixed space), the sub
+        vector corresponding to the part of the space bc applies
+        to.  Vtarget is the target (collapsed) space."""
+        return extract_bc_subfunction(value, Vtarget, bc).vector()
+
+    def extract_bc_subfunction(value, Vtarget, bc):
+        """Extract from value (a function in a mixed space), the sub
         function corresponding to the part of the space bc applies
         to.  Vtarget is the target (collapsed) space."""
         assigner = backend.FunctionAssigner(Vtarget, bc.function_space())
         output = backend.Function(Vtarget)
         assigner.assign(output, extract_subfunction(value, bc.function_space()))
-        return output.vector()
+        return output
 
     def extract_mesh_from_form(form):
         """Takes in a form and extracts a mesh which can be used to construct function spaces.

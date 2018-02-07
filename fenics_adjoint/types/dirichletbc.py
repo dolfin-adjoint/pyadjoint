@@ -91,6 +91,13 @@ class DirichletBCBlock(Block):
                 if isinstance(c, Constant):
                     adj_value = backend.Function(self.parent_space)
                     adj_input.apply(adj_value.vector())
+                    if len(self.function_space.component()) > 0:
+                        collapsed_subspace = self.function_space.collapse()
+                    else:
+                        collapsed_subspace = self.function_space
+                    adj_value = compat.extract_bc_subfunction(adj_value,
+                                                              collapsed_subspace,
+                                                              bc)
                     if adj_value.ufl_shape == () or adj_value.ufl_shape[0] <= 1:
                         block_variable.add_adj_output(adj_value.vector().sum())
                     else:
@@ -145,6 +152,13 @@ class DirichletBCBlock(Block):
                 if isinstance(c, Constant):
                     hessian_value = backend.Function(self.parent_space)
                     hessian_input.apply(hessian_value.vector())
+                    if len(self.function_space.component()) > 0:
+                        collapsed_subspace = self.function_space.collapse()
+                    else:
+                        collapsed_subspace = self.function_space
+                    hessian_value = compat.extract_bc_subfunction(hessian_value,
+                                                                  collapsed_subspace,
+                                                                  bc)
                     if hessian_value.ufl_shape == () or hessian_value.ufl_shape[0] <= 1:
                         block_variable.add_hessian_output(hessian_value.vector().sum())
                     else:
