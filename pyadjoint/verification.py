@@ -1,9 +1,6 @@
 import logging
 from .tape import stop_annotating
-
-# Type dependencies
-from . import overloaded_type
-from . import reduced_functional
+from .enlisting import Enlist
 
 
 def taylor_test(J, m, h, dJdm=None, Hm=0):
@@ -31,17 +28,19 @@ def taylor_test(J, m, h, dJdm=None, Hm=0):
     if len(J.controls) > 1 and not isinstance(h, (list, tuple)):
         raise ValueError("J depends on %d controls but h is not a list or tuple."%len(J.controls))
 
-    if len(J.controls) == 1:
-        def derivative(): return h._ad_dot(J.derivative())
-        def perturbe(eps): return m._ad_add(h._ad_mul(eps))
-    else:
-        def derivative(): return sum(hi._ad_dot(di) for hi,di in zip(h,J.derivative()))
-        def perturbe(eps): return [mi._ad_add(hi._ad_mul(eps)) for mi,hi in zip(m,h)]
-
     print("Running Taylor test")
     with stop_annotating():
+        hs = Enlist(h)
+        ms = Enlist(m)
+
         Jm = J(m)
-        if dJdm is None: dJdm = derivative()
+        if dJdm is None:
+            ds = Enlist(J.derivative())
+            dJdm = sum(hi._ad_dot(di) for hi,di in zip(hs,ds))
+
+        def perturbe(eps):
+            ret = [mi._ad_add(hi._ad_mul(eps)) for mi,hi in zip(ms,hs)]
+            return ms.delist(ret)
 
         residuals = []
         epsilons = [0.01/2**i for i in range(4)]
