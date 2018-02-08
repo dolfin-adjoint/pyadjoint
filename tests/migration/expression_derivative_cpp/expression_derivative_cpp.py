@@ -53,4 +53,4 @@ if __name__ == "__main__":
 
     rf3 = ReducedFunctional(J, [Control(a), Control(b)])
     hs = [Constant(1.0), Constant(1.0)]
-    assert taylor_test_multiple(rf3, [a, b], hs) > 1.9
+    assert taylor_test(rf3, [a, b], hs) > 1.9

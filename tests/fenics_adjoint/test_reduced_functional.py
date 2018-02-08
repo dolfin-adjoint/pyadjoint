@@ -371,7 +371,7 @@ def test_multiple_control():
     h.vector()[:] = rand(V.dim())
     h2 = Function(V)
     h2.vector()[:] = rand(V.dim())
-    assert taylor_test_multiple(Jhat, [p_value, p_value], [h, h2]) > 1.9
+    assert taylor_test(Jhat, [p_value, p_value], [h, h2]) > 1.9
 
 
 def test_dirichlet_updating():
@@ -511,7 +511,7 @@ def test_multiple_reduced_functionals():
     h = Function(V)
     h.vector()[:] = rand(V.dim())
     hs = [Constant(1), h]
-    assert taylor_test_multiple(Jhat, [b, f], hs) > 1.9
+    assert taylor_test(Jhat, [b, f], hs) > 1.9
 
     Jhat = ReducedFunctional(J, controls[1])
     assert taylor_test(Jhat, f, h) > 1.9
