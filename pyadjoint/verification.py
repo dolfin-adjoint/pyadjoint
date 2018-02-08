@@ -14,7 +14,7 @@ def taylor_test(J, m, h, dJdm=None, Hm=0):
         J (reduced_functional.ReducedFunctional): The functional to evaluate the taylor remainders of.
             Must be an instance of :class:`ReducedFunctional`, or something with a similar
             interface.
-        m (overloaded_type.OverloadedType): The point in control space. Must be of same type as the
+        m (overloaded_type.OverloadedType): The expansion points in control space. Must be of same type as the
             control.
         h (overloaded_type.OverloadedType): The direction of perturbations. Must be of same type as
             the control.
@@ -23,25 +23,25 @@ def taylor_test(J, m, h, dJdm=None, Hm=0):
         float: The smallest computed convergence rate of the tested perturbations.
 
     """
-    if len(J.controls) > 1 and not isinstance(m, (list, tuple)):
-        raise ValueError("J depends on %d controls but m is not a list or tuple."%len(J.controls))
-    if len(J.controls) > 1 and not isinstance(h, (list, tuple)):
-        raise ValueError("J depends on %d controls but h is not a list or tuple."%len(J.controls))
-
-    print("Running Taylor test")
     with stop_annotating():
         hs = Enlist(h)
         ms = Enlist(m)
 
+        if len(hs) != len(ms):
+            raise ValueError("%d perturbations are given but only %d expansion points are provided"%(len(hs), len(ms)))
+
         Jm = J(m)
         if dJdm is None:
             ds = Enlist(J.derivative())
+            if len(ds) != len(ms):
+                raise ValueError("The derivative of J depends on %d variables but only %d expansion points are given"%(len(ds), len(ms)))
             dJdm = sum(hi._ad_dot(di) for hi,di in zip(hs,ds))
 
         def perturbe(eps):
             ret = [mi._ad_add(hi._ad_mul(eps)) for mi,hi in zip(ms,hs)]
             return ms.delist(ret)
 
+        print("Running Taylor test")
         residuals = []
         epsilons = [0.01/2**i for i in range(4)]
         for eps in epsilons:
