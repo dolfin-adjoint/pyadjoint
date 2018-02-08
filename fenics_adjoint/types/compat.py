@@ -113,6 +113,8 @@ if backend.__name__ == "firedrake":
     def gather(vec):
         return vec.gather()
 
+    linalg_solve = backend.solve
+
 else:
     MatrixType = (backend.cpp.Matrix, backend.GenericMatrix)
     VectorType = backend.cpp.la.GenericVector
@@ -220,3 +222,12 @@ else:
             arr = vec  # Assume it's a gathered numpy array already
 
         return arr
+
+    def linalg_solve(*args, **kwargs):
+        """Temporary workaround for kwargs not expected in fenics linalg,
+        but possible in firedrake.
+
+        A better solution is expected in the future.
+
+        """
+        return backend.solve(*args)

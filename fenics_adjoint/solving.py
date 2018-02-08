@@ -159,7 +159,7 @@ class SolveBlock(Block):
             bcs.append(bc)
             bc.apply(dFdu, dJdu)
 
-        backend.solve(dFdu, adj_var.vector(), dJdu)
+        compat.linalg_solve(dFdu, adj_var.vector(), dJdu, **self.kwargs)
 
         adj_var_bdy = compat.function_from_vector(V, dJdu_copy - compat.assemble_adjoint_value(backend.action(dFdu_form, adj_var)))
         for block_variable in self.get_dependencies():
@@ -272,7 +272,7 @@ class SolveBlock(Block):
                     bc.apply(dFdm)
 
             dudm = Function(V)
-            backend.solve(dFdu, dudm.vector(), dFdm)
+            compat.linalg_solve(dFdu, dudm.vector(), dFdm, **self.kwargs)
 
             fwd_block_variable.add_tlm_output(dudm)
 
@@ -330,7 +330,7 @@ class SolveBlock(Block):
         # TODO: First-order adjoint solution should be possible to obtain from the earlier adjoint computations.
         adj_sol = backend.Function(V)
         # Solve the (first order) adjoint equation
-        backend.solve(dFdu, adj_sol.vector(), adj_input)
+        compat.linalg_solve(dFdu, adj_sol.vector(), adj_input, **self.kwargs)
 
         # Second-order adjoint (soa) solution
         adj_sol2 = backend.Function(V)
@@ -360,7 +360,7 @@ class SolveBlock(Block):
             bc.apply(dFdu, b)
 
         # Solve the soa equation
-        backend.solve(dFdu, adj_sol2.vector(), b)
+        compat.linalg_solve(dFdu, adj_sol2.vector(), b, **self.kwargs)
 
         adj_sol2_bdy = compat.function_from_vector(V, b_copy - compat.assemble_adjoint_value(backend.action(dFdu_form, adj_sol2)))
 
