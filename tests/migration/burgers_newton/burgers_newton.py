@@ -3,8 +3,6 @@ Implementation of Burger's equation with nonlinear solve in each
 timestep
 """
 
-
-
 from fenics import *
 from fenics_adjoint import *
 
@@ -44,26 +42,19 @@ def main(ic, annotate=False):
 
 if __name__ == "__main__":
 
-    ic = project(Expression("sin(2*pi*x[0])", degree=1),  V)
+    ic = project(Expression("sin(2*pi*x[0])", degree=2),  V)
     forward = main(ic, annotate=True)
 
-    if False:
-        # TODO: Not implemented.
-        replay_dolfin(forget=False)
-
     J = assemble(forward*forward*dx + ic*ic*dx)
-    dJdic = compute_gradient(J, Control(ic))
 
-    def Jfunc(ic):
-        forward = main(ic, annotate=False)
-        return assemble(forward*forward*dx + ic*ic*dx)
+    Jhat = ReducedFunctional(J, Control(ic))
+
 
     h = Function(V)
     h.vector()[:] = rand(V.dim())
 
-    dJdic = h._ad_dot(dJdic)
-    HJic= compute_hessian(J, Control(ic), h)
-    HJic = h._ad_dot(HJic)
+    Jhat.derivative()
+    HJic = Jhat.hessian(h)._ad_dot(h)  # How does this work?
 
-    minconv = taylor_test(Jfunc, ic, h, dJdic, Hm=HJic)
+    minconv = taylor_test(Jhat, ic, h, Hm=HJic)
     assert minconv > 2.7
