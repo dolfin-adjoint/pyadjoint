@@ -66,7 +66,7 @@ def test_heat():
         hs.append(h)
 
     rf = ReducedFunctional(J, m)
-    minconv = taylor_test_multiple(rf, ctrls, hs)
+    minconv = taylor_test(rf, ctrls, hs)
 
     assert minconv > 1.9
 

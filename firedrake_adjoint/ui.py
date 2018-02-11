@@ -11,7 +11,7 @@ from firedrake_adjoint.types.function import Function
 from pyadjoint.tape import (Tape, set_working_tape, get_working_tape,
                             pause_annotation, continue_annotation)
 from pyadjoint.reduced_functional import ReducedFunctional
-from pyadjoint.verification import taylor_test, taylor_test_multiple
+from pyadjoint.verification import taylor_test
 from pyadjoint.drivers import compute_gradient, compute_hessian 
 from pyadjoint.adjfloat import AdjFloat
 from pyadjoint.control import Control

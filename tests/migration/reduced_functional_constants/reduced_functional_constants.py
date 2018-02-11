@@ -36,4 +36,4 @@ Jhat([rho, g])
 
 direction = [Constant(1), Constant(1)]
 
-assert taylor_test_multiple(Jhat, [rho, g], direction) > 1.9
+assert taylor_test(Jhat, [rho, g], direction) > 1.9

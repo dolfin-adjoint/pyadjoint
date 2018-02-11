@@ -37,6 +37,6 @@ if __name__ == "__main__":
         return assemble(inner(u, u)**3*dx + inner(m, m)*dx)
 
     direction = [interpolate(Constant(0.1), V)]
-    minconv = taylor_test_multiple(Jhat, controls, Jm, dJdm, HJm=HJm,
+    minconv = taylor_test(Jhat, controls, Jm, dJdm, HJm=HJm,
                           perturbation_direction=direction)
     assert minconv > 2.9
