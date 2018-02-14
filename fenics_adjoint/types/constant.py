@@ -43,7 +43,7 @@ class Constant(OverloadedType, backend.Constant):
 
     def _ad_convert_type(self, value, options={}):
         value = constant_function_firedrake_compat(value)
-        return Constant(value)
+        return Constant(self._preserved_ufl_shape_values(value))
 
     def _ad_function_space(self, mesh):
         element = self.ufl_element()
@@ -51,19 +51,17 @@ class Constant(OverloadedType, backend.Constant):
         return backend.FunctionSpace(mesh, fs_element)
 
     def _ad_create_checkpoint(self):
-        if self.ufl_shape == ():
-            return Constant(self)
-        return Constant(self.values())
+        return Constant(self._preserved_ufl_shape_values())
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
 
     def _ad_mul(self, other):
-        values = ufl_shape_workaround(self.values() * other)
+        values = self._preserved_ufl_shape_values(self.values() * other)
         return Constant(values)
 
     def _ad_add(self, other):
-        values = ufl_shape_workaround(self.values() + other.values())
+        values = self._preserved_ufl_shape_values(self.values() + other.values())
         return Constant(values)
 
     def _ad_dot(self, other):
@@ -83,35 +81,26 @@ class Constant(OverloadedType, backend.Constant):
         return a.tolist()
 
     def _ad_copy(self):
-        values = ufl_shape_workaround(self.values())
-        return Constant(values)
+        return Constant(self._preserved_ufl_shape_values())
 
     def _ad_dim(self):
         return self.value_size()
 
+    def _preserved_ufl_shape_values(self, values=None):
+        """Returns the self.values() as a numpy array reshaped to self.ufl_shape.
 
-def ufl_shape_workaround(values):
-    """Workaround because of the following behaviour in FEniCS/Firedrake
+        The return value is compatible with the Constant constructor, such that ufl_shape is preserved.
+        If the optional argument `values` is provided, then `values` will be reshaped instead.
 
-    c = Constant(1.0)
-    c2 = Constant(c2.values())
-    c.ufl_shape == ()
-    c2.ufl_shape == (1,)
+        Args:
+            values (numpy.array): An optional argument to reshape instead of self.values().
 
-    Thus you will get a shapes don't match error if you try to replace c with c2 in a UFL form.
-    Because of this we require that scalar constants in the forward model are all defined with ufl_shape == (),
-    otherwise you will most likely see an error.
+        Returns:
+            numpy.array: The reshaped array.
 
-    Args:
-        values: Array of floats that should come from a Constant.values() call.
-
-    Returns:
-        A float if the Constant was scalar, otherwise the original array.
-
-    """
-    if len(values) == 1:
-        return values[0]
-    return values
+        """
+        values = self.values() if values is None else values
+        return numpy.reshape(values, self.ufl_shape)
 
 
 class AssignBlock(Block):
