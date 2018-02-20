@@ -218,9 +218,7 @@ else:
             vec = vec.vector()
 
         if isinstance(vec, backend.cpp.la.GenericVector):
-            arr = backend.DefaultFactory().create_vector(backend.MPI.comm_self)
-            vec.gather(arr, numpy.arange(vec.size(), dtype='I'))
-            arr = vec.get_local()
+            arr = vec.gather(numpy.arange(vec.size(), dtype='I'))
         elif isinstance(vec, list):
             return list(map(gather, vec))
         else:
