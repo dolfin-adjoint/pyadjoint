@@ -76,7 +76,8 @@ class SolveBlock(Block):
             self.assemble_kwargs = {}
             if "solver_parameters" in kwargs and "mat_type" in kwargs["solver_parameters"]:
                 self.assemble_kwargs["mat_type"] = kwargs["solver_parameters"]["mat_type"]
-
+            mesh = self.lhs.ufl_domain().ufl_cargo()
+            self.add_dependency(mesh.block_variable)
             #self.add_output(self.func.create_block_variable())
         else:
             # Linear algebra problem.
@@ -184,6 +185,7 @@ class SolveBlock(Block):
                     block_variable.add_adj_output(dFdm)
                 elif isinstance(c, backend.DirichletBC):
                     tmp_bc = compat.create_bc(c, value=extract_subfunction(adj_var_bdy, c.function_space()))
+                    print("tmp_bc became: ", tmp_bc)
                     block_variable.add_adj_output([tmp_bc])
                 elif isinstance(c, backend.function.expression.BaseExpression):
                     mesh = F_form.ufl_domain().ufl_cargo()
@@ -193,6 +195,14 @@ class SolveBlock(Block):
                     dFdm = dFdm * adj_var
                     dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
                     block_variable.add_adj_output([[dFdm, c_fs]])
+                elif isinstance(c, backend.Mesh):
+                    from femorph import ShapeDerivative
+                    dFdm = -ShapeDerivative(F_form, c_rep)
+                    dFdm = backend.adjoint(dFdm)
+                    dFdm = dFdm * adj_var
+
+                    dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
+                    block_variable.add_adj_output(dFdm)
 
     @no_annotations
     def evaluate_tlm(self):

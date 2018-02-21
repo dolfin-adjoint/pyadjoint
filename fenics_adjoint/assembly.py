@@ -61,6 +61,8 @@ class AssembleBlock(Block):
     def __init__(self, form):
         super(AssembleBlock, self).__init__()
         self.form = form
+        mesh = self.form.ufl_domain().ufl_cargo()
+        self.add_dependency(mesh.block_variable)
         for c in self.form.coefficients():
             self.add_dependency(c.block_variable)
 
@@ -76,7 +78,9 @@ class AssembleBlock(Block):
         replaced_coeffs = {}
         for block_variable in self.get_dependencies():
             coeff = block_variable.output
-            replaced_coeffs[coeff] = block_variable.saved_output
+            c_rep = block_variable.saved_output
+            if coeff in self.form.coefficients():
+                replaced_coeffs[coeff] = c_rep
 
         form = ufl.replace(self.form, replaced_coeffs)
 
@@ -94,6 +98,13 @@ class AssembleBlock(Block):
                 dform = backend.derivative(form, c_rep, dc)
                 output = compat.assemble_adjoint_value(dform)
                 block_variable.add_adj_output([[adj_input * output, V]])
+                continue
+
+            if isinstance(c, backend.Mesh):
+                from femorph import ShapeDerivative
+                dform = ShapeDerivative(form, c_rep)
+                output = compat.assemble_adjoint_value(dform)
+                block_variable.add_adj_output(adj_input * output)
                 continue
 
             if isinstance(c, backend.Function):
@@ -205,7 +216,9 @@ class AssembleBlock(Block):
         replaced_coeffs = {}
         for block_variable in self.get_dependencies():
             coeff = block_variable.output
-            replaced_coeffs[coeff] = block_variable.saved_output
+            c_rep = block_variable.saved_output
+            if coeff in self.form.coefficients():
+                replaced_coeffs[coeff] = c_rep
 
         form = ufl.replace(self.form, replaced_coeffs)
 

@@ -7,5 +7,6 @@ if backend.__name__ != "firedrake":
     from .expression import Expression, UserExpression
 from .function import Function
 from .function_space import FunctionSpace
+from .mesh import Mesh
 
 from .types import create_overloaded_object
