@@ -1,10 +1,8 @@
 import backend
-# from . import compat
-# from pyadjoint.adjfloat import AdjFloat
 from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, no_annotations
 from pyadjoint.block import Block
-from pyadjoint.overloaded_type import OverloadedType#, FloatingType
-# from .compat import gather
+from pyadjoint.overloaded_type import OverloadedType
+
 class Mesh(OverloadedType, backend.Mesh):
     def __init__(self, *args, **kwargs):
         # Calling constructer
@@ -22,7 +20,7 @@ class Mesh(OverloadedType, backend.Mesh):
 __backend_ALE_move = backend.ALE.move
 def move(mesh, vector, **kwargs):
     annotate = annotate_tape(kwargs)
-    
+
     if annotate:
         assert isinstance(mesh, OverloadedType)
         assert isinstance(vector, OverloadedType)
@@ -34,8 +32,7 @@ def move(mesh, vector, **kwargs):
         output = __backend_ALE_move(mesh, vector)
 
     if annotate:
-        block.add_output(mesh.block_variable)
-    
+        block.add_output(mesh.create_block_variable())
     return output
 
 
