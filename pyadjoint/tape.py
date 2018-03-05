@@ -1,5 +1,14 @@
 # Type dependencies
 from . import block
+import re
+import os
+import threading
+from contextlib import contextmanager
+
+try:
+    import tensorflow as tf
+except ImportError:
+    tf = None
 
 # TOOD: Save/checkpoint functions always. Not just on assign.
 
@@ -73,11 +82,15 @@ class Tape(object):
     Each block represents one operation in the forward model.
 
     """
-    __slots__ = ["_blocks"]
+    __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks"]
 
     def __init__(self, blocks=None):
         # Initialize the list of blocks on the tape.
         self._blocks = [] if blocks is None else blocks
+        # Dictionary of TensorFlow tensors. Key is id(block).
+        self._tf_tensors = {}
+        # Keep a list of blocks that has been added to the TensorFlow graph
+        self._tf_added_blocks = []
 
     def clear_tape(self):
         self.reset_variables()
@@ -248,3 +261,120 @@ class Tape(object):
             else:
                 plt.savefig(filename)
 
+    def _valid_tf_scope_name(self, name):
+        """Return a valid TensorFlow scope name"""
+        valid_name = ""
+        p = re.compile("[A-Za-z0-9_.\\-]")
+        for ch in name:
+            match = p.match(ch)
+            if not match:
+                if valid_name and valid_name[-1] != "_":
+                    valid_name += "_"
+            else:
+                valid_name += ch
+        return valid_name
+
+    def _get_tf_scope_name(self, block):
+        """Return a TensorFlow scope name based on the block's class name."""
+        # If the block is a BlockVariable we use the class name of block.output
+        if block.__class__.__name__ == "BlockVariable":
+            if block.output.__class__.__name__ in ("AdjFloat",):
+                #name = str(block.output.__class__.__name__) + "_" + str(block)
+                #name = str(block.output.__class__.__name__)
+                name = str(block)
+            else:
+                name = str(block.output.__class__.__name__)
+        else:
+            name = block.__class__.__name__
+        return self._valid_tf_scope_name(name)
+
+    def _check_for_tensorflow(self):
+        """Check that TensorFlow is available."""
+        if not tf:
+            raise Exception("You need to install TensorFlow. Try `pip install tensorflow`.")
+
+    def _tf_add_blocks(self):
+        """Add new blocks to the TensorFlow graph."""
+        self._check_for_tensorflow()
+
+        for block in self.get_blocks():
+            # Skip blocks that are already added
+            if block in self._tf_added_blocks:
+                continue
+
+            # Add this block such that we skip this block next time
+            self._tf_added_blocks.append(block)
+
+            # Block dependencies
+            in_tensors = []
+            for dep in block.get_dependencies():
+                if id(dep) in self._tf_tensors:
+                    in_tensors.append(self._tf_tensors[id(dep)])
+                else:
+                    with tf.name_scope(self._get_tf_scope_name(dep)):
+                        tin = tf.py_func(lambda: None, [], [tf.float64],
+                                         name=self._valid_tf_scope_name(str(dep)))
+                        in_tensors.append(tin)
+                        # FIXME: Not sure about this:
+                        if not dep.output.__class__.__name__ in ("Constant", "AdjFloat"):
+                            self._tf_tensors[id(dep)] = tin
+
+            # Block node
+            with tf.name_scope(self._get_tf_scope_name(block)):
+                tensor = tf.py_func(lambda: None, in_tensors, [tf.float64],
+                                    name=self._valid_tf_scope_name(str(block)))
+                self._tf_tensors[id(block)] = tensor
+
+            # Block outputs
+            for out in block.get_outputs():
+                with tf.name_scope(self._get_tf_scope_name(out)):
+                    tout = tf.py_func(lambda: None, [tensor], [tf.float64],
+                                      name=self._valid_tf_scope_name(str(out)))
+                    self._tf_tensors[id(out)] = tout
+
+    @contextmanager
+    def name_scope(self, name=None):
+        """Returns a context manager that creates hierarchical names for TensorFlow operations.
+
+        Args:
+            name (str|None): Name of scope to use. Default None.
+        """
+        self._check_for_tensorflow()
+        yield
+        with tf.name_scope(name):
+            self._tf_add_blocks()
+
+    def visualise(self, logdir="log", launch_tensorboard=False, open_in_browser=False):
+        """Makes a visualisation of the tape as a graph using TensorFlow.
+
+        Args:
+            logdir (str): Directory where event files for TensorBoard is stored. Default log.
+            launch_tensorboard (bool): Launch TensorBoard in the background. Default False.
+            open_in_browser (bool): Opens http://localhost:6006/ in a web browser. Default False.
+        """
+
+        self._tf_add_blocks()
+
+        optimizer = tf.train.GradientDescentOptimizer(0.001)
+
+        # Write graph to file
+        with tf.Session() as sess:
+            #gradient = optimizer.compute_gradients(tensor[0])[0][0]
+            writer = tf.summary.FileWriter(logdir, sess.graph)
+            writer.close()
+
+        if not launch_tensorboard or not open_in_browser:
+            print("Run the command line:\n" \
+                  "--> tensorboard --logdir={}\n" \
+                  "Then open http://localhost:6006/ in your web browser.".format(logdir))
+
+        if launch_tensorboard:
+            def launchTensorBoard():
+                os.system('tensorboard --logdir=' + logdir)
+
+            t = threading.Thread(target=launchTensorBoard, args=([]))
+            t.start()
+
+        if open_in_browser:
+            import webbrowser
+            webbrowser.open_new_tab("http://localhost:6006/")
