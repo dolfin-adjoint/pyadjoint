@@ -65,7 +65,8 @@ MOCK_MODULES = ['dolfin', 'ffc', 'backend.fem', 'backend.fem.projection', 'backe
                 'backend.HDF5File',
                 'backend.HDF5File.read',
                 'backend', 'ufl', 'numpy', 'scipy', 'scipy.optimize', 'ufl.classes',
-                'ufl.algorithms', 'ufl.operators']
+                'ufl.algorithms', 'ufl.operators',
+                'tensorflow']
 for mod_name in MOCK_MODULES:
     try:
         importlib.import_module(mod_name)
