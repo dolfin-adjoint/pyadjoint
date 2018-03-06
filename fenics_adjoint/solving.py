@@ -185,7 +185,7 @@ class SolveBlock(Block):
                     block_variable.add_adj_output(dFdm)
                 elif isinstance(c, backend.DirichletBC):
                     tmp_bc = compat.create_bc(c, value=extract_subfunction(adj_var_bdy, c.function_space()))
-                    print("tmp_bc became: ", tmp_bc)
+                    #print("tmp_bc became: ", tmp_bc)
                     block_variable.add_adj_output([tmp_bc])
                 elif isinstance(c, backend.function.expression.BaseExpression):
                     mesh = F_form.ufl_domain().ufl_cargo()

@@ -95,6 +95,8 @@ class Function(FloatingType, backend.Function):
             M = backend.assemble(u * v * backend.dx)
             backend.solve(M, ret.vector(), value)
             return ret
+        else:
+            return riesz_representation(value)
 
     def _ad_create_checkpoint(self):
         if self.block is None:
