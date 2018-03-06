@@ -24,7 +24,7 @@ EXAMPLES_OUT = source/documentation
 examples:
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/poisson-mother/poisson-mother.py $(EXAMPLES_OUT)/poisson-mother/poisson-mother.rst
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/poisson-topology/poisson-topology.py $(EXAMPLES_OUT)/poisson-topology/poisson-topology.rst
-	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/stokes-bc-control/stokes-bc-control_new.py $(EXAMPLES_OUT)/stokes-bc-control/stokes-bc-control.rst
+	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/stokes-bc-control/stokes-bc-control.py $(EXAMPLES_OUT)/stokes-bc-control/stokes-bc-control.rst
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/stokes-topology/stokes-topology.py $(EXAMPLES_OUT)/stokes-topology/stokes-topology.rst
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/mpec/mpec.py $(EXAMPLES_OUT)/mpec/mpec.rst
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/salt-fingering/salt-fingering.py $(EXAMPLES_OUT)/salt-fingering/salt-fingering.rst
