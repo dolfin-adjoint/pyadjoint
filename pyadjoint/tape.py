@@ -3,6 +3,7 @@ from . import block
 import re
 import os
 import threading
+import tensorflow as tf
 from contextlib import contextmanager
 
 # TOOD: Save/checkpoint functions always. Not just on assign.
