@@ -83,7 +83,6 @@ def test_tape_time():
 
     assemble(u_1**2*dx)
 
-@pytest.mark.skipif_module_is_missing("tensorflow")
 def test_tape_time_visualisation():
     set_working_tape(Tape())
 
