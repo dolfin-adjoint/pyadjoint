@@ -5,11 +5,6 @@ import os
 import threading
 from contextlib import contextmanager
 
-try:
-    import tensorflow as tf
-except ImportError:
-    tf = None
-
 # TOOD: Save/checkpoint functions always. Not just on assign.
 
 _working_tape = None
@@ -288,14 +283,8 @@ class Tape(object):
             name = block.__class__.__name__
         return self._valid_tf_scope_name(name)
 
-    def _check_for_tensorflow(self):
-        """Check that TensorFlow is available."""
-        if not tf:
-            raise Exception("You need to install TensorFlow. Try `pip install tensorflow`.")
-
     def _tf_add_blocks(self):
         """Add new blocks to the TensorFlow graph."""
-        self._check_for_tensorflow()
 
         for block in self.get_blocks():
             # Skip blocks that are already added
@@ -337,7 +326,6 @@ class Tape(object):
         Args:
             name (str|None): Name of scope to use. Default None.
         """
-        self._check_for_tensorflow()
         self._tf_add_blocks()
         yield
         with tf.name_scope(name):

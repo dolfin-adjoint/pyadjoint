@@ -14,6 +14,6 @@ setup(name='dolfin_adjoint',
                 'pyadjoint.optimization'],
       package_dir={'fenics_adjoint': 'fenics_adjoint', 'pyadjoint': 'pyadjoint',
                    'firedrake_adjoint': 'firedrake_adjoint', 'dolfin_adjoint': 'dolfin_adjoint'},
-      install_requires=['networkx', 'scipy', 'pytest', 'sphinx', 'sphinxcontrib-bibtex', 'moola'],
+      install_requires=['networkx', 'scipy', 'pytest', 'sphinx', 'sphinxcontrib-bibtex', 'moola', 'tensorflow'],
       dependency_links=['git+https://github.com/funsim/moola.git@master ']
       )
