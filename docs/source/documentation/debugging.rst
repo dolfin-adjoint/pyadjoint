@@ -90,7 +90,7 @@ graph:
    :align: center
 
 We can then expand the scopes as we like. Here we have expanded the
-one of the time steps:
+first time step:
 
 .. image:: ../_static/burgers_timesteps_expanded.png
    :align: center
