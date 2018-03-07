@@ -30,7 +30,7 @@ jobs:
       - run:
           name: install dependencies
           command: |
-            pip install -r requirements.txt
+            pip3 install -r requirements.txt
 
       - save_cache:
           paths:
@@ -45,7 +45,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            python -m pytest -v tests/fenics_adjoint/
+            python3 -m pytest -v tests/fenics_adjoint/
 
       - save_cache:
           key: v2-dolfin-jit-cache
