@@ -315,9 +315,7 @@ class Tape(object):
                         tin = tf.py_func(lambda: None, [], [tf.float64],
                                          name=self._valid_tf_scope_name(str(dep)))
                         in_tensors.append(tin)
-                        # FIXME: Not sure about this:
-                        if not dep.output.__class__.__name__ in ("Constant", "AdjFloat"):
-                            self._tf_tensors[id(dep)] = tin
+                        self._tf_tensors[id(dep)] = tin
 
             # Block node
             with tf.name_scope(self._get_tf_scope_name(block)):
@@ -340,6 +338,7 @@ class Tape(object):
             name (str|None): Name of scope to use. Default None.
         """
         self._check_for_tensorflow()
+        self._tf_add_blocks()
         yield
         with tf.name_scope(name):
             self._tf_add_blocks()
