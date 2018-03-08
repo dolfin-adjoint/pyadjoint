@@ -1,81 +1,74 @@
 from dolfin import *
 from femorph import *
 import mshr
+import os
 from dolfin_adjoint import *
 from ufl import replace
 import matplotlib.pyplot as plt
 import numpy as np
 
+c = [0.3,0.5]
+rot_c = [c[0]-0.1, c[1]]
+rot_center = Point(rot_c[0],rot_c[1])
+VariableBoundary = 2
+FixedBoundary = 1
+N, r = 50, 0.05
+L, H = 1,1
+with open("mesh.geo", 'r') as file:
+    data = file.readlines()
+    data[0] = "lc1 = %s;\n" %(float(1/N))
+    data[2] = "cx = %s;\n" %(float(c[0]))
+    data[3] = "cy = %s;\n" %(float(c[1]))
+    data[4] = "a = %s;\n" %(float(r))
+    data[5] = "b = %s;\n" %(float(3*r))
 
-def sympy_expr():
-    import sympy as sp
-    sppi, T, f, spx, spy  = sp.symbols("pi T f x[0] x[1]")
-    p = 1./(pi*pi)*sp.sin(pi*spx)*sp.sin(pi*spy)
-    T = -1./2*(-sp.diff(sp.diff(p, spx), spx) -sp.diff(sp.diff(p, spy), spy))
-    f = 1.*(-sp.diff(sp.diff(T, spx), spx) -sp.diff(sp.diff(T, spy), spy))
-    return str(p), str(T), str(f)
+    data[7] = "L = %s;\n" %(float(L))
+    data[8] = "H = %s;\n" %(float(H))
+    data[55] = "bc = %s;\n" %int(FixedBoundary)
+    data[56] = "object = %s;\n" %int(VariableBoundary)
+    with open("mesh.geo", 'w') as file:
+        file.writelines( data )
+os.system("gmsh -2 mesh.geo -o mesh.msh")
+os.system("dolfin-convert mesh.msh mesh.xml")
 
-# Mesh and boundary markers
-class Boundary(SubDomain):
-    def inside(self, x, on_boundary):
-        return on_boundary
+mesh =  Mesh("mesh.xml")
 
-class OuterBoundary(SubDomain):
-    def inside(self, x, on_boundary):
-        return on_boundary and (near(x[0], 0.0) or near(x[0],1)
-                                or near(x[1],0) or near(x[1],1))
-
-N = 200
-mesh = UnitSquareMesh(N, N)
-mesh = Mesh(mesh)
-markers = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
-markers.set_all(0)
-obstacle = Boundary()
-outer = OuterBoundary()
-VariableBoundary = 1
-FixedBoundary = 2
-obstacle.mark(markers, VariableBoundary)
-outer.mark(markers, FixedBoundary)
-
-
-p_ex, t_ex, f_ex = sympy_expr()
-
-f = Expression(f_ex, degree=3)
+f = Expression("x[0]*sin(x[0])*cos(x[1])", degree=4)
 
 S = VectorFunctionSpace(mesh, "CG", 1)
 s = Function(S)
 ALE.move(mesh, s)
 
 # Setup
-V = FunctionSpace(mesh, "CG", 3)
-u, v = Function(V), Function(V)
-J = u*u*dx
-F = inner(grad(u), grad(v))*dx + u*v*dx - f*v*dx
-L = J + F
-
-# Solve State
-State = derivative(L, v, TestFunction(V))
-State = replace(State, {u: TrialFunction(V)})
+V = FunctionSpace(mesh, "CG", 1)
+u, v = TrialFunction(V), TestFunction(V)
+F = inner(grad(u), grad(v))*dx  - f*v*dx + u*v*dx
 
 # FIXME: Handling of Dirichlet Conditions
-# bcState = DirichletBC(V, Constant(0.0), markers, VariableBoundary)
-bcState = DirichletBC(V, Constant(0.0), "on_boundary")
+marker = MeshFunction("size_t", mesh, "mesh_facet_region.xml")
+bcs = [DirichletBC(V, Constant(0), marker, FixedBoundary)]#,
+       # DirichletBC(V, Constant(1), marker, VariableBoundary)]
+
 
 T = Function(V, name="T")
-# solve(lhs(State) == rhs(State), T)
-# FIXME: Handling of Dirichlet Conditions
-solve(lhs(State) == rhs(State), T, bcs=bcState)
 
-J = replace(J, {u: T})
+solve(lhs(F) == rhs(F), T, bcs=bcs)
+
+J = 0.5*T*T*dx
 J = assemble(J)
 Jhat = ReducedFunctional(J, Control(s))
 
 n = VolumeNormal(mesh)
 s2 = Function(S)
-s2.vector()[:] = n.vector()[:]
+BC = DirichletBC(S, Constant((0,0)), marker, FixedBoundary)
+ALE.move(mesh,s2)
+plot(mesh)
+plt.show()
+s2.vector()[:] = -2*n.vector()[:]
 s0 = Function(S)
 
 taylor_test(Jhat, s0, s2, dJdm=0)
+
 print("-"*10)
 taylor_test(Jhat, s0, s2)
 
