@@ -12,7 +12,7 @@ rot_c = [c[0]-0.1, c[1]]
 rot_center = Point(rot_c[0],rot_c[1])
 VariableBoundary = 2
 FixedBoundary = 1
-N, r = 50, 0.05
+N, r = 100, 0.05
 L, H = 1,1
 with open("mesh.geo", 'r') as file:
     data = file.readlines()
@@ -63,16 +63,11 @@ s2 = Function(S)
 s2.vector()[:] = -n.vector()[:]
 
 
-
+#-------------- Super important hand-written taylortest----------------
 dJdm = Jhat.derivative()
-
 step = 0.005
 boundary_move = s2.copy(deepcopy=True)
 boundary_move.vector()[:] *= step
-
-# print(dJdm.vector().inner(s2.vector()), (Jhat(boundary_move)-Jhat(s))/step)
-# plot(mesh)
-# plt.show()
 
 bcs = [DirichletBC(S, Constant((0,0)), marker, FixedBoundary),
        DirichletBC(S, boundary_move, marker, VariableBoundary)]
@@ -89,7 +84,7 @@ plot(mesh, color="g")
 Jhat(s3)
 plot(mesh, color="r")
 plt.show()
-
+#------------------- end of super important taylortest---------------
 exit(1)
 
 
