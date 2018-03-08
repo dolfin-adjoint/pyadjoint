@@ -46,9 +46,9 @@ class SolveBlock(Block):
         super(SolveBlock, self).__init__()
         self.adj_sol = None
         self.varform = isinstance(args[0], ufl.equation.Equation)
+        self._init_solver_parameters(*args, **kwargs)
         self._init_dependencies(*args, **kwargs)
         self.function_space = self.func.function_space()
-        self._init_solver_parameters(*args, **kwargs)
 
     def __str__(self):
         return "{} = {}".format(str(self.lhs), str(self.rhs))
@@ -394,8 +394,11 @@ class SolveBlock(Block):
             else:
                 bo.add_hessian_output(output)
 
+    def _create_initial_guess(self):
+        return Function(self.function_space)
+
     def _replace_recompute_form(self):
-        func = self.get_outputs()[0].saved_output
+        func = self._create_initial_guess()
 
         bcs = self._recover_bcs()
         lhs = self._replace_form(self.lhs, func=func)

@@ -57,14 +57,16 @@ class LinearSolver(backend.LinearSolver):
             solver_parameters = self.solver_parameters
             parameters = self.parameters.to_dict()
             has_preconditioner = P is not None
+            nonzero_initial_guess = parameters.get("nonzero_initial_guess", False)
 
             tape = get_working_tape()
-            # TODO need to extend annotation to remember more about solvers.
             block = LinearSolveBlock(A, x, b,
-                               ad_block_parameters={"solver_parameters": solver_parameters,
-                                                    "parameters": parameters,
-                                                    "has_preconditioner": has_preconditioner,
-                                                    "P": P})
+                                     ad_block_parameters={"solver_parameters": solver_parameters,
+                                                          "parameters": parameters,
+                                                          "has_preconditioner": has_preconditioner,
+                                                          "P": P,
+                                                          "nullspace": nsp,
+                                                          "nonzero_initial_guess": nonzero_initial_guess})
             tape.add_block(block)
 
         out = backend.LinearSolver.solve(self, *args, **kwargs)
@@ -83,10 +85,27 @@ class LinearSolveBlock(SolveBlock):
         self.has_preconditioner = block_parameters.pop("has_preconditioner")
         self.P = block_parameters.pop("P")
         self.parameters = block_parameters.pop("parameters")
+        # TODO: nullspace is not used. Make use of it or remove it.
+        self.nullspace = block_parameters.pop("nullspace")
+        self.nonzero_initial_guess = block_parameters.pop("nonzero_initial_guess")
+
+        if self.nonzero_initial_guess:
+            # Here we store a variable that isn't necessarily a dependency.
+            # This means that the graph does not know that we depend on this BlockVariable.
+            # This could lead to unexpected behaviour in the future.
+            # TODO: Consider if this is really a problem.
+            self.func.block_variable.save_output()
+            self.initial_guess = self.func.block_variable
 
         if self.has_preconditioner:
             for c in self.P.coefficients():
                 self.add_dependency(c.block_variable)
+
+    def _create_initial_guess(self):
+        r = super(LinearSolveBlock, self)._create_initial_guess()
+        if self.nonzero_initial_guess:
+            backend.Function.assign(r, self.initial_guess.saved_output)
+        return r
 
     def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu):
         dJdu_copy = dJdu.copy()

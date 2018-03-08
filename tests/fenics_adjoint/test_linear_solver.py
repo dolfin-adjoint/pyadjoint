@@ -139,7 +139,7 @@ def test_krylov_solver_preconditioner():
     solver.parameters["relative_tolerance"] = 1.0e-14
     solver.parameters["absolute_tolerance"] = 1.0e-12
     # TODO: Even if nonzero initial guess is True, we do not keep track of the initial guess.
-    solver.parameters["nonzero_initial_guess"] = False
+    solver.parameters["nonzero_initial_guess"] = True
     solver.solve(U.vector(), bb)
 
     J = assemble(inner(U, U) * inner(U, U) * dx)
@@ -287,7 +287,7 @@ def test_krylov_solver_preconditioner_function_ctrl():
     solver.parameters["relative_tolerance"] = 1.0e-14
     solver.parameters["absolute_tolerance"] = 1.0e-12
     # TODO: Even if nonzero initial guess is True, we do not keep track of the initial guess.
-    solver.parameters["nonzero_initial_guess"] = False
+    solver.parameters["nonzero_initial_guess"] = True
     solver.solve(U.vector(), bb)
 
     J = assemble(inner(U, U) * inner(U, U) * dx)
