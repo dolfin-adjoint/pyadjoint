@@ -12,7 +12,7 @@ rot_c = [c[0]-0.1, c[1]]
 rot_center = Point(rot_c[0],rot_c[1])
 VariableBoundary = 2
 FixedBoundary = 1
-N, r = 100, 0.05
+N, r = 200, 0.05
 L, H = 1,1
 with open("mesh.geo", 'r') as file:
     data = file.readlines()
@@ -33,7 +33,7 @@ os.system("dolfin-convert mesh.msh mesh.xml")
 
 mesh =  Mesh("mesh.xml")
 
-f = Expression("x[0]*sin(x[0])*cos(x[1])", degree=4)
+f = Expression("100*x[0]*sin(x[0])*cos(x[1])", degree=4)
 
 S = VectorFunctionSpace(mesh, "CG", 1)
 s = Function(S)
@@ -60,12 +60,13 @@ Jhat = ReducedFunctional(J, Control(s))
 
 n = VolumeNormal(mesh)
 s2 = Function(S)
-s2.vector()[:] = -n.vector()[:]
+print(Jhat(s))
+s2.vector()[:] = -0.5*n.vector()[:]
 
 
 #-------------- Super important hand-written taylortest----------------
 dJdm = Jhat.derivative()
-step = 0.005
+step = 0.001
 boundary_move = s2.copy(deepcopy=True)
 boundary_move.vector()[:] *= step
 
@@ -75,8 +76,10 @@ u,v = TrialFunction(S), TestFunction(S)
 F = inner(grad(u), grad(v))*dx+inner(u,v)*dx
 s3 = Function(S)
 solve(lhs(F)==rhs(F), s3, bcs=bcs, annotate=False)
-print(dJdm.vector().inner(boundary_move.vector()), Jhat(boundary_move)-Jhat(s))
-print(dJdm.vector().inner(s3.vector()), Jhat(s3)-Jhat(s))
+J_boundary = Jhat(boundary_move)
+print(dJdm.vector().inner(boundary_move.vector()), J_boundary-Jhat(s), J_boundary)
+J_s = Jhat(s3)
+print(dJdm.vector().inner(s3.vector()), J_s-Jhat(s), J_s)
 
 plot(mesh)
 Jhat(boundary_move)
@@ -85,30 +88,12 @@ Jhat(s3)
 plot(mesh, color="r")
 plt.show()
 #------------------- end of super important taylortest---------------
-exit(1)
 
-
-Jhat(s)
-
-plot(mesh, color="r")
-
-s.vector()[:]  = 0.01*s2.vector()
-ALE.move(mesh,s)
-plot(mesh, color="g")
-# s2.vector()[:] *=-1
-# ALE.move(mesh, s2)
-# ALE.move(mesh,s3)
-# plot(mesh, color="b")
-# s3.vector()[:] *=-1
-# ALE.move(mesh, s3)
-plt.show()
-# plot(mesh)
-# plt.show()
-
-exit(1)
 s0 = Function(S)
 taylor_test(Jhat, s0, s2, dJdm=0)
 
-print("-"*10)
 taylor_test(Jhat, s0, s2)
+print("-"*10)
+taylor_test(Jhat, s0, s3, dJdm=0)
+taylor_test(Jhat, s0, s3)
 
