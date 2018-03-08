@@ -7,7 +7,7 @@ from ufl import replace
 import matplotlib.pyplot as plt
 import numpy as np
 
-c = [0.3,0.5]
+c = [0.5,0.5]
 rot_c = [c[0]-0.1, c[1]]
 rot_center = Point(rot_c[0],rot_c[1])
 VariableBoundary = 2
@@ -60,13 +60,58 @@ Jhat = ReducedFunctional(J, Control(s))
 
 n = VolumeNormal(mesh)
 s2 = Function(S)
-BC = DirichletBC(S, Constant((0,0)), marker, FixedBoundary)
-ALE.move(mesh,s2)
-plot(mesh)
-plt.show()
-s2.vector()[:] = -2*n.vector()[:]
-s0 = Function(S)
+s2.vector()[:] = -n.vector()[:]
 
+
+
+dJdm = Jhat.derivative()
+
+step = 0.005
+boundary_move = s2.copy(deepcopy=True)
+boundary_move.vector()[:] *= step
+
+# print(dJdm.vector().inner(s2.vector()), (Jhat(boundary_move)-Jhat(s))/step)
+# plot(mesh)
+# plt.show()
+
+bcs = [DirichletBC(S, Constant((0,0)), marker, FixedBoundary),
+       DirichletBC(S, boundary_move, marker, VariableBoundary)]
+u,v = TrialFunction(S), TestFunction(S)
+F = inner(grad(u), grad(v))*dx+inner(u,v)*dx
+s3 = Function(S)
+solve(lhs(F)==rhs(F), s3, bcs=bcs, annotate=False)
+print(dJdm.vector().inner(boundary_move.vector()), Jhat(boundary_move)-Jhat(s))
+print(dJdm.vector().inner(s3.vector()), Jhat(s3)-Jhat(s))
+
+plot(mesh)
+Jhat(boundary_move)
+plot(mesh, color="g")
+Jhat(s3)
+plot(mesh, color="r")
+plt.show()
+
+exit(1)
+
+
+Jhat(s)
+
+plot(mesh, color="r")
+
+s.vector()[:]  = 0.01*s2.vector()
+ALE.move(mesh,s)
+plot(mesh, color="g")
+# s2.vector()[:] *=-1
+# ALE.move(mesh, s2)
+# ALE.move(mesh,s3)
+# plot(mesh, color="b")
+# s3.vector()[:] *=-1
+# ALE.move(mesh, s3)
+plt.show()
+# plot(mesh)
+# plt.show()
+
+exit(1)
+s0 = Function(S)
 taylor_test(Jhat, s0, s2, dJdm=0)
 
 print("-"*10)
