@@ -23,8 +23,8 @@ with open("mesh.geo", 'r') as file:
 
     data[7] = "L = %s;\n" %(float(L))
     data[8] = "H = %s;\n" %(float(H))
-    data[55] = "bc = %s;\n" %int(FixedBoundary)
-    data[56] = "object = %s;\n" %int(VariableBoundary)
+    data[54] = "bc = %s;\n" %int(FixedBoundary)
+    data[55] = "object = %s;\n" %int(VariableBoundary)
     with open("mesh.geo", 'w') as file:
         file.writelines( data )
 os.system("gmsh -2 mesh.geo -o mesh.msh")
@@ -79,11 +79,15 @@ step = 0.75/N
 n = VolumeNormal(mesh)
 s2 = Function(S)
 s2.vector()[:] = -0.5*n.vector()[:]
+bcs = DirichletBC(VectorFunctionSpace(mesh, "CG", 1), Constant((0,0)), marker, FixedBoundary)
+bcs.apply(s2.vector())
 boundary_move = s2.copy(deepcopy=True)
 boundary_move.vector()[:] *= step
 dJdboundary = dJds.inner(boundary_move.vector())
 dFdboundary = dFds.inner(boundary_move.vector())
+plot(mesh)
 ALE.move(mesh, boundary_move)
+plot(mesh, color="r")
 T_step = solve_state(mesh)
 
 
@@ -104,6 +108,9 @@ F = inner(grad(u), grad(v))*dx + inner(u,v)*dx
 s3 = Function(S)
 solve(lhs(F)==rhs(F), s3, bcs=bcs)
 ALE.move(mesh, s3)
+plot(mesh, color="g")
+plt.show()
+
 T_step = solve_state(mesh)
 J_1 = assemble(0.5*T_step*T_step*dx)
 print(J_1-J_0, J_1)
