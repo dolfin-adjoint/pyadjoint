@@ -11,7 +11,7 @@ rot_c = [c[0]-0.1, c[1]]
 rot_center = Point(rot_c[0],rot_c[1])
 VariableBoundary = 2
 FixedBoundary = 1
-N, r = 200, 0.1
+N, r = 50, 0.1
 L, H = 1,1
 with open("mesh.geo", 'r') as file:
     data = file.readlines()
@@ -23,8 +23,8 @@ with open("mesh.geo", 'r') as file:
 
     data[7] = "L = %s;\n" %(float(L))
     data[8] = "H = %s;\n" %(float(H))
-    data[55] = "bc = %s;\n" %int(FixedBoundary)
-    data[56] = "object = %s;\n" %int(VariableBoundary)
+    data[54] = "bc = %s;\n" %int(FixedBoundary)
+    data[55] = "object = %s;\n" %int(VariableBoundary)
     with open("mesh.geo", 'w') as file:
         file.writelines( data )
 os.system("gmsh -2 mesh.geo -o mesh.msh")
@@ -71,23 +71,31 @@ J_0 = assemble(0.5*T*T*dx)
 print(J_0)
 marker = MeshFunction("size_t", mesh, "mesh_facet_region.xml")
 dNeumann = Measure("ds", domain=mesh, subdomain_data = marker)
+
 S = VectorFunctionSpace(mesh, "CG", 1)
 n, s = VolumeNormal(mesh), TestFunction(S)
-File("mf.pvd") << T
 dJds = assemble(inner(n,s)*(0.5*T*T )*dNeumann(VariableBoundary))
 dFds = assemble(inner(n,s)*( - lmb*f + inner(grad(lmb), grad(T)))*dNeumann(VariableBoundary))
 dFdDir = assemble(inner(n,s)*(-inner(n,grad(lmb))*inner(n, grad(T)))*dNeumann(VariableBoundary))
-step = 0.75/N
+
+step = 5/N
 n = VolumeNormal(mesh)
 s2 = Function(S)
 s2.vector()[:] = -0.5*n.vector()[:]
+bcs = DirichletBC(VectorFunctionSpace(mesh, "CG", 1), Constant((0,0)), marker, FixedBoundary)
+bcs.apply(s2.vector())
 boundary_move = s2.copy(deepcopy=True)
+
 boundary_move.vector()[:] *= step
 dJdboundary = dJds.inner(boundary_move.vector())
 dFdboundary = dFds.inner(boundary_move.vector())
 dDirdboundary = dFdDir.inner(boundary_move.vector())
- 
+
+plot(mesh)
+marker = MeshFunction("size_t", mesh, "mesh_facet_region.xml")
+
 ALE.move(mesh, boundary_move)
+plot(mesh, color="r")
 T_step = solve_state(mesh)
 
 
@@ -97,10 +105,9 @@ revert = boundary_move.copy(deepcopy=True)
 revert.vector()[:] *= -1
 ALE.move(mesh, revert)
 
-# print(dJdboundary+dFdboundary, J_1-J_0, J_1)
 print(dJdboundary, J_1-J_0, J_1)
 print(dDirdboundary)
-print(dJdboundary+dDirdboundary)
+print(dJdboundary+dDirdboundary, J_1-J_0)
 print("this is promising")
 bcs = [DirichletBC(S, Constant((0,0)), marker, FixedBoundary),
        DirichletBC(S, boundary_move, marker, VariableBoundary)]
@@ -109,6 +116,9 @@ F = inner(grad(u), grad(v))*dx + inner(u,v)*dx
 s3 = Function(S)
 solve(lhs(F)==rhs(F), s3, bcs=bcs)
 ALE.move(mesh, s3)
+plot(mesh, color="g")
+plt.show()
+
 T_step = solve_state(mesh)
 J_1 = assemble(0.5*T_step*T_step*dx)
-print(J_1-J_0, J_1)
+print(dJdboundary+dDirdboundary, J_1-J_0, J_1)
