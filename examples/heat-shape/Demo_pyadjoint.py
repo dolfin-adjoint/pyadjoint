@@ -12,11 +12,11 @@ rot_c = [c[0]-0.1, c[1]]
 rot_center = Point(rot_c[0],rot_c[1])
 VariableBoundary = 1
 FixedBoundary = 2
-N, r = 100, 0.1
+N, r = 200, 0.08
 L, H = 1,1
 
-# neumann = False
-neumann = True
+neumann = False
+#neumann = True
 with open("mesh.geo", 'r') as file:
     data = file.readlines()
     data[0] = "lc1 = %s;\n" %(float(1/N))
@@ -67,13 +67,13 @@ n = VolumeNormal(mesh)
 s2 = Function(S)
 print(Jhat(s))
 
-s2.vector()[:] = -0.5*n.vector()[:]
+s2.vector()[:] = -120*n.vector()[:]
 bcs = DirichletBC(VectorFunctionSpace(mesh, "CG", 1), Constant((0,0)), marker, FixedBoundary)
 bcs.apply(s2.vector())
 
 #-------------- Super important hand-written taylortest----------------
 dJdm = Jhat.derivative()
-step = 0.8/N
+step = 15/N
 boundary_move = s2.copy(deepcopy=True)
 boundary_move.vector()[:] *= step
 
@@ -83,22 +83,22 @@ u,v = TrialFunction(S), TestFunction(S)
 F = inner(grad(u), grad(v))*dx+inner(u,v)*dx
 s3 = Function(S)
 solve(lhs(F)==rhs(F), s3, bcs=bcs, annotate=False)
-J_boundary = Jhat(boundary_move)
-print(dJdm.vector().inner(boundary_move.vector()), J_boundary-Jhat(s), J_boundary)
-J_s = Jhat(s3)
-print(dJdm.vector().inner(s3.vector()), J_s-Jhat(s), J_s)
-plot(mesh)
-Jhat(boundary_move)
-plot(mesh, color="g")
-Jhat(s3)
-plot(mesh, color="r")
-plt.show()
+# J_boundary = Jhat(boundary_move)
+# print(dJdm.vector().inner(boundary_move.vector()), J_boundary-Jhat(s), J_boundary)
+# J_s = Jhat(s3)
+# print(dJdm.vector().inner(s3.vector()), J_s-Jhat(s), J_s)
+# plot(mesh)
+# Jhat(boundary_move)
+# plot(mesh, color="g")
+# Jhat(s3)
+# plot(mesh, color="r")
+# plt.show()
 #------------------- end of super important taylortest---------------
 
 s0 = Function(S)
-taylor_test(Jhat, s0, s2, dJdm=0)
+# taylor_test(Jhat, s0, s2, dJdm=0)
 
-taylor_test(Jhat, s0, s2)
+# taylor_test(Jhat, s0, s2)
 print("-"*10)
 taylor_test(Jhat, s0, s3, dJdm=0)
 taylor_test(Jhat, s0, s3)
