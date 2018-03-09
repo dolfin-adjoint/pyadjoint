@@ -31,6 +31,7 @@ class DirichletBC(FloatingType, backend.DirichletBC):
         # Call backend constructor after popped AD specific keyword args.
         backend.DirichletBC.__init__(self, *args, **kwargs)
 
+        self._g = args[1]
         self._ad_args = args
         self._ad_kwargs = kwargs
 

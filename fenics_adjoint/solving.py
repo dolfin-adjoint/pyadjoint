@@ -185,7 +185,6 @@ class SolveBlock(Block):
                     block_variable.add_adj_output(dFdm)
                 elif isinstance(c, backend.DirichletBC):
                     tmp_bc = compat.create_bc(c, value=extract_subfunction(adj_var_bdy, c.function_space()))
-                    #print("tmp_bc became: ", tmp_bc)
                     block_variable.add_adj_output([tmp_bc])
                 elif isinstance(c, backend.function.expression.BaseExpression):
                     mesh = F_form.ufl_domain().ufl_cargo()
@@ -196,12 +195,30 @@ class SolveBlock(Block):
                     dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
                     block_variable.add_adj_output([[dFdm, c_fs]])
                 elif isinstance(c, backend.Mesh):
-                    from femorph import ShapeDerivative
+                    from femorph import ShapeDerivative, VolumeNormal
                     dFdm = -ShapeDerivative(F_form, c_rep)
+                    state = fwd_block_variable.saved_output
+                    dF_bdy = 0
+                    for bc in self.bcs:
+                        g = bc._g
+                        if hasattr(bc, "domain_args"):
+                            ds_bdy = backend.Measure("ds", domain=c_rep,
+                                                     subdomain_data=bc.domain_args[0],
+                                                     subdomain_id=bc.domain_args[1])
+                            F_bdy = backend.inner(state-g, adj_var_bdy)*ds_bdy(bc.domain_args[1])
+                            dFdm_bdy = -ShapeDerivative(F_bdy, c_rep)
+                            n = VolumeNormal(c_rep)
+                            dFdm_bdy = ufl.replace(dFdm_bdy,
+                                                {adj_var_bdy: -backend.inner(n,backend.grad(adj_var))})
+                            dFdm_bdy = compat.assemble_adjoint_value(dFdm_bdy, **self.assemble_kwargs)
+                            dF_bdy += dFdm_bdy
+
                     dFdm = backend.adjoint(dFdm)
                     dFdm = dFdm * adj_var
-
                     dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
+                    # FIXME: Need to loop through every part of the boundary that shall be moved.
+                    # Dirichlet-condition:
+                    # dFdm = dF_bdy
                     block_variable.add_adj_output(dFdm)
 
     @no_annotations
