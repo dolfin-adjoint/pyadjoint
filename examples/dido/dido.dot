@@ -1,0 +1,106 @@
+strict digraph  {
+	node [label="\N"];
+	140636359069632	 [label="assemble(One*ds)",
+		node_color=b,
+		position="(0, -4.0)",
+		shape=box];
+	140636359157072	 [label=3.9999999999999583,
+		node_color=r,
+		position="(0.0, -4.5)"];
+	140636359069632 -> 140636359157072;
+	140636359158080	 [label=2.0,
+		node_color=r,
+		position="(0.1, -5.5)"];
+	140636341727304	 [label="offset**2",
+		node_color=b,
+		position="(0, -6.0)",
+		shape=box];
+	140636359158080 -> 140636341727304;
+	140636359158248	 [label=-0.999999999999898,
+		node_color=r,
+		position="(0.0, -8.5)"];
+	140636359155784	 [label="deform = Deformation vector",
+		node_color=r,
+		position="(0.1, 0.5)"];
+	140636363124456	 [label="ALE.move block",
+		node_color=b,
+		position="(0, 0.0)",
+		shape=box];
+	140636359155784 -> 140636363124456;
+	140636359069560	 [label="offset = circ_ex - Circumference",
+		node_color=b,
+		position="(0, -5.0)",
+		shape=box];
+	140636359157072 -> 140636359069560;
+	140636359157688	 [label="-4.1744385725905886e-14",
+		node_color=r,
+		position="(0.0, -5.5)"];
+	140636359157688 -> 140636341727304;
+	140636363144104	 [label="Minus One",
+		node_color=r,
+		position="(0.0, -1.5)"];
+	140636363123952	 [label="assemble((Minus One)* dx)",
+		node_color=b,
+		position="(0, -2.0)",
+		shape=box];
+	140636363144104 -> 140636363123952;
+	140636359158024	 [label="1.742593739633215e-27",
+		node_color=r,
+		position="(0.0, -6.5)"];
+	140636341727304 -> 140636359158024;
+	140636359158136	 [label="1.742593739633215e-26",
+		node_color=r,
+		position="(0.0, -7.5)"];
+	140636341727448	 [label="J = -area + alpha*offset**2",
+		node_color=b,
+		position="(0, -8.0)",
+		shape=box];
+	140636359158136 -> 140636341727448;
+	140636359068192	 [label="Expression block",
+		node_color=b,
+		position="(0, -1.0)",
+		shape=box];
+	140636359068192 -> 140636363144104;
+	140636359049112	 [label=One,
+		node_color=r,
+		position="(0.0, -3.5)"];
+	140636359049112 -> 140636359069632;
+	140636535709880	 [label="mesh = UnitSquareMesh(N, N)",
+		node_color=r,
+		position="(0.0, 0.5)"];
+	140636535709880 -> 140636363124456;
+	140636341727448 -> 140636359158248;
+	140636359069488	 [label="Expression block",
+		node_color=b,
+		position="(0, -3.0)",
+		shape=box];
+	140636359069488 -> 140636359049112;
+	140636359156064	 [label="ALE.move(mesh, deform)",
+		node_color=r,
+		position="(0.0, -0.5)"];
+	140636359156064 -> 140636359069632;
+	140636359156064 -> 140636359068192;
+	140636359156064 -> 140636359069488;
+	140636359156064 -> 140636363123952;
+	140636341727376	 [label="alpha*offset**2",
+		node_color=b,
+		position="(0, -7.0)",
+		shape=box];
+	140636341727376 -> 140636359158136;
+	140636363124456 -> 140636359156064;
+	140636359156792	 [label=-0.999999999999898,
+		node_color=r,
+		position="(0.0, -2.5)"];
+	140636363123952 -> 140636359156792;
+	140636359157352	 [label="Wanted Circumference = 4.0",
+		node_color=r,
+		position="(0.1, -4.5)"];
+	140636359157352 -> 140636359069560;
+	140636359158192	 [label="alpha",
+		node_color=r,
+		position="(0.1, -6.5)"];
+	140636359158192 -> 140636341727376;
+	140636359156792 -> 140636341727448;
+	140636359069560 -> 140636359157688;
+	140636359158024 -> 140636341727376;
+}
