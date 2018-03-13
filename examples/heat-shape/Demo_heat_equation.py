@@ -12,7 +12,7 @@ rot_c = [c[0]-0.1, c[1]]
 rot_center = Point(rot_c[0],rot_c[1])
 VariableBoundary = 1
 FixedBoundary = 2
-N, r = 100, 0.08
+N, r = 100, 0.2
 L, H = 1,1
 
 #neumann = False
@@ -39,29 +39,55 @@ mesh =  Mesh("mesh.xml")
 f = Expression("100*x[0]*sin(x[0])*cos(x[1])", degree=4, name="f")
 
 S = VectorFunctionSpace(mesh, "CG", 1)
-s = Function(S)
+s = Function(S, name="s")
 ALE.move(mesh, s)
 
 # Setup
 V = FunctionSpace(mesh, "CG", 1)
-u, v = TrialFunction(V), TestFunction(V)
-F = inner(grad(u), grad(v))*dx  - f*v*dx # + u*v*dx
+guess_ic = Function(V, name="Initial Condition")
+guess_ic.assign(Expression("15 * x[0] * (1 - x[0]) * x[1] * (1 - x[1])", degree=1, name="IC Expression"))
+u_prev = guess_ic.copy(deepcopy=True)
+u_prev.rename("u^(t-1)","")
+u_next = guess_ic.copy(deepcopy=True)
+u_next.rename("u^t","")
+half = Constant(0.5, name="0.5")
+u_mid = half*u_prev + half*u_next
+v = TestFunction(V)
+states = [u_prev.copy(deepcopy=True)]
+t = 0.0
+dt = 0.01
+T = 2*dt
+times  = [float(t)]
+timestep = 0
+ff = File("output/Demo_timedependent.pvd")
 
-# FIXME: Handling of Dirichlet Conditions
 marker = MeshFunction("size_t", mesh, "mesh_facet_region.xml")
 if neumann:
-    bcs = [DirichletBC(V, Constant(0), marker, FixedBoundary)]
+    bcs = [DirichletBC(V, Constant(0,name="Dirichlet Condition"), marker, FixedBoundary)]
 else:
     bcs = [DirichletBC(V, Constant(0), marker, FixedBoundary),
            DirichletBC(V, Constant(1), marker, VariableBoundary)]
-    
-T = Function(V, name="T")
+J = 0
+while t < T:
+    print("Solving for t == %s" % (t + dt))
+    F = inner((u_next - u_prev)/Constant(dt, name="dt"), v)*dx + inner(grad(u_mid), grad(v))*dx
+    solve(F == 0, u_next, J=derivative(F, u_next), annotate=True, bcs=bcs)
 
-solve(lhs(F) == rhs(F), T, bcs=bcs)
+    ff << u_next
+    u_prev.assign(u_next, annotate=True)
+    t += dt
+    timestep += 1
+    J += assemble(u_next*dx)
+    times.append(float(t))
 
-J = 0.5*T*T*dx
-J = assemble(J)
+
 Jhat = ReducedFunctional(J, Control(s))
+tape.visualise("time_dependent_tape.dot", dot=True)
+
+dJdmesh = Jhat.derivative()
+bcs = DirichletBC(VectorFunctionSpace(mesh, "CG", 1), Constant((0,0)), marker, FixedBoundary)
+bcs.apply(dJdmesh.vector())
+File("ShapeGradient_time.pvd") << dJdmesh
 
 
 n = VolumeNormal(mesh)
