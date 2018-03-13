@@ -2,10 +2,10 @@ from dolfin import *
 import matplotlib.pyplot as plt
 from dolfin_adjoint import *
 from femorph import *
-n = 10
+n = 5
 length = 1
 width = 0.25
-height = 0.1
+height = 0.05
 x0 = 0.0
 y0 = 0.0
 z0 = 0.0
@@ -22,7 +22,6 @@ def geometry_3d():
     X0 = mesh.coordinates()[:, 0].min()
     X1 = mesh.coordinates()[:, 0].max()
     Z = mesh.coordinates()[:, 2].max()
-    print(Z)
     boundary_parts = MeshFunction('size_t', mesh, mesh.geometry().dim()-1)
     left  = AutoSubDomain(lambda x: near(x[0], X0))
     right = AutoSubDomain(lambda x: near(x[0], X1))
@@ -59,7 +58,7 @@ V = VectorFunctionSpace(mesh, "Lagrange", 1)
 s = Function(V)
 ALE.move(mesh, s)
 
-stress = Expression(("0", "0", "-25*exp(-pow((x[0]-length/2),2)/0.005)*exp(-pow((x[1]-width/2),2)/0.005)"), width=width, length=length, degree=2, domain=mesh) # N/m^2s
+stress = Expression(("0", "0", "-exp(-pow((x[0]-length/2),2)/0.005)*exp(-pow((x[1]-width/2),2)/0.005)"), width=width, length=length, degree=2, domain=mesh) # N/m^2s
 dS_stress = Measure("ds", domain=mesh, subdomain_data=boundary_parts)
 
 # Define variational problem
@@ -75,12 +74,12 @@ bcRight = DirichletBC(V, c, boundary_parts, 2)
 # Create solution function
 u_fin = Function(V, name="deform")
 solve(a==L, u_fin, bcs=[bcLeft, bcRight], solver_parameters={"linear_solver": "mumps"})
-# elas = File("elasticity.pvd", "compressed")
-# elas << u_fin
+elas = File("elasticity.pvd", "compressed")
+elas << u_fin
 # ALE.move(mesh, u_fin)
 # J = assemble(Expression("x[0]", degree=1)*dx(domain=mesh))
 J = assemble(inner(u_fin,u_fin)*dx)+\
-    1e1*assemble(inner(s,s)*ds)
+    1e0*assemble(inner(s,s)*ds)
 
 
 Jhat = ReducedFunctional(J, Control(s))
