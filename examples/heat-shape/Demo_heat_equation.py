@@ -6,14 +6,14 @@ from dolfin_adjoint import *
 from ufl import replace
 import matplotlib.pyplot as plt
 import numpy as np
-
-c = [0.5,0.5]
+set_log_level(LogLevel.ERROR)
+L, H = 0.8,0.5
+c = [L/2,H/2]
 rot_c = [c[0]-0.1, c[1]]
 rot_center = Point(rot_c[0],rot_c[1])
 VariableBoundary = 1
 FixedBoundary = 2
-N, r = 100, 0.2
-L, H = 1,1
+N, r = 50, 0.1
 
 #neumann = False
 neumann = True
@@ -36,8 +36,6 @@ os.system("dolfin-convert mesh.msh mesh.xml")
 
 mesh =  Mesh("mesh.xml")
 
-f = Expression("100*x[0]*sin(x[0])*cos(x[1])", degree=4, name="f")
-
 S = VectorFunctionSpace(mesh, "CG", 1)
 s = Function(S, name="s")
 ALE.move(mesh, s)
@@ -45,7 +43,7 @@ ALE.move(mesh, s)
 # Setup
 V = FunctionSpace(mesh, "CG", 1)
 guess_ic = Function(V, name="Initial Condition")
-guess_ic.assign(Expression("15 * x[0] * (1 - x[0]) * x[1] * (1 - x[1])", degree=1, name="IC Expression"))
+guess_ic.assign(Expression("sin(2*pi*x[0]/L)*sin(2*pi*x[1]/H)", L=L, H=H, degree=1, name="IC Expression"))
 u_prev = guess_ic.copy(deepcopy=True)
 u_prev.rename("u^(t-1)","")
 u_next = guess_ic.copy(deepcopy=True)
@@ -55,8 +53,8 @@ u_mid = half*u_prev + half*u_next
 v = TestFunction(V)
 states = [u_prev.copy(deepcopy=True)]
 t = 0.0
-dt = 0.01
-T = 2*dt
+dt = 0.0001
+T = 100*dt
 times  = [float(t)]
 timestep = 0
 ff = File("output/Demo_timedependent.pvd")
@@ -68,16 +66,18 @@ else:
     bcs = [DirichletBC(V, Constant(0), marker, FixedBoundary),
            DirichletBC(V, Constant(1), marker, VariableBoundary)]
 J = 0
+f = Expression("500*t/T*x[0]", t=t, T=T, degree=3)
 while t < T:
-    print("Solving for t == %s" % (t + dt))
-    F = inner((u_next - u_prev)/Constant(dt, name="dt"), v)*dx + inner(grad(u_mid), grad(v))*dx
+    print("Solving for t == %.2e/%.2e" % (t + dt, T))
+    F = inner((u_next - u_prev)/Constant(dt, name="dt"), v)*dx + inner(grad(u_mid), grad(v))*dx- f*v*dx
     solve(F == 0, u_next, J=derivative(F, u_next), annotate=True, bcs=bcs)
 
     ff << u_next
     u_prev.assign(u_next, annotate=True)
     t += dt
+    f.t = t
     timestep += 1
-    J += assemble(u_next*dx)
+    J += dt*assemble(u_next*dx)
     times.append(float(t))
 
 
@@ -91,9 +91,12 @@ File("ShapeGradient_time.pvd") << dJdmesh
 
 
 n = VolumeNormal(mesh)
+diff = Function(S)
+diff.interpolate(Expression(("cos(6*pi*x[0])","cos(6*pi*x[0])"), degree=4))
 s2 = Function(S)
 print(Jhat(s))
-s2.vector()[:] = 10*n.vector()[:]
+s2.vector()[:] = 10*n.vector()[:]*diff.vector()[:]
+
 bcs = DirichletBC(VectorFunctionSpace(mesh, "CG", 1), Constant((0,0)), marker, FixedBoundary)
 bcs.apply(s2.vector())
 
