@@ -2,10 +2,10 @@ from dolfin import *
 import matplotlib.pyplot as plt
 from dolfin_adjoint import *
 from femorph import *
-n = 5
-length = 1
-width = 0.25
-height = 0.05
+n = 3
+length = 1 #m
+width = 0.2 #m 
+height = 0.05 #m
 x0 = 0.0
 y0 = 0.0
 z0 = 0.0
@@ -21,31 +21,33 @@ def geometry_3d():
     gdim = mesh.geometry().dim()
     X0 = mesh.coordinates()[:, 0].min()
     X1 = mesh.coordinates()[:, 0].max()
-    Z = mesh.coordinates()[:, 2].max()
+    Y0 = mesh.coordinates()[:, 1].min()
+    Y1 = mesh.coordinates()[:, 1].max()
+    Z0 = mesh.coordinates()[:, 2].min()
+    Z1 = mesh.coordinates()[:, 2].max()
     boundary_parts = MeshFunction('size_t', mesh, mesh.geometry().dim()-1)
     left  = AutoSubDomain(lambda x: near(x[0], X0))
     right = AutoSubDomain(lambda x: near(x[0], X1))
-    top = AutoSubDomain(lambda x: near(x[2], Z))
+    top = AutoSubDomain(lambda x: near(x[2], Z1))
+    # sides = AutoSubDomain(lambda x: x[0]<0.1*x1 and near(x[1], Z1)) 
     top.mark(boundary_parts, 3)
     left.mark(boundary_parts, 1)
     right.mark(boundary_parts, 2)
-    File("output/boundaries.pvd") << boundary_parts
-
+    # sides.mark(boundary_parts,4)
     return mesh, boundary_parts
 
 
 mesh, boundary_parts = geometry_3d()
 
 # Rotation rate and mass density
-rho = 1.0 # kg/m3 A36 steel
+rho = 2700 #kg/m^3 aluminium
 g = 9.81
 # Loading due to gravity
 f = Expression(("0", "0", "-rho*g"),
                g=g, rho=rho, degree=2)
-
 # Elasticity parameters
-E = 5.5e2 # Lego
-nu = 0.47 # Poisson ratio Lego brick
+E = 6.894757e10 # Youngs modulus aluminium
+nu = 0.33 # Poisson ratio aluminium
 mu = E/(2.0*(1.0 + nu))
 lmbda = E*nu/((1.0 + nu)*(1.0 - 2.0*nu))
 
@@ -58,14 +60,15 @@ V = VectorFunctionSpace(mesh, "Lagrange", 1)
 s = Function(V)
 ALE.move(mesh, s)
 
-stress = Expression(("0", "0", "-exp(-pow((x[0]-length/2),2)/0.005)*exp(-pow((x[1]-width/2),2)/0.005)"), width=width, length=length, degree=2, domain=mesh) # N/m^2s
+stress = Expression(("0", "0", "-4e7*exp(-pow((x[0]-length/5),2)/0.01)*exp(-pow((x[1]-width/2),2)/0.001)"), width=width, length=length, degree=2, domain=mesh) # N/m^2s
+clamp = Expression(("0","0","-1"),degree=2,domain=mesh)
 dS_stress = Measure("ds", domain=mesh, subdomain_data=boundary_parts)
 
 # Define variational problem
 u = TrialFunction(V)
 v = TestFunction(V)
 a = inner(sigma(u), grad(v))*dx
-L = inner(f, v)*dx  + inner(stress, v)*dS_stress(3)
+L = inner(f, v)*dx  + inner(stress, v)*dS_stress(3)# + inner(clamp,v)*dS_stress(4)
 
 # Set up boundary condition on inner surface
 c = Constant((0.0, 0.0, 0.0))
@@ -74,13 +77,15 @@ bcRight = DirichletBC(V, c, boundary_parts, 2)
 # Create solution function
 u_fin = Function(V, name="deform")
 solve(a==L, u_fin, bcs=[bcLeft, bcRight], solver_parameters={"linear_solver": "mumps"})
-elas = File("elasticity.pvd", "compressed")
+# solve(a==L, u_fin, bcs=[bcLeft], solver_parameters={"linear_solver": "mumps"})
+
+elas = File("elasticity_new_functional.pvd", "compressed")
 elas << u_fin
 # ALE.move(mesh, u_fin)
 # J = assemble(Expression("x[0]", degree=1)*dx(domain=mesh))
-J = assemble(inner(u_fin,u_fin)*dx)+\
-    1e0*assemble(inner(s,s)*ds)
-
+# J = assemble(inner(u_fin,u_fin)*dx)+\
+#     2.5*assemble(inner(s,s)*ds)
+J = assemble(inner(sigma(u_fin),sym(grad(u_fin)))*dx) + 1e3*(assemble(1*dx(domain=mesh))-length*height*width)**2
 
 Jhat = ReducedFunctional(J, Control(s))
 Jhat.optimize()
@@ -121,14 +126,15 @@ def riesz_representation(value):
     a = Constant(alpha)*inner(grad(u), grad(v))*dx+inner(u,v)*dx
     A = assemble(a)
     [bc.apply(A,value) for bc in [bcLeft, bcRight]]
+    # [bc.apply(A,value) for bc in [bcLeft]]
     representation = Function(V)
     solve(A, representation.vector(), value)
     return representation
 
-it, max_it = 1, 100
-red_tol = 1e-4
+it, max_it = 1, 15
+red_tol = 1e-2
 red = 2*red_tol
-meshout = File("output/mesh.pvd")
+meshout = File("output/mesh_new.pvd")
 
 move = Function(V)
 move_step = Function(V)
@@ -143,7 +149,7 @@ while it <= max_it and red > red_tol:
                                     riesz_representation})
 
     # Linesearch
-    step = 1
+    step = 1e-7
     min_stp = step/(2**16)
     while step > min_stp:
         # Evaluate functional at new step 
@@ -163,6 +169,10 @@ while it <= max_it and red > red_tol:
     meshout << mesh
     red = abs((Js[-1] - Js[-2])/Js[-1])
     print("Relative reduction: %.2e" %red)
+    print("Functional value: %.2e" %Js[-1])
+    print("offset: %.2e" %(  (assemble(1*dx(domain=mesh))/(length*height*width))))
+
+
     it += 1
 
 print("Relative reduction: %.2e" %red)
@@ -172,6 +182,6 @@ print(Jhat(s0),Jhat(move))
 
 # solve(a==L, u_fin, bcs=[bcLeft])
 solve(a==L, u_fin, bcs=[bcLeft, bcRight])
-
+File("stress.pvd") << interpolate(stress, S)
 elas << u_fin
 
