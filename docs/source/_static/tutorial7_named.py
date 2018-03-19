@@ -22,4 +22,4 @@ bc = DirichletBC(V, (0.0, 0.0), "on_boundary")
 solve(F == 0, u_next, bc)
 
 tape = get_working_tape()
-tape.visualise("simplified_burgers_named", dot=True)
+tape.visualise()
