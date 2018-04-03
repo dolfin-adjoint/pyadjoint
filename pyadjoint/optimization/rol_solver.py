@@ -4,10 +4,6 @@ from . import constraints
 from ..enlisting import Enlist
 import numpy
 
-from fenics import * 
-# FIXME: This should be replaced by "from backend import *",
-# but that doesn't seem to be a thing in pyadjoint anymore.
-
 
 try:
     import ROL
@@ -123,21 +119,16 @@ class ROLSolver(OptimizationSolver):
 
         for i in range(len(controlvec.dat)):
             x = controlvec.dat[i]
-            general_lb, general_ub = bounds[i] # could be float, Constant, or Function
-            if isinstance(x, (Function, Constant)):
-                if isinstance(general_lb, (int, float)):
-                    lowervec.dat[i].assign(Constant(general_lb))
-                else:
-                    lowervec.dat[i].assign(general_lb)
-                if isinstance(general_ub, (int, float)):
-                    uppervec.dat[i].assign(Constant(general_ub))
-                else:
-                    uppervec.dat[i].assign(general_ub)
-            elif isinstance(x, (float, int)):
-                lowervec.dat[i] = float(general_lb)
-                uppervec.dat[i] = float(general_ub)
+            general_lb, general_ub = bounds[i]
+            if isinstance(general_lb, (int, float)):
+                lowervec.dat[i]._applyUnary(lambda x: general_lb)
             else:
-                raise TypeError("Unknown bound type %s" % general_lb.__class__)
+                lowervec.dat[i].assign(general_lb)
+            if isinstance(general_ub, (int, float)):
+                uppervec.dat[i]._applyUnary(lambda x: general_ub)
+            else:
+                uppervec.dat[i].assign(general_ub)
+
         res = ROL.Bounds(lowervec, uppervec, 1.0)
         # FIXME: without this the lowervec and uppervec get cleaned up too early.
         # This is a bug in PyROL and we'll hopefully figure that out soon

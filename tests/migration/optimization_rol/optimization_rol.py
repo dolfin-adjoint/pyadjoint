@@ -66,7 +66,12 @@ out << sol[0]
 f_analytic = Expression("1/(1+alpha*4*pow(pi, 4))*w", w=w, alpha=alpha, degree=3)
 print(errornorm(f_analytic, sol[0]))
 
-problem = MinimizationProblem(rf, bounds=(0.0, 0.5))
+lower = 0
+upper = 0.5
+# lower = interpolate(Constant(lower), f.function_space())
+# upper = interpolate(Constant(upper), f.function_space())
+
+problem = MinimizationProblem(rf, bounds=(lower, upper))
 solver = ROLSolver(problem, params_dict)
 sol = solver.solve()
 out << sol[0]
