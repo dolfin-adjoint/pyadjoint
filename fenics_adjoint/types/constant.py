@@ -89,6 +89,31 @@ class Constant(OverloadedType, backend.Constant):
     def _ad_dim(self):
         return self.value_size()
 
+    def _imul(self, other):
+        self.assign(ufl_shape_workaround(self.values() * other))
+
+    def _iadd(self, other):
+        self.assign(ufl_shape_workaround(self.values() + other.values()))
+
+    def _reduce(self, r, r0):
+        npdata = self.values()
+        for i in range(len(npdata)):
+            r0 = r(npdata[i], r0)
+        return r0
+
+    def _applyUnary(self, f):
+        npdata = self.values()
+        for i in range(len(npdata)):
+            npdata[i] = f(npdata[i])
+        self.assign(ufl_shape_workaround(npdata))
+
+    def _applyBinary(self, f, y):
+        npdata = self.values()
+        npdatay = y.values()
+        for i in range(len(npdata)):
+            npdata[i] = f(npdata[i], npdatay[i])
+        x.assign(ufl_shape_workaround(tempx))
+
 
 def ufl_shape_workaround(values):
     """Workaround because of the following behaviour in FEniCS/Firedrake

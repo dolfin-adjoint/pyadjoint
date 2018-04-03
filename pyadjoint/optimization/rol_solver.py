@@ -39,182 +39,52 @@ class ROLVector(ROL.Vector):
         super(ROLVector, self).__init__()
         self.dat = dat
         self.inner_product = inner_product
-        self.dims = []
-        for x in self.dat:
-            if isinstance(x, Function):
-                self.dims.append(x.vector().local_size())
-            elif isinstance(x, Constant):
-                self.dims.append(x.value_size())
-            elif isinstance(x, numpy.ndarray):
-                self.dims.append(len(x))
-            else:
-                raise NotImplementedError
 
     def plus(self, yy):
         for (x, y) in zip(self.dat, yy.dat):
-            if isinstance(x, Function):
-                assert isinstance(y, Function)
-                xvec = x.vector()
-                yvec = y.vector()
-                xvec += yvec
-            elif isinstance(x, Constant):
-                x += y
-            elif isinstance(x, numpy.ndarray):
-                assert isinstance(y, numpy.ndarray)
-                x += y
-            else:
-                raise NotImplementedError
+            x._iadd(y)
 
     def scale(self, alpha):
         for x in self.dat:
-            if isinstance(x, Function):
-                xvec = x.vector()
-                xvec *= alpha
-            elif isinstance(x, Constant) or isinstance(x, numpy.ndarray):
-                x *= alpha
-            else:
-                raise NotImplementedError
+            x._imul(alpha)
 
     def riesz_map(self, derivs):
         dat = []
         for deriv in Enlist(derivs):
-            if isinstance(deriv, Function) and self.inner_product!="l2":
-                V = deriv.function_space()
-                u = TrialFunction(V)
-                v = TestFunction(V)
-                if self.inner_product=="L2":
-                    M = assemble(inner(u, v)*dx)
-                elif self.inner_product=="H1":
-                    M = assemble((inner(u, v) + inner(grad(u), grad(v)))*dx)
-                else:
-                    raise ValueError("Unknown inner product %s".format(inner_product))
-                proj = Function(V)
-                solve(M, proj.vector(), deriv.vector())
-                dat.append(proj)
-            else:
-                dat.append(deriv)
+            dat.append(deriv._ad_convert_type(deriv))
         return dat
 
     def dot(self, yy):
         res = 0.
         for (x, y) in zip(self.dat, yy.dat):
-            if isinstance(x, Function):
-                assert isinstance(y, Function)
-                if self.inner_product == "H1":
-                    res += assemble((inner(x, y) + inner(grad(x), grad(y)))*dx)
-                elif self.inner_product == "L2":
-                    res += assemble(inner(x, y)*dx)
-                elif self.inner_product == "l2":
-                    res += x.vector().inner(y.vector())
-                else:
-                    raise ValueError("No inner product specified for DolfinVectorSpace")
-
-            elif isinstance(x, Constant):
-                res += float(x)*float(y)
-            elif isinstance(x, numpy.ndarray):
-                assert isinstance(y, numpy.ndarray)
-                res += numpy.inner(x, y)
-            else:
-                raise NotImplementedError
+            res += x._ad_dot(y)
         return res
 
     def clone(self):
         dat = []
         for x in self.dat:
-            if isinstance(x, Function):
-                x.vector().apply("")
-                dat.append(Function.copy(x, deepcopy=True))
-            elif isinstance(x, Constant):
-                dat.append(Constant(float(x)))
-            elif isinstance(x, numpy.ndarray):
-                dat.append(numpy.array(x))
-            else:
-                raise NotImplementedError
+            dat.append(x._ad_copy())
         res = ROLVector(dat, inner_product=self.inner_product)
         res.scale(0.0)
         return res
 
     def dimension(self):
-        return sum(self.dims)
-
-    def basis(self, i):
-        raise NotImplementedError()
+        return sum(x._ad_dim() for x in self.dat)
 
     def reduce(self, r, r0):
         res = r0
-        for i in range(len(self.dat)):
-            x = self.dat[i]
-            if isinstance(x, Function):
-                vecx = x.vector()
-                tempx = vecx.get_local()
-                for i in range(len(tempx)):
-                    res = r(tempx[i], res)
-                vecx.set_local(tempx)
-                # # FIXME: is this really needed?
-                # vecx.apply("insert")
-                # x.vector().apply("")
-            elif isinstance(x, Constant):
-                tempx = x.values()
-                for i in range(len(tempx)):
-                    res = r(tempx[i], res)
-                x.assign(tempx)
-            elif isinstance(x, numpy.ndarray):
-                for i in range(len(x)):
-                    res = r(x[i], res)
-            else:
-                raise NotImplementedError
+        for x in self.dat:
+            res = x._reduce(r, res)
         return res
 
 
     def applyUnary(self, f):
-        for i in range(len(self.dat)):
-            x = self.dat[i]
-            if isinstance(x, Function):
-                vecx = x.vector()
-                tempx = vecx.get_local()
-                for i in range(len(tempx)):
-                    tempx[i] = f(tempx[i])
-                vecx.set_local(tempx)
-                # # FIXME: is this really needed?
-                # vecx.apply("insert")
-                # x.vector().apply("")
-            elif isinstance(x, Constant):
-                tempx = x.values()
-                for i in range(len(tempx)):
-                    tempx[i] = f(tempx[i])
-                x.assign(tempx)
-            elif isinstance(x, numpy.ndarray):
-                for i in range(len(x)):
-                    x[i] = f(x[i])
-            else:
-                raise NotImplementedError
+        for x in self.dat:
+            x._applyUnary(f)
 
     def applyBinary(self, f, inp):
-        for i in range(len(self.dat)):
-            x = self.dat[i]
-            y = inp.dat[i]
-            if isinstance(x, Function):
-                vecx = x.vector()
-                vecy = y.vector()
-                tempx = vecx.get_local()
-                tempy = vecy.get_local()
-                for i in range(len(tempx)):
-                    tempx[i] = f(tempx[i], tempy[i])
-                vecx.set_local(tempx)
-                # # FIXME: is this really needed?
-                # vecx.apply("insert")
-                # x.vector().apply("")
-            elif isinstance(x, Constant):
-                tempx = x.values()
-                tempy = y.values()
-                for i in range(len(tempx)):
-                    tempx[i] = f(tempx[i], tempy[i])
-                x.assign(tempx)
-            elif isinstance(x, numpy.ndarray):
-                for i in range(len(x)):
-                    x[i] = f(x[i], y[i])
-            else:
-                raise NotImplementedError
+        for (x, y) in zip(self.dat, inp.dat):
+            x._applyBinary(f, y)
 
 
 

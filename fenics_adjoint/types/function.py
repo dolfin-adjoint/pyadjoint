@@ -154,6 +154,34 @@ class Function(FloatingType, backend.Function):
     def _ad_dim(self):
         return self.function_space().dim()
 
+    def _imul(self, other):
+        vec = self.vector()
+        vec *= other
+
+    def _iadd(self, other):
+        vec = self.vector()
+        vec += other.vector()
+
+    def _reduce(self, r, r0):
+        vec = self.vector().get_local()
+        for i in range(len(vec)):
+            r0 = r(vec[i], r0)
+        return r0
+
+    def _applyUnary(self, f):
+        vec = self.vector() 
+        npdata = vec.get_local()
+        for i in range(len(npdata)):
+            npdata[i] = f(npdata[i])
+
+    def _applyBinary(self, f, y):
+        vec = self.vector()
+        npdata = vec.get_local()
+        npdatay = y.vector().get_local()
+        for i in range(len(vec)):
+            npdata[i] = f(npdata[i], npdatay[i])
+        vec.set_local(npdata)
+
 
 class AssignBlock(Block):
     def __init__(self, func, other):
