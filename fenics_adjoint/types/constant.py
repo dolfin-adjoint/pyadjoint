@@ -66,7 +66,7 @@ class Constant(OverloadedType, backend.Constant):
         values = ufl_shape_workaround(self.values() + other.values())
         return Constant(values)
 
-    def _ad_dot(self, other):
+    def _ad_dot(self, other, options=None):
         return sum(self.values()*other.values())
 
     @staticmethod

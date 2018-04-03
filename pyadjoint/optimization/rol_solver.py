@@ -47,13 +47,13 @@ class ROLVector(ROL.Vector):
     def riesz_map(self, derivs):
         dat = []
         for deriv in Enlist(derivs):
-            dat.append(deriv._ad_convert_type(deriv))
+            dat.append(deriv._ad_convert_type(deriv, options={"riesz_representation": self.inner_product}))
         return dat
 
     def dot(self, yy):
         res = 0.
         for (x, y) in zip(self.dat, yy.dat):
-            res += x._ad_dot(y)
+            res += x._ad_dot(y, options={"riesz_representation": self.inner_product})
         return res
 
     def clone(self):

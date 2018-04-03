@@ -3,8 +3,27 @@ from fenics import *
 from fenics_adjoint import *
 set_log_level(ERROR)
 
-n = 30
+n = 10
 mesh = UnitSquareMesh(n, n)
+
+"""
+This is to showcase mesh independence:
+if we do mesh refinement but choose the wrong inner product,
+then the iteration count will blow up.
+"""
+inner_product = "L2"
+import numpy
+numpy.random.seed(0)
+def randomly_refine(initial_mesh, ratio_to_refine= .3):
+   cf = CellFunction('bool', initial_mesh)
+   for k in range(len(cf)):
+       if numpy.random.rand() < ratio_to_refine:
+           cf[k] = True
+   return refine(initial_mesh, cell_markers = cf)
+
+k = 4
+for i in range(k):
+   mesh = randomly_refine(mesh)
 
 cf = CellFunction("bool", mesh)
 subdomain = CompiledSubDomain('std::abs(x[0]-0.5) < 0.25 && std::abs(x[1]-0.5) < 0.25')
@@ -52,14 +71,13 @@ params_dict = {
     },
     'Status Test': {
         'Gradient Tolerance': 1e-10,
-        'Relative Gradient Tolerance': 1e-5,
         'Step Tolerance': 1e-16,
         'Relative Step Tolerance': 1e-10,
         'Iteration Limit': 50
     }
 }
 problem = MinimizationProblem(rf)
-solver = ROLSolver(problem, params_dict)
+solver = ROLSolver(problem, params_dict, inner_product=inner_product)
 sol = solver.solve()
 out = File("f.pvd")
 out << sol[0]
@@ -72,6 +90,6 @@ upper = 0.5
 # upper = interpolate(Constant(upper), f.function_space())
 
 problem = MinimizationProblem(rf, bounds=(lower, upper))
-solver = ROLSolver(problem, params_dict)
+solver = ROLSolver(problem, params_dict, inner_product=inner_product)
 sol = solver.solve()
 out << sol[0]

@@ -93,7 +93,7 @@ class Function(FloatingType, backend.Function):
             u = backend.TrialFunction(self.function_space())
             v = backend.TestFunction(self.function_space())
             M = backend.assemble(u * v * backend.dx)
-            backend.solve(M, ret.vector(), value)
+            backend.solve(M, ret.vector(), value.vector())
             return ret
 
     def _ad_create_checkpoint(self):
@@ -124,8 +124,17 @@ class Function(FloatingType, backend.Function):
         backend.Function.assign(r, self+other)
         return r
 
-    def _ad_dot(self, other):
-        return self.vector().inner(other.vector())
+    def _ad_dot(self, other, options=None):
+        if options is not None:
+            riesz_representation = options.pop("riesz_representation", "l2")
+        else:
+            riesz_representation = "l2"
+
+        if riesz_representation == "l2":
+            return self.vector().inner(other.vector())
+        elif riesz_representation == "L2":
+            return backend.assemble(self * other * backend.dx)
+        
 
     @staticmethod
     def _ad_assign_numpy(dst, src, offset):
