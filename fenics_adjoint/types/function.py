@@ -173,6 +173,7 @@ class Function(FloatingType, backend.Function):
         npdata = vec.get_local()
         for i in range(len(npdata)):
             npdata[i] = f(npdata[i])
+        vec.set_local(npdata)
 
     def _applyBinary(self, f, y):
         vec = self.vector()
