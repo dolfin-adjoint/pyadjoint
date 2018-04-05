@@ -150,7 +150,7 @@ class ROLSolver(OptimizationSolver):
             params = ROL.ParameterList(self.params_dict, "Parameters")
             solver = ROL.OptimizationSolver(rolproblem, params)
             solver.solve()
-            return x.dat if len(x.dat)>1 else x.dat[0]
+            return self.problem.reduced_functional.controls.delist(x.dat)
         else:
             raise NotImplementedError()
 
