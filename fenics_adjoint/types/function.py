@@ -93,7 +93,9 @@ class Function(FloatingType, backend.Function):
             u = backend.TrialFunction(self.function_space())
             v = backend.TestFunction(self.function_space())
             M = backend.assemble(u * v * backend.dx)
-            backend.solve(M, ret.vector(), value.vector())
+            if not isinstance(value, backend.Vector):
+                value = value.vector()
+            backend.solve(M, ret.vector(), value)
             return ret
 
     def _ad_create_checkpoint(self):
