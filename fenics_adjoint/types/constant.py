@@ -112,7 +112,7 @@ class Constant(OverloadedType, backend.Constant):
         npdatay = y.values()
         for i in range(len(npdata)):
             npdata[i] = f(npdata[i], npdatay[i])
-        x.assign(ufl_shape_workaround(tempx))
+        self.assign(ufl_shape_workaround(npdata))
 
 
 def ufl_shape_workaround(values):
