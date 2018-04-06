@@ -23,11 +23,11 @@ class ROLObjective(ROL.Objective):
 
     def gradient(self, g, x, tol):
         # self.rf(x.dat)
+        self.deriv = self.rf.derivative()  # forget=False, project=False)
         g.dat = g.riesz_map(self.deriv)
 
     def update(self, x, flag, iteration):
         self.val = self.rf(x.dat)
-        self.deriv = self.rf.derivative()  # forget=False, project=False)
         # pass
 
 
@@ -132,7 +132,6 @@ class ROLSolver(OptimizationSolver):
         # soon
         self.lowervec = lowervec
         self.uppervec = uppervec
-        res.test()
         return res
 
     def solve(self):
