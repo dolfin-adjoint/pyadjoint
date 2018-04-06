@@ -1,6 +1,8 @@
 from __future__ import print_function
 from fenics import *
 from fenics_adjoint import *
+import numpy
+
 set_log_level(ERROR)
 
 n = 10
@@ -12,21 +14,24 @@ if we do mesh refinement but choose the wrong inner product,
 then the iteration count will blow up.
 """
 inner_product = "L2"
-import numpy
 numpy.random.seed(0)
-def randomly_refine(initial_mesh, ratio_to_refine= .3):
-   cf = CellFunction('bool', initial_mesh)
-   for k in range(len(cf)):
-       if numpy.random.rand() < ratio_to_refine:
-           cf[k] = True
-   return refine(initial_mesh, cell_markers = cf)
 
-k = 4
+
+def randomly_refine(initial_mesh, ratio_to_refine=.3):
+    cf = CellFunction('bool', initial_mesh)
+    for k in range(len(cf)):
+        if numpy.random.rand() < ratio_to_refine:
+            cf[k] = True
+    return refine(initial_mesh, cell_markers=cf)
+
+
+k = 2
 for i in range(k):
-   mesh = randomly_refine(mesh)
+    mesh = randomly_refine(mesh)
 
 cf = CellFunction("bool", mesh)
-subdomain = CompiledSubDomain('std::abs(x[0]-0.5) < 0.25 && std::abs(x[1]-0.5) < 0.25')
+subdomain = CompiledSubDomain(
+    'std::abs(x[0]-0.5) < 0.25 && std::abs(x[1]-0.5) < 0.25')
 subdomain.mark(cf, True)
 mesh = refine(mesh, cf)
 V = FunctionSpace(mesh, "CG", 1)
@@ -42,9 +47,9 @@ solve(F == 0, u, bc)
 
 
 x = SpatialCoordinate(mesh)
-w = Expression("sin(pi*x[0])*sin(pi*x[1])", degree=3) 
+w = Expression("sin(pi*x[0])*sin(pi*x[1])", degree=3)
 d = 1/(2*pi**2)
-d = Expression("d*w", d=d, w=w, degree=3) 
+d = Expression("d*w", d=d, w=w, degree=3)
 
 alpha = Constant(1e-3)
 J = assemble((0.5*inner(u-d, u-d))*dx + alpha/2*f**2*dx)
@@ -80,9 +85,10 @@ problem = MinimizationProblem(rf)
 solver = ROLSolver(problem, params_dict, inner_product=inner_product)
 sol = solver.solve()
 out = File("f.pvd")
-out << sol[0]
-f_analytic = Expression("1/(1+alpha*4*pow(pi, 4))*w", w=w, alpha=alpha, degree=3)
-print(errornorm(f_analytic, sol[0]))
+out << sol
+f_analytic = Expression("1/(1+alpha*4*pow(pi, 4))*w",
+                        w=w, alpha=alpha, degree=3)
+print(errornorm(f_analytic, sol))
 
 lower = 0
 upper = 0.5
@@ -92,4 +98,4 @@ upper = 0.5
 problem = MinimizationProblem(rf, bounds=(lower, upper))
 solver = ROLSolver(problem, params_dict, inner_product=inner_product)
 sol = solver.solve()
-out << sol[0]
+out << sol

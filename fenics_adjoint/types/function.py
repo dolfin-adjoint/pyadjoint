@@ -136,7 +136,6 @@ class Function(FloatingType, backend.Function):
             return self.vector().inner(other.vector())
         elif riesz_representation == "L2":
             return backend.assemble(self * other * backend.dx)
-        
 
     @staticmethod
     def _ad_assign_numpy(dst, src, offset):
@@ -180,7 +179,7 @@ class Function(FloatingType, backend.Function):
         return r0
 
     def _applyUnary(self, f):
-        vec = self.vector() 
+        vec = self.vector()
         npdata = vec.get_local()
         for i in range(len(npdata)):
             npdata[i] = f(npdata[i])
