@@ -157,12 +157,14 @@ else:
                                    *bc.domain_args)
 
     def function_from_vector(V, vector):
-        """Create a new Function sharing data.
+        """Create a new Function from a vector.
 
         :arg V: The function space
-        :arg vector: The data to share.
+        :arg vector: The vector data.
         """
-        return backend.Function(V, vector)
+        r = backend.Function(V)
+        r.vector()[:] = vector
+        return r
 
     def inner(a, b):
         """Compute the l2 inner product of a and b.

@@ -23,9 +23,9 @@ def create_overloaded_object(obj):
     if isinstance(obj, float):
         return AdjFloat(obj)
     elif isinstance(obj, backend.Function):
-        # This will invoke the backend constructor in a way that is said to be only intended for internal library use. 
-
-        return Function(obj.function_space(), obj.vector())
+        r = Function(obj.function_space())
+        r.vector()[:] = obj.vector()
+        return r
     elif isinstance(obj, backend.Constant):
         return Constant(obj)
     else:

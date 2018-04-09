@@ -121,13 +121,10 @@ class DirichletBCBlock(Block):
             if tlm_input is None:
                 continue
 
-            if isinstance(block_variable.output, backend.Function):
-                m = compat.function_from_vector(block_variable.output.function_space(), tlm_input)
-            else:
-                m = tlm_input
-
-            #m = backend.project(m, self.function_space)
-            m = compat.create_bc(bc, value=m)
+            # TODO: This is gonna crash for dirichletbcs with multiple dependencies (can't add two bcs)
+            #       However, if there is multiple dependencies, we need to AD the expression (i.e if value=f*g then
+            #       dvalue = tlm_f * g + f * tlm_g). Right now we can only handle value=f => dvalue = tlm_f.
+            m = compat.create_bc(bc, value=tlm_input)
             output.add_tlm_output(m)
 
     @no_annotations
