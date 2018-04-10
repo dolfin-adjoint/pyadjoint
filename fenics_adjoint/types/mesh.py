@@ -5,12 +5,14 @@ from pyadjoint.overloaded_type import OverloadedType
 
 class Mesh(OverloadedType, backend.Mesh):
     def __init__(self, *args, **kwargs):
-        # Determining if strong of weak form of shape derivative is wanted
+        # Determining Form of shape derivative
         try:
             Mode = kwargs.pop("WeakForm")
-            if Mode == True:
+            if not isinstance(Mode, bool): # Original Derivative after pullback
+                self.Mode = 1
+            elif Mode: # Weak Derivative
                 self.Mode = 2
-            else:
+            else: # Strong Derivative
                 self.Mode = 0
         except:
             self.Mode = 0
@@ -62,7 +64,8 @@ class ALEMoveBlock(Block):
             return
 
         self.get_dependencies()[1].add_adj_output(adj_value)
-        
+
+    
     @no_annotations
     def recompute(self):
         mesh = self.get_dependencies()[0].saved_output
