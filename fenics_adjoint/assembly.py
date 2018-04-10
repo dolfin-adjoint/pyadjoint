@@ -102,7 +102,7 @@ class AssembleBlock(Block):
 
             if isinstance(c, backend.Mesh):
                 from femorph import ShapeDerivative
-                dform = ShapeDerivative(form, c_rep)
+                dform = ShapeDerivative(form, c_rep, Mode=c_rep.Mode)
                 output = compat.assemble_adjoint_value(dform)
                 block_variable.add_adj_output(adj_input * output)
                 continue

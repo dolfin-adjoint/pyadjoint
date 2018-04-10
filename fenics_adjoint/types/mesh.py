@@ -5,6 +5,16 @@ from pyadjoint.overloaded_type import OverloadedType
 
 class Mesh(OverloadedType, backend.Mesh):
     def __init__(self, *args, **kwargs):
+        # Determining if strong of weak form of shape derivative is wanted
+        try:
+            Mode = kwargs.pop("WeakForm")
+            if Mode == True:
+                self.Mode = 2
+            else:
+                self.Mode = 0
+        except:
+            self.Mode = 0
+
         # Calling constructer
         super(Mesh, self).__init__(*args, **kwargs)
         backend.Mesh.__init__(self, *args, **kwargs)
