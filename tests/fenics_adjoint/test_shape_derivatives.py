@@ -3,6 +3,102 @@ import numpy as np
 from dolfin import *
 from dolfin_adjoint import *
 
+@pytest.mark.xfail(strict=True,reason="femorph not computing dot(f)(x)[V]")
+def test_x2_weak():
+    mesh = Mesh(UnitSquareMesh(6, 6), WeakForm=True)
+    S = VectorFunctionSpace(mesh, "CG", 1)
+    s = Function(S)
+    ALE.move(mesh, s)
+    V = TestFunction(S)
+    x,y = SpatialCoordinate(mesh)
+    f = Expression("x[0]*x[0]", degree=3, domain=mesh)
+    df = Expression(("2*x[0]", "0"), degree=3, domain=mesh)
+    J = f * dx
+    Jhat = ReducedFunctional(assemble(J), Control(s))
+    computed = Jhat.derivative().vector().get_local()
+    dJV = f*div(V) * dx + inner(df,V)*dx
+    actual = assemble(dJV).get_local()
+    assert np.allclose(computed, actual, rtol=1e-14)    
+
+def test_x2_strong():
+    mesh = Mesh(UnitSquareMesh(6, 6), WeakForm=False)
+    S = VectorFunctionSpace(mesh, "CG", 1)
+    s = Function(S)
+    ALE.move(mesh, s)
+    V = TestFunction(S)
+    f = Expression("x[0]*x[0]", degree=3, domain=mesh)
+    J = f * dx
+    Jhat = ReducedFunctional(assemble(J), Control(s))
+    computed = Jhat.derivative().vector().get_local()
+    from femorph import VolumeNormal
+    dJV = inner(V, VolumeNormal(mesh))*f*ds
+    actual = assemble(dJV).get_local()
+    assert np.allclose(computed, actual, rtol=1e-14)    
+
+def test_x2_div():
+    mesh = Mesh(UnitSquareMesh(6, 6), WeakForm=1)
+    f = Expression("x[0]*x[0]", degree=3, domain=mesh)
+    S = VectorFunctionSpace(mesh, "CG", 1)
+    s = Function(S)
+    ALE.move(mesh, s)
+    V = TestFunction(S)
+    J = f * dx
+    Jhat = ReducedFunctional(assemble(J), Control(s))
+    computed = Jhat.derivative().vector().get_local()
+    dJV = div(V*f)*dx
+    actual = assemble(dJV).get_local()
+    assert np.allclose(computed, actual, rtol=1e-14)    
+
+def test_sin_weak():
+    mesh = Mesh(UnitSquareMesh(6, 6), WeakForm=True)
+    S = VectorFunctionSpace(mesh, "CG", 1)
+    s = Function(S)
+    ALE.move(mesh, s)
+    V = TestFunction(S)
+    f = Expression("sin(x[0])", degree=3, domain=mesh)
+    J = f * dx
+    Jhat = ReducedFunctional(assemble(J), Control(s))
+    computed = Jhat.derivative().vector().get_local()
+    dJV = f*div(V) * dx
+    actual = assemble(dJV).get_local()
+    # This should work when the above is not commented
+    assert np.allclose(computed, actual, rtol=1e-14)    
+
+@pytest.mark.xfail(strict=True,reason="femorph not computing f'(x)[V]")
+def test_sin_strong():
+    mesh = Mesh(UnitSquareMesh(6, 6), WeakForm=False)
+    S = VectorFunctionSpace(mesh, "CG", 1)
+    s = Function(S)
+    ALE.move(mesh, s)
+    V = TestFunction(S)
+    f = Expression("sin(x[0])", degree=3, domain=mesh)
+    df = Expression(("-cos(x[0])", "0"), degree=3, domain=mesh)
+    J = f * dx
+    Jhat = ReducedFunctional(assemble(J), Control(s))
+    computed = Jhat.derivative().vector().get_local()
+    from femorph import VolumeNormal
+    dJV = inner(V, VolumeNormal(mesh))*f*ds - inner(df,V)*dx
+    actual = assemble(dJV).get_local()
+    assert np.allclose(computed, actual, rtol=1e-14)    
+    tape.clear_tape()
+
+@pytest.mark.xfail(strict=True,reason="Femorph not computing f'(x)[V]")
+def test_sin_div():
+    mesh = Mesh(UnitSquareMesh(6, 6), WeakForm=1)
+    f = Expression("sin(x[0])", degree=3, domain=mesh)
+    df = Expression(("-cos(x[0])","0"), degree=3, domain=mesh)
+    S = VectorFunctionSpace(mesh, "CG", 1)
+    s = Function(S)
+    ALE.move(mesh, s)
+    V = TestFunction(S)
+    J = f * dx
+    Jhat = ReducedFunctional(assemble(J), Control(s))
+    computed = Jhat.derivative().vector().get_local()
+    dJV = div(V*f)*dx - inner(df, V)*dx
+    actual = assemble(dJV).get_local()
+    assert np.allclose(computed, actual, rtol=1e-14)    
+
+
 def test_femorph_weak_shape_derivative():
     # Setup AD problem
     mesh = Mesh(UnitSquareMesh(6, 6), WeakForm=True)
