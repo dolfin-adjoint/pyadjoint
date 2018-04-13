@@ -83,8 +83,9 @@ class Function(FloatingType, backend.Function):
         return vec
 
     @no_annotations
-    def _ad_convert_type(self, value, options={}):
-        riesz_representation = options.pop("riesz_representation", "l2")
+    def _ad_convert_type(self, value, options=None):
+        options = {} if options is None else options
+        riesz_representation = options.get("riesz_representation", "l2")
 
         if riesz_representation == "l2":
             return Function(self.function_space(), value)
@@ -127,11 +128,8 @@ class Function(FloatingType, backend.Function):
         return r
 
     def _ad_dot(self, other, options=None):
-        if options is not None:
-            riesz_representation = options.pop("riesz_representation", "l2")
-        else:
-            riesz_representation = "l2"
-
+        options = {} if options is None else options
+        riesz_representation = options.get("riesz_representation", "l2")
         if riesz_representation == "l2":
             return self.vector().inner(other.vector())
         elif riesz_representation == "L2":
