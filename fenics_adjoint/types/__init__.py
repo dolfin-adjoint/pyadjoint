@@ -8,5 +8,6 @@ if backend.__name__ != "firedrake":
 from .function import Function
 from .function_space import FunctionSpace
 from .mesh import Mesh
+from .mesh import UnitSquareMesh
 
 from .types import create_overloaded_object

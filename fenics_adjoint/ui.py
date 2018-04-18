@@ -3,7 +3,7 @@ from .assembly import assemble, assemble_system
 from .solving import solve
 from .projection import project
 from .interpolation import interpolate
-from .types import Function, Constant, DirichletBC, FunctionSpace, Mesh
+from .types import Function, Constant, DirichletBC, FunctionSpace, Mesh, UnitSquareMesh
 if backend.__name__ != "firedrake":
     from .types import Expression, UserExpression
     from .types import io

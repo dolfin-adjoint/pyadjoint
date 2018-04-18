@@ -28,6 +28,31 @@ class Mesh(OverloadedType, backend.Mesh):
         self.coordinates()[:] = checkpoint
         return self
 
+class UnitSquareMesh(OverloadedType, backend.UnitSquareMesh):
+    def __init__(self, *args, **kwargs):
+        # Determining Form of shape derivative
+        try:
+            Mode = kwargs.pop("WeakForm")
+            if not isinstance(Mode, bool): # Original Derivative after pullback
+                self.Mode = 1
+            elif Mode: # Weak Derivative
+                self.Mode = 2
+            else: # Strong Derivative
+                self.Mode = 0
+        except:
+            self.Mode = 0
+
+        # Calling constructer
+        super(UnitSquareMesh, self).__init__(*args, **kwargs)
+        backend.UnitSquareMesh.__init__(self, *args, **kwargs)
+
+    def _ad_create_checkpoint(self):
+        return self.coordinates().copy()
+
+    def _ad_restore_at_checkpoint(self, checkpoint):
+        self.coordinates()[:] = checkpoint
+        return self
+
 
 __backend_ALE_move = backend.ALE.move
 def move(mesh, vector, **kwargs):
