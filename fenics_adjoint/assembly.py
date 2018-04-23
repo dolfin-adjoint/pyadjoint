@@ -122,7 +122,9 @@ class AssembleBlock(Block):
         replaced_coeffs = {}
         for block_variable in self.get_dependencies():
             coeff = block_variable.output
-            replaced_coeffs[coeff] = block_variable.saved_output
+            c_rep = block_variable.saved_output
+            if coeff in self.form.coefficients():
+                replaced_coeffs[coeff] = c_rep
 
         form = ufl.replace(self.form, replaced_coeffs)
 
@@ -146,6 +148,13 @@ class AssembleBlock(Block):
 
             elif isinstance(c, backend.Expression):
                 dform = backend.derivative(form, c_rep, tlm_value)
+                output = compat.assemble_adjoint_value(dform)
+                self.get_outputs()[0].add_tlm_output(output)
+
+            if isinstance(c, backend.Mesh):
+                from femorph import ShapeDerivative
+                dform = ShapeDerivative(form, c_rep, V=tlm_value,
+                                        Mode=c_rep.Mode)
                 output = compat.assemble_adjoint_value(dform)
                 self.get_outputs()[0].add_tlm_output(output)
 

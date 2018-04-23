@@ -90,7 +90,16 @@ class ALEMoveBlock(Block):
 
         self.get_dependencies()[1].add_adj_output(adj_value)
 
-    
+
+    @no_annotations
+    def evaluate_tlm(self):
+        tlm_value = self.get_outputs()[0].tlm_value
+        if tlm_value is None:
+            return
+
+        self.get_dependencies()[1].add_tlm_output(tlm_value)
+
+
     @no_annotations
     def recompute(self):
         mesh = self.get_dependencies()[0].saved_output

@@ -96,8 +96,10 @@ class DirichletBCBlock(Block):
                         block_variable.add_adj_output(adj_value.vector().sum())
                     else:
                         adj_output = []
-                        for i in range(adj_value.ufl_shape[0]):
-                            # TODO: This might not be the optimal way to extract the subfunction vectors.
+                        for i in range(adj_value.function_space().num_sub_spaces()):
+                        # for i in range(adj_value.ufl_shape[0]):
+                        # TODO: This might not be the optimal way to extract the subfunction vectors.
+
                             adj_output.append(adj_value.sub(i, deepcopy=True).vector().sum())
                         # FIXME: This is not elegant, only needed for dolfin2018.1.0, pybind11
                         adj_vector = backend.cpp.la.Vector(backend.MPI.comm_world, len(adj_output))
