@@ -76,7 +76,7 @@ class Block(object):
         The method should implement a routine for evaluating the adjoint of the block.
 
         """
-        raise NotImplementedError
+        raise NotImplementedError(type(self))
 
     def evaluate_tlm(self):
         """This method must be overridden.
@@ -85,7 +85,7 @@ class Block(object):
         Using BlockVariable.tlm_value to propagate TLM information.
         
         """
-        raise NotImplementedError
+        raise NotImplementedError(type(self))
 
     def evaluate_hessian(self):
         """This method must be overridden.
@@ -96,7 +96,7 @@ class Block(object):
         BlockVariable.hessian_value to propagate hessian information.
 
         """
-        raise NotImplementedError
+        raise NotImplementedError(type(self))
 
     def recompute(self):
         """This method must be overriden.

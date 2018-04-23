@@ -90,14 +90,20 @@ class ALEMoveBlock(Block):
 
         self.get_dependencies()[1].add_adj_output(adj_value)
 
-
     @no_annotations
     def evaluate_tlm(self):
-        tlm_value = self.get_outputs()[0].tlm_value
-        if tlm_value is None:
+        output = self.get_outputs()[0].tlm_value
+        if output is not None:
+            self.get_dependencies()[1].add_tlm_output(output)
+
+
+    @no_annotations
+    def evaluate_hessian(self):
+        hessian_value = self.get_outputs()[0].hessian_value
+        if hessian_value is None:
             return
 
-        self.get_dependencies()[1].add_tlm_output(tlm_value)
+        self.get_dependencies()[1].add_hessian_output(hessian_value)
 
 
     @no_annotations

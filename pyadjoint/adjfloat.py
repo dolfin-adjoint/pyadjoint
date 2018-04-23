@@ -213,6 +213,22 @@ class SubBlock(FloatOperatorBlock):
         self.terms[0].add_adj_output(adj_input)
         self.terms[1].add_adj_output(float.__neg__(adj_input))
 
+    def evaluate_tlm(self):
+        output = self.get_outputs()[0]
+        tlm_input_0 = self.terms[0].tlm_value
+        if tlm_input_0 is not None:
+            output.add_tlm_output(tlm_input_0)
+        tlm_input_1 = self.terms[1].tlm_value
+        if tlm_input_1 is not None:
+            output.add_tlm_output(float.__neg__(tlm_input_1))
+
+    def evaluate_hessian(self):
+        hessian_input = self.get_outputs()[0].hessian_value
+        if hessian_input is None:
+            return
+
+        self.terms[0].add_hessian_output(hessian_input)
+        self.terms[1].add_hessian_output(float.__neg__(hessian_input))
 
 class MulBlock(FloatOperatorBlock):
 
