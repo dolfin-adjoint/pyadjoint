@@ -10,6 +10,11 @@ Installing dolfin-adjoint
 
 .. _dolfin-adjoint/libadjoint: http://dolfin-adjoint-doc.readthedocs.io/en/latest/download/index.html
 
+Source code
+===========
+
+The source code of `pyadjoint` is available on https://bitbucket.org/dolfin-adjoint/pyadjoint.
+
 PIP (all platforms, recommended)
 ================================
 
