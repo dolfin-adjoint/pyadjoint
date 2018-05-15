@@ -14,11 +14,17 @@ if backend.__name__ == "firedrake":
     backend.functionspaceimpl.FunctionSpace._ad_parent_space = property(lambda self: self.parent)
 
     def extract_subfunction(u, V):
-        r = u
-        while V.index:
-            r = r.sub(V.index)
-            V = V.parent
-        return r
+        """If V is a subspace of the function-space of u, return the component of u that is in that subspace."""
+        if V.index is not None:
+            # V is an indexed subspace of a MixedFunctionSpace
+            return u.sub(V.index)
+        elif V.component is not None:
+            # V is a vector component subspace.
+            # The vector functionspace V.parent may itself be a subspace
+            # so call this function recursively
+            return extract_subfunction(u, V.parent).sub(V.component)
+        else:
+            return u
 
     def create_bc(bc, value=None, homogenize=None):
         """Create a new bc object from an existing one.
