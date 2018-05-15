@@ -34,6 +34,7 @@ class DirichletBC(FloatingType, backend.DirichletBC):
         self._ad_args = args
         self._ad_kwargs = kwargs
 
+    @no_annotations
     def apply(self, *args, **kwargs):
         for arg in args:
             if not hasattr(arg, "bcs"):
