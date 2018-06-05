@@ -7,15 +7,9 @@ class Mesh(OverloadedType, backend.Mesh):
     def __init__(self, *args, **kwargs):
         # Determining Form of shape derivative
         try:
-            Mode = kwargs.pop("WeakForm")
-            if not isinstance(Mode, bool): # Original Derivative after pullback
-                self.Mode = 1
-            elif Mode: # Weak Derivative
-                self.Mode = 2
-            else: # Strong Derivative
-                self.Mode = 0
+            self.hadamard_form = bool(kwargs.pop("hadamard_form"))
         except:
-            self.Mode = 0
+            self.hadamard_form = True
 
         # Calling constructer
         super(Mesh, self).__init__(*args, **kwargs)
@@ -32,15 +26,9 @@ class UnitSquareMesh(OverloadedType, backend.UnitSquareMesh):
     def __init__(self, *args, **kwargs):
         # Determining Form of shape derivative
         try:
-            Mode = kwargs.pop("WeakForm")
-            if not isinstance(Mode, bool): # Original Derivative after pullback
-                self.Mode = 1
-            elif Mode: # Weak Derivative
-                self.Mode = 2
-            else: # Strong Derivative
-                self.Mode = 0
+            self.hadamard_form = bool(kwargs.pop("hadamard_form"))
         except:
-            self.Mode = 0
+            self.hadamard_form = True
 
         # Calling constructer
         super(UnitSquareMesh, self).__init__(*args, **kwargs)
@@ -92,18 +80,19 @@ class ALEMoveBlock(Block):
 
     @no_annotations
     def evaluate_tlm(self):
-        output = self.get_outputs()[0].tlm_value
-        if output is not None:
-            self.get_dependencies()[1].add_tlm_output(output)
+        tlm_input = self.get_dependencies()[1].tlm_value
+        if tlm_input is None:
+            return 
+        self.get_dependencies()[1].add_tlm_output(tlm_input)
 
 
     @no_annotations
     def evaluate_hessian(self):
-        hessian_value = self.get_outputs()[0].hessian_value
-        if hessian_value is None:
+        hessian_input = self.get_outputs()[0].hessian_value
+        if hessian_input is None:
             return
 
-        self.get_dependencies()[1].add_hessian_output(hessian_value)
+        self.get_dependencies()[1].add_hessian_output(hessian_input)
 
 
     @no_annotations

@@ -196,11 +196,12 @@ class SolveBlock(Block):
                     block_variable.add_adj_output([[dFdm, c_fs]])
                 elif isinstance(c, backend.Mesh):
                     from femorph import ShapeDerivative, VolumeNormal
-                    dFdm = -ShapeDerivative(F_form, c_rep, Mode=c_rep.Mode)
+                    dFdm = -ShapeDerivative(F_form, c_rep, Hadamard=c_rep.hadamard_form)
                     state = fwd_block_variable.saved_output
                     dF_bdy = 0
+
                     # FIXME: Handling strong dirichlet with strong formulation
-                    # if c_rep.Mode == 0:
+                    # if c_rep.hadamard_form:
                     # for bc in self.bcs:
                     #     g = bc._g
                     #     if hasattr(bc, "domain_args"):
