@@ -87,7 +87,7 @@ The FEniCS Docker script can also be used to create persistent sessions::
     fenicsproject create myproject quay.io/dolfinadjoint/pyadjoint
     fenicsproject start myproject
 
-To create a persistent session that has access to the current folder from the host::
+To create a session that has access to the current folder from the host::
 
     docker run -ti -v $(pwd):/home/fenics/shared quay.io/dolfinadjoint/pyadjoint
 
