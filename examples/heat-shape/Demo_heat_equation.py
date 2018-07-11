@@ -1,6 +1,5 @@
 from dolfin import *
 from femorph import *
-import mshr
 import os
 from dolfin_adjoint import *
 from ufl import replace
