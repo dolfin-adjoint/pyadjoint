@@ -48,8 +48,11 @@ J = assemble((0.5*inner(u-d, u-d))*dx + alpha/2*f**2*dx)
 control = Control(f)
 rf = ReducedFunctional(J, control)
 f_opt = minimize(rf, bounds=(0.0, 0.8), tol=1.0e-10, options={"gtol": 1.0e-10, "factr": 0.0})
-plot(f_opt)
-interactive()
+
+# Plotting in FEniCS has been broken
+#plot(f_opt)
+#interactive()
+
 # Define the expressions of the analytical solution
 
 f_analytic = Expression("1/(1+alpha*4*pow(pi, 4))*w", w=w, alpha=alpha, degree=3)
