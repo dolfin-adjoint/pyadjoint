@@ -3,7 +3,6 @@ from . import block
 import re
 import os
 import threading
-import tensorflow as tf
 from contextlib import contextmanager
 
 # TOOD: Save/checkpoint functions always. Not just on assign.
@@ -219,6 +218,7 @@ class Tape(object):
     def _tf_add_blocks(self):
         """Add new blocks to the TensorFlow graph."""
 
+        import tensorflow as tf
         for block in self.get_blocks():
             # Skip blocks that are already added
             if block in self._tf_added_blocks:
@@ -259,6 +259,7 @@ class Tape(object):
         Args:
             name (str|None): Name of scope to use. Default None.
         """
+        import tensorflow as tf
         self._tf_add_blocks()
         yield
         with tf.name_scope(name):
@@ -273,6 +274,7 @@ class Tape(object):
             open_in_browser (bool): Opens http://localhost:6006/ in a web browser. Default False.
         """
 
+        import tensorflow as tf
         self._tf_add_blocks()
 
         optimizer = tf.train.GradientDescentOptimizer(0.001)
