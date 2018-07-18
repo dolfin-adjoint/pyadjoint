@@ -17,7 +17,7 @@ from pyadjoint import (Tape, set_working_tape, get_working_tape,
                        taylor_test,
                        compute_gradient, compute_hessian,
                        AdjFloat, Control, minimize, MinimizationProblem,
-                       IPOPTSolver, InequalityConstraint)
+                       IPOPTSolver, ROLSolver, InequalityConstraint)
 
 tape = Tape()
 set_working_tape(tape)
