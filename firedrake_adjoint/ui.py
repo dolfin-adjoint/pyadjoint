@@ -4,6 +4,7 @@ from fenics_adjoint.projection import project
 from fenics_adjoint.types import Constant, DirichletBC, FunctionSpace
 from fenics_adjoint.variational_solver import (NonlinearVariationalProblem, NonlinearVariationalSolver,
                                                LinearVariationalProblem, LinearVariationalSolver)
+from fenics_adjoint.interpolation import interpolate
 
 from firedrake_adjoint.types.expression import Expression
 from firedrake_adjoint.types.function import Function
