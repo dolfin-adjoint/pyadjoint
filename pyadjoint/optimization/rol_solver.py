@@ -2,6 +2,7 @@ from __future__ import print_function
 from .optimization_solver import OptimizationSolver
 from . import constraints
 from ..enlisting import Enlist
+from ..tape import no_annotations
 
 
 try:
@@ -134,6 +135,7 @@ class ROLSolver(OptimizationSolver):
         self.uppervec = uppervec
         return res
 
+    @no_annotations
     def solve(self):
         """
         Solve the optimization problem and return the optimized
