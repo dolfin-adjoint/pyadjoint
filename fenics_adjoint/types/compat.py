@@ -13,6 +13,8 @@ if backend.__name__ == "firedrake":
 
     backend.functionspaceimpl.FunctionSpace._ad_parent_space = property(lambda self: self.parent)
 
+    backend.functionspaceimpl.WithGeometry._ad_parent_space = property(lambda self: self.parent)
+
     def extract_subfunction(u, V):
         """If V is a subspace of the function-space of u, return the component of u that is in that subspace."""
         if V.index is not None:
