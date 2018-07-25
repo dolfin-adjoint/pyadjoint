@@ -42,6 +42,46 @@ class UnitSquareMesh(OverloadedType, backend.UnitSquareMesh):
         return self
 
 
+class UnitIntervalMesh(OverloadedType, backend.UnitIntervalMesh):
+    def __init__(self, *args, **kwargs):
+        # Determining Form of shape derivative
+        try:
+            self.hadamard_form = bool(kwargs.pop("hadamard_form"))
+        except:
+            self.hadamard_form = True
+
+        # Calling constructer
+        super(UnitIntervalMesh, self).__init__(*args, **kwargs)
+        backend.UnitIntervalMesh.__init__(self, *args, **kwargs)
+
+    def _ad_create_checkpoint(self):
+        return self.coordinates().copy()
+
+    def _ad_restore_at_checkpoint(self, checkpoint):
+        self.coordinates()[:] = checkpoint
+        return self
+
+
+class IntervalMesh(OverloadedType, backend.IntervalMesh):
+    def __init__(self, *args, **kwargs):
+        # Determining Form of shape derivative
+        try:
+            self.hadamard_form = bool(kwargs.pop("hadamard_form"))
+        except:
+            self.hadamard_form = True
+
+        # Calling constructer
+        super(IntervalMesh, self).__init__(*args, **kwargs)
+        backend.IntervalMesh.__init__(self, *args, **kwargs)
+
+    def _ad_create_checkpoint(self):
+        return self.coordinates().copy()
+
+    def _ad_restore_at_checkpoint(self, checkpoint):
+        self.coordinates()[:] = checkpoint
+        return self
+
+
 __backend_ALE_move = backend.ALE.move
 def move(mesh, vector, **kwargs):
     annotate = annotate_tape(kwargs)
