@@ -4,4 +4,4 @@ pytest
 sphinx
 sphinxcontrib-bibtex
 git+https://github.com/funsim/moola.git@master
-git+https://bitbucket.org/Epoxid/femorph.git@dokken/restructuring
+git+https://bitbucket.org/Epoxid/femorph.git@dokken/simplify-femorph
