@@ -55,8 +55,8 @@
 # We start our implementation by importing the :py:mod:`dolfin` and
 # :py:mod:`dolfin_adjoint` modules:
 import sys;
-print("Optimization is not implemented,exiting")
-exit(1)
+# print("Optimization is not implemented,exiting")
+# exit(1)
 
 
 from fenics import *
@@ -131,7 +131,7 @@ d = 1/(2*pi**2)
 d = Expression("d*w", d=d, w=w, degree=3) 
 
 alpha = Constant(1e-6)
-J = Functional((0.5*inner(u-d, u-d))*dx + alpha/2*f**2*dx)
+J = assemble((0.5*inner(u-d, u-d))*dx + alpha/2*f**2*dx)
 control = Control(f)
 
 # The next step is to formulate the so-called reduced optimisation
