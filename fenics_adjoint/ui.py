@@ -1,5 +1,6 @@
 import backend
 from .assembly import assemble, assemble_system
+from .refine import refine
 from .solving import solve
 from .projection import project
 from .interpolation import interpolate
