@@ -8,7 +8,11 @@ jobs:
     docker:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
-      - image: quay.io/fenicsproject/stable:latest
+      - image: quay.io/fenicsproject/dev:latest
+
+      # specify the version you desire here
+      # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
+      # - image: quay.io/fenicsproject/stable:latest
       
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
@@ -45,7 +49,8 @@ jobs:
       - run:
           name: run tests
           command: |
-            python -m pytest -v tests/fenics_adjoint/
+            # python -m pytest -v tests/fenics_adjoint/
+            python3 -m pytest -v tests/fenics_adjoint/
 
       - save_cache:
           key: v2-dolfin-jit-cache
