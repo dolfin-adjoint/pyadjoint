@@ -24,6 +24,8 @@ class Block(object):
             dep (:class:`BlockVariable`): The object to be added.
 
         """
+        # Note: If you remove the if-test for duplicates,
+        # then fenics_adjoint.types.function.AssignBlock will break
         if dep not in self._dependencies:  # Can be optimized if we have need for huge lists.
             dep.will_add_as_dependency()
             self._dependencies.append(dep)
