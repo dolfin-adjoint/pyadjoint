@@ -4,6 +4,7 @@ from .tape import stop_annotating, no_annotations, get_working_tape
 from .enlisting import Enlist
 from .drivers import compute_hessian 
 from .control import Control
+from .adjfloat import AdjFloat
 
 import numpy
 
@@ -18,46 +19,22 @@ class ReducedFunctionalNumPy(ReducedFunctional):
     """
 
     def __init__(self, functional, controls=None, tape=None):
-        if isinstance(functional, ReducedFunctional):
-            rf = functional
-            super(ReducedFunctionalNumPy, self).__init__(functional=rf.functional,
-                                                         controls=rf.controls.delist(),
-                                                         tape=rf.tape,
-                                                         eval_cb_pre=rf.eval_cb_pre,
-                                                         eval_cb_post=rf.eval_cb_post,
-                                                         derivative_cb_pre=rf.derivative_cb_pre,
-                                                         derivative_cb_post=rf.derivative_cb_post
-                                                         )
-            return
+        if isinstance(functional, AdjFloat):
+            functional = ReducedFunctional(functional=functional,
+                                           controls=controls,
+                                           tape=tape)
+        self.rf = functional
 
-        super(ReducedFunctionalNumPy, self).__init__(functional, controls, tape)
-
-        """
-        self.current_func_value = rf.current_func_value
-
-        self.__base_call__ = rf.__call__
-        self.__base_derivative__ = rf.derivative
-        self.__base_hessian__ = rf.hessian
-
-        self.rf = rf
-        """
+    def __getattr__(self, item):
+        return getattr(self.rf, item)
 
     def __call__(self, m_array):
         """An implementation of the reduced functional evaluation
             that accepts the control values as an array of scalars
 
         """
-        offset = 0
-        for control in self.controls:
-            offset = control.update_numpy(m_array, offset)
-
-        blocks = self.tape.get_blocks()
-        with self.marked_controls():
-            with stop_annotating():
-                for i in range(len(blocks)):
-                    blocks[i].recompute()
-
-        return self.functional.block_variable.checkpoint
+        m_copies = [control.copy_data() for control in self.controls]
+        return self.rf.__call__(self.set_local(m_copies, m_array))
 
     def set_local(self, m, m_array):
         offset = 0
@@ -103,7 +80,7 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         #    self(m_array)
         if m_array is not None:
             self.__call__(m_array)
-        dJdm = ReducedFunctional.derivative(self)
+        dJdm = self.rf.derivative()
         dJdm = Enlist(dJdm)
 
         m_global = []
@@ -122,7 +99,7 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         # TODO: Consider if we really need to run derivative here.
         self.derivative()
         m_copies = [control.copy_data() for control in self.controls]
-        Hm = compute_hessian(self.functional, self.controls, self.set_local(m_copies, m_dot_array))
+        Hm = self.rf.hessian(self.set_local(m_copies, m_dot_array))
         Hm = Enlist(Hm)
 
         m_global = []
