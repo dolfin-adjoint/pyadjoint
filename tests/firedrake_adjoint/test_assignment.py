@@ -110,3 +110,35 @@ def test_assign_nonlincom():
     h = Function(V)
     h.vector()[:] = rand(V.dim())
     assert taylor_test(rf, f, h) > 1.9
+
+
+def test_assign_nonlin_changing():
+    mesh = IntervalMesh(10, 0, 1)
+    V = FunctionSpace(mesh, "CG", 1)
+
+    f = interpolate(fd.Expression("x[0]", degree=1), V)
+    g = interpolate(fd.Expression("sin(x[0])", degree=1), V)
+    control = Control(g)
+
+    test = TestFunction(V)
+    trial = TrialFunction(V)
+    a = inner(grad(trial), grad(test))*dx
+    L = inner(g, test)*dx
+
+    bc = DirichletBC(V, g, "on_boundary")
+    sol = Function(V)
+    solve(a == L, sol, bc)
+
+    u = Function(V)
+
+    u.assign(f*sol*g)
+
+    J = assemble(u ** 2 * dx)
+    rf = ReducedFunctional(J, control)
+
+    g = Function(V)
+    g.vector()[:] = rand(V.dim())
+
+    h = Function(V)
+    h.vector()[:] = rand(V.dim())
+    assert taylor_test(rf, g, h) > 1.9
