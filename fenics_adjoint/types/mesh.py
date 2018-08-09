@@ -9,7 +9,7 @@ class Mesh(OverloadedType, backend.Mesh):
         try:
             self.hadamard_form = bool(kwargs.pop("hadamard_form"))
         except:
-            self.hadamard_form = True
+            self.hadamard_form = False
 
         # Calling constructer
         super(Mesh, self).__init__(*args, **kwargs)
@@ -28,7 +28,7 @@ class UnitSquareMesh(OverloadedType, backend.UnitSquareMesh):
         try:
             self.hadamard_form = bool(kwargs.pop("hadamard_form"))
         except:
-            self.hadamard_form = True
+            self.hadamard_form = False
 
         # Calling constructer
         super(UnitSquareMesh, self).__init__(*args, **kwargs)
@@ -48,7 +48,7 @@ class UnitIntervalMesh(OverloadedType, backend.UnitIntervalMesh):
         try:
             self.hadamard_form = bool(kwargs.pop("hadamard_form"))
         except:
-            self.hadamard_form = True
+            self.hadamard_form = False
 
         # Calling constructer
         super(UnitIntervalMesh, self).__init__(*args, **kwargs)
@@ -68,7 +68,7 @@ class IntervalMesh(OverloadedType, backend.IntervalMesh):
         try:
             self.hadamard_form = bool(kwargs.pop("hadamard_form"))
         except:
-            self.hadamard_form = True
+            self.hadamard_form = False
 
         # Calling constructer
         super(IntervalMesh, self).__init__(*args, **kwargs)
