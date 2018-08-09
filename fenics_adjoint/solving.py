@@ -207,16 +207,16 @@ class SolveBlock(Block):
                     else:
                         F_form_tmp = backend.action(F_form, adj_var)
                         # FIXME: Find dimension from state or adjoint variable
-                        zero = backend.Constant((0))
-                        dFdm = -ShapeDerivative(F_form_tmp, c_rep, Hadamard=False,
-                                                State=[state, adj_var],
-                                                StateDirection=[zero,zero])
+                        # zero = backend.Function(adj_var.function_space(), name="ZERO")
+                        # dFdm = -ShapeDerivative(F_form_tmp, c_rep, Hadamard=False,
+                        #                         State=[state, adj_var],
+                        #                         StateDirection=[zero,zero])
 
                         # Using Coordinate Derivative
                         dF_ = backend.derivative(-F_form_tmp, backend.SpatialCoordinate(c_rep))
                         import numpy as np
                         # Comparing with complicated femorph call
-                        assert(np.allclose(backend.assemble(dFdm).get_local(), backend.assemble(dF_).get_local()))
+                        # assert(np.allclose(backend.assemble(dFdm).get_local(), backend.assemble(dF_).get_local()))
                         dFdm = compat.assemble_adjoint_value(dF_, **self.assemble_kwargs)
                     block_variable.add_adj_output(dFdm)
                     # FIXME: Handling strong dirichlet with strong formulation
