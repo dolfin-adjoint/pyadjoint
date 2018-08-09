@@ -2,7 +2,8 @@ import backend
 import ufl
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape, no_annotations
 from pyadjoint.block import Block
-from .types import create_overloaded_object, compat
+from pyadjoint.overloaded_type import create_overloaded_object
+from .types import compat
 
 
 def assemble(*args, **kwargs):

@@ -9,3 +9,9 @@ from .function import Function
 from .function_space import FunctionSpace
 
 from .types import create_overloaded_object
+
+# Use pyadjoint AdjFloat for numpy.float64.
+import numpy
+from pyadjoint.overloaded_type import register_overloaded_type
+from pyadjoint.adjfloat import AdjFloat
+register_overloaded_type(AdjFloat, numpy.float64)
