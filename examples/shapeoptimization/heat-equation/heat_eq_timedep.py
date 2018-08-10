@@ -2,6 +2,7 @@ from dolfin import *
 from dolfin_adjoint import *
 from ufl import replace
 import matplotlib.pyplot as plt
+set_log_level(LogLevel.ERROR)
 
 mesh = Mesh("meshes/mesh.xml")
 mf = MeshFunction("size_t", mesh, "meshes/mesh_facet_region.xml")
@@ -19,7 +20,7 @@ x = SpatialCoordinate(mesh)
 
 # Create initial condition
 t, dt = 0, 0.01
-T = 2*dt
+T = 10*dt
 half = Constant(0.5, name="0.5")
 u_init = Function(V, name="u^0")
 bc_o = DirichletBC(V, Constant(0.0), mf, obstacle)
@@ -66,3 +67,38 @@ tape.visualise("output/time_dependent_tape.dot", dot=True)
 perturbation = project(Expression(("sin(x[0])*x[1]", "cos(x[1])"), degree=2), S)
 taylor_test(Jhat, Function(S), perturbation, dJdm=0)
 taylor_test(Jhat, Function(S), perturbation)
+
+# perturbation.vector()[:]*=0.01
+# plot(mesh)
+# ALE.move(mesh, perturbation)
+# plot(mesh, color="r")
+# plt.show()
+
+# Fix Dirichlet condition
+perturbation = project(Expression(("10*x[0]*x[1]*cos(2*pi*x[0])", "8*sin(x[0])*cos(x[1])"),
+                                  degree=2), S)
+u,v = TrialFunction(S), TestFunction(S)
+alpha = 1
+a = Constant(alpha)*inner(grad(u), grad(v))*dx+inner(u,v)*dx
+bc_b = DirichletBC(S, Constant((0,0)), mf, boundary) 
+bc_o = DirichletBC(S, perturbation, mf, obstacle)
+representation = Function(S)
+solve(lhs(a)==rhs(a), representation, bcs=[bc_b, bc_o])
+representation.vector()[:]*=0.01
+taylor_test(Jhat, Function(S), representation, dJdm=0)
+taylor_test(Jhat, Function(S), representation)
+
+
+# Fix Neumann condition
+perturbation = project(Expression(("10*x[0]*x[1]*cos(2*pi*x[0])", "8*sin(x[0])*cos(x[1])"),
+                                  degree=2), S)
+u,v = TrialFunction(S), TestFunction(S)
+alpha = 1
+a = Constant(alpha)*inner(grad(u), grad(v))*dx+inner(u,v)*dx
+bc_b = DirichletBC(S, perturbation, mf, boundary) 
+bc_o = DirichletBC(S, Constant((0,0)), mf, obstacle)
+representation = Function(S)
+solve(lhs(a)==rhs(a), representation, bcs=[bc_b, bc_o])
+representation.vector()[:]*=0.01
+taylor_test(Jhat, Function(S), representation, dJdm=0)
+taylor_test(Jhat, Function(S), representation)
