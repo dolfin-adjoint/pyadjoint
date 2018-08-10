@@ -91,28 +91,6 @@ Jhat.optimize()
 u_file = File("output/u.pvd", "compressed")
 u_file << u_fin
 
-
-def taylor_verification(deformation):
-    """
-    Do first and second order taylor in an deformation direction.
-    The verification removes movement at Dirichlet Boundary.
-    """
-    [bc.apply(deformation.vector()) for bc in [bcLeft, bcRight]]
-
-    deformation.vector()[:]*=0.01
-    ALE.move(mesh,deformation)
-    deformation.vector()[:]*=-1
-    ALE.move(mesh,deformation)
-    s0 = Function(V)
-    taylor_test(Jhat, s0, deformation, dJdm=0)
-    taylor_test(Jhat, s0, deformation)
-
-# Define Deformation direction
-# s = Function(V)
-# s.interpolate(Expression(("0", "0", "3*sin(2*pi/length*x[0])*cos(x[1])"),
-#                          degree=2, length=length))
-# taylor_verification(s)
-
 # Write computational tape to file
 tape.visualise("output/tape.dot", dot=True)
 
@@ -137,12 +115,7 @@ Js = [Jhat(move)]
 
 # Write mesh and stress to file
 mesh_file = File("output/mesh.pvd")
-# stress_file = File("output/stress.pvd")
-# stress_out = Function(V)
-# bc_stress = DirichletBC(V, facet_function, 3)
-# bc_stress.apply(stress_out.vector())
 mesh_file << mesh
-# stress_file << stress_out
 
 it, max_it = 1, 100
 red_tol = 1e-2
@@ -188,5 +161,27 @@ s0 = Function(V)
 print(Jhat(s0),Jhat(move))
 
 solve(a==L, u_fin, bcs=[bcLeft, bcRight])
-# stress_file << stress_out
 u_file << u_fin
+
+
+def taylor_verification(deformation):
+    """
+    Do first and second order taylor in an deformation direction.
+    The verification removes movement at Dirichlet Boundary.
+    """
+    [bc.apply(deformation.vector()) for bc in [bcLeft, bcRight]]
+
+    deformation.vector()[:]*=0.01
+    ALE.move(mesh,deformation)
+    deformation.vector()[:]*=-1
+    ALE.move(mesh,deformation)
+    s0 = Function(V)
+    taylor_test(Jhat, s0, deformation, dJdm=0)
+    taylor_test(Jhat, s0, deformation)
+
+# Define Deformation direction
+s = Function(V)
+Jhat(s)
+s.interpolate(Expression(("0", "0", "3*sin(2*pi/length*x[0])*cos(x[1])"),
+                         degree=2, length=length))
+taylor_verification(s)
