@@ -10,7 +10,6 @@ from .types.function_space import extract_subfunction
 
 # TODO: Clean up: some inaccurate comments. Reused code. Confusing naming with dFdm when denoting the control as c.
 
-
 def solve(*args, **kwargs):
     '''This solve routine wraps the real Dolfin solve call. Its purpose is to annotate the model,
     recording what solves occur and what forms are involved, so that the adjoint and tangent linear models may be
@@ -195,29 +194,29 @@ class SolveBlock(Block):
                     dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
                     block_variable.add_adj_output([[dFdm, c_fs]])
                 elif isinstance(c, backend.Mesh):
-                    from femorph import ShapeDerivative
                     state = fwd_block_variable.saved_output
 
                     if c_rep.hadamard_form:
+                        from femorph import ShapeDerivative
                         dFdm = -ShapeDerivative(F_form, c_rep, Hadamard=c_rep.hadamard_form)
                         dFdm = backend.adjoint(dFdm)
                         dFdm = dFdm * adj_var
                         dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
 
                     else:
-                        F_form_tmp = backend.action(F_form, adj_var)
-                        # FIXME: Find dimension from state or adjoint variable
-                        # zero = backend.Function(adj_var.function_space(), name="ZERO")
-                        # dFdm = -ShapeDerivative(F_form_tmp, c_rep, Hadamard=False,
-                        #                         State=[state, adj_var],
-                        #                         StateDirection=[zero,zero])
-
                         # Using Coordinate Derivative
+                        F_form_tmp = backend.action(F_form, adj_var)
                         dF_ = backend.derivative(-F_form_tmp, backend.SpatialCoordinate(c_rep))
-                        import numpy as np
-                        # Comparing with complicated femorph call
-                        # assert(np.allclose(backend.assemble(dFdm).get_local(), backend.assemble(dF_).get_local()))
                         dFdm = compat.assemble_adjoint_value(dF_, **self.assemble_kwargs)
+                        # ----------------FEMORPH material derivative--------
+                        # FIXME: Needs stephans femorph rules in ufl
+                        # dFdm = -ShapeDerivative(F_form, c_rep,
+                        # Hadamard=False)
+                        # import numpy as np
+                        # Compare coordinate derivative with femorph
+                        # assert(np.allclose(backend.assemble(dFdm).get_local()
+                        #                    , backend.assemble(dF_).get_local()))
+
                     block_variable.add_adj_output(dFdm)
                     # FIXME: Handling strong dirichlet with strong formulation
                     # dF_bdy = 0
