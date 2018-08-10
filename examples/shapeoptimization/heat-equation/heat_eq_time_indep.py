@@ -13,7 +13,6 @@ ALE.move(mesh, s)
 V = FunctionSpace(mesh, "CG", 1)
 u = TrialFunction(V)
 v = TestFunction(V)
-x = SpatialCoordinate(mesh)
 
 a = inner(grad(u), grad(v))*dx + u*v*dx
 
