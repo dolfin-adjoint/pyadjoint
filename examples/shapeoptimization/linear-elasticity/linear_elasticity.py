@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 from dolfin_adjoint import *
 
 n = 5 # Resolution
-length = 1 # m
-width = 0.2 # m 
-height = 0.05 # m
+length = 0.2 # m
+width = 0.1 # m 
+height = 0.02 # m
 x0 = 0.0
 y0 = 0.0
 z0 = 0.0
@@ -61,14 +61,17 @@ s = Function(V)
 ALE.move(mesh, s)
 
 # Stress on top of beam
-stress = Expression(("0", "0", "-4e6*exp(-pow((x[0]-length/5),2)/0.001)*exp(-pow((x[1]-width/2),2)/0.001)"), width=width, length=length, degree=2, domain=mesh) # N/m^2s
+x = SpatialCoordinate(mesh)
+stress_z = -4e3*exp(-pow((x[0]-length/5),2)/0.001)*exp(-pow((x[1]-width/2),2)/0.001)
+
+# N/m^2s
 dS_stress = Measure("ds", domain=mesh, subdomain_data=facet_function)
 
 # Define variational problem
 u = TrialFunction(V)
 v = TestFunction(V)
 a = inner(sigma(u), grad(v))*dx
-L = inner(f, v)*dx  + inner(stress, v)*dS_stress(3)
+L = inner(f, v)*dx  + stress_z*v[2]*dS_stress(3)
 
 # Set up boundary condition on inner surface
 c = Constant((0.0, 0.0, 0.0))
@@ -98,15 +101,17 @@ def taylor_verification(deformation):
 
     deformation.vector()[:]*=0.01
     ALE.move(mesh,deformation)
+    deformation.vector()[:]*=-1
+    ALE.move(mesh,deformation)
     s0 = Function(V)
     taylor_test(Jhat, s0, deformation, dJdm=0)
     taylor_test(Jhat, s0, deformation)
 
 # Define Deformation direction
-s = Function(V)
-s.interpolate(Expression(("0", "0", "3*sin(2*pi/length*x[0])*cos(x[1])"),
-                         degree=2, length=length))
-taylor_verification(s)
+# s = Function(V)
+# s.interpolate(Expression(("0", "0", "3*sin(2*pi/length*x[0])*cos(x[1])"),
+#                          degree=2, length=length))
+# taylor_verification(s)
 
 # Write computational tape to file
 tape.visualise("output/tape.dot", dot=True)
@@ -132,12 +137,12 @@ Js = [Jhat(move)]
 
 # Write mesh and stress to file
 mesh_file = File("output/mesh.pvd")
-stress_file = File("output/stress.pvd")
-stress_out = Function(V)
-bc_stress = DirichletBC(V, stress, facet_function, 3)
-bc_stress.apply(stress_out.vector())
+# stress_file = File("output/stress.pvd")
+# stress_out = Function(V)
+# bc_stress = DirichletBC(V, facet_function, 3)
+# bc_stress.apply(stress_out.vector())
 mesh_file << mesh
-stress_file << stress_out
+# stress_file << stress_out
 
 it, max_it = 1, 100
 red_tol = 1e-2
@@ -150,7 +155,7 @@ while it <= max_it and red > red_tol:
                                     riesz_representation})
 
     # Linesearch
-    step = 1e-7
+    step = 1e-2
     min_stp = step/(2**16)
     while step > min_stp:
         # Evaluate functional at new step 
@@ -179,8 +184,9 @@ while it <= max_it and red > red_tol:
 print("Relative reduction: %.2e" %red)
 print("-"*5, "Optimization Finished", "-"*5)
 print(Js[0], Js[-1])
+s0 = Function(V)
 print(Jhat(s0),Jhat(move))
 
 solve(a==L, u_fin, bcs=[bcLeft, bcRight])
-stress_file << stress_file
+# stress_file << stress_out
 u_file << u_fin
