@@ -104,10 +104,11 @@ while t < T + DOLFIN_EPS:
 
 Vol = 1-assemble(1*dx(domain=mesh))
 x = SpatialCoordinate(mesh)
+alpha_p = 1e1
 bx = (0.5-assemble(x[0]*dx))/Vol
 by = (0.5-assemble(x[1]*dx))/Vol
-J+= (Vol-Vol0)**2
-J+= ((bx-0.5)**2 + (by-0.5)**2)
+J+= alpha_p*(Vol-Vol0)**2
+J+= alpha_p*((bx-0.5)**2 + (by-0.5)**2)
 Jhat = ReducedFunctional(J, Control(s))
 
 # Visualize pyadjoint tape
