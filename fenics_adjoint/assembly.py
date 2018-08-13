@@ -101,13 +101,8 @@ class AssembleBlock(Block):
                 continue
 
             if isinstance(c, backend.Mesh):
-                if c_rep.hadamard_form:
-                    from femorph import ShapeDerivative
-                    dform = ShapeDerivative(form, c_rep,
-                                            Hadamard=c_rep.hadamard_form)
-                else:
-                    X = backend.SpatialCoordinate(c_rep)
-                    dform = backend.derivative(form, X)
+                X = backend.SpatialCoordinate(c_rep)
+                dform = backend.derivative(form, X)
                 output = compat.assemble_adjoint_value(dform)
                 block_variable.add_adj_output(adj_input * output)
                 continue
@@ -156,11 +151,11 @@ class AssembleBlock(Block):
                 output = compat.assemble_adjoint_value(dform)
                 self.get_outputs()[0].add_tlm_output(output)
 
-            if isinstance(c, backend.Mesh):
-                from femorph import ShapeDerivative
-                dform = ShapeDerivative(form, c_rep, V=tlm_value,
-                                        Hadamard=c_rep.hadamard_form)
+            elif isinstance(c, backend.Mesh):
+                X = backend.SpatialCoordinate(c_rep)
+                dform = backend.derivative(form, X, tlm_value)
                 output = compat.assemble_adjoint_value(dform)
+                block_variable.add_adj_output(adj_input * output)
                 self.get_outputs()[0].add_tlm_output(output)
 
     @no_annotations

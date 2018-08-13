@@ -41,29 +41,4 @@ def test_sin_weak_spatial(WeakMesh, X):
     V = TestFunction(S)
     dJV = div(V)*sin(X[0])*dx + V[0]*cos(X[0])*dx
     actual = assemble(dJV).get_local()
-    assert np.allclose(computed, actual, rtol=1e-14)    
-
-@fixture
-def StrongMesh():
-    return UnitSquareMesh(6, 6, hadamard_form=True)
-
-@fixture
-def n(StrongMesh):
-    return FacetNormal(StrongMesh)
-
-def test_strong_strong(StrongMesh, n):
-    femorph = pytest.importorskip("femorph")
-    S = VectorFunctionSpace(StrongMesh, "CG", 1)
-    s = Function(S)
-    ALE.move(StrongMesh, s)
-
-    f = Expression("sin(x[0])*x[1]*exp(x[0]/(x[1]+0.10))", degree=3,
-                   domain=StrongMesh)
-    J = f * dx
-    Jhat = ReducedFunctional(assemble(J), Control(s))
-    computed = Jhat.derivative().vector().get_local()
-
-    V = TestFunction(S)
-    dJV = inner(V, n)*f*ds
-    actual = assemble(dJV).get_local()
     assert np.allclose(computed, actual, rtol=1e-14)

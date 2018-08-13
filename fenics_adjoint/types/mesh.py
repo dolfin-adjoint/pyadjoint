@@ -5,11 +5,6 @@ from pyadjoint.overloaded_type import OverloadedType
 
 class Mesh(OverloadedType, backend.Mesh):
     def __init__(self, *args, **kwargs):
-        # Determining Form of shape derivative
-        try:
-            self.hadamard_form = bool(kwargs.pop("hadamard_form"))
-        except:
-            self.hadamard_form = False
 
         # Calling constructer
         super(Mesh, self).__init__(*args, **kwargs)
@@ -24,11 +19,6 @@ class Mesh(OverloadedType, backend.Mesh):
 
 class UnitSquareMesh(OverloadedType, backend.UnitSquareMesh):
     def __init__(self, *args, **kwargs):
-        # Determining Form of shape derivative
-        try:
-            self.hadamard_form = bool(kwargs.pop("hadamard_form"))
-        except:
-            self.hadamard_form = False
 
         # Calling constructer
         super(UnitSquareMesh, self).__init__(*args, **kwargs)
@@ -44,11 +34,6 @@ class UnitSquareMesh(OverloadedType, backend.UnitSquareMesh):
 
 class UnitIntervalMesh(OverloadedType, backend.UnitIntervalMesh):
     def __init__(self, *args, **kwargs):
-        # Determining Form of shape derivative
-        try:
-            self.hadamard_form = bool(kwargs.pop("hadamard_form"))
-        except:
-            self.hadamard_form = False
 
         # Calling constructer
         super(UnitIntervalMesh, self).__init__(*args, **kwargs)
@@ -64,11 +49,6 @@ class UnitIntervalMesh(OverloadedType, backend.UnitIntervalMesh):
 
 class IntervalMesh(OverloadedType, backend.IntervalMesh):
     def __init__(self, *args, **kwargs):
-        # Determining Form of shape derivative
-        try:
-            self.hadamard_form = bool(kwargs.pop("hadamard_form"))
-        except:
-            self.hadamard_form = False
 
         # Calling constructer
         super(IntervalMesh, self).__init__(*args, **kwargs)

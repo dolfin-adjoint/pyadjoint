@@ -194,50 +194,12 @@ class SolveBlock(Block):
                     dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
                     block_variable.add_adj_output([[dFdm, c_fs]])
                 elif isinstance(c, backend.Mesh):
-                    state = fwd_block_variable.saved_output
-
-                    if c_rep.hadamard_form:
-                        from femorph import ShapeDerivative
-                        dFdm = -ShapeDerivative(F_form, c_rep, Hadamard=c_rep.hadamard_form)
-                        dFdm = backend.adjoint(dFdm)
-                        dFdm = dFdm * adj_var
-                        dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
-
-                    else:
-                        # Using Coordinate Derivative
-                        F_form_tmp = backend.action(F_form, adj_var)
-                        dF_ = backend.derivative(-F_form_tmp, backend.SpatialCoordinate(c_rep))
-                        dFdm = compat.assemble_adjoint_value(dF_, **self.assemble_kwargs)
-                        # ----------------FEMORPH material derivative--------
-                        # FIXME: Needs stephans femorph rules in ufl
-                        # dFdm = -ShapeDerivative(F_form, c_rep,
-                        # Hadamard=False)
-                        # import numpy as np
-                        # Compare coordinate derivative with femorph
-                        # assert(np.allclose(backend.assemble(dFdm).get_local()
-                        #                    , backend.assemble(dF_).get_local()))
-
+                    # Using Coordinate Derivative
+                    F_form_tmp = backend.action(F_form, adj_var)
+                    X = backend.SpatialCoordinate(c_rep)
+                    dF_ = backend.derivative(-F_form_tmp, X)
+                    dFdm = compat.assemble_adjoint_value(dF_, **self.assemble_kwargs)
                     block_variable.add_adj_output(dFdm)
-                    # FIXME: Handling strong dirichlet with strong formulation
-                    # dF_bdy = 0
-                    # if c_rep.hadamard_form:
-                    #     for bc in self.bcs:
-                    #         g = bc._g
-                    #         if hasattr(bc, "domain_args"):
-                    #             data, _id = bc.domain_args
-                    #             ds_bdy = backend.Measure("ds", domain=c_rep,
-                    #                                      subdomain_data=data,
-                    #                                      subdomain_id=_id)
-                    #             n = backend.FacetNormal(c_rep)
-                    #             inner = backend.inner
-                    #             grad = backend.grad
-                    #             V = backend.VectorFunctionSpace(c_rep, "CG", 1)
-                    #             s = backend.TestFunction(V)
-                    #             dFdm_bc = inner(s,n)*\
-                    #                       inner(adj_var_bdy,
-                    #                             inner(n, grad(state)) -
-                    #                             inner(n, grad(g)))*ds_bdy
-                    #             dFdm += backend.assemble(dFdm_bc)
 
     @no_annotations
     def evaluate_tlm(self):
