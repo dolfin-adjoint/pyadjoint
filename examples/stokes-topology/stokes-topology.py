@@ -209,6 +209,12 @@ if __name__ == "__main__":
     lb = 0.0
     ub = 1.0
 
+    # Volume constraint
+    R = FunctionSpace(mesh, "R", 0)
+    v = TestFunction(R)
+    volume_form = inner(v, V/delta - rho)*dx
+    volume_constraint = UFLInequalityConstraint(volume_form, m)
+
     # Volume constraints
     class VolumeConstraint(InequalityConstraint):
         """A class that enforces the volume constraint g(a) = V - a*dx >= 0."""
@@ -240,13 +246,16 @@ if __name__ == "__main__":
         def output_workspace(self):
             return [0.0]
 
+    #constraint = VolumeConstraint(V)
+    constraint = volume_constraint
+
 # Now that all the ingredients are in place, we can perform the initial
 # optimisation. We set the maximum number of iterations for this initial
 # optimisation problem to 30; there's no need to solve this to
 # completion, as its only purpose is to generate an initial guess.
 
     # Solve the optimisation problem with q = 0.01
-    problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=VolumeConstraint(V))
+    problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=constraint)
     parameters = {'maximum_iterations': 20}
 
     solver = IPOPTSolver(problem, parameters=parameters)
@@ -293,7 +302,7 @@ if __name__ == "__main__":
 # We can now solve the optimisation problem with :math:`q=0.1`, starting
 # from the solution of :math:`q=0.01`:
 
-    problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=VolumeConstraint(V))
+    problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=constraint)
     parameters = {'maximum_iterations': 100}
 
     solver = IPOPTSolver(problem, parameters=parameters)
