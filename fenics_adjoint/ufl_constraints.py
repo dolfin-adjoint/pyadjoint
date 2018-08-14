@@ -25,25 +25,28 @@ class UFLConstraint(Constraint):
             raise ValueError("Must be a rank-one form")
         self.tV = args[0].function_space()
 
-        self.form = form
-        self.control = control
+        u = control.control
+        self.V = u.function_space()
+        # We want to make a copy of the control purely for use
+        # in the constraint, so that our writing it isn't
+        # bothering anyone else
+        self.u = backend.Function(self.V)
+        self.form = backend.replace(form, {u: self.u})
 
-        self.V = control.control.function_space()
 
         self.trial1 = backend.TrialFunction(self.V)
         self.trial2 = backend.TrialFunction(self.V)
 
-        self.dform = backend.derivative(form, control.control, self.trial1)
+        self.dform = backend.derivative(self.form, self.u, self.trial1)
 
         if len(ufl.algorithms.extract_arguments(ufl.algorithms.expand_derivatives(self.dform))) == 0:
             raise ValueError("Form must depend on control")
         self.adform = backend.adjoint(self.dform)
-        self.hess = backend.derivative(form, control.control, self.trial2)
+        self.hess = backend.derivative(self.dform, self.u, self.trial2)
 
     def update_control(self, m):
-        # self.control.update(m) crashes; quite counterintuitive
         if backend.__name__ in ["dolfin", "fenics"]:
-            self.control.control.vector().set_local(m)
+            self.u.vector().set_local(m)
         else:
             raise NotImplementedError("Not implemented for firedrake yet")
 
