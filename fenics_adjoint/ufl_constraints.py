@@ -1,6 +1,7 @@
 import backend
 import ufl.algorithms
-import types
+import fenics_adjoint.types as fenics_types
+import firedrake_adjoint.types as firedrake_types
 from pyadjoint.optimization.constraints import Constraint, EqualityConstraint, InequalityConstraint
 
 def as_vec(x):
@@ -48,7 +49,8 @@ class UFLConstraint(Constraint):
         if backend.__name__ in ["dolfin", "fenics"]:
             self.u.vector().set_local(m)
         else:
-            raise NotImplementedError("Not implemented for firedrake yet")
+            with self.u.dat.vec as x:
+                x[:] = m
 
     def function(self, m):
         self.update_control(m)
@@ -57,19 +59,34 @@ class UFLConstraint(Constraint):
 
     def jacobian(self, m):
         self.update_control(m)
-        J = backend.assemble(self.dform)
 
         # We need to make the matrix dense, then extract it row-by-row, then
         # return the columns as a list.
         if backend.__name__ in ["dolfin", "fenics"]:
+            J = backend.assemble(self.dform)
             out = []
             for i in range(J.size(0)):
                 (cols, vals) = J.getrow(i)
-                v = types.Function(self.V)
+                v = fenics_types.Function(self.V)
                 v.vector().set_local(vals) # is there a better way to do this?
                 out.append(v)
         else:
-            raise NotImplementedError("Not implemented for firedrake yet")
+            out = []
+            J = backend.assemble(self.dform, mat_type="aij")
+            J.force_evaluation()
+            M = J.petscmat
+            if M.type == "python":
+                if M.size[0] != 1:
+                    # I don't know what data structure firedrake uses here yet, because they haven't coded it
+                    raise NotImplementedError("This case isn't supported by PyOP2 at time of writing")
+                else:
+                    ctx = M.getPythonContext()
+                    v = firedrake_types.function.Function(self.V)
+                    with v.dat.vec as x:
+                        x[:] = ctx.dat.data
+                    out.append(v)
+            else:
+                raise NotImplementedError("Not encountered this case yet, patches welcome")
         return out
 
     def jacobian_action(self, m, dm, result):
@@ -107,7 +124,12 @@ class UFLConstraint(Constraint):
 
     def _get_constraint_dim(self):
         """Returns the number of constraint components."""
-        return self.tV.dim()
+        if backend.__name__ in ["dolfin", "fenics"]:
+            return self.tV.dim()
+        elif backend.__name__ == "firedrake":
+            return self.tV.dim
+        else:
+            raise NotImplementedError("Unknown backend")
 
 class UFLEqualityConstraint(UFLConstraint, EqualityConstraint):
     pass
