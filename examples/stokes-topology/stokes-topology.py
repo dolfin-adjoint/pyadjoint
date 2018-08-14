@@ -209,45 +209,12 @@ if __name__ == "__main__":
     lb = 0.0
     ub = 1.0
 
-    # Volume constraint
+    # Volume constraint: a scalar constraint, so we use R as the constraint space
     R = FunctionSpace(mesh, "R", 0)
     v = TestFunction(R)
     volume_form = inner(v, V/delta - rho)*dx
-    volume_constraint = UFLInequalityConstraint(volume_form, m)
-
-    # Volume constraints
-    class VolumeConstraint(InequalityConstraint):
-        """A class that enforces the volume constraint g(a) = V - a*dx >= 0."""
-        def __init__(self, V):
-            self.V = float(V)
-
-# The derivative of the constraint g(x) is constant
-# (it is the negative of the diagonal of the lumped mass matrix for the
-# control function space), so let's assemble it here once.
-# This is also useful in rapidly calculating the integral each time
-# without re-assembling.
-
-            self.smass = assemble(TestFunction(A) * Constant(1) * dx)
-            self.tmpvec = Function(A)
-
-        def function(self, m):
-            print("Evaluting constraint residual")
-            self.tmpvec.vector()[:] = m
-
-            # Compute the integral of the control over the domain
-            integral = self.smass.inner(self.tmpvec.vector())
-            print("Current control integral: ", integral)
-            return [self.V - integral]
-
-        def jacobian(self, m):
-            print("Computing constraint Jacobian")
-            return [-self.smass]
-
-        def output_workspace(self):
-            return [0.0]
-
-    #constraint = VolumeConstraint(V)
-    constraint = volume_constraint
+    # We want V - \int rho dx >= 0, so write this as \int V/delta - rho dx >= 0
+    volume_constraint = UFLInequalityConstraint(inner(v, V/delta - rho)*dx, m)
 
 # Now that all the ingredients are in place, we can perform the initial
 # optimisation. We set the maximum number of iterations for this initial
@@ -255,7 +222,7 @@ if __name__ == "__main__":
 # completion, as its only purpose is to generate an initial guess.
 
     # Solve the optimisation problem with q = 0.01
-    problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=constraint)
+    problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=volume_constraint)
     parameters = {'maximum_iterations': 20}
 
     solver = IPOPTSolver(problem, parameters=parameters)
@@ -302,7 +269,7 @@ if __name__ == "__main__":
 # We can now solve the optimisation problem with :math:`q=0.1`, starting
 # from the solution of :math:`q=0.01`:
 
-    problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=constraint)
+    problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=volume_constraint)
     parameters = {'maximum_iterations': 100}
 
     solver = IPOPTSolver(problem, parameters=parameters)
