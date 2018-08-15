@@ -87,7 +87,7 @@ class Constant(OverloadedType, backend.Constant):
         return Constant(values)
 
     def _ad_dim(self):
-        return self.value_size()
+        return sum(self.values().shape)
 
     def _imul(self, other):
         self.assign(ufl_shape_workaround(self.values() * other))
@@ -103,16 +103,18 @@ class Constant(OverloadedType, backend.Constant):
 
     def _applyUnary(self, f):
         npdata = self.values()
+        npdatacopy = npdata.copy()
         for i in range(len(npdata)):
-            npdata[i] = f(npdata[i])
-        self.assign(ufl_shape_workaround(npdata))
+            npdatacopy[i] = f(npdata[i])
+        self.assign(ufl_shape_workaround(npdatacopy))
 
     def _applyBinary(self, f, y):
         npdata = self.values()
+        npdatacopy = self.values().copy()
         npdatay = y.values()
         for i in range(len(npdata)):
-            npdata[i] = f(npdata[i], npdatay[i])
-        self.assign(ufl_shape_workaround(npdata))
+            npdatacopy[i] = f(npdata[i], npdatay[i])
+        self.assign(ufl_shape_workaround(npdatacopy))
 
 
 def ufl_shape_workaround(values):
