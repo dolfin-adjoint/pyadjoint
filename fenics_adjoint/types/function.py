@@ -184,14 +184,17 @@ class Function(FloatingType, backend.Function):
         for i in range(len(npdata)):
             npdata[i] = f(npdata[i])
         vec.set_local(npdata)
+        vec.apply("insert")
+
 
     def _applyBinary(self, f, y):
         vec = self.vector()
         npdata = vec.get_local()
         npdatay = y.vector().get_local()
-        for i in range(len(vec)):
+        for i in range(len(npdata)):
             npdata[i] = f(npdata[i], npdatay[i])
         vec.set_local(npdata)
+        vec.apply("insert")
 
 
 class AssignBlock(Block):
