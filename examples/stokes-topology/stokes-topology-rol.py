@@ -153,8 +153,10 @@ def forward(rho):
 
     F = (alpha(rho) * inner(u, v) * dx + inner(grad(u), grad(v)) * dx +
          inner(grad(p), v) * dx  + inner(div(u), q) * dx)
-    bc = DirichletBC(W.sub(0), InflowOutflow(degree=1), "on_boundary")
-    solve(F == 0, w, bcs=bc)
+    bc = DirichletBC(W.sub(0), InflowOutflow(degree=2), "on_boundary")
+    PETScOptions.set("snes_type", "ksponly")
+    PETScOptions.set("snes_monitor_cancel")
+    solve(F == 0, w, bcs=bc, solver_parameters={"nonlinear_solver": "snes", "snes_solver": {"linear_solver": "mumps"}})
 
     return w
 
