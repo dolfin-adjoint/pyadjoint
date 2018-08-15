@@ -88,7 +88,7 @@ def test_constraint_works_sensibly(contype):
     rf, params, w, alpha = setup(n=7)
 
     class EqVolumeConstraint(EqualityConstraint):
-        """A class that enforces the volume constraint g(a) = volume - a*dx >= 0."""
+        """A class that enforces the volume constraint g(a) = volume - a*dx = 0."""
         def __init__(self, volume, W):
             self.volume  = float(volume)
             # The derivative of the constraint g(x) is constant (it is the diagonal of the lumped mass matrix for the control function space), so let's assemble it here once.
