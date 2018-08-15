@@ -91,8 +91,8 @@ class UFLConstraint(Constraint):
                 else:
                     ctx = M.getPythonContext()
                     v = backend_types.Function(self.V)
-                    with v.dat.vec as x:
-                        x[:] = ctx.dat.data
+                    with v.dat.vec as x, ctx.dat.vec_ro as y:
+                        y.copy(x)
                     out.append(v)
             else:
                 raise NotImplementedError("Not encountered this case yet, patches welcome")
