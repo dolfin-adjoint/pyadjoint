@@ -3,6 +3,7 @@ from .optimization_solver import OptimizationSolver
 from . import constraints
 from ..enlisting import Enlist
 from ..tape import no_annotations
+from ..overloaded_type import OverloadedType
 
 
 try:
@@ -56,6 +57,9 @@ try:
                 res += x._ad_dot(y, options=opts)
             return res
 
+        def norm(self):
+            return self.dot(self)**0.5
+
         def clone(self):
             dat = []
             for x in self.dat:
@@ -81,6 +85,24 @@ try:
             for (x, y) in zip(self.dat, inp.dat):
                 x._applyBinary(f, y)
 
+    class ROLConstraint(ROL.Constraint):
+
+        def __init__(self, con):
+            super().__init__()
+            self.con = con
+
+        def value(self, cvec, x, tol):
+            cvec.dat = self.con.function(x.dat)
+
+        def applyJacobian(self, jv, v, x, tol):
+            self.con.jacobian_action(x.dat, v.dat[0], jv.dat)
+
+        def applyAdjointJacobian(self, jv, v, x, tol):
+            self.con.jacobian_adjoint_action(x.dat, v.dat, jv.dat[0])
+
+        def applyAdjointHessian(self, ahuv, u, v, x, tol):
+            self.con.hessian_action(x.dat, u.dat[0], v.dat, ahuv.dat[0])
+
 
     class ROLSolver(OptimizationSolver):
         """
@@ -102,6 +124,7 @@ try:
             self.params_dict = parameters
 
             self.bounds = self.__get_bounds()
+            self.constraints = self.__get_constraints()
 
         def __get_bounds(self):
             bounds = self.problem.bounds
@@ -131,6 +154,34 @@ try:
             self.uppervec = uppervec
             return res
 
+        def __get_constraints(self):
+            if self.problem.constraints is None:
+                return ([], []), ([], [])
+
+            eqconstraints = self.problem.constraints.equality_constraints()
+
+            if len(eqconstraints.constraints) > 0:
+                eqws = eqconstraints.output_workspace()
+                if any([not isinstance(w, OverloadedType) for w in eqws]):
+                    raise TypeError("""To use constraints with ROL the constraint value needs
+    to be an OverloadedType.""")
+                eqres = [ROLConstraint(eqconstraints)], [ROLVector(eqws)]
+            else:
+                eqres = [], []
+
+            ineqconstraints = self.problem.constraints.inequality_constraints()
+            if len(ineqconstraints.constraints) > 0:
+                ineqws = ineqconstraints.output_workspace()
+                if any([not isinstance(w, OverloadedType) for w in ineqws]):
+                    raise TypeError("""To use constraints with ROL the constraint value needs
+    to be an OverloadedType.""")
+                ineqres = [ROLConstraint(ineqconstraints)], [ROLVector(ineqws)]
+            else:
+                ineqres = [], []
+
+            return eqres, ineqres
+
+
         @no_annotations
         def solve(self):
             """
@@ -138,17 +189,30 @@ try:
             parameters.
             """
 
-            if self.problem.constraints is None:
-                rolproblem = ROL.OptimizationProblem(self.rolobjective,
-                                                     self.rolvector,
-                                                     bnd=self.bounds)
-                x = self.rolvector
-                params = ROL.ParameterList(self.params_dict, "Parameters")
-                solver = ROL.OptimizationSolver(rolproblem, params)
-                solver.solve()
-                return self.problem.reduced_functional.controls.delist(x.dat)
+            bnd = self.bounds
+            econs=self.constraints[0][0]
+            emuls=self.constraints[0][1]
+            icons=self.constraints[1][0]
+            imuls=self.constraints[1][1]
+            if len(icons)>0:
+                zeros = [i.clone() for i in imuls]
+                ibnds = [ROL.Bounds(z, isLower=True) for z in zeros]
             else:
-                raise NotImplementedError()
+                ibnds = []
+
+            rolproblem = ROL.OptimizationProblem(self.rolobjective,
+                                                 self.rolvector,
+                                                 bnd=bnd,
+                                                 econs=econs,
+                                                 emuls=emuls,
+                                                 icons=icons,
+                                                 imuls=imuls,
+                                                 ibnds=ibnds)
+            x = self.rolvector
+            params = ROL.ParameterList(self.params_dict, "Parameters")
+            solver = ROL.OptimizationSolver(rolproblem, params)
+            solver.solve()
+            return self.problem.reduced_functional.controls.delist(x.dat)
 
         def checkGradient(self):
             x = self.rolvector

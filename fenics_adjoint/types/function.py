@@ -168,7 +168,9 @@ class Function(FloatingType, backend.Function):
 
     def _iadd(self, other):
         vec = self.vector()
-        vec += other.vector()
+        # FIXME: PETSc complains when we add the same vector to itself.
+        # So we make a copy.
+        vec += other.vector().copy()
 
     def _reduce(self, r, r0):
         vec = self.vector().get_local()
