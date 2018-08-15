@@ -138,7 +138,7 @@ class ReducedFunctional(object):
 
         return func_value
 
-    def optimize(self):
+    def optimize_tape(self):
         self.tape.optimize(
             controls=self.controls,
             functionals=[self.functional]
