@@ -1,17 +1,26 @@
 import backend
 import ufl.algorithms
-import fenics_adjoint.types as fenics_types
-import firedrake_adjoint.types as firedrake_types
+import numpy
+
+if backend.__name__ in ["dolfin", "fenics"]:
+    import fenics_adjoint.types as backend_types
+elif backend.__name__ == "firedrake":
+    import firedrake_adjoint.types as backend_types
+else:
+    raise NotImplementedError("Unknown backend")
+
 from pyadjoint.optimization.constraints import Constraint, EqualityConstraint, InequalityConstraint
 
 def as_vec(x):
     if backend.__name__ in ["dolfin", "fenics"]:
         if isinstance(x, backend.Function):
-            return x.vector().array()
+            return x.vector().get_local()
         else:
-            return x.array()
+            return x.get_local()
     elif backend.__name__ == "firedrake":
-        return x
+        with x.dat.vec_ro as vec:
+            copy = numpy.array(vec)
+        return copy
     else:
         raise NotImplementedError("Unknown backend")
 
@@ -67,7 +76,7 @@ class UFLConstraint(Constraint):
             out = []
             for i in range(J.size(0)):
                 (cols, vals) = J.getrow(i)
-                v = fenics_types.Function(self.V)
+                v = backend_types.Function(self.V)
                 v.vector().set_local(vals) # is there a better way to do this?
                 out.append(v)
         else:
@@ -81,7 +90,7 @@ class UFLConstraint(Constraint):
                     raise NotImplementedError("This case isn't supported by PyOP2 at time of writing")
                 else:
                     ctx = M.getPythonContext()
-                    v = firedrake_types.function.Function(self.V)
+                    v = backend_types.Function(self.V)
                     with v.dat.vec as x:
                         x[:] = ctx.dat.data
                     out.append(v)
