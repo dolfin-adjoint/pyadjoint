@@ -88,7 +88,7 @@ try:
     class ROLConstraint(ROL.Constraint):
 
         def __init__(self, con):
-            super().__init__()
+            ROL.Constraint.__init__(self)
             self.con = con
 
         def value(self, cvec, x, tol):
