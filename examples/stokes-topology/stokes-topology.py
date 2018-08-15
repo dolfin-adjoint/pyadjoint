@@ -212,7 +212,6 @@ if __name__ == "__main__":
     # Volume constraint: a scalar constraint, so we use R as the constraint space
     R = FunctionSpace(mesh, "R", 0)
     v = TestFunction(R)
-    volume_form = inner(v, V/delta - rho)*dx
     # We want V - \int rho dx >= 0, so write this as \int V/delta - rho dx >= 0
     volume_constraint = UFLInequalityConstraint(inner(v, V/delta - rho)*dx, m)
 
