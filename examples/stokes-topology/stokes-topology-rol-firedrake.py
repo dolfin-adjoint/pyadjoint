@@ -76,6 +76,7 @@
 
 from __future__ import print_function
 from firedrake import *
+parameters["pyop2_options"]["lazy_evaluation"] = False
 from firedrake_adjoint import *
 
 # Next we import the Python interface to ROL.
@@ -85,9 +86,6 @@ try:
 except ImportError:
     info_red("""This example depends on ROL.""")
     raise
-set_log_level(30)
-# turn off redundant output in parallel
-parameters["std_out_all_processes"] = False
 
 # Next we define some constants, and define the inverse permeability as
 # a function of :math:`\rho`.
@@ -111,7 +109,7 @@ N = 20
 delta = 1.5  # The aspect ratio of the domain, 1 high and \delta wide
 V = Constant(1.0/3) * delta  # want the fluid to occupy 1/3 of the domain
 
-mesh = RectangleMesh(N, N, delta, 1)
+mesh = RectangleMesh(N, N, delta, 1, diagonal="right")
 A = FunctionSpace(mesh, "CG", 1)        # control function space
 
 U_h = VectorElement("CG", mesh.ufl_cell(), 2)
@@ -178,8 +176,8 @@ if __name__ == "__main__":
 # an initial guess for the main task (:math:`q=0.1`), we shall save
 # these iterates in ``output/control_iterations_guess.pvd``.
 
-    controls = File("output/control_iterations_guess.pvd")
-    allctrls = File("output/allcontrols.pvd")
+    controls = File("output-rol-firedrake/control_iterations_guess.pvd")
+    allctrls = File("output-rol-firedrake/allcontrols.pvd")
     rho_viz = Function(A, name="ControlVisualisation")
     def eval_cb(j, rho):
         rho_viz.assign(rho)
@@ -280,7 +278,7 @@ if __name__ == "__main__":
     (u, p) = split(w)
 
     # Define the reduced functionals
-    controls = File("output/control_iterations_final.pvd")
+    controls = File("output-rol-firedrake/control_iterations_final.pvd")
     rho_viz = Function(A, name="ControlVisualisation")
     def eval_cb(j, rho):
         rho_viz.assign(rho)
@@ -298,6 +296,8 @@ if __name__ == "__main__":
     params["Status Test"]["Iteration Limit"] = 15
     solver = ROLSolver(problem, params, inner_product="L2")
     rho_opt = solver.solve()
+    rho_viz.assign(rho_opt)
+    controls.write(rho_viz)
 
 
 # The example code can be found in ``examples/stokes-topology/`` in the

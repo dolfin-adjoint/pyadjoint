@@ -181,10 +181,10 @@ if __name__ == "__main__":
 # callback to dump the control iterates to disk for visualisation. As
 # this optimisation problem (:math:`q=0.01`) is solved only to generate
 # an initial guess for the main task (:math:`q=0.1`), we shall save
-# these iterates in ``output/control_iterations_guess.pvd``.
+# these iterates in ``output-rol/control_iterations_guess.pvd``.
 
-    controls = File("output/control_iterations_guess.pvd")
-    allctrls = File("output/allcontrols.pvd")
+    controls = File("output-rol/control_iterations_guess.pvd")
+    allctrls = File("output-rol/allcontrols.pvd")
     rho_viz = Function(A, name="ControlVisualisation")
     def eval_cb(j, rho):
         rho_viz.assign(rho)
@@ -263,7 +263,7 @@ if __name__ == "__main__":
     solver = ROLSolver(problem, params, inner_product="L2")
     rho_opt = solver.solve()
 
-    rho_opt_xdmf = XDMFFile(mpi_comm_world(), "output/control_solution_guess.xdmf")
+    rho_opt_xdmf = XDMFFile(mpi_comm_world(), "output-rol/control_solution_guess.xdmf")
     rho_opt_xdmf.write(rho_opt)
 # With the optimised value for :math:`q=0.01` in hand, we *reset* the
 # dolfin-adjoint state, clearing its tape, and configure the new problem
@@ -280,16 +280,16 @@ if __name__ == "__main__":
 # tape, but this way is easier to understand.) We will also redefine the
 # functionals and parameters; this time, the evaluation callback will
 # save the optimisation iterations to
-# ``output/control_iterations_final.pvd``.
+# ``output-rol/control_iterations_final.pvd``.
 
-    rho_intrm = XDMFFile(mpi_comm_world(), "output/intermediate-guess-%s.xdmf" % N)
+    rho_intrm = XDMFFile(mpi_comm_world(), "output-rol/intermediate-guess-%s.xdmf" % N)
     rho_intrm.write(rho)
 
     w = forward(rho)
     (u, p) = split(w)
 
     # Define the reduced functionals
-    controls = File("output/control_iterations_final.pvd")
+    controls = File("output-rol/control_iterations_final.pvd")
     rho_viz = Function(A, name="ControlVisualisation")
     def eval_cb(j, rho):
         rho_viz.assign(rho)
@@ -308,7 +308,7 @@ if __name__ == "__main__":
     solver = ROLSolver(problem, params, inner_product="L2")
     rho_opt = solver.solve()
 
-    rho_opt_final = XDMFFile(mpi_comm_world(), "output/control_solution_final.xdmf")
+    rho_opt_final = XDMFFile(mpi_comm_world(), "output-rol/control_solution_final.xdmf")
     rho_opt_final.write(rho_opt)
 
 # The example code can be found in ``examples/stokes-topology/`` in the
@@ -319,7 +319,7 @@ if __name__ == "__main__":
 #   $ mpiexec -n 4 python stokes-topology-rol.py
 #   ...
 # The optimisation iterations can be visualised by opening
-# ``output/control_iterations_final.pvd`` in paraview. The resulting
+# ``output-rol/control_iterations_final.pvd`` in paraview. The resulting
 # solution appears very similar to the solution proposed in
 # :cite:`borrvall2003`.
 #
