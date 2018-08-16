@@ -204,6 +204,7 @@ class AssembleBlock(Block):
                 c2 = bo2.output
                 c2_rep = replaced_coeffs.get(c2, c2)
                 tlm_input = bo2.tlm_value
+
                 if tlm_input is None:
                     continue
                 if isinstance(c1, backend.Function):
@@ -219,7 +220,6 @@ class AssembleBlock(Block):
                     output = compat.assemble_adjoint_value(ddform)
                     bo1.add_hessian_output(adj_input*output)
                 elif isinstance(c1, backend.Mesh):
-                    from IPython import embed; embed()
                     ddform = backend.derivative(dform, X, tlm_input)
                     output = compat.assemble_adjoint_value(ddform)
                     bo1.add_hessian_output(adj_input*output)

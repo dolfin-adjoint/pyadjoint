@@ -102,8 +102,8 @@ class ALEMoveBlock(Block):
     def evaluate_tlm(self):
         tlm_input = self.get_dependencies()[1].tlm_value
         if tlm_input is None:
-            return 
-        self.get_dependencies()[1].add_tlm_output(tlm_input)
+            return
+        self.get_outputs()[0].add_tlm_output(tlm_input)
 
 
     @no_annotations
