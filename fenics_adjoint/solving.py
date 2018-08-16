@@ -278,6 +278,15 @@ class SolveBlock(Block):
                 for bc in bcs:
                     bc.apply(dFdm)
 
+            elif isinstance(c, backend.Mesh):
+                X = backend.SpatialCoordinate(c)
+                dFdm = backend.derivative(-F_form, X, tlm_value)
+                dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
+
+                # Zero out boundary values from boundary conditions as they do not depend (directly) on c.
+                for bc in bcs:
+                    bc.apply(dFdm)
+
             dudm = Function(V)
             backend.solve(dFdu, dudm.vector(), dFdm)
 
