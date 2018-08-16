@@ -406,10 +406,8 @@ class SolveBlock(Block):
                 mesh = F_form.ufl_domain().ufl_cargo()
                 W = c._ad_function_space(mesh)
             elif isinstance(c, backend.Mesh):
-                # FIXME: Add shape hessians by calling femorph
-                from ufl.log import info_red
-                info_red("Shape-Hessians not supported yet")
-                continue
+                #FIXME not sure what we need here
+                raise NotImplementedError("Shape-hessian not added")
             else:
                 W = c.function_space()
 

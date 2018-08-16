@@ -100,9 +100,10 @@ class AssembleBlock(Block):
                 block_variable.add_adj_output([[adj_input * output, V]])
                 continue
 
-            if isinstance(c, backend.Mesh):
+            elif isinstance(c, backend.Mesh):
                 X = backend.SpatialCoordinate(c_rep)
-                dform = backend.derivative(form, X)
+                dc = backend.TestFunction(backend.VectorFunctionSpace(c, "CG",1))
+                dform = backend.derivative(form, X, dc)
                 output = compat.assemble_adjoint_value(dform)
                 block_variable.add_adj_output(adj_input * output)
                 continue
