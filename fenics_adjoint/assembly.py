@@ -155,7 +155,6 @@ class AssembleBlock(Block):
                 X = backend.SpatialCoordinate(c_rep)
                 dform = backend.derivative(form, X, tlm_value)
                 output = compat.assemble_adjoint_value(dform)
-                block_variable.add_adj_output(adj_input * output)
                 self.get_outputs()[0].add_tlm_output(output)
 
     @no_annotations
@@ -188,19 +187,25 @@ class AssembleBlock(Block):
             elif isinstance(c1, backend.Constant):
                 mesh = compat.extract_mesh_from_form(form)
                 dc = backend.TestFunction(c1._ad_function_space(mesh))
+            elif isinstance(c1, backend.Mesh):
+                S = backend.VectorFunctionSpace(c1, "CG", 1)
+                dc = backend.TestFunction(S)
             else:
                 continue
 
-            dform = backend.derivative(form, c1_rep, dc)
+            # Special treatment if CoordinateDerivative
+            if isinstance(c1, backend.Mesh):
+                X = backend.SpatialCoordinate(c1)
+                dform = backend.derivative(form, X, dc)
+            else:
+                dform = backend.derivative(form, c1, dc)
 
             for bo2 in self.get_dependencies():
                 c2 = bo2.output
                 c2_rep = replaced_coeffs.get(c2, c2)
                 tlm_input = bo2.tlm_value
-
                 if tlm_input is None:
                     continue
-                print(type(c1))
                 if isinstance(c1, backend.Function):
                     ddform = backend.derivative(dform, c2_rep, tlm_input)
                     output = compat.assemble_adjoint_value(ddform)
@@ -211,6 +216,11 @@ class AssembleBlock(Block):
                     bo1.add_hessian_output([(adj_input * output, W)])
                 elif isinstance(c1, backend.Constant):
                     ddform = backend.derivative(dform, c2_rep, tlm_input)
+                    output = compat.assemble_adjoint_value(ddform)
+                    bo1.add_hessian_output(adj_input*output)
+                elif isinstance(c1, backend.Mesh):
+                    from IPython import embed; embed()
+                    ddform = backend.derivative(dform, X, tlm_input)
                     output = compat.assemble_adjoint_value(ddform)
                     bo1.add_hessian_output(adj_input*output)
                 else:
