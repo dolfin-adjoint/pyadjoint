@@ -70,6 +70,23 @@ def annotate_tape(kwargs=None):
     return annotate
 
 
+def _find_relevant_nodes(tape, controls):
+    # This function is just a stripped down Block.optimize_for_controls
+    blocks = tape.get_blocks()
+    nodes = set([control.block_variable for control in controls])
+
+    for block in blocks:
+        depends_on_control = False
+        for dep in block.get_dependencies():
+            if dep in nodes:
+                depends_on_control = True
+
+        if depends_on_control:
+            for output in block.get_outputs():
+                nodes.add(output)
+    return nodes
+
+
 class Tape(object):
     """The tape.
 
@@ -77,7 +94,7 @@ class Tape(object):
     Each block represents one operation in the forward model.
 
     """
-    __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks"]
+    __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks", "_nodes"]
 
     def __init__(self, blocks=None):
         # Initialize the list of blocks on the tape.
@@ -109,17 +126,17 @@ class Tape(object):
         """
         return self._blocks
 
-    def evaluate(self, last_block=0):
+    def evaluate_adj(self, last_block=0, markings=False):
         for i in range(len(self._blocks)-1, last_block-1, -1):
-            self._blocks[i].evaluate_adj()
+            self._blocks[i].evaluate_adj(markings=markings)
 
     def evaluate_tlm(self):
         for i in range(len(self._blocks)):
             self._blocks[i].evaluate_tlm()
 
-    def evaluate_hessian(self):
+    def evaluate_hessian(self, markings=False):
         for i in range(len(self._blocks)-1, -1, -1):
-            self._blocks[i].evaluate_hessian()
+            self._blocks[i].evaluate_hessian(markings=markings)
 
     def reset_variables(self, types=None):
         for i in range(len(self._blocks)-1, -1, -1):
@@ -187,6 +204,15 @@ class Tape(object):
                     nodes.add(dep)
                 valid_blocks.append(block)
         self._blocks = list(reversed(valid_blocks))
+
+    @contextmanager
+    def marked_nodes(self, controls):
+        nodes = _find_relevant_nodes(self, controls)
+        for node in nodes:
+            node.marked_in_path = True
+        yield
+        for node in nodes:
+            node.marked_in_path = False
 
     def _valid_tf_scope_name(self, name):
         """Return a valid TensorFlow scope name"""

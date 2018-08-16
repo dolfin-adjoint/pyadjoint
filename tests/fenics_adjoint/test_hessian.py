@@ -109,7 +109,7 @@ def test_mixed_derivatives():
     f.tlm_value = h
     g.tlm_value = h
 
-    tape.evaluate()
+    tape.evaluate_adj()
     tape.evaluate_tlm()
 
     J.block_variable.hessian_value = 0
@@ -152,7 +152,7 @@ def test_function():
     f.tlm_value = h
     c.tlm_value = Constant(1)
 
-    tape.evaluate()
+    tape.evaluate_adj()
     tape.evaluate_tlm()
 
     J.block_variable.hessian_value = 0
@@ -192,7 +192,7 @@ def test_nonlinear():
     J.adj_value = 1.0
     f.tlm_value = h
 
-    tape.evaluate()
+    tape.evaluate_adj()
     tape.evaluate_tlm()
 
     J.block_variable.hessian_value = 0
@@ -232,7 +232,7 @@ def test_dirichlet():
     J.adj_value = 1.0
     c.tlm_value = h
 
-    tape.evaluate()
+    tape.evaluate_adj()
     tape.evaluate_tlm()
 
     J.block_variable.hessian_value = 0
@@ -273,7 +273,7 @@ def test_expression():
     J.adj_value = 1.0
     c.tlm_value = h
 
-    tape.evaluate()
+    tape.evaluate_adj()
     tape.evaluate_tlm()
 
     J.block_variable.hessian_value = 0
@@ -336,7 +336,7 @@ def test_burgers():
     g = ic.copy(deepcopy=True)
     J.adj_value = 1.0
     ic.tlm_value = h
-    tape.evaluate()
+    tape.evaluate_adj()
     tape.evaluate_tlm()
 
     J.block_variable.hessian_value = 0

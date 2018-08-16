@@ -195,11 +195,11 @@ class Function(FloatingType, backend.Function):
 class AssignBlock(Block):
     def __init__(self, func, other):
         super(AssignBlock, self).__init__()
-        self.add_dependency(func.block_variable)
-        self.add_dependency(other.block_variable)
+        self.add_dependency(func.block_variable, no_duplicates=True)
+        self.add_dependency(other.block_variable, no_duplicates=True)
 
     @no_annotations
-    def evaluate_adj(self):
+    def evaluate_adj(self, markings=False):
         adj_input = self.get_outputs()[0].adj_value
         if adj_input is None:
             return
@@ -215,7 +215,7 @@ class AssignBlock(Block):
         self.get_outputs()[0].add_tlm_output(tlm_input)
 
     @no_annotations
-    def evaluate_hessian(self):
+    def evaluate_hessian(self, markings=False):
         hessian_input = self.get_outputs()[0].hessian_value
         if hessian_input is None:
             return
@@ -240,7 +240,7 @@ class SplitBlock(Block):
         self.add_dependency(func.block_variable)
         self.idx = idx
 
-    def evaluate_adj(self):
+    def evaluate_adj(self, markings=False):
         adj_input = self.get_outputs()[0].adj_value
         if adj_input is None:
             return
@@ -255,7 +255,7 @@ class SplitBlock(Block):
             backend.Function.sub(tlm_input, self.idx, deepcopy=True)
         )
 
-    def evaluate_hessian(self):
+    def evaluate_hessian(self, markings=False):
         hessian_input = self.get_outputs()[0].hessian_value
         if hessian_input is None:
             return
@@ -273,7 +273,7 @@ class MergeBlock(Block):
         self.add_dependency(func.block_variable)
         self.idx = idx
 
-    def evaluate_adj(self):
+    def evaluate_adj(self, markings=False):
         adj_input = self.get_outputs()[0].adj_value
         if adj_input is None:
             return
@@ -291,7 +291,7 @@ class MergeBlock(Block):
             backend.assign(f.sub(self.idx), tlm_input)
         )
 
-    def evaluate_hessian(self):
+    def evaluate_hessian(self, markings=False):
         hessian_input = self.get_outputs()[0].hessian_value
         if hessian_input is None:
             return

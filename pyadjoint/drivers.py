@@ -21,11 +21,12 @@ def compute_gradient(J, m, options=None, tape=None):
     tape = get_working_tape() if tape is None else tape
     tape.reset_variables()
     J.adj_value = 1.0
+    m = Enlist(m)
 
     with stop_annotating():
-        tape.evaluate()
+        with tape.marked_nodes(m):
+            tape.evaluate_adj(markings=True)
 
-    m = Enlist(m)
     grads = [i.get_derivative(options=options) for i in m]
     return m.delist(grads)
 
@@ -60,7 +61,9 @@ def compute_hessian(J, m, m_dot, options=None, tape=None):
         tape.evaluate_tlm()
 
     J.block_variable.hessian_value = 0.0
-    tape.evaluate_hessian()
+    with stop_annotating():
+        with tape.marked_nodes(m):
+            tape.evaluate_hessian(markings=True)
 
     r = [v.get_hessian(options=options) for v in m]
     return m.delist(r)

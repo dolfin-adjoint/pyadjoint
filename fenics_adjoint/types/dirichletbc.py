@@ -79,7 +79,7 @@ class DirichletBCBlock(Block):
             pass
 
     @no_annotations
-    def evaluate_adj(self):
+    def evaluate_adj(self, markings=False):
         bc = self.get_outputs()[0].saved_output
         adj_inputs = self.get_outputs()[0].adj_value
 
@@ -129,7 +129,7 @@ class DirichletBCBlock(Block):
             output.add_tlm_output(m)
 
     @no_annotations
-    def evaluate_hessian(self):
+    def evaluate_hessian(self, markings=False):
         # TODO: This is the exact same as evaluate_adj for now. Consider refactoring for no duplicate code.
         bc = self.get_outputs()[0].saved_output
         hessian_inputs = self.get_outputs()[0].hessian_value

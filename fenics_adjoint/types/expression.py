@@ -233,7 +233,7 @@ class ExpressionBlock(Block):
                 self.add_dependency(parameter.block_variable)
                 self.dependency_keys[parameter] = key
 
-    def evaluate_adj(self):
+    def evaluate_adj(self, markings=False):
         adj_inputs = self.get_outputs()[0].adj_value
 
         if adj_inputs is None:
@@ -292,7 +292,7 @@ class ExpressionBlock(Block):
 
             output.add_tlm_output(tlm_input * self.expression.user_defined_derivatives[c])
 
-    def evaluate_hessian(self):
+    def evaluate_hessian(self, markings=False):
         hessian_inputs = self.get_outputs()[0].hessian_value
         adj_inputs = self.get_outputs()[0].adj_value
 
