@@ -14,22 +14,26 @@ J = assemble(sin(X[1])* dx(domain=mesh))
 c = Control(s)
 Jhat = ReducedFunctional(J, c)
 
-h = Function(S,name="random")
-h.interpolate(Expression(("10*x[0]*cos(x[1])", "10*x[1]"),degree=2))
+f = Function(S, name="W")
+f.interpolate(Expression(("A*sin(x[1])", "A*cos(x[1])"),degree=2,A=A))
+h = Function(S,name="V")
+h.interpolate(Expression(("A*cos(x[1])", "A*x[1]"),degree=2,A=A))
+
+
+# Finite difference
+taylor_test(Jhat, s, h, dJdm=0)
+Jhat(s)
+
+# First order taylor
 s.tlm_value = h
 tape.evaluate_tlm()
-tape.visualise("hessian_dot.dot", dot=True)
-f = Function(S)
-f.vector()[:] = 2
-
-
-taylor_test(Jhat, s, h, dJdm=0)
 taylor_test(Jhat, s, h, dJdm=J.block_variable.tlm_value)
+Jhat(s)
 
+# Second order taylor
 dJdm = Jhat.derivative().vector().inner(h.vector())
 Hm = compute_hessian(J, c, h).vector().inner(h.vector())
-taylor_test(Jhat, f, h, dJdm=dJdm, Hm=Hm)
+taylor_test(Jhat, s, h, dJdm=dJdm, Hm=Hm)
+Jhat(s)
+dJdmm_exact = derivative(derivative(sin(X[1])* dx(domain=mesh),X,h), X, h)
 
-V = TestFunction(S)
-W = TrialFunction(S)
-print(derivative(derivative(sin(X[1])* dx(domain=mesh),X,V), X, W))
