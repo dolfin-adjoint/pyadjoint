@@ -208,21 +208,22 @@ class AssembleBlock(Block):
 
                 if tlm_input is None:
                     continue
-                if isinstance(c1, backend.Function):
+
+                if isinstance(c2, backend.Mesh):
+                    X = backend.SpatialCoordinate(c2)
+                    ddform = backend.derivative(dform, X, tlm_input)
+                else:
                     ddform = backend.derivative(dform, c2_rep, tlm_input)
-                    output = compat.assemble_adjoint_value(ddform)
+
+                output = compat.assemble_adjoint_value(ddform)
+
+                if isinstance(c1, backend.Function):
                     bo1.add_hessian_output(adj_input*output)
                 elif isinstance(c1, backend.Expression):
-                    ddform = backend.derivative(dform, c2_rep, tlm_input)
-                    output = compat.assemble_adjoint_value(ddform)
                     bo1.add_hessian_output([(adj_input * output, W)])
                 elif isinstance(c1, backend.Constant):
-                    ddform = backend.derivative(dform, c2_rep, tlm_input)
-                    output = compat.assemble_adjoint_value(ddform)
                     bo1.add_hessian_output(adj_input*output)
                 elif isinstance(c1, backend.Mesh):
-                    ddform = backend.derivative(dform, X, tlm_input)
-                    output = compat.assemble_adjoint_value(ddform)
                     bo1.add_hessian_output(adj_input*output)
                 else:
                     continue
