@@ -103,7 +103,9 @@ def k(a):
 # Next we define the mesh (a unit square) and the function spaces to be
 # used for the control :math:`a` and forward solution :math:`T`.
 
-n = 50
+# TODO: Previously it was n = 50, but then the adjoint equation solve runs out of memory on my system,
+#       Change to n = 50 when dolfin-adjoint allows manipulating solver method for the adjoint equation with fenics.
+n = 10
 mesh = Mesh(UnitCubeMesh(n, n, n))
 A = FunctionSpace(mesh, "CG", 1)  # function space for control
 P = FunctionSpace(mesh, "CG", 1)  # function space for solution
@@ -122,7 +124,7 @@ class DirichletBoundary(SubDomain):
 # dropping the surface integral after integration by parts
 
 bc = [DirichletBC(P, 0.0, DirichletBoundary())]
-f = interpolate(Constant(1.0e-2, name="SourceTerm"), P) # the volume source term for the PDE
+f = interpolate(Constant(1.0e-2), P) # the volume source term for the PDE
 
 # Next we define a function that given a control :math:`a` solves the
 # forward PDE for the temperature :math:`T`. (The advantage of
@@ -223,7 +225,8 @@ if __name__ == "__main__":
             self.tmpvec = Function(A)
 
         def function(self, m):
-            reduced_functional_numpy.set_local(self.tmpvec, m)
+            from pyadjoint.reduced_functional_numpy import set_local
+            set_local(self.tmpvec, m)
 
 # Compute the integral of the control over the domain
 

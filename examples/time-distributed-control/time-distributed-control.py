@@ -197,10 +197,9 @@ opt_ctrls = minimize(rf, options={"maxiter": 50})
 
 # The following code creates these plots:
 
-from matplotlib import pyplot, rc
-rc('text', usetex=True)
+from matplotlib import pyplot
 x = [c((0.5, 0.5)) for c in opt_ctrls]
-pyplot.plot(x, label="$\\alpha={}$".format(float(alpha)))
+pyplot.plot(x, label="alpha={}".format(float(alpha)))
 pyplot.ylim([-3, 3])
 pyplot.legend()
 pyplot.savefig("control_alpha={}.png".format(float(alpha)))
