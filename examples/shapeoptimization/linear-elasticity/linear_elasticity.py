@@ -84,7 +84,8 @@ solve(a==L, u_fin, bcs=[bcLeft, bcRight], solver_parameters={"linear_solver": "m
 
 # Create Functional of compliance
 J = assemble(inner(sigma(u_fin),sym(grad(u_fin)))*dx)
-Jhat = ReducedFunctional(J, Control(s))
+c = Control(s)
+Jhat = ReducedFunctional(J, c)
 Jhat.optimize()
 
 # Write deformation to file
@@ -177,7 +178,12 @@ def taylor_verification(deformation):
     ALE.move(mesh,deformation)
     s0 = Function(V)
     taylor_test(Jhat, s0, deformation, dJdm=0)
+    Jhat(s0)
     taylor_test(Jhat, s0, deformation)
+    # Jhat(s0)
+    # dJdm = Jhat.derivative().vector().inner(deformation.vector())
+    # Hm = compute_hessian(J, c, deformation).vector().inner(deformation.vector())
+    # taylor_test(Jhat, s, deformation, dJdm=dJdm, Hm=Hm)
 
 # Define Deformation direction
 s = Function(V)
