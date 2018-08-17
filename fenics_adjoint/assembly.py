@@ -199,7 +199,7 @@ class AssembleBlock(Block):
                 X = backend.SpatialCoordinate(c1)
                 dform = backend.derivative(form, X, dc)
             else:
-                dform = backend.derivative(form, c1, dc)
+                dform = backend.derivative(form, c1_rep, dc)
 
             for bo2 in self.get_dependencies():
                 c2 = bo2.output
