@@ -459,12 +459,12 @@ class SolveBlock(Block):
                     if d2Fdm2.empty():
                         continue
 
-                    output = -compat.assemble_adjoint_value(d2Fdm2)
+                output = -compat.assemble_adjoint_value(d2Fdm2)
 
-                    if isinstance(c, backend.Expression):
-                        bo.add_hessian_output([(output, W)])
-                    else:
-                        bo.add_hessian_output(output)
+                if isinstance(c, backend.Expression):
+                    bo.add_hessian_output([(output, W)])
+                else:
+                    bo.add_hessian_output(output)
             output = -compat.assemble_adjoint_value(d2Fdudm+dFdm_adj2)            
             if isinstance(c, backend.Expression):
                 bo.add_hessian_output([(output, W)])
