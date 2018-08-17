@@ -26,7 +26,8 @@ T_file << T
 
 dB = Measure("ds", domain=mesh, subdomain_data=mf, subdomain_id=boundary)
 J = assemble(T*T*dB)
-Jhat = ReducedFunctional(J, Control(s))
+c = Control(s)
+Jhat = ReducedFunctional(J, c)
 
 def smooth_representation(value):
     u,v = TrialFunction(S), TestFunction(S)
@@ -43,4 +44,10 @@ perturbation = smooth_representation(perturbation)
 
 taylor_test(Jhat, s, perturbation, dJdm=0)
 taylor_test(Jhat, s, perturbation)
+Jhat(s)
+s.tlm_value = perturbation
+tape.evaluate_tlm()
+dJdm = Jhat.derivative().vector().inner(perturbation.vector())
+Hm = compute_hessian(J, c, perturbation).vector().inner(perturbation.vector())
+taylor_test(Jhat, s, perturbation, dJdm=dJdm, Hm=Hm)
 
