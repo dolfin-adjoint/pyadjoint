@@ -42,7 +42,7 @@ jobs:
 
       - restore_cache:
           keys:
-          - v2-dolfin-jit-cache
+          - v3-dolfin-jit-cache
 
       # run tests!
       - run:
