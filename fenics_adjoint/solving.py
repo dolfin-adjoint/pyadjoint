@@ -354,6 +354,9 @@ class SolveBlock(Block):
         # Start piecing together the rhs of the soa equation
         b = hessian_input.copy()
         b_form = d2Fdu2
+        if len(b_form.integrals()) > 0:
+            b_form = backend.adjoint(b_form)
+            b -= compat.assemble_adjoint_value(backend.action(b_form, adj_sol))
 
         for bo in self.get_dependencies():
             c = bo.output
@@ -363,13 +366,18 @@ class SolveBlock(Block):
             if (c == self.func and not self.linear) or tlm_input is None:
                 continue
 
-            if not isinstance(c, backend.DirichletBC):
+            if isinstance(c, backend.Mesh):
+                X = backend.SpatialCoordinate(c)
+                dFdu_adj = backend.action(dFdu_form, adj_sol)
+                d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdu_adj, X, tlm_input))
+                if len(b_form.integrals()) > 0:
+                    b -= compat.assemble_adjoint_value(b_form)
+            elif not isinstance(c, backend.DirichletBC):
                 d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdu_form, c_rep, tlm_input))
-                b_form += d2Fdudm
-
-        if len(b_form.integrals()) > 0:
-            b_form = backend.adjoint(b_form)
-            b -= compat.assemble_adjoint_value(backend.action(b_form, adj_sol))
+                if len(b_form.integrals()) > 0:
+                    b_form = backend.adjoint(d2Fdudm)
+                    b -= compat.assemble_adjoint_value(backend.action(b_form,
+                                                                  adj_sol))
         b_copy = b.copy()
 
         for bc in bcs:
@@ -406,18 +414,25 @@ class SolveBlock(Block):
                 mesh = F_form.ufl_domain().ufl_cargo()
                 W = c._ad_function_space(mesh)
             elif isinstance(c, backend.Mesh):
-                #FIXME not sure what we need here
-                raise NotImplementedError("Shape-hessian not added")
+                W = backend.VectorFunctionSpace(c, "CG", 1)
+                X = backend.SpatialCoordinate(c)
             else:
                 W = c.function_space()
 
             dc = backend.TrialFunction(W)
-            dFdm = backend.derivative(F_form, c_rep, dc)
-            # TODO: Actually implement split annotations properly.
-            try:
-                d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdm, fwd_block_variable.saved_output, tlm_output))
-            except ufl.log.UFLException:
-                continue
+            if isinstance(c, backend.Mesh):
+                form_adj = backend.action(F_form, adj_sol)
+                dFdm_adj = backend.derivative(form_adj, X, dc)
+                form_adj2 = backend.action(F_form, adj_sol2)
+                dFdm_adj2 = backend.derivative(form_adj2, X, dc)
+                d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, fwd_block_variable.saved_output, tlm_output))
+            else:
+                dFdm = backend.derivative(F_form, c_rep, dc)
+                # TODO: Actually implement split annotations properly.
+                try:
+                    d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdm, fwd_block_variable.saved_output, tlm_output))
+                except ufl.log.UFLException:
+                    continue
 
 
             # We need to add terms from every other dependency
@@ -437,35 +452,45 @@ class SolveBlock(Block):
                     continue
 
                 # TODO: If tlm_input is a Sum, this crashes in some instances?
-                d2Fdm2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdm, c2_rep, tlm_input))
-                if d2Fdm2.empty():
-                    continue
+                if isinstance(c2_rep, backend.Mesh):
+                    X = backend.SpatialCoordinate(c2_rep)
+                    d2Fdm2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, X, tlm_input))
+                    if d2Fdm2.empty():
+                        continue
+                    output = compat.assemble_adjoint_value(d2Fdm2)
 
-                if len(d2Fdm2.arguments()) >= 2:
-                    d2Fdm2 = backend.adjoint(d2Fdm2)
+                else:
+                    d2Fdm2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdm, c2_rep, tlm_input))
+                    if d2Fdm2.empty():
+                        continue
 
-                output = backend.action(d2Fdm2, adj_sol)
+                    if len(d2Fdm2.arguments()) >= 2:
+                        d2Fdm2 = backend.adjoint(d2Fdm2)
+
+                        output = backend.action(d2Fdm2, adj_sol)
+                        output = compat.assemble_adjoint_value(-output)
+
+                    if isinstance(c, backend.Expression):
+                        bo.add_hessian_output([(output, W)])
+                    else:
+                        bo.add_hessian_output(output)
+            if isinstance(c, backend.Mesh):
+                output = -compat.assemble_adjoint_value(d2Fdudm)
+                bo.add_hessian_output(output)
+            else:
+                if len(dFdm.arguments()) >= 2:
+                    dFdm = backend.adjoint(dFdm)
+                output = backend.action(dFdm, adj_sol2)
+                if not d2Fdudm.empty():
+                    if len(d2Fdudm.arguments()) >= 2:
+                        d2Fdudm = backend.adjoint(d2Fdudm)
+                    output += backend.action(d2Fdudm, adj_sol)
                 output = compat.assemble_adjoint_value(-output)
 
                 if isinstance(c, backend.Expression):
                     bo.add_hessian_output([(output, W)])
                 else:
                     bo.add_hessian_output(output)
-
-            if len(dFdm.arguments()) >= 2:
-                dFdm = backend.adjoint(dFdm)
-            output = backend.action(dFdm, adj_sol2)
-            if not d2Fdudm.empty():
-                if len(d2Fdudm.arguments()) >= 2:
-                    d2Fdudm = backend.adjoint(d2Fdudm)
-                output += backend.action(d2Fdudm, adj_sol)
-
-            output = compat.assemble_adjoint_value(-output)
-
-            if isinstance(c, backend.Expression):
-                bo.add_hessian_output([(output, W)])
-            else:
-                bo.add_hessian_output(output)
 
     @no_annotations
     def recompute(self):
