@@ -180,10 +180,12 @@ def taylor_verification(deformation):
     taylor_test(Jhat, s0, deformation, dJdm=0)
     Jhat(s0)
     taylor_test(Jhat, s0, deformation)
-    # Jhat(s0)
-    # dJdm = Jhat.derivative().vector().inner(deformation.vector())
-    # Hm = compute_hessian(J, c, deformation).vector().inner(deformation.vector())
-    # taylor_test(Jhat, s, deformation, dJdm=dJdm, Hm=Hm)
+    Jhat(s0)
+    s.tlm_value = deformation
+    tape.evaluate_tlm()
+    dJdm = Jhat.derivative().vector().inner(deformation.vector())
+    Hm = compute_hessian(J, c, deformation).vector().inner(deformation.vector())
+    taylor_test(Jhat, s0, deformation, dJdm=dJdm, Hm=Hm)
 
 # Define Deformation direction
 s = Function(V)
