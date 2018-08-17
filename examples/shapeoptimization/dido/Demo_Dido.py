@@ -15,7 +15,8 @@ J = -assemble(One*dx(domain=mesh))
 # Weak Penalization of volume offset
 alpha = 1
 J += alpha*(assemble(One*ds(domain=mesh)) - 4)**2
-Jhat = ReducedFunctional(J, Control(s0))
+c = Control(s0)
+Jhat = ReducedFunctional(J, c)
 
 it, max_it = 1, 100
 min_stp = 1e-6 
@@ -78,4 +79,11 @@ print("Final Functional value: %.2f" % Js[-1])
 # Taylor-test of shape derivative
 s = interpolate(Expression(("sin(x[0])", "10*cos(x[1])"), degree=2), V)
 taylor_test(Jhat, s0, s, dJdm=0)
+Jhat(s0)
 taylor_test(Jhat, s0, s)
+Jhat(s0)
+s.tlm_value = s
+tape.evaluate_tlm()
+dJdm = Jhat.derivative().vector().inner(s.vector())
+Hm = compute_hessian(J, c, s).vector().inner(s.vector())
+taylor_test(Jhat, s0, s, dJdm=dJdm, Hm=Hm)
