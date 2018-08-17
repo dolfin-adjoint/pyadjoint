@@ -131,7 +131,6 @@ def test_PDE_hessian():
     f.interpolate(Expression(("A*sin(x[1])", "A*cos(x[1])"),degree=2,A=10))
     h = Function(S,name="V")
     h.interpolate(Expression(("A*cos(x[1])", "A*x[1]"),degree=2,A=10))
-    tape.visualise("hessian_solve.dot", dot=True)
 
     # Finite difference
     r0 = taylor_test(Jhat, s, h, dJdm=0)
