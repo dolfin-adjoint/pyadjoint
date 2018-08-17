@@ -5,6 +5,7 @@ import pytest
 
 
 def test_div_block():
+    tape.clear_tape()
     mesh = UnitSquareMesh(10,10)
     S = VectorFunctionSpace(mesh, "CG", 1)
     X = SpatialCoordinate(mesh)
