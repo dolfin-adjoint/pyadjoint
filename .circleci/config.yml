@@ -8,8 +8,7 @@ jobs:
     docker:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
-      # - image: quay.io/fenicsproject/dev:latest
-      - image: quay.io/fenicsproject_dev/dolfin:py3-fw-coordinate-derivative
+      - image: quay.io/fenicsproject/dev:latest
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
       # - image: quay.io/fenicsproject/stable:latest
