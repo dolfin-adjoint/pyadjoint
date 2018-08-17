@@ -2,7 +2,8 @@ from dolfin import *
 from dolfin_adjoint import *
 import pytest
 
-@pytest.mark.xfail(reason="Not implemented yet")
+
+
 def test_div_block():
     mesh = UnitSquareMesh(10,10)
     S = VectorFunctionSpace(mesh, "CG", 1)
@@ -31,7 +32,7 @@ def test_div_block():
     r3 = taylor_test(Jhat, s, h, dJdm=dJdm, Hm=Hm)
     assert(r3 > 2.95)
 
-@pytest.mark.xfail(reason="Not implemented yet")
+
 def test_pow_block():
     mesh = UnitSquareMesh(10,10)
     S = VectorFunctionSpace(mesh, "CG", 1)
@@ -58,9 +59,8 @@ def test_pow_block():
     dJdm = Jhat.derivative().vector().inner(h.vector())
     Hm = compute_hessian(J, c, h).vector().inner(h.vector())
     r3 = taylor_test(Jhat, s, h, dJdm=dJdm, Hm=Hm)
-    assert(r3 > 2.95)
+    assert(r3 > 2.9)
 
-@pytest.mark.xfail(reason="Not implemented yet")
 def test_neg_block():
     mesh = UnitSquareMesh(10,10)
     S = VectorFunctionSpace(mesh, "CG", 1)
