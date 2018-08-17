@@ -24,8 +24,15 @@ T_file = File("output/T_strong.pvd")
 T_file << T
 
 J = assemble(T*T*dx)
-Jhat = ReducedFunctional(J, Control(s))
+c = Control(s)
+Jhat = ReducedFunctional(J, c)
 
 perturbation = project(Expression(("sin(x[0])*x[1]", "cos(x[1])"), degree=2), S)
 taylor_test(Jhat, s, perturbation, dJdm=0)
 taylor_test(Jhat, s, perturbation)
+
+# Second order taylor
+Jhat(s)
+dJdm = Jhat.derivative().vector().inner(perturbation.vector())
+Hm = compute_hessian(J, c, perturbation).vector().inner(perturbation.vector())
+taylor_test(Jhat, s, perturbation, dJdm=dJdm, Hm=Hm)
