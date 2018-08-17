@@ -78,39 +78,40 @@ class DirichletBCBlock(Block):
             #         (Either by actually running our project or by "manually" inserting a project block).
             pass
 
-    @no_annotations
-    def evaluate_adj(self, markings=False):
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         bc = self.get_outputs()[0].saved_output
-        adj_inputs = self.get_outputs()[0].adj_value
-
-        if adj_inputs is None:
-            return
-
+        c = block_variable.output
+        adj_inputs = adj_inputs[0]
+        adj_output = None
         for adj_input in adj_inputs:
-            for block_variable in self.get_dependencies():
-                c = block_variable.output
-                if isinstance(c, Constant):
-                    adj_value = backend.Function(self.parent_space)
-                    adj_input.apply(adj_value.vector())
-                    if adj_value.ufl_shape == () or adj_value.ufl_shape[0] <= 1:
-                        block_variable.add_adj_output(adj_value.vector().sum())
-                    else:
-                        adj_output = []
-                        for i in range(adj_value.ufl_shape[0]):
-                            # TODO: This might not be the optimal way to extract the subfunction vectors.
-                            adj_output.append(adj_value.sub(i, deepcopy=True).vector().sum())
-                        block_variable.add_adj_output(numpy.array(adj_output))
-                elif isinstance(c, Function):
-                    # TODO: This gets a little complicated.
-                    #       The function may belong to a different space,
-                    #       and with `Function.set_allow_extrapolation(True)`
-                    #       you can even use the Function outside its domain.
-                    # For now we will just assume the FunctionSpace is the same for
-                    # the BC and the Function.
-                    adj_value = backend.Function(self.parent_space)
-                    adj_input.apply(adj_value.vector())
-                    adj_output = compat.extract_bc_subvector(adj_value, c.function_space(), bc)
-                    block_variable.add_adj_output(adj_output)
+            if isinstance(c, Constant):
+                adj_value = backend.Function(self.parent_space)
+                adj_input.apply(adj_value.vector())
+                if adj_value.ufl_shape == () or adj_value.ufl_shape[0] <= 1:
+                    r = adj_value.vector().sum()
+                else:
+                    r = []
+                    for i in range(adj_value.ufl_shape[0]):
+                        # TODO: This might not be the optimal way to extract the subfunction vectors.
+                        r.append(adj_value.sub(i, deepcopy=True).vector().sum())
+                    r = numpy.array(r)
+            elif isinstance(c, Function):
+                # TODO: This gets a little complicated.
+                #       The function may belong to a different space,
+                #       and with `Function.set_allow_extrapolation(True)`
+                #       you can even use the Function outside its domain.
+                # For now we will just assume the FunctionSpace is the same for
+                # the BC and the Function.
+                adj_value = backend.Function(self.parent_space)
+                adj_input.apply(adj_value.vector())
+                r = compat.extract_bc_subvector(adj_value, c.function_space(), bc)
+            else:
+                continue
+            if adj_output is None:
+                adj_output = r
+            else:
+                adj_output += r
+        return adj_output
 
     @no_annotations
     def evaluate_tlm(self):
@@ -128,40 +129,10 @@ class DirichletBCBlock(Block):
             m = compat.create_bc(bc, value=tlm_input)
             output.add_tlm_output(m)
 
-    @no_annotations
-    def evaluate_hessian(self, markings=False):
-        # TODO: This is the exact same as evaluate_adj for now. Consider refactoring for no duplicate code.
-        bc = self.get_outputs()[0].saved_output
-        hessian_inputs = self.get_outputs()[0].hessian_value
-
-        if hessian_inputs is None:
-            return
-
-        for hessian_input in hessian_inputs:
-            for block_variable in self.get_dependencies():
-                c = block_variable.output
-                if isinstance(c, Constant):
-                    hessian_value = backend.Function(self.parent_space)
-                    hessian_input.apply(hessian_value.vector())
-                    if hessian_value.ufl_shape == () or hessian_value.ufl_shape[0] <= 1:
-                        block_variable.add_hessian_output(hessian_value.vector().sum())
-                    else:
-                        hessian_output = []
-                        for i in range(hessian_value.ufl_shape[0]):
-                            # TODO: This might not be the optimal way to extract the subfunction vectors.
-                            hessian_output.append(hessian_value.sub(i, deepcopy=True).vector().sum())
-                        block_variable.add_hessian_output(numpy.array(hessian_output))
-                elif isinstance(c, Function):
-                    # TODO: This gets a little complicated.
-                    #       The function may belong to a different space,
-                    #       and with `Function.set_allow_extrapolation(True)`
-                    #       you can even use the Function outside its domain.
-                    # For now we will just assume the FunctionSpace is the same for
-                    # the BC and the Function.
-                    hessian_value = backend.Function(self.parent_space)
-                    hessian_input.apply(hessian_value.vector())
-                    hessian_output = compat.extract_bc_subvector(hessian_value, c.function_space(), bc)
-                    block_variable.add_hessian_output(hessian_output)
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+                                   relevant_dependencies, prepared=None):
+        # The same as evaluate_adj but with hessian values.
+        return self.evaluate_adj_component(inputs, hessian_inputs, block_variable, idx)
 
     @no_annotations
     def recompute(self):

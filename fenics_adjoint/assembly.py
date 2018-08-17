@@ -91,8 +91,7 @@ class AssembleBlock(Block):
 
             dform = backend.derivative(form, c_rep, dc)
             output = compat.assemble_adjoint_value(dform)
-            block_variable.add_adj_output([[adj_input * output, V]])
-            return
+            return [[adj_input * output, V]]
 
         if isinstance(c, backend.Function):
             dc = backend.TestFunction(c.function_space())
@@ -102,7 +101,7 @@ class AssembleBlock(Block):
 
         dform = backend.derivative(form, c_rep, dc)
         output = compat.assemble_adjoint_value(dform)
-        block_variable.add_adj_output(adj_input * output)
+        return adj_input * output
 
     @no_annotations
     def evaluate_tlm(self):

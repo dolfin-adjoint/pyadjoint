@@ -195,36 +195,29 @@ class Function(FloatingType, backend.Function):
 class AssignBlock(Block):
     def __init__(self, func, other):
         super(AssignBlock, self).__init__()
-        self.add_dependency(func.block_variable, no_duplicates=True)
         self.add_dependency(other.block_variable, no_duplicates=True)
 
-    @no_annotations
-    def evaluate_adj(self, markings=False):
-        adj_input = self.get_outputs()[0].adj_value
-        if adj_input is None:
-            return
-        if isinstance(self.get_dependencies()[1], AdjFloat):
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        adj_input = adj_inputs[0]
+        if isinstance(block_variable.output, AdjFloat):
             adj_input = adj_input.sum()
-        self.get_dependencies()[1].add_adj_output(adj_input)
+        return adj_input
 
     @no_annotations
     def evaluate_tlm(self):
-        tlm_input = self.get_dependencies()[1].tlm_value
+        tlm_input = self.get_dependencies()[0].tlm_value
         if tlm_input is None:
             return
         self.get_outputs()[0].add_tlm_output(tlm_input)
 
-    @no_annotations
-    def evaluate_hessian(self, markings=False):
-        hessian_input = self.get_outputs()[0].hessian_value
-        if hessian_input is None:
-            return
-        self.get_dependencies()[1].add_hessian_output(hessian_input)
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+                                   relevant_dependencies, prepared=None):
+        return hessian_inputs[0]
 
     @no_annotations
     def recompute(self):
         deps = self.get_dependencies()
-        other_bo = deps[1]
+        other_bo = deps[0]
         # TODO: This is a quick-fix, so should be reviewed later.
         #       Introduced because Control values work by not letting their checkpoint property be overwritten.
         #       However this circumvents that by using assign. An alternative would be to create a
@@ -240,12 +233,8 @@ class SplitBlock(Block):
         self.add_dependency(func.block_variable)
         self.idx = idx
 
-    def evaluate_adj(self, markings=False):
-        adj_input = self.get_outputs()[0].adj_value
-        if adj_input is None:
-            return
-        dep = self.get_dependencies()[0]
-        dep.add_adj_output(adj_input)
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        return adj_inputs[0]
 
     def evaluate_tlm(self):
         tlm_input = self.get_dependencies()[0].tlm_value
@@ -255,12 +244,9 @@ class SplitBlock(Block):
             backend.Function.sub(tlm_input, self.idx, deepcopy=True)
         )
 
-    def evaluate_hessian(self, markings=False):
-        hessian_input = self.get_outputs()[0].hessian_value
-        if hessian_input is None:
-            return
-        dep = self.get_dependencies()[0]
-        dep.add_hessian_output(hessian_input)
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+                                   relevant_dependencies, prepared=None):
+        return hessian_inputs[0]
 
     def recompute(self):
         dep = self.get_dependencies()[0].checkpoint
@@ -273,12 +259,8 @@ class MergeBlock(Block):
         self.add_dependency(func.block_variable)
         self.idx = idx
 
-    def evaluate_adj(self, markings=False):
-        adj_input = self.get_outputs()[0].adj_value
-        if adj_input is None:
-            return
-        dep = self.get_dependencies()[0]
-        dep.add_adj_output(adj_input)
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        return adj_inputs[0]
 
     def evaluate_tlm(self):
         tlm_input = self.get_dependencies()[0].tlm_value
@@ -291,12 +273,9 @@ class MergeBlock(Block):
             backend.assign(f.sub(self.idx), tlm_input)
         )
 
-    def evaluate_hessian(self, markings=False):
-        hessian_input = self.get_outputs()[0].hessian_value
-        if hessian_input is None:
-            return
-        dep = self.get_dependencies()[0]
-        dep.add_hessian_output(hessian_input)
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+                                   relevant_dependencies, prepared=None):
+        return hessian_inputs[0]
 
     def recompute(self):
         dep = self.get_dependencies()[0].checkpoint

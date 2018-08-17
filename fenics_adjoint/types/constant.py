@@ -142,24 +142,22 @@ def ufl_shape_workaround(values):
 class AssignBlock(Block):
     def __init__(self, func, other):
         super(AssignBlock, self).__init__()
-        self.add_dependency(func.block_variable)
         self.add_dependency(other.block_variable)
 
-    def evaluate_adj(self, markings=False):
-        adj_input = self.get_outputs()[0].adj_value
-        self.get_dependencies()[1].add_adj_output(adj_input)
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        return adj_inputs[0]
 
     def evaluate_tlm(self):
-        tlm_input = self.get_dependencies()[1].tlm_value
+        tlm_input = self.get_dependencies()[0].tlm_value
         self.get_outputs()[0].add_tlm_output(tlm_input)
 
-    def evaluate_hessian(self, markings=False):
-        hessian_input = self.get_outputs()[0].hessian_value
-        self.get_dependencies()[1].add_hessian_output(hessian_input)
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+                                   relevant_dependencies, prepared=None):
+        return hessian_inputs[0]
 
     def recompute(self):
         deps = self.get_dependencies()
-        other_bo = deps[1]
+        other_bo = deps[0]
 
         backend.Constant.assign(self.get_outputs()[0].saved_output, other_bo.saved_output)
 

@@ -233,43 +233,38 @@ class ExpressionBlock(Block):
                 self.add_dependency(parameter.block_variable)
                 self.dependency_keys[parameter] = key
 
-    def evaluate_adj(self, markings=False):
-        adj_inputs = self.get_outputs()[0].adj_value
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        adj_inputs = adj_inputs[0]
+        c = block_variable.output
+        if c not in self.expression.user_defined_derivatives:
+            return None
 
-        if adj_inputs is None:
-            # No adjoint inputs, so nothing to compute.
-            return
+        for key in self.expression._ad_attributes_dict:
+            if key not in self.expression.ad_ignored_attributes:
+                setattr(self.expression.user_defined_derivatives[c], key,
+                        self.expression._ad_attributes_dict[key])
 
-        for block_variable in self.get_dependencies():
-            c = block_variable.output
+        adj_output = None
+        for adj_pair in adj_inputs:
+            adj_input = adj_pair[0]
+            V = adj_pair[1]
+            if adj_output is None:
+                adj_output = 0.0
 
-            if c not in self.expression.user_defined_derivatives:
-                continue
+            interp = backend.interpolate(self.expression.user_defined_derivatives[c], V)
+            if isinstance(c, (backend.Constant, AdjFloat)):
+                adj_output += adj_input.inner(interp.vector())
+            else:
+                vec = adj_input * interp.vector()
+                adj_func = backend.Function(V, vec)
 
-            for adj_pair in adj_inputs:
-                adj_input = adj_pair[0]
-                V = adj_pair[1]
-
-                for key in self.expression._ad_attributes_dict:
-                    if key not in self.expression.ad_ignored_attributes:
-                        setattr(self.expression.user_defined_derivatives[c], key, self.expression._ad_attributes_dict[key])
-
-                interp = backend.interpolate(self.expression.user_defined_derivatives[c], V)
-                if isinstance(c, (backend.Constant, AdjFloat)):
-                    adj_output = adj_input.inner(interp.vector())
-                    block_variable.add_adj_output(adj_output)
+                num_sub_spaces = V.num_sub_spaces()
+                if num_sub_spaces > 1:
+                    for i in range(num_sub_spaces):
+                        adj_output += backend.interpolate(adj_func.sub(i), c.function_space()).vector()
                 else:
-                    adj_output = adj_input*interp.vector()
-
-                    adj_func = backend.Function(V, adj_output)
-                    adj_output = 0
-                    num_sub_spaces = V.num_sub_spaces()
-                    if num_sub_spaces > 1:
-                        for i in range(num_sub_spaces):
-                            adj_output += backend.interpolate(adj_func.sub(i), c.function_space()).vector()
-                    else:
-                        adj_output = backend.interpolate(adj_func, c.function_space()).vector()
-                    block_variable.add_adj_output(adj_output)
+                    adj_output += backend.interpolate(adj_func, c.function_space()).vector()
+        return adj_output
 
     def evaluate_tlm(self):
         output = self.get_outputs()[0]
@@ -292,82 +287,79 @@ class ExpressionBlock(Block):
 
             output.add_tlm_output(tlm_input * self.expression.user_defined_derivatives[c])
 
-    def evaluate_hessian(self, markings=False):
-        hessian_inputs = self.get_outputs()[0].hessian_value
-        adj_inputs = self.get_outputs()[0].adj_value
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+                                   relevant_dependencies, prepared=None):
+        hessian_inputs = hessian_inputs[0]
+        adj_inputs = adj_inputs[0]
+        c1 = block_variable.output
 
-        if hessian_inputs is None:
-            return
+        if c1 not in self.expression.user_defined_derivatives:
+            return None
 
-        for bo1 in self.get_dependencies():
-            c1 = bo1.output
+        first_deriv = self.expression.user_defined_derivatives[c1]
+        for key in self.expression._ad_attributes_dict:
+            if key not in self.expression.ad_ignored_attributes:
+                setattr(first_deriv, key, self.expression._ad_attributes_dict[key])
 
-            if c1 not in self.expression.user_defined_derivatives:
+        hessian_output = None
+        for _, bo2 in relevant_dependencies:
+            c2 = bo2.output
+            tlm_input = bo2.tlm_value
+
+            if tlm_input is None:
                 continue
 
-            first_deriv = self.expression.user_defined_derivatives[c1]
+            if c2 not in first_deriv.user_defined_derivatives:
+                continue
+
+            second_deriv = first_deriv.user_defined_derivatives[c2]
             for key in self.expression._ad_attributes_dict:
                 if key not in self.expression.ad_ignored_attributes:
-                    setattr(first_deriv, key, self.expression._ad_attributes_dict[key])
+                    setattr(second_deriv, key, self.expression._ad_attributes_dict[key])
 
-            for bo2 in self.get_dependencies():
-                c2 = bo2.output
-                tlm_input = bo2.tlm_value
+            for adj_pair in adj_inputs:
+                adj_input = adj_pair[0]
+                V = adj_pair[1]
 
-                if tlm_input is None:
-                    continue
+                if hessian_output is None:
+                    hessian_output = 0.0
 
-                if c2 not in first_deriv.user_defined_derivatives:
-                    continue
-
-                second_deriv = first_deriv.user_defined_derivatives[c2]
-                for key in self.expression._ad_attributes_dict:
-                    if key not in self.expression.ad_ignored_attributes:
-                        setattr(second_deriv, key, self.expression._ad_attributes_dict[key])
-
-                for adj_pair in adj_inputs:
-                    adj_input = adj_pair[0]
-                    V = adj_pair[1]
-
-                    # TODO: Seems we can only project and not interpolate ufl.algebra.Product in dolfin.
-                    #       Consider the difference and which actually makes sense here.
-                    interp = backend.project(tlm_input*second_deriv, V)
-                    if isinstance(c1, (backend.Constant, AdjFloat)):
-                        hessian_output = adj_input.inner(interp.vector())
-                        bo1.add_hessian_output(hessian_output)
-                    else:
-                        hessian_output = adj_input * interp.vector()
-
-                        hessian_func = backend.Function(V, hessian_output)
-                        hessian_output = 0
-                        num_sub_spaces = V.num_sub_spaces()
-                        if num_sub_spaces > 1:
-                            for i in range(num_sub_spaces):
-                                hessian_output += backend.interpolate(hessian_func.sub(i), c1.function_space()).vector()
-                        else:
-                            hessian_output = backend.interpolate(hessian_func, c1.function_space()).vector()
-                        bo1.add_hessian_output(hessian_output)
-
-            for hessian_pair in hessian_inputs:
-                hessian_input = hessian_pair[0]
-                V = hessian_pair[1]
-
-                interp = backend.interpolate(first_deriv, V)
+                # TODO: Seems we can only project and not interpolate ufl.algebra.Product in dolfin.
+                #       Consider the difference and which actually makes sense here.
+                interp = backend.project(tlm_input * second_deriv, V)
                 if isinstance(c1, (backend.Constant, AdjFloat)):
-                    hessian_output = hessian_input.inner(interp.vector())
-                    bo1.add_hessian_output(hessian_output)
+                    hessian_output += adj_input.inner(interp.vector())
                 else:
-                    hessian_output = hessian_input*interp.vector()
+                    vec = adj_input * interp.vector()
+                    hessian_func = backend.Function(V, vec)
 
-                    hessian_func = backend.Function(V, hessian_output)
-                    hessian_output = 0
                     num_sub_spaces = V.num_sub_spaces()
                     if num_sub_spaces > 1:
                         for i in range(num_sub_spaces):
                             hessian_output += backend.interpolate(hessian_func.sub(i), c1.function_space()).vector()
                     else:
-                        hessian_output = backend.interpolate(hessian_func, c1.function_space()).vector()
-                    bo1.add_hessian_output(hessian_output)
+                        hessian_output += backend.interpolate(hessian_func, c1.function_space()).vector()
+
+        for hessian_pair in hessian_inputs:
+            if hessian_output is None:
+                hessian_output = 0.0
+            hessian_input = hessian_pair[0]
+            V = hessian_pair[1]
+
+            interp = backend.interpolate(first_deriv, V)
+            if isinstance(c1, (backend.Constant, AdjFloat)):
+                hessian_output += hessian_input.inner(interp.vector())
+            else:
+                vec = hessian_input * interp.vector()
+                hessian_func = backend.Function(V, vec)
+
+                num_sub_spaces = V.num_sub_spaces()
+                if num_sub_spaces > 1:
+                    for i in range(num_sub_spaces):
+                        hessian_output += backend.interpolate(hessian_func.sub(i), c1.function_space()).vector()
+                else:
+                    hessian_output += backend.interpolate(hessian_func, c1.function_space()).vector()
+        return hessian_output
 
     def recompute(self):
         checkpoint = self.get_outputs()[0].checkpoint
