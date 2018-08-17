@@ -371,7 +371,7 @@ class SolveBlock(Block):
                 dFdu_adj = backend.action(dFdu_form, adj_sol)
                 d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdu_adj, X, tlm_input))
                 if len(d2Fdudm.integrals()) > 0:
-                    b -= compat.assemble_adjoint_value(b_form)
+                    b -= compat.assemble_adjoint_value(d2Fdudm)
             elif not isinstance(c, backend.DirichletBC):
                 d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdu_form, c_rep, tlm_input))
                 if len(d2Fdudm.integrals()) > 0:
