@@ -16,7 +16,6 @@ def test_div_block():
     
     h = Function(S,name="V")
     h.interpolate(Expression(("sin(x[1])", "10*x[1]*x[0]"),degree=2))
-    tape.visualise("hessian_solve.dot", dot=True)
     
     # Finite difference
     r0 = taylor_test(Jhat, s, h, dJdm=0)
@@ -46,7 +45,6 @@ def test_pow_block():
     
     h = Function(S,name="V")
     h.interpolate(Expression(("sin(x[1])", "10*x[1]*x[0]"),degree=2))
-    tape.visualise("hessian_solve.dot", dot=True)
     
     # Finite difference
     r0 = taylor_test(Jhat, s, h, dJdm=0)
@@ -76,7 +74,6 @@ def test_neg_block():
     
     h = Function(S,name="V")
     h.interpolate(Expression(("sin(x[1])", "10*x[1]*x[0]"),degree=2))
-    tape.visualise("hessian_solve.dot", dot=True)
     
     # Finite difference
     r0 = taylor_test(Jhat, s, h, dJdm=0)
