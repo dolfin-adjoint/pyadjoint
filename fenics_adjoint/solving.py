@@ -370,11 +370,11 @@ class SolveBlock(Block):
                 X = backend.SpatialCoordinate(c)
                 dFdu_adj = backend.action(dFdu_form, adj_sol)
                 d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdu_adj, X, tlm_input))
-                if len(b_form.integrals()) > 0:
+                if len(d2Fdudm.integrals()) > 0:
                     b -= compat.assemble_adjoint_value(b_form)
             elif not isinstance(c, backend.DirichletBC):
                 d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdu_form, c_rep, tlm_input))
-                if len(b_form.integrals()) > 0:
+                if len(d2Fdudm.integrals()) > 0:
                     b_form = backend.adjoint(d2Fdudm)
                     b -= compat.assemble_adjoint_value(backend.action(b_form,
                                                                   adj_sol))
@@ -420,19 +420,18 @@ class SolveBlock(Block):
                 W = c.function_space()
 
             dc = backend.TrialFunction(W)
+            form_adj = backend.action(F_form, adj_sol)
+            form_adj2 = backend.action(F_form, adj_sol2)
             if isinstance(c, backend.Mesh):
-                form_adj = backend.action(F_form, adj_sol)
                 dFdm_adj = backend.derivative(form_adj, X, dc)
-                form_adj2 = backend.action(F_form, adj_sol2)
                 dFdm_adj2 = backend.derivative(form_adj2, X, dc)
-                d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, fwd_block_variable.saved_output, tlm_output))
             else:
-                dFdm = backend.derivative(F_form, c_rep, dc)
-                # TODO: Actually implement split annotations properly.
-                try:
-                    d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdm, fwd_block_variable.saved_output, tlm_output))
-                except ufl.log.UFLException:
-                    continue
+                dFdm_adj = backend.derivative(form_adj, c_rep, dc)
+                dFdm_adj2 = backend.derivative(form_adj2, c_rep, dc)
+            try:
+                d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, fwd_block_variable.saved_output, tlm_output))    
+            except ufl.log.UFLException:
+                continue
 
 
             # We need to add terms from every other dependency
@@ -455,42 +454,22 @@ class SolveBlock(Block):
                 if isinstance(c2_rep, backend.Mesh):
                     X = backend.SpatialCoordinate(c2_rep)
                     d2Fdm2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, X, tlm_input))
-                    if d2Fdm2.empty():
-                        continue
-                    output = compat.assemble_adjoint_value(d2Fdm2)
-
                 else:
-                    d2Fdm2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdm, c2_rep, tlm_input))
+                    d2Fdm2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, c2_rep, tlm_input))
                     if d2Fdm2.empty():
                         continue
 
-                    if len(d2Fdm2.arguments()) >= 2:
-                        d2Fdm2 = backend.adjoint(d2Fdm2)
-
-                        output = backend.action(d2Fdm2, adj_sol)
-                        output = compat.assemble_adjoint_value(-output)
+                    output = -compat.assemble_adjoint_value(d2Fdm2)
 
                     if isinstance(c, backend.Expression):
                         bo.add_hessian_output([(output, W)])
                     else:
                         bo.add_hessian_output(output)
-            if isinstance(c, backend.Mesh):
-                output = -compat.assemble_adjoint_value(d2Fdudm)
-                bo.add_hessian_output(output)
+            output = -compat.assemble_adjoint_value(d2Fdudm+dFdm_adj2)            
+            if isinstance(c, backend.Expression):
+                bo.add_hessian_output([(output, W)])
             else:
-                if len(dFdm.arguments()) >= 2:
-                    dFdm = backend.adjoint(dFdm)
-                output = backend.action(dFdm, adj_sol2)
-                if not d2Fdudm.empty():
-                    if len(d2Fdudm.arguments()) >= 2:
-                        d2Fdudm = backend.adjoint(d2Fdudm)
-                    output += backend.action(d2Fdudm, adj_sol)
-                output = compat.assemble_adjoint_value(-output)
-
-                if isinstance(c, backend.Expression):
-                    bo.add_hessian_output([(output, W)])
-                else:
-                    bo.add_hessian_output(output)
+                bo.add_hessian_output(output)
 
     @no_annotations
     def recompute(self):
