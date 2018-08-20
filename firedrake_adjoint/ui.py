@@ -6,6 +6,7 @@ from fenics_adjoint.types import Constant, DirichletBC, FunctionSpace
 from fenics_adjoint.variational_solver import (NonlinearVariationalProblem, NonlinearVariationalSolver,
                                                LinearVariationalProblem, LinearVariationalSolver)
 from fenics_adjoint.interpolation import interpolate
+from fenics_adjoint.ufl_constraints import UFLInequalityConstraint, UFLEqualityConstraint
 
 from firedrake_adjoint.types.expression import Expression
 from firedrake_adjoint.types.function import Function
