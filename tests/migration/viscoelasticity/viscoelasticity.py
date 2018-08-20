@@ -284,15 +284,11 @@ if __name__ == "__main__":
 
     ic = Function(Z)
     # Play forward run
-    info_blue("Running forward ... ")
+    print("Running forward ... ")
     z = main(ic, params, amplitude, T=T, dt=dt, annotate=True)
 
     # Replay forward
-    info_blue("Replaying forward run ... ")
-
-    if False:
-        # TODO: Not implemented.
-        replay_dolfin()
+    print("Replaying forward run ... ")
 
     # Use elastic/viscous traction on vertical plane as goal
     (sigma0, sigma1, v, gamma) = split(z)
@@ -309,6 +305,6 @@ if __name__ == "__main__":
         J = assemble(inner(sigma0[2], sigma0[2])*dx)
         return J
 
-    info_blue("Checking adjoint correctness ... ")
+    print("Checking adjoint correctness ... ")
     minconv = taylor_test(Jfunc, amplitude, h, dJdm)
     assert minconv > 1.8

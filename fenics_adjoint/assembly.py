@@ -102,8 +102,7 @@ class AssembleBlock(Block):
 
             elif isinstance(c, backend.Mesh):
                 X = backend.SpatialCoordinate(c_rep)
-                dc = backend.TestFunction(backend.VectorFunctionSpace(c, "CG",1))
-                dform = backend.derivative(form, X, dc)
+                dform = backend.derivative(form, X)
                 output = compat.assemble_adjoint_value(dform)
                 block_variable.add_adj_output(adj_input * output)
                 continue
@@ -189,15 +188,14 @@ class AssembleBlock(Block):
                 mesh = compat.extract_mesh_from_form(form)
                 dc = backend.TestFunction(c1._ad_function_space(mesh))
             elif isinstance(c1, backend.Mesh):
-                S = backend.VectorFunctionSpace(c1, "CG", 1)
-                dc = backend.TestFunction(S)
+                pass
             else:
                 continue
 
             # Special treatment if CoordinateDerivative
             if isinstance(c1, backend.Mesh):
                 X = backend.SpatialCoordinate(c1)
-                dform = backend.derivative(form, X, dc)
+                dform = backend.derivative(form, X)
             else:
                 dform = backend.derivative(form, c1_rep, dc)
 

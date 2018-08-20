@@ -75,9 +75,6 @@ class SolveBlock(Block):
             self.assemble_kwargs = {}
             if "solver_parameters" in kwargs and "mat_type" in kwargs["solver_parameters"]:
                 self.assemble_kwargs["mat_type"] = kwargs["solver_parameters"]["mat_type"]
-            mesh = self.lhs.ufl_domain().ufl_cargo()
-            self.add_dependency(mesh.block_variable)
-            #self.add_output(self.func.create_block_variable())
         else:
             # Linear algebra problem.
             # TODO: Consider checking if attributes exist.
@@ -104,6 +101,9 @@ class SolveBlock(Block):
                 self.add_dependency(c.block_variable)
         else:
             self.linear = False
+
+        mesh = self.lhs.ufl_domain().ufl_cargo()
+        self.add_dependency(mesh.block_variable)
 
         for bc in self.bcs:
             self.add_dependency(bc.block_variable)
@@ -266,7 +266,6 @@ class SolveBlock(Block):
                     bc.apply(dFdm)
 
             elif isinstance(c, backend.DirichletBC):
-                #tmp_bc = backend.DirichletBC(V, tlm_value, c_rep.user_sub_domain())
                 dFdm = backend.Function(V).vector()
                 tlm_value.apply(dFdu, dFdm)
 
@@ -354,9 +353,7 @@ class SolveBlock(Block):
         # Start piecing together the rhs of the soa equation
         b = hessian_input.copy()
         b_form = d2Fdu2
-        if len(b_form.integrals()) > 0:
-            b_form = backend.adjoint(b_form)
-            b -= compat.assemble_adjoint_value(backend.action(b_form, adj_sol))
+        b_vector = 0.0
 
         for bo in self.get_dependencies():
             c = bo.output
@@ -371,13 +368,15 @@ class SolveBlock(Block):
                 dFdu_adj = backend.action(dFdu_form, adj_sol)
                 d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdu_adj, X, tlm_input))
                 if len(d2Fdudm.integrals()) > 0:
-                    b -= compat.assemble_adjoint_value(d2Fdudm)
+                    b_vector -= compat.assemble_adjoint_value(d2Fdudm)
             elif not isinstance(c, backend.DirichletBC):
-                d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdu_form, c_rep, tlm_input))
-                if len(d2Fdudm.integrals()) > 0:
-                    b_form = backend.adjoint(d2Fdudm)
-                    b -= compat.assemble_adjoint_value(backend.action(b_form,
-                                                                  adj_sol))
+                b_form += backend.derivative(dFdu_form, c_rep, tlm_input)
+
+        b_form = ufl.algorithms.expand_derivatives(b_form)
+        if len(b_form.integrals()) > 0:
+            b_form = backend.adjoint(b_form)
+            b -= compat.assemble_adjoint_value(backend.action(b_form, adj_sol))
+        b += b_vector
         b_copy = b.copy()
 
         for bc in bcs:
@@ -407,7 +406,6 @@ class SolveBlock(Block):
                 bo.add_hessian_output([tmp_bc])
                 continue
 
-            dc = None
             if isinstance(c_rep, backend.Constant):
                 mesh = compat.extract_mesh_from_form(F_form)
                 W = c._ad_function_space(mesh)
@@ -415,8 +413,9 @@ class SolveBlock(Block):
                 mesh = F_form.ufl_domain().ufl_cargo()
                 W = c._ad_function_space(mesh)
             elif isinstance(c, backend.Mesh):
-                W = backend.VectorFunctionSpace(c, "CG", 1)
                 X = backend.SpatialCoordinate(c)
+                element = X.ufl_domain().ufl_coordinate_element()
+                W = backend.FunctionSpace(c, element)
             else:
                 W = c.function_space()
 
@@ -433,7 +432,6 @@ class SolveBlock(Block):
                 d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, fwd_block_variable.saved_output, tlm_output))    
             except ufl.log.UFLException:
                 continue
-
 
             # We need to add terms from every other dependency
             # i.e. the terms d^2F/dm_1dm_2

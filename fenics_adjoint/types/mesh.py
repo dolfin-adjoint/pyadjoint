@@ -3,6 +3,7 @@ from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, no_
 from pyadjoint.block import Block
 from pyadjoint.overloaded_type import OverloadedType
 
+
 class Mesh(OverloadedType, backend.Mesh):
     def __init__(self, *args, **kwargs):
 
@@ -16,6 +17,7 @@ class Mesh(OverloadedType, backend.Mesh):
     def _ad_restore_at_checkpoint(self, checkpoint):
         self.coordinates()[:] = checkpoint
         return self
+
 
 class UnitSquareMesh(OverloadedType, backend.UnitSquareMesh):
     def __init__(self, *args, **kwargs):
@@ -105,7 +107,6 @@ class ALEMoveBlock(Block):
             return
         self.get_outputs()[0].add_tlm_output(tlm_input)
 
-
     @no_annotations
     def evaluate_hessian(self):
         hessian_input = self.get_outputs()[0].hessian_value
@@ -113,7 +114,6 @@ class ALEMoveBlock(Block):
             return
 
         self.get_dependencies()[1].add_hessian_output(hessian_input)
-
 
     @no_annotations
     def recompute(self):
