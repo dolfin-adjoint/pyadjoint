@@ -80,7 +80,7 @@ def test_bounds_work_sensibly():
     solver.rolvector.scale(0.0)
     sol2 = solver.solve()
 
-    assert errornorm(sol1, sol2) < 1e-8
+    assert errornorm(sol1, sol2) < 1e-7
 
 
 @pytest.mark.parametrize("contype", ["eq", "ineq"])
@@ -162,6 +162,93 @@ def test_constraint_works_sensibly(contype):
     vol = 0.3
     econ = EqVolumeConstraint(vol, V)
     icon = IneqVolumeConstraint(vol, V)
+    bounds = (interpolate(Constant(0.0), V), interpolate(Constant(0.7), V))
+
+
+    if contype == "eq":
+        print("Run with equality constraint")
+        problem = MinimizationProblem(rf, constraints=[econ])
+    elif contype == "ineq":
+        print("Run with inequality constraint")
+        problem = MinimizationProblem(rf, constraints=[icon])
+        return
+    else:
+        raise NotImplementedError
+
+    solver = ROLSolver(problem, params, inner_product="L2")
+
+    econ, emul = solver.constraints[0]
+    icon, imul = solver.constraints[1]
+
+    x = solver.rolvector
+    v = x.clone()
+    v.dat[0].interpolate(Constant(1.0))
+    u = v.clone()
+    u.plus(v)
+
+
+    if len(econ)>0:
+        jv = emul[0].clone()
+        jv.dat[0].assign(1.0)
+        res0 = econ[0].checkApplyJacobian(x, v, jv, 5, 1)
+        res1 = econ[0].checkAdjointConsistencyJacobian(jv, v, x)
+        res2 = econ[0].checkApplyAdjointHessian(x, jv, u, v, 5, 1)
+
+        assert all(r[3] < 1e-10 for r in res0)
+        assert res1 < 1e-10
+        assert all(r[3] < 1e-10 for r in res2)
+
+    if len(icon)>0:
+        jv = imul[0].clone()
+        jv.dat[0].assign(1.0)
+        res0 = icon[0].checkApplyJacobian(x, v, jv, 5, 1)
+        res1 = icon[0].checkAdjointConsistencyJacobian(jv, v, x)
+        res2 = icon[0].checkApplyAdjointHessian(x, jv, u, v, 5, 1)
+
+        assert all(r[3] < 1e-10 for r in res0)
+        assert res1 < 1e-10
+        assert all(r[3] < 1e-10 for r in res2)
+
+    sol1 = solver.solve().copy(deepcopy=True)
+    if contype == "eq":
+        assert(abs(assemble(sol1 * dx) - vol) < 1e-5)
+    elif contype == "ineq":
+        assert(assemble(sol1 * dx) < vol + 1e-5)
+    else:
+        raise NotImplementedError
+
+@pytest.mark.parametrize("contype", ["eq", "ineq"])
+def test_ufl_constraint_works_sensibly(contype):
+    rf, params, w, alpha = setup(n=7)
+
+    params = {
+        'General': {
+            'Secant': {'Type': 'Limited-Memory BFGS', 'Maximum Storage': 10}},
+        'Step': {
+            'Type': 'Augmented Lagrangian',
+            'Line Search': {
+                'Descent Method': {
+                    'Type': 'Quasi-Newton Step'
+                }
+            },
+            'Augmented Lagrangian': {
+                'Subproblem Step Type': 'Line Search',
+                'Subproblem Iteration Limit': 10
+            }
+        },
+        'Status Test': {
+            'Gradient Tolerance': 1e-7,
+            'Iteration Limit': 10
+        }
+    }
+
+    f = rf.controls[0]
+    V = f.function_space()
+    R = FunctionSpace(V.mesh(), "R", 0)
+    rv = TestFunction(R)
+    vol = 0.3
+    econ = UFLEqualityConstraint(inner(rv, vol - f.control)*dx, f)
+    icon = UFLInequalityConstraint(inner(rv, vol - f.control)*dx, f)
     bounds = (interpolate(Constant(0.0), V), interpolate(Constant(0.7), V))
 
 

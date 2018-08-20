@@ -231,13 +231,21 @@ if __name__ == "__main__":
         def output_workspace(self):
             return Constant(0.0)
 
+    volume_constraint = VolumeConstraint(V, A)
+
+    # Volume constraint: a scalar constraint, so we use R as the constraint space
+    R = FunctionSpace(mesh, "R", 0)
+    v = TestFunction(R)
+    # We want V - \int rho dx >= 0, so write this as \int V/delta - rho dx >= 0
+    volume_constraint = UFLInequalityConstraint(inner(v, V/delta - rho**2)*dx, m)
+
 # Now that all the ingredients are in place, we can perform the initial
 # optimisation. We set the maximum number of iterations for this initial
 # optimisation problem to 3; there's no need to solve this to
 # completion, as its only purpose is to generate an initial guess.
 
     # Solve the optimisation problem with q = 0.01
-    problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=VolumeConstraint(V, A))
+    problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=volume_constraint)
     params = {
         'General': {
             'Secant': {'Type': 'Limited-Memory BFGS', 'Maximum Storage': 10}},
@@ -303,7 +311,7 @@ if __name__ == "__main__":
 # We can now solve the optimisation problem with :math:`q=0.1`, starting
 # from the solution of :math:`q=0.01`:
 
-    problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=VolumeConstraint(V, A))
+    problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=volume_constraint)
     params["Status Test"]["Iteration Limit"] = 15
     solver = ROLSolver(problem, params, inner_product="L2")
     rho_opt = solver.solve()
