@@ -99,31 +99,14 @@ if __name__ == "__main__":
     lb = 0.0
     ub = 1.0
 
-    # Volume constraints
-    class VolumeConstraint(InequalityConstraint):
-        """A class that enforces the volume constraint g(a) = volume - a*dx >= 0."""
-        def __init__(self, volume, W):
-            self.volume  = float(volume)
-            self.smass  = assemble(TestFunction(W) * Constant(1) * dx).vector()
-
-        def function(self, m):
-            integral = self.smass.inner(m[0].vector())
-            return Constant(self.volume - integral)
-
-        def jacobian_action(self, m, dm, result):
-            result.assign(self.smass.inner(-dm.vector()))
-
-        def jacobian_adjoint_action(self, m, dp, result):
-            result.vector()[:] = -1.*dp.values()[0]
-
-        def hessian_action(self, m, dm, dp, result):
-            result.vector()[:] = 0.0
-
-        def output_workspace(self):
-            return Constant(0.0)
+    # Volume constraint: a scalar constraint, so we use R as the constraint space
+    R = FunctionSpace(mesh, "R", 0)
+    v = TestFunction(R)
+    # We want V - \int rho dx >= 0, so write this as \int V/delta - rho dx >= 0
+    volume_constraint = UFLInequalityConstraint(inner(v, V/delta - rho)*dx, m)
 
     # Solve the optimisation problem with q = 0.01
-    problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=VolumeConstraint(V, A))
+    problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=volume_constraint)
     params = {
         'General': {
             'Secant': {'Type': 'Limited-Memory BFGS', 'Maximum Storage': 10}},
@@ -168,7 +151,7 @@ if __name__ == "__main__":
     m = Control(rho)
     Jhat = ReducedFunctional(J, m, eval_cb_post=eval_cb)
 
-    problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=VolumeConstraint(V, A))
+    problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=volume_constraint)
     params["Status Test"]["Iteration Limit"] = 15
     solver = ROLSolver(problem, params, inner_product="L2")
     rho_opt = solver.solve()

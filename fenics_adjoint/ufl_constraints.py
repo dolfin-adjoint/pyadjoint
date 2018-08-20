@@ -6,6 +6,7 @@ if backend.__name__ in ["dolfin", "fenics"]:
     import fenics_adjoint.types as backend_types
 elif backend.__name__ == "firedrake":
     import firedrake_adjoint.types as backend_types
+    import fenics_adjoint.types as fenics_types
 else:
     raise NotImplementedError("Unknown backend")
 
@@ -27,7 +28,7 @@ def as_vec(x):
 
         if len(copy) == 1:
             copy = copy[0]
-        return copy
+        return fenics_types.Constant(copy)
     else:
         raise NotImplementedError("Unknown backend")
 
@@ -79,8 +80,13 @@ class UFLConstraint(Constraint):
             else:
                 self.u.vector().set_local(m)
         else:
-            with self.u.dat.vec_wo as x:
-                x[:] = m
+            if isinstance(m, backend.Function):
+                self.u.assign(m)
+            else:
+                with self.u.dat.vec_wo as x:
+                    x[:] = m
+
+            
 
     def function(self, m):
         self.update_control(m)

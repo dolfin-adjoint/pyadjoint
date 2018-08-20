@@ -206,38 +206,11 @@ if __name__ == "__main__":
     lb = 0.0
     ub = 1.0
 
-    # Volume constraints
-    class VolumeConstraint(InequalityConstraint):
-        """A class that enforces the volume constraint g(a) = volume - a*dx >= 0."""
-        def __init__(self, volume, W):
-            self.volume  = float(volume)
-            # The derivative of the constraint g(x) is constant (it is the diagonal of the lumped mass matrix for the control function space), so let's assemble it here once.
-            # This is also useful in rapidly calculating the integral each time without re-assembling.
-            self.smass  = assemble(TestFunction(W) * Constant(1) * dx)
-
-        def function(self, m):
-            integral = self.smass.inner(m[0].vector())
-            return Constant(self.volume - integral)
-
-        def jacobian_action(self, m, dm, result):
-            result.assign(self.smass.inner(-dm.vector()))
-
-        def jacobian_adjoint_action(self, m, dp, result):
-            result.vector()[:] = -1.*dp.values()[0]
-
-        def hessian_action(self, m, dm, dp, result):
-            result.vector()[:] = 0.0
-
-        def output_workspace(self):
-            return Constant(0.0)
-
-    volume_constraint = VolumeConstraint(V, A)
-
     # Volume constraint: a scalar constraint, so we use R as the constraint space
     R = FunctionSpace(mesh, "R", 0)
     v = TestFunction(R)
     # We want V - \int rho dx >= 0, so write this as \int V/delta - rho dx >= 0
-    volume_constraint = UFLInequalityConstraint(inner(v, V/delta - rho**2)*dx, m)
+    volume_constraint = UFLInequalityConstraint(inner(v, V/delta - rho)*dx, m)
 
 # Now that all the ingredients are in place, we can perform the initial
 # optimisation. We set the maximum number of iterations for this initial
