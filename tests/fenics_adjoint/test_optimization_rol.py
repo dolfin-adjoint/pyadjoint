@@ -177,16 +177,28 @@ def test_constraint_works_sensibly(contype):
 
     solver = ROLSolver(problem, params, inner_product="L2")
 
+    obj = solver.rolobjective
+    x = solver.rolvector
+
     econ, emul = solver.constraints[0]
     icon, imul = solver.constraints[1]
 
     x = solver.rolvector
+    x.dat[0].interpolate(Constant(0.5))
     v = x.clone()
     v.dat[0].interpolate(Constant(1.0))
     u = v.clone()
     u.plus(v)
 
+    print("Check objective gradient and hessian")
+    res0 = obj.checkGradient(x, v)
+    res1 = obj.checkHessVec(x, v)
+    for i in range(1, len(res0)):
+        assert res0[i][3] < 0.15 * res0[i-1][3]
+    assert all(r[3] < 1e-10 for r in res1)
 
+
+    print("Check constraint gradient and hessian")
     if len(econ)>0:
         jv = emul[0].clone()
         jv.dat[0].assign(1.0)

@@ -24,6 +24,10 @@ try:
             self.deriv = self.rf.derivative()  # forget=False, project=False)
             g.dat = g.riesz_map(self.deriv)
 
+        def hessVec(self, hv, v, x, tol):
+            hessian_action = self.rf.hessian(v.dat)
+            hv.dat = hv.riesz_map(hessian_action)
+
         def update(self, x, flag, iteration):
             self.val = self.rf(x.dat)
             # pass
