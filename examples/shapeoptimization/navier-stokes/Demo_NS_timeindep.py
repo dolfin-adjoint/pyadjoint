@@ -22,7 +22,7 @@ s = Function(S, name="Deformation")
 ALE.move(mesh, s) 
 
 # Physical parameters and boundary data
-nu = Constant(5e-3, name="Viscosity")
+nu = Constant(5e-2, name="Viscosity")
 u_inlet = Function(W.sub(0).collapse())
 u_inlet.interpolate(Expression(("sin(pi*x[1])", "0"), degree=1,
                                  name="Inlet Velocity",
@@ -57,7 +57,8 @@ bx = (0.5-assemble(x[0]*dx))/Vol
 by = (0.5-assemble(x[1]*dx))/Vol
 J+= 7.5e1*(Vol-Vol0)**2
 J+= 7.5e1*((bx-0.5)**2 + (by-0.5)**2)
-Jhat = ReducedFunctional(J, Control(s))
+c = Control(s)
+Jhat = ReducedFunctional(J, c)
 
 # Visualize pyadjoint tape
 Jhat.optimize()
@@ -138,6 +139,12 @@ deform = riesz_representation(rhs)
 s0 = Function(S)
 taylor_test(Jhat, s0, deform, dJdm=0)
 taylor_test(Jhat, s0, deform)
+Jhat(s0)
+s.tlm_value = deform
+tape.evaluate_tlm()
+dJdm = Jhat.derivative().vector().inner(deform.vector())
+Hm = compute_hessian(J, c, deform).vector().inner(deform.vector())
+taylor_test(Jhat, s0, deform, dJdm=dJdm, Hm=Hm)
 
 
 
