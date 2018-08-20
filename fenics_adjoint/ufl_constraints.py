@@ -151,7 +151,6 @@ class UFLConstraint(Constraint):
             m = m[0]
         self.update_control(m)
 
-        print("dp: %s" % dp.values())
         if isinstance(result, backend.Function):
             if backend.__name__ in ["dolfin", "fenics"]:
                 result.vector().zero()
@@ -160,7 +159,6 @@ class UFLConstraint(Constraint):
                 result.assign(backend.assemble(backend.action(self.adform, dp)))
         else:
             raise NotImplementedError("Do I need to untangle all controls?")
-        print("result: %s" % result.vector().get_local())
 
     def hessian_action(self, m, dm, dp, result):
         """Computes the Hessian action of c(m) in direction dm and dp and stores the result in result. """

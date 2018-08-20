@@ -103,7 +103,7 @@ def test_constraint_works_sensibly(contype):
             result.assign(self.smass.inner(-dm.vector()))
 
         def jacobian_adjoint_action(self, m, dp, result):
-            result.vector()[:] = -1.*dp.values()[0]
+            result.vector()[:] = self.smass * (-1.*dp.values()[0])
 
         def hessian_action(self, m, dm, dp, result):
             result.vector()[:] = 0.0
@@ -127,7 +127,7 @@ def test_constraint_works_sensibly(contype):
             result.assign(self.smass.inner(-dm.vector()))
 
         def jacobian_adjoint_action(self, m, dp, result):
-            result.vector()[:] = -1.*dp.values()[0]
+            result.vector()[:] = self.smass * (-1.*dp.values()[0])
 
         def hessian_action(self, m, dm, dp, result):
             result.vector()[:] = 0.0
@@ -233,12 +233,12 @@ def test_ufl_constraint_works_sensibly(contype):
             },
             'Augmented Lagrangian': {
                 'Subproblem Step Type': 'Line Search',
-                'Subproblem Iteration Limit': 10
+                'Subproblem Iteration Limit': 20
             }
         },
         'Status Test': {
             'Gradient Tolerance': 1e-7,
-            'Iteration Limit': 10
+            'Iteration Limit': 15
         }
     }
 
@@ -247,8 +247,8 @@ def test_ufl_constraint_works_sensibly(contype):
     R = FunctionSpace(V.mesh(), "R", 0)
     rv = TestFunction(R)
     vol = 0.3
-    econ = UFLEqualityConstraint(inner(rv, vol - f.control)*dx, f)
-    icon = UFLInequalityConstraint(inner(rv, vol - f.control)*dx, f)
+    econ = UFLEqualityConstraint(inner(rv, vol - f.control**2)*dx, f)
+    icon = UFLInequalityConstraint(inner(rv, vol - f.control**2)*dx, f)
     bounds = (interpolate(Constant(0.0), V), interpolate(Constant(0.7), V))
 
 
@@ -281,7 +281,8 @@ def test_ufl_constraint_works_sensibly(contype):
         res1 = econ[0].checkAdjointConsistencyJacobian(jv, v, x)
         res2 = econ[0].checkApplyAdjointHessian(x, jv, u, v, 5, 1)
 
-        assert all(r[3] < 1e-10 for r in res0)
+        for i in range(1, len(res0)):
+            assert res0[i][3] < 0.15 * res0[i-1][3]
         assert res1 < 1e-10
         assert all(r[3] < 1e-10 for r in res2)
 
@@ -292,14 +293,15 @@ def test_ufl_constraint_works_sensibly(contype):
         res1 = icon[0].checkAdjointConsistencyJacobian(jv, v, x)
         res2 = icon[0].checkApplyAdjointHessian(x, jv, u, v, 5, 1)
 
-        assert all(r[3] < 1e-10 for r in res0)
+        for i in range(1, len(res0)):
+            assert res0[i][3] < 0.15 * res0[i-1][3]
         assert res1 < 1e-10
         assert all(r[3] < 1e-10 for r in res2)
 
     sol1 = solver.solve().copy(deepcopy=True)
     if contype == "eq":
-        assert(abs(assemble(sol1 * dx) - vol) < 1e-5)
+        assert(abs(assemble(sol1**2 * dx) - vol) < 1e-5)
     elif contype == "ineq":
-        assert(assemble(sol1 * dx) < vol + 1e-5)
+        assert(assemble(sol1**2 * dx) < vol + 1e-5)
     else:
         raise NotImplementedError

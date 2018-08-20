@@ -99,9 +99,11 @@ try:
 
         def applyAdjointJacobian(self, jv, v, x, tol):
             self.con.jacobian_adjoint_action(x.dat, v.dat, jv.dat[0])
+            jv.dat = jv.riesz_map(jv.dat)
 
         def applyAdjointHessian(self, ahuv, u, v, x, tol):
             self.con.hessian_action(x.dat, u.dat[0], v.dat, ahuv.dat[0])
+            ahuv.dat = ahuv.riesz_map(ahuv.dat)
 
 
     class ROLSolver(OptimizationSolver):
