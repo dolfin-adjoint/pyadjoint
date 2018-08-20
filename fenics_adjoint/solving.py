@@ -399,7 +399,8 @@ class SolveBlock(Block):
             # If m = DirichletBC then d^2F(u,m)/dm^2 = 0 and d^2F(u,m)/dudm = 0,
             # so we only have the term dF(u,m)/dm * adj_sol2
             if isinstance(c, backend.DirichletBC):
-                tmp_bc = compat.create_bc(c, value=adj_sol2_bdy)
+                tmp_bc = compat.create_bc(c, value=extract_subfunction(adj_sol2_bdy, c.function_space()))
+                # tmp_bc = compat.create_bc(c, value=adj_sol2_bdy)
                 #adj_output = Function(V)
                 #tmp_bc.apply(adj_output.vector())
 
