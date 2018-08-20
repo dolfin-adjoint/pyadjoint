@@ -24,7 +24,9 @@ class Block(object):
         BlockVariable was not created by a Block (but by the user).
 
         Args:
-            dep (:class:`BlockVariable`): The object to be added.
+            dep (BlockVariable): The object to be added.
+            no_duplicates (bool, optional): If True, the dependency is only added if it is not already in the list.
+                Default is False.
 
         """
         if not no_duplicates or dep not in self._dependencies:
