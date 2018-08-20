@@ -45,20 +45,20 @@ class UFLConstraint(Constraint):
 
 
         self.trial1 = backend.TrialFunction(self.V)
-        self.trial2 = backend.TrialFunction(self.V)
 
         self.dform = backend.derivative(self.form, self.u, self.trial1)
 
         if len(ufl.algorithms.extract_arguments(ufl.algorithms.expand_derivatives(self.dform))) == 0:
             raise ValueError("Form must depend on control")
         self.adform = backend.adjoint(self.dform)
-        self.hess = backend.derivative(self.dform, self.u, self.trial2)
+        self.hess = backend.derivative(self.dform, self.u)
+        (_, _, self.trial2) = self.hess.arguments()
 
     def update_control(self, m):
         if backend.__name__ in ["dolfin", "fenics"]:
             self.u.vector().set_local(m)
         else:
-            with self.u.dat.vec as x:
+            with self.u.dat.vec_wo as x:
                 x[:] = m
 
     def function(self, m):
