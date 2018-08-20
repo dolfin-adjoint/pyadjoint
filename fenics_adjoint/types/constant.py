@@ -87,7 +87,7 @@ class Constant(OverloadedType, backend.Constant):
         return Constant(values)
 
     def _ad_dim(self):
-        return sum(self.values().shape)
+        return numpy.prod(self.values().shape)
 
     def _imul(self, other):
         self.assign(ufl_shape_workaround(self.values() * other))

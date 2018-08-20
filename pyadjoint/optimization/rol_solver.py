@@ -162,7 +162,7 @@ try:
 
             if len(eqconstraints.constraints) > 0:
                 eqws = eqconstraints.output_workspace()
-                if any([not isinstance(w, OverloadedType) for w in eqws]):
+                if not all(isinstance(w, OverloadedType) for w in eqws):
                     raise TypeError("""To use constraints with ROL the constraint value needs
     to be an OverloadedType.""")
                 eqres = [ROLConstraint(eqconstraints)], [ROLVector(eqws)]
