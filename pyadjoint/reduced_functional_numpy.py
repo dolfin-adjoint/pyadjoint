@@ -238,4 +238,4 @@ def gather(m):
     if isinstance(m, list):
         return list(map(gather, m))
     else:
-        return m._ad_to_list()
+        return m._ad_to_list(m)

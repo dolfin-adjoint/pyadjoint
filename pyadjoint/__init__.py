@@ -19,5 +19,5 @@ from .optimization.optimization import minimize
 from .optimization.optimization_problem import MinimizationProblem
 from .optimization.ipopt_solver import IPOPTSolver
 from .optimization.rol_solver import ROLSolver
-from .optimization.constraints import InequalityConstraint
+from .optimization.constraints import InequalityConstraint, EqualityConstraint
 from .optimization.moola_problem import MoolaOptimizationProblem
