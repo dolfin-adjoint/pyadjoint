@@ -93,7 +93,7 @@ class Function(FloatingType, backend.Function):
             ret = Function(self.function_space())
             u = backend.TrialFunction(self.function_space())
             v = backend.TestFunction(self.function_space())
-            M = backend.assemble(u * v * backend.dx)
+            M = backend.assemble(backend.inner(u, v) * backend.dx)
             if not isinstance(value, backend.Vector):
                 value = value.vector()
             backend.solve(M, ret.vector(), value)
@@ -133,7 +133,7 @@ class Function(FloatingType, backend.Function):
         if riesz_representation == "l2":
             return self.vector().inner(other.vector())
         elif riesz_representation == "L2":
-            return backend.assemble(self * other * backend.dx)
+            return backend.assemble(backend.inner(self, other) * backend.dx)
 
     @staticmethod
     def _ad_assign_numpy(dst, src, offset):
