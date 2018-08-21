@@ -82,7 +82,7 @@ T = 2
 ctrls = OrderedDict()
 t = float(dt)
 while t <= T:
-    ctrls[t] = Function(V, annotate=True)
+    ctrls[t] = Function(V)
     t += float(dt)
 
 # The following function implements a heat equation solver in FEniCS.
