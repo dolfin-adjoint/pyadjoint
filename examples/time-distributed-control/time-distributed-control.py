@@ -85,11 +85,7 @@ while t <= T:
     ctrls[t] = Function(V, annotate=True)
     t += float(dt)
 
-# The following function implements a heat equation solver in FEniCS. The
-# only `dolfin-adjoint` specific functions are `adj_start_timestep` and
-# `adj_inc_timestep` to communicute the time-levels to `dolfin_adjoint`, and the
-# `annotate` flag in the assignment to enforce that the update of the forcing
-# function is captured in the `dolfin-adjoint` tape:
+# The following function implements a heat equation solver in FEniCS.
 
 def solve_heat(ctrls):
     u = TrialFunction(V)
@@ -113,7 +109,7 @@ def solve_heat(ctrls):
 
         # Update data function
         data.t = t
-        d.assign(interpolate(data, V), annotate=True)
+        d.assign(interpolate(data, V))
 
         # Solve PDE
         solve(a == L, u_0, bc)
