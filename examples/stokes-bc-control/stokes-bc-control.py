@@ -54,6 +54,10 @@
 from fenics import *
 from fenics_adjoint import *
 
+# Change matplotlib backend to work in docker.
+import matplotlib
+matplotlib.use("agg")
+
 # Next, we load the mesh. The mesh was generated with mshr; see make-mesh.py
 # in the same directory.
 
@@ -91,7 +95,18 @@ u_inflow = Expression(("x[1]*(10-x[1])/25", "0"), degree=1)
 noslip = DirichletBC(W.sub(0), (0, 0),
                      "on_boundary && (x[1] >= 9.9 || x[1] < 0.1)")
 inflow = DirichletBC(W.sub(0), u_inflow, "on_boundary && x[0] <= 0.1")
-circle = DirichletBC(W.sub(0), g, "on_boundary && (pow((x[0]-10),2) + pow((x[1]-5),2)  < 3*3)")
+
+class Circle(SubDomain):
+    def inside(self, x, on_boundary):
+        return on_boundary and (x[0]-10)**2 + (x[1]-5)**2 < 3**2
+
+facet_marker = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
+facet_marker.set_all(10)
+Circle().mark(facet_marker, 2)
+
+ds = ds(subdomain_data=facet_marker)
+circle = DirichletBC(W.sub(0), g, facet_marker, 2)
+
 bcs = [inflow, noslip, circle]
 
 a = (nu*inner(grad(u), grad(v))*dx
@@ -107,9 +122,23 @@ solve(A, s.vector(), b)
 u, p = split(s)
 alpha = Constant(10)
 
-J = assemble(1./2*inner(u, u)**2*dx)
+J = assemble(1./2*inner(u, u)**2*dx + alpha/2*inner(g, g)*ds(2))
 dJdm = compute_gradient(J, Control(g))
 
-h = Function(V_collapse)
-h.vector()[:] = 1
-taylor_test(ReducedFunctional(J,Control(g)),g.copy(deepcopy = True),h,dJdm=dJdm.vector().inner(h.vector()))
+Jhat = ReducedFunctional(J, Control(g))
+
+g_opt = minimize(Jhat, options={"disp": True})
+
+import matplotlib.pyplot as plt
+plot(g_opt, title="Optimised boundary")
+plt.savefig("opt_g.png")
+plt.clf()
+
+g.assign(g_opt)
+A, b = assemble_system(a, L, bcs)
+solve(A, s.vector(), b)
+plot(s.sub(0), title="Velocity")
+plt.savefig("velocity.png")
+plt.clf()
+plot(s.sub(1), title="Pressure")
+plt.savefig("pressure.png")
