@@ -21,7 +21,7 @@ def as_vec(x):
 
         if len(out) == 1:
             out = out[0]
-            return backend_types.Constant(out)
+        return backend_types.Constant(out)
     elif backend.__name__ == "firedrake":
         with x.dat.vec_ro as vec:
             copy = numpy.array(vec)
@@ -33,37 +33,35 @@ def as_vec(x):
         raise NotImplementedError("Unknown backend")
 
 class UFLConstraint(Constraint):
+    """
+    Easily implement scalar constraints using UFL.
+
+    The form must be a 0-form that depends on a Function control.
+    """
     def __init__(self, form, control):
 
         if not isinstance(control.control, backend.Function):
             raise NotImplementedError("Only implemented for Function controls")
 
         args = ufl.algorithms.extract_arguments(form)
-        if len(args) != 1:
-            raise ValueError("Must be a rank-one form")
-
-        self.test = args[0]
-        self.tV = self.test.function_space()
-        if self.tV.ufl_element().family() != "Real":
-            raise ValueError("Assumes the test functions are from FunctionSpace(mesh, 'R', 0)")
+        if len(args) != 0:
+            raise ValueError("Must be a rank-zero form, i.e. a functional")
 
         u = control.control
         self.V = u.function_space()
         # We want to make a copy of the control purely for use
         # in the constraint, so that our writing it isn't
         # bothering anyone else
-        self.u = backend.Function(self.V)
+        self.u = backend_types.Function(self.V)
         self.form = backend.replace(form, {u: self.u})
 
-
         self.trial1 = backend.TrialFunction(self.V)
-
         self.dform = backend.derivative(self.form, self.u, self.trial1)
-
         if len(ufl.algorithms.extract_arguments(ufl.algorithms.expand_derivatives(self.dform))) == 0:
             raise ValueError("Form must depend on control")
-        self.adform = backend.adjoint(self.dform)
-        self.hess = ufl.algorithms.expand_derivatives(backend.derivative(self.dform, self.u, backend.TestFunction(self.V)))
+
+        self.test = backend.TestFunction(self.V)
+        self.hess = ufl.algorithms.expand_derivatives(backend.derivative(self.dform, self.u, self.test))
         if len(ufl.algorithms.extract_arguments(self.hess)) == 0:
             self.zero_hess = True
         else:
@@ -74,24 +72,15 @@ class UFLConstraint(Constraint):
             assert len(m) == 1
             m = m[0]
 
-        if backend.__name__ in ["dolfin", "fenics"]:
-            if isinstance(m, backend.Function):
-                self.u.assign(m)
-            else:
-                self.u.vector().set_local(m)
+        if isinstance(m, backend.Function):
+            self.u.assign(m)
         else:
-            if isinstance(m, backend.Function):
-                self.u.assign(m)
-            else:
-                with self.u.dat.vec_wo as x:
-                    x[:] = m
-
-            
+            self.u._ad_assign_numpy(self.u, m, 0)
 
     def function(self, m):
         self.update_control(m)
         b = backend.assemble(self.form)
-        return as_vec(b)
+        return fenics_types.Constant(b)
 
     def jacobian(self, m):
         if isinstance(m, list):
@@ -99,34 +88,7 @@ class UFLConstraint(Constraint):
             m = m[0]
 
         self.update_control(m)
-
-        # We need to make the matrix dense, then extract it row-by-row, then
-        # return the columns as a list.
-        if backend.__name__ in ["dolfin", "fenics"]:
-            J = backend.assemble(self.dform)
-            out = []
-            for i in range(J.size(0)):
-                (cols, vals) = J.getrow(i)
-                v = backend_types.Function(self.V)
-                v.vector().set_local(vals) # is there a better way to do this?
-                out.append(v)
-        else:
-            out = []
-            J = backend.assemble(self.dform, mat_type="aij")
-            J.force_evaluation()
-            M = J.petscmat
-            if M.type == "python":
-                if M.size[0] != 1:
-                    # I don't know what data structure firedrake uses here yet, because they haven't coded it
-                    raise NotImplementedError("This case isn't supported by PyOP2 at time of writing")
-                else:
-                    ctx = M.getPythonContext()
-                    v = backend_types.Function(self.V)
-                    with v.dat.vec as x, ctx.dat.vec_ro as y:
-                        y.copy(x)
-                    out.append(v)
-            else:
-                raise NotImplementedError("Not encountered this case yet, patches welcome")
+        out = [backend.assemble(self.dform)]
         return out
 
     def jacobian_action(self, m, dm, result):
@@ -138,16 +100,7 @@ class UFLConstraint(Constraint):
         self.update_control(m)
 
         form = backend.action(self.dform, dm)
-        if isinstance(result, backend.Function):
-            if backend.__name__ in ["dolfin", "fenics"]:
-                result.vector().zero()
-                result.vector().axpy(1.0, backend.assemble(form))
-            else:
-                result.assign(backend.assemble(form))
-        elif isinstance(result, backend.Constant):
-            result.assign(as_vec(backend.assemble(form)))
-        else:
-            raise NotImplementedError("Do I need to untangle all controls?")
+        result.assign(backend.assemble(form))
 
     def jacobian_adjoint_action(self, m, dp, result):
         """Computes the Jacobian adjoint action of c(m) in direction dp and stores the result in result. """
@@ -157,12 +110,13 @@ class UFLConstraint(Constraint):
             m = m[0]
         self.update_control(m)
 
+        asm = backend.assemble(dp*self.dform)
         if isinstance(result, backend.Function):
             if backend.__name__ in ["dolfin", "fenics"]:
                 result.vector().zero()
-                result.vector().axpy(1.0, backend.assemble(backend.action(self.adform, dp)))
+                result.vector().axpy(1.0, asm)
             else:
-                result.assign(backend.assemble(backend.action(self.adform, dp)))
+                result.assign(asm)
         else:
             raise NotImplementedError("Do I need to untangle all controls?")
 
@@ -174,7 +128,7 @@ class UFLConstraint(Constraint):
             m = m[0]
         self.update_control(m)
 
-        H = backend.replace(self.hess, {self.trial1: dm, self.test: dp})
+        H = dm*backend.replace(self.hess, {self.trial1: dp})
         if isinstance(result, backend.Function):
             if backend.__name__ in ["dolfin", "fenics"]:
                 if self.zero_hess:
@@ -193,16 +147,11 @@ class UFLConstraint(Constraint):
     def output_workspace(self):
         """Return an object like the output of c(m) for calculations."""
 
-        return as_vec(backend.assemble(self.form))
+        return fenics_types.Constant(backend.assemble(self.form))
 
     def _get_constraint_dim(self):
         """Returns the number of constraint components."""
-        if backend.__name__ in ["dolfin", "fenics"]:
-            return self.tV.dim()
-        elif backend.__name__ == "firedrake":
-            return self.tV.dim
-        else:
-            raise NotImplementedError("Unknown backend")
+        return 1
 
 class UFLEqualityConstraint(UFLConstraint, EqualityConstraint):
     pass

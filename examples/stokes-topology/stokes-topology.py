@@ -153,13 +153,13 @@ class InflowOutflow(Expression):
 def forward(rho):
     """Solve the forward problem for a given fluid distribution rho(x)."""
     w = Function(W)
-    (u, p) = split(w)
+    (u, p) = TrialFunctions(W)
     (v, q) = TestFunctions(W)
 
     F = (alpha(rho) * inner(u, v) * dx + inner(grad(u), grad(v)) * dx +
          inner(grad(p), v) * dx  + inner(div(u), q) * dx)
     bc = DirichletBC(W.sub(0), InflowOutflow(degree=1), "on_boundary")
-    solve(F == 0, w, bcs=bc)
+    solve(lhs(F) == rhs(F), w, bcs=bc)
 
     return w
 
@@ -209,11 +209,8 @@ if __name__ == "__main__":
     lb = 0.0
     ub = 1.0
 
-    # Volume constraint: a scalar constraint, so we use R as the constraint space
-    R = FunctionSpace(mesh, "R", 0)
-    v = TestFunction(R)
     # We want V - \int rho dx >= 0, so write this as \int V/delta - rho dx >= 0
-    volume_constraint = UFLInequalityConstraint(inner(v, V/delta - rho)*dx, m)
+    volume_constraint = UFLInequalityConstraint((V/delta - rho)*dx, m)
 
 # Now that all the ingredients are in place, we can perform the initial
 # optimisation. We set the maximum number of iterations for this initial

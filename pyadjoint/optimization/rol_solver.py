@@ -178,7 +178,7 @@ try:
             ineqconstraints = self.problem.constraints.inequality_constraints()
             if len(ineqconstraints.constraints) > 0:
                 ineqws = ineqconstraints.output_workspace()
-                if any([not isinstance(w, OverloadedType) for w in ineqws]):
+                if not all(isinstance(w, OverloadedType) for w in ineqws):
                     raise TypeError("""To use constraints with ROL the constraint value needs
     to be an OverloadedType.""")
                 ineqres = [ROLConstraint(ineqconstraints)], [ROLVector(ineqws)]

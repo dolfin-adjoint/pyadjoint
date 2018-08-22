@@ -99,11 +99,8 @@ if __name__ == "__main__":
     lb = 0.0
     ub = 1.0
 
-    # Volume constraint: a scalar constraint, so we use R as the constraint space
-    R = FunctionSpace(mesh, "R", 0)
-    v = TestFunction(R)
     # We want V - \int rho dx >= 0, so write this as \int V/delta - rho dx >= 0
-    volume_constraint = UFLInequalityConstraint(inner(v, V/delta - rho)*dx, m)
+    volume_constraint = UFLInequalityConstraint((V/delta - rho)*dx, m)
 
     # Solve the optimisation problem with q = 0.01
     problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=volume_constraint)

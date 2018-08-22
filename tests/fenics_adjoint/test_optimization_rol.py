@@ -256,11 +256,9 @@ def test_ufl_constraint_works_sensibly(contype):
 
     f = rf.controls[0]
     V = f.function_space()
-    R = FunctionSpace(V.mesh(), "R", 0)
-    rv = TestFunction(R)
     vol = 0.3
-    econ = UFLEqualityConstraint(inner(rv, vol - f.control**2)*dx, f)
-    icon = UFLInequalityConstraint(inner(rv, vol - f.control**2)*dx, f)
+    econ = UFLEqualityConstraint((vol - f.control**2)*dx, f)
+    icon = UFLInequalityConstraint((vol - f.control**2)*dx, f)
     bounds = (interpolate(Constant(0.0), V), interpolate(Constant(0.7), V))
 
 
