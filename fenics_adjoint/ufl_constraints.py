@@ -2,11 +2,11 @@ import backend
 import ufl.algorithms
 import numpy
 
+import fenics_adjoint.types as fenics_types
 if backend.__name__ in ["dolfin", "fenics"]:
     import fenics_adjoint.types as backend_types
 elif backend.__name__ == "firedrake":
     import firedrake_adjoint.types as backend_types
-    import fenics_adjoint.types as fenics_types
 else:
     raise NotImplementedError("Unknown backend")
 
@@ -55,8 +55,8 @@ class UFLConstraint(Constraint):
         self.u = backend_types.Function(self.V)
         self.form = backend.replace(form, {u: self.u})
 
-        self.trial1 = backend.TrialFunction(self.V)
-        self.dform = backend.derivative(self.form, self.u, self.trial1)
+        self.trial = backend.TrialFunction(self.V)
+        self.dform = backend.derivative(self.form, self.u, self.trial)
         if len(ufl.algorithms.extract_arguments(ufl.algorithms.expand_derivatives(self.dform))) == 0:
             raise ValueError("Form must depend on control")
 
@@ -110,7 +110,7 @@ class UFLConstraint(Constraint):
             m = m[0]
         self.update_control(m)
 
-        asm = backend.assemble(dp*self.dform)
+        asm = backend.assemble(dp*backend.replace(self.dform, {self.trial: self.test}))
         if isinstance(result, backend.Function):
             if backend.__name__ in ["dolfin", "fenics"]:
                 result.vector().zero()
@@ -128,7 +128,7 @@ class UFLConstraint(Constraint):
             m = m[0]
         self.update_control(m)
 
-        H = dm*backend.replace(self.hess, {self.trial1: dp})
+        H = dm*backend.replace(self.hess, {self.trial: dp})
         if isinstance(result, backend.Function):
             if backend.__name__ in ["dolfin", "fenics"]:
                 if self.zero_hess:
