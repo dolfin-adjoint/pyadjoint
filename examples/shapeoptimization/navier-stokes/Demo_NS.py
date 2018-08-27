@@ -17,12 +17,14 @@ inlet, outlet, walls, obstacle = 1, 2, 3, 4 # Boundary Markers
 def forward(s):
     global facet_function
     mesh.coordinates()[:] = coords_copy
-    ALE.move(mesh, s)
+    # FIXME: Use mesh coordinates, dolfin adjoints fails in specification
     L = 2  # max(coords[:,0])-min(coords[:,0])
     H = 1  # max(coords[:,1])-min(coords[:,1])
     V_fluid = assemble(1 * dx(domain=mesh))
+    Bx0 = (L**2*H/2-assemble(X0[0]*dx))/(L*H- V_fluid)
+    By0 = (L*H**2/2-assemble(X0[1]*dx))/(L*H- V_fluid)
     Vol0 = L * H - V_fluid
-
+    ALE.move(mesh, s)
     facet_function = MeshFunction("size_t", mesh, "meshes/mesh_facet_region.xml")
 
     V = VectorFunctionSpace(mesh, "CG", 2)
@@ -118,6 +120,12 @@ def forward(s):
     x = SpatialCoordinate(mesh)
     Vol = L*H - assemble(1*dx(domain=mesh))
     J += alpha_p*(Vol-Vol0)**2
+    Bx = ((L**2*H/2-assemble(x[0]*dx(domain=mesh)))/
+          (L*H -assemble(1*dx(domain=mesh))))
+    By = ((L*H**2/2-assemble(x[1]*dx(domain=mesh)))/
+          (L*H - assemble(1*dx(domain=mesh))) )
+    J += alpha_p*((Bx-Bx0)**2 + (By-By0)**2)
+
     return J
 
 S = VectorFunctionSpace(mesh, "CG", 1)
@@ -205,7 +213,7 @@ def riesz_representation(integral, alpha=10, taylor = False):
 # print("Initial Functional value: %.2f" % Js[0])
 # print("Final Functional value: %.2f" % Js[-1])
 
-# Set taylor-test in steepest accent direction
+# Set taylor-test in normal direcction
 from femorph import VolumeNormal
 n_vol = VolumeNormal(mesh)
 deform_backend = Function(S)
@@ -215,11 +223,24 @@ deform = riesz_representation(r, taylor=True)
 
 s0 = Function(S)
 from pyadjoint.tape import stop_annotating
+# 0th order taylor test, expected convergence rate 1
+with stop_annotating():
+    taylor_test(Jhat, s0, deform, dJdm=0)
+# Reset mesh deformation
+Jhat(s0)
+# 1st order taylor test, expected convergence rate 2
+with stop_annotating():
+    taylor_test(Jhat, s0, deform)
+Jhat(s0)
+
+# 2nd order taylor test, expected convergence rate 3
 s.tlm_value = deform
 tape.evaluate_tlm()
 dJdm = Jhat.derivative().vector().inner(deform.vector())
 Hm = compute_hessian(J, c, deform).vector().inner(deform.vector())
 with stop_annotating():
     taylor_test(Jhat, s0, deform, dJdm=dJdm, Hm=Hm)
+
+# 2nd order taylor test of forward-function, expected convergence 3
 with stop_annotating():
     taylor_test(forward, s0, deform, dJdm=dJdm, Hm=Hm)
