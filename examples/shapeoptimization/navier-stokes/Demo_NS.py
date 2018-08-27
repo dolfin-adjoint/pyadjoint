@@ -4,8 +4,17 @@ set_log_level(LogLevel.ERROR)
 
 # Create mesh and facet-function from gmsh file.
 mesh = Mesh("meshes/mesh.xml")
-Vol0 = 1-assemble(1*dx(domain=mesh))
+X0 = SpatialCoordinate(mesh)
 
+# Compute Volume and Barycenter of obstacle assuming a rectangular duct
+# FIXME: Use mesh coordinates, dolfin adjoints fails in specification
+# coords = mesh.coordinates()
+L = 2#max(coords[:,0])-min(coords[:,0])
+H = 1#max(coords[:,1])-min(coords[:,1])
+V_fluid = assemble(1*dx(domain=mesh))
+Bx0 = (L**2*H/2-assemble(X0[0]*dx))/(L*H- V_fluid)
+By0 = (L*H**2/2-assemble(X0[1]*dx))/(L*H- V_fluid)
+Vol0 = L*H - V_fluid
 S = VectorFunctionSpace(mesh, "CG", 1)
 s = Function(S)
 ALE.move(mesh, s)
@@ -20,11 +29,11 @@ p = TrialFunction(Q)
 v = TestFunction(V)
 q = TestFunction(Q)
 
-dt = 0.01
+dt =0.1
 T = 1
-nu = Constant(0.01, name="Viscosity")
+nu = Constant(0.001, name="Viscosity")
 
-p_in = Expression("sin(t*T)", t=0.0, T=T, degree=2)
+p_in = Expression("0.5*sin(pi/T*t)", t=0.0, T=T, degree=2)
 u_walls = Constant((0.0,0.0), name="Non-slip")
 u_obstacle = Constant((0.0,0.0), name="Object")
 
@@ -99,83 +108,97 @@ while t < T + DOLFIN_EPS:
     u0.assign(u1, annotate=True)
     t += dt
     times.append(float(t))
-    J += dt*assemble(0.5*nu*inner(grad(u1),grad(u1))*dx)
+    J += assemble(0.5*nu*inner(grad(u1),grad(u1))*dx)
 
-
-Vol = 1-assemble(1*dx(domain=mesh))
-x = SpatialCoordinate(mesh)
+# Quadratic pentaltization of volume and barycenter offset
 alpha_p = 1e1
-bx = (0.5-assemble(x[0]*dx))/Vol
-by = (0.5-assemble(x[1]*dx))/Vol
-J+= alpha_p*(Vol-Vol0)**2
-J+= alpha_p*((bx-0.5)**2 + (by-0.5)**2)
-Jhat = ReducedFunctional(J, Control(s))
+x = SpatialCoordinate(mesh)
+# Bx = (L**2*H/2-assemble(x[0]*dx(domain=mesh)))/(L*H-  assemble(1*dx(domain=mesh)))
+# By = (L*H**2/2-assemble(x[1]*dx(domain=mesh)))/(L*H - assemble(1*dx(domain=mesh))) 
+Vol = L*H - assemble(1*dx(domain=mesh))
+J += alpha_p*(Vol-Vol0)**2
+#J += alpha_p*((Bx-Bx0)**2 + (By-By0)**2)
+c = Control(s)
+Jhat = ReducedFunctional(J, c)
 
 # Visualize pyadjoint tape
 Jhat.optimize()
-tape.visualise("output/tape_ns.dot", dot=True)
+#tape.visualise("output/tape_ns.dot", dot=True)
 
-def riesz_representation(integral, alpha=10):
+def riesz_representation(integral, alpha=10, taylor = False):
     """
     Returns a smoothed 'H1'-representation of an integral.
     Note that the boundary values are set strongly. This is due
     to the fact that we would like to keep the movement normal to the boundary
     """
+    # Remove internal movement from the representation
+    # boundary_rep = Function(S)
+    if not taylor:
+        tmp_bc = DirichletBC(S, Constant((0.0,0.0)), "on_boundary")
+        vol = integral.copy()
+        volume = tmp_bc.apply(vol)
+        integral = integral-vol
+
+    # Use a smoothed h1 riesz representation
     u, v = TrialFunction(S), TestFunction(S)
     a = Constant(alpha)*inner(grad(u), grad(v))*dx+inner(u,v)*dx
     A = assemble(a)
     bcs = [DirichletBC(S, Constant((0.0, 0.0)), facet_function, walls),
            DirichletBC(S, Constant((0.0, 0.0)), facet_function, inlet),
            DirichletBC(S, Constant((0.0, 0.0)), facet_function, outlet)]
+    # integral = assemble(inner(boundary_rep, v)*ds)
     [bc.apply(A, integral) for bc in bcs]
     representation = Function(S)
     solve(A, representation.vector(), integral)
+    # import matplotlib.pyplot as plt
+    # plot(representation)
+    # plt.show()
     return representation
 
-it, max_it = 1, 250
-min_stp = 1e-6 
-red_tol = 1e-6
-red = 2*red_tol
+# it, max_it = 1, 100
+# min_stp = 1e-9
+# red_tol = 1e-6
+# red = 2*red_tol
 
-move = Function(S)
-move_step = Function(S)
-Js = [Jhat(move)]
-meshout = File("output/mesh_ns.pvd")
-meshout << mesh
+# move = Function(S)
+# move_step = Function(S)
+# Js = [Jhat(move)]
+# meshout = File("output/mesh_ns.pvd")
+# meshout << mesh
 
-while it <= max_it and red > red_tol:
-    # Compute derivative of previous configuration
-    dJdm = Jhat.derivative(options={"riesz_representation":
-                                    riesz_representation})
+# while it <= max_it and red > red_tol:
+#     # Compute derivative of previous configuration
+#     dJdm = Jhat.derivative(options={"riesz_representation":
+#                                     riesz_representation})
 
-    # Linesearch
-    step = 1
-    while step > min_stp:
-        # Evaluate functional at new step 
-        move_step.vector()[:] = move.vector() - step*dJdm.vector()
-        J_step = Jhat(move_step)
+#     # Linesearch
+#     step = 100
+#     while step > min_stp:
+#         # Evaluate functional at new step 
+#         move_step.vector()[:] = move.vector() - step*dJdm.vector()
+#         J_step = Jhat(move_step)
 
-        # Check if functional is decreasing
-        if J_step - Js[-1] < 0:
-            break
-        else:
-            # Reset mesh and half step-size
-            step /= 2
-            if step <= min_stp:
-                raise(ValueError("Minimum step-length reached"))
+#         # Check if functional is decreasing
+#         if J_step - Js[-1] < 0:
+#             break
+#         else:
+#             # Reset mesh and half step-size
+#             step /= 2
+#             if step <= min_stp:
+#                 raise(ValueError("Minimum step-length reached"))
+#     print("step: %.2e" %step)
+#     move.assign(move_step)
+#     Js.append(J_step)
+#     meshout << mesh
+#     red = abs((Js[-1] - Js[-2])/Js[-1])
+#     it += 1
+#     print("Iteration: %d, Rel. Red.: %.2e" %(it-1, red))
 
-    move.assign(move_step)
-    Js.append(J_step)
-    meshout << mesh
-    red = abs((Js[-1] - Js[-2])/Js[-1])
-    it += 1
-    print("Iteration: %d, Rel. Red.: %.2e" %(it-1, red))
 
-
-print("Total number of iterations: %d" % (it-1))
-print("-"*5, "Optimization Finished", "-"*5)
-print("Initial Functional value: %.2f" % Js[0])
-print("Final Functional value: %.2f" % Js[-1])
+# print("Total number of iterations: %d" % (it-1))
+# print("-"*5, "Optimization Finished", "-"*5)
+# print("Initial Functional value: %.2f" % Js[0])
+# print("Final Functional value: %.2f" % Js[-1])
 
 # Set taylor-test in steepest accent direction
 from femorph import VolumeNormal
@@ -183,8 +206,16 @@ n_vol = VolumeNormal(mesh)
 deform_backend = Function(S)
 deform_backend.vector()[:] = 2*n_vol.vector()
 rhs = assemble(inner(deform_backend, TestFunction(S))*ds)
-deform = riesz_representation(rhs)
+deform = riesz_representation(rhs, taylor=True)
 
 s0 = Function(S)
+Jhat(s0)
 taylor_test(Jhat, s0, deform, dJdm=0)
+Jhat(s0)
 taylor_test(Jhat, s0, deform)
+Jhat(s0)
+s.tlm_value = deform
+tape.evaluate_tlm()
+dJdm = Jhat.derivative().vector().inner(deform.vector())
+Hm = compute_hessian(J, c, deform).vector().inner(deform.vector())
+taylor_test(Jhat, s0, deform, dJdm=dJdm, Hm=Hm)
