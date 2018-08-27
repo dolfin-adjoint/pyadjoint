@@ -2,9 +2,6 @@ import backend
 from pyadjoint.tape import annotate_tape, get_working_tape
 from .solving import SolveBlock
 
-lu_solvers = []
-adj_lu_solvers = []
-
 
 class LUSolver(backend.LUSolver):
     '''This object is overloaded so that solves using this class are automatically annotated,
@@ -81,11 +78,6 @@ class LUSolver(backend.LUSolver):
             else:
                 raise Exception("LUSolver.solve() must be called with either (A, x, b) or (x, b).")
 
-            if self.parameters["reuse_factorization"] and self.__global_list_idx__ is None:
-                self.__global_list_idx__ = len(lu_solvers)
-                lu_solvers.append(self)
-                adj_lu_solvers.append(None)
-
             tape = get_working_tape()
             # TODO need to extend annotation to remember more about solvers.
             block = SolveBlock(A == b,
@@ -93,7 +85,6 @@ class LUSolver(backend.LUSolver):
                                eq_bcs,
                                solver_parameters={"linear_solver": "lu"})
             tape.add_block(block)
-
 
         out = backend.LUSolver.solve(self, *args, **kwargs)
 
