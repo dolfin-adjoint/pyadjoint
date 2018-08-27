@@ -237,6 +237,7 @@ class SolveBlock(Block):
             bcs.append(bc)
             bc.apply(dFdu)
 
+        output = Function(V)
         for block_variable in self.get_dependencies():
             tlm_value = block_variable.tlm_value
             if tlm_value is None:
@@ -288,8 +289,8 @@ class SolveBlock(Block):
 
             dudm = Function(V)
             backend.solve(dFdu, dudm.vector(), dFdm)
-
-            fwd_block_variable.add_tlm_output(dudm)
+            output.vector()[:] += dudm.vector()
+        fwd_block_variable.add_tlm_output(output)
 
     @no_annotations
     def evaluate_hessian(self):

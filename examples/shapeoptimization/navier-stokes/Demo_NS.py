@@ -2,122 +2,127 @@ from dolfin import *
 from dolfin_adjoint import *
 set_log_level(LogLevel.ERROR)
 
+parameters["krylov_solver"]["relative_tolerance"] = 1e-14
+
 # Create mesh and facet-function from gmsh file.
 mesh = Mesh("meshes/mesh.xml")
 X0 = SpatialCoordinate(mesh)
 
 # Compute Volume and Barycenter of obstacle assuming a rectangular duct
 # FIXME: Use mesh coordinates, dolfin adjoints fails in specification
-# coords = mesh.coordinates()
-L = 2#max(coords[:,0])-min(coords[:,0])
-H = 1#max(coords[:,1])-min(coords[:,1])
-V_fluid = assemble(1*dx(domain=mesh))
-Bx0 = (L**2*H/2-assemble(X0[0]*dx))/(L*H- V_fluid)
-By0 = (L*H**2/2-assemble(X0[1]*dx))/(L*H- V_fluid)
-Vol0 = L*H - V_fluid
-S = VectorFunctionSpace(mesh, "CG", 1)
-s = Function(S)
-ALE.move(mesh, s)
-
+coords_copy = mesh.coordinates().copy()
 facet_function = MeshFunction("size_t", mesh, "meshes/mesh_facet_region.xml")
 inlet, outlet, walls, obstacle = 1, 2, 3, 4 # Boundary Markers
 
-V = VectorFunctionSpace(mesh, "CG", 2)
-Q = FunctionSpace(mesh, "CG", 1)
-u = TrialFunction(V)
-p = TrialFunction(Q)
-v = TestFunction(V)
-q = TestFunction(Q)
+def forward(s):
+    global facet_function
+    mesh.coordinates()[:] = coords_copy
+    ALE.move(mesh, s)
+    L = 2  # max(coords[:,0])-min(coords[:,0])
+    H = 1  # max(coords[:,1])-min(coords[:,1])
+    V_fluid = assemble(1 * dx(domain=mesh))
+    Vol0 = L * H - V_fluid
 
-dt =0.1
-T = 1
-nu = Constant(0.001, name="Viscosity")
+    facet_function = MeshFunction("size_t", mesh, "meshes/mesh_facet_region.xml")
 
-p_in = Expression("0.5*sin(pi/T*t)", t=0.0, T=T, degree=2)
-u_walls = Constant((0.0,0.0), name="Non-slip")
-u_obstacle = Constant((0.0,0.0), name="Object")
+    V = VectorFunctionSpace(mesh, "CG", 2)
+    Q = FunctionSpace(mesh, "CG", 1)
+    u = TrialFunction(V)
+    p = TrialFunction(Q)
+    v = TestFunction(V)
+    q = TestFunction(Q)
 
-bc_walls = DirichletBC(V, u_walls, facet_function, walls)
-bc_obstacle = DirichletBC(V, u_obstacle, facet_function, obstacle)
-bc_inlet = DirichletBC(Q, p_in, facet_function, inlet)
-bc_outlet = DirichletBC(Q, 0, facet_function, outlet)
-bcu = [bc_walls, bc_obstacle]
-bcp = [bc_inlet, bc_outlet]
+    dt =0.1
+    T = 1
+    nu = Constant(0.001, name="Viscosity")
 
-u0 = Function(V)
-u1 = Function(V)
-p1 = Function(Q)
+    p_in = Expression("0.5*sin(pi/T*t)", t=0.0, T=T, degree=2)
+    u_walls = Constant((0.0,0.0), name="Non-slip")
+    u_obstacle = Constant((0.0,0.0), name="Object")
 
-k = Constant(dt, name="dt")
-f = Constant((0,0), name="f")
+    bc_walls = DirichletBC(V, u_walls, facet_function, walls)
+    bc_obstacle = DirichletBC(V, u_obstacle, facet_function, obstacle)
+    bc_inlet = DirichletBC(Q, p_in, facet_function, inlet)
+    bc_outlet = DirichletBC(Q, 0, facet_function, outlet)
+    bcu = [bc_walls, bc_obstacle]
+    bcp = [bc_inlet, bc_outlet]
 
-# Tentative velocity step
-F1 = (1/k)*inner(u-u0, v)*dx + inner(grad(u0)*u0, v)*dx + \
-     nu*inner(grad(u), grad(v))*dx - inner(f, v)*dx
-a1 = lhs(F1)
-L1 = rhs(F1)
+    u0 = Function(V)
+    u1 = Function(V)
+    p1 = Function(Q)
 
-# Pressure update
-a2 = inner(grad(p), grad(q))*dx
-L2 = -(1/k)*div(u1)*q*dx
+    k = Constant(dt, name="dt")
+    f = Constant((0,0), name="f")
 
-# Velocity update
-a3 = inner(u, v)*dx
-L3 = inner(u1, v)*dx - k*inner(grad(p1), v)*dx
+    # Tentative velocity step
+    F1 = (1/k)*inner(u-u0, v)*dx + inner(grad(u0)*u0, v)*dx + \
+         nu*inner(grad(u), grad(v))*dx - inner(f, v)*dx
+    a1 = lhs(F1)
+    L1 = rhs(F1)
 
-A1 = assemble(a1)
-A2 = assemble(a2)
-A3 = assemble(a3)
+    # Pressure update
+    a2 = inner(grad(p), grad(q))*dx
+    L2 = -(1/k)*div(u1)*q*dx
 
-# Use nonzero guesses - essential for CG with non-symmetric BC
-parameters['krylov_solver']['nonzero_initial_guess'] = True
-# Create files for storing solution
-ufile = File("output/velocity.pvd")
-pfile = File("output/pressure.pvd")
+    # Velocity update
+    a3 = inner(u, v)*dx
+    L3 = inner(u1, v)*dx - k*inner(grad(p1), v)*dx
 
-# Time-stepping
-t = dt
-times = []
-J = 0
-while t < T + DOLFIN_EPS:
-    print("Time: %.2e" %t)
-    # Update pressure boundary condition
-    p_in.t = t
+    A1 = assemble(a1)
+    A2 = assemble(a2)
+    A3 = assemble(a3)
 
-    # Compute tentative velocity step
-    b1 = assemble(L1)
-    [bc.apply(A1, b1) for bc in bcu]
-    solve(A1, u1.vector(), b1, "bicgstab", "default")
+    # Use nonzero guesses - essential for CG with non-symmetric BC
+    parameters['krylov_solver']['nonzero_initial_guess'] = True
+    # Create files for storing solution
+    ufile = File("output/velocity.pvd")
+    pfile = File("output/pressure.pvd")
 
-    # Pressure correction
-    b2 = assemble(L2)
-    [bc.apply(A2, b2) for bc in bcp]
-    [bc.apply(p1.vector()) for bc in bcp]
-    solve(A2, p1.vector(), b2, "bicgstab", "default")
+    # Time-stepping
+    t = dt
+    times = []
+    J = 0
+    while t < T + DOLFIN_EPS:
+        print("Time: %.2e" %t)
+        # Update pressure boundary condition
+        p_in.t = t
 
-    # Velocity correction
-    b3 = assemble(L3)
-    [bc.apply(A3, b3) for bc in bcu]
-    solve(A3, u1.vector(), b3, "bicgstab", "default")
+        # Compute tentative velocity step
+        b1 = assemble(L1)
+        [bc.apply(A1, b1) for bc in bcu]
+        solve(A1, u1.vector(), b1, "bicgstab", "default")
 
-    # Save to file
-    ufile << u1
-    pfile << p1
+        # Pressure correction
+        b2 = assemble(L2)
+        [bc.apply(A2, b2) for bc in bcp]
+        [bc.apply(p1.vector()) for bc in bcp]
+        solve(A2, p1.vector(), b2, "bicgstab", "default")
 
-    # Move to next time step
-    u0.assign(u1, annotate=True)
-    t += dt
-    times.append(float(t))
-    J += assemble(0.5*nu*inner(grad(u1),grad(u1))*dx)
+        # Velocity correction
+        b3 = assemble(L3)
+        [bc.apply(A3, b3) for bc in bcu]
+        solve(A3, u1.vector(), b3, "bicgstab", "default")
 
-# Quadratic pentaltization of volume and barycenter offset
-alpha_p = 1e1
-x = SpatialCoordinate(mesh)
-# Bx = (L**2*H/2-assemble(x[0]*dx(domain=mesh)))/(L*H-  assemble(1*dx(domain=mesh)))
-# By = (L*H**2/2-assemble(x[1]*dx(domain=mesh)))/(L*H - assemble(1*dx(domain=mesh))) 
-Vol = L*H - assemble(1*dx(domain=mesh))
-J += alpha_p*(Vol-Vol0)**2
-#J += alpha_p*((Bx-Bx0)**2 + (By-By0)**2)
+        # Save to file
+        ufile << u1
+        pfile << p1
+
+        # Move to next time step
+        u0.assign(u1, annotate=True)
+        t += dt
+        times.append(float(t))
+        J += assemble(0.5*nu*inner(grad(u1),grad(u1))*dx)
+
+    # Quadratic pentaltization of volume and barycenter offset
+    alpha_p = 1e1
+    x = SpatialCoordinate(mesh)
+    Vol = L*H - assemble(1*dx(domain=mesh))
+    J += alpha_p*(Vol-Vol0)**2
+    return J
+
+S = VectorFunctionSpace(mesh, "CG", 1)
+s = Function(S, name="Deformation")
+J = forward(s)
 c = Control(s)
 Jhat = ReducedFunctional(J, c)
 
@@ -205,17 +210,16 @@ from femorph import VolumeNormal
 n_vol = VolumeNormal(mesh)
 deform_backend = Function(S)
 deform_backend.vector()[:] = 2*n_vol.vector()
-rhs = assemble(inner(deform_backend, TestFunction(S))*ds)
-deform = riesz_representation(rhs, taylor=True)
+r = assemble(inner(deform_backend, TestFunction(S))*ds)
+deform = riesz_representation(r, taylor=True)
 
 s0 = Function(S)
-Jhat(s0)
-taylor_test(Jhat, s0, deform, dJdm=0)
-Jhat(s0)
-taylor_test(Jhat, s0, deform)
-Jhat(s0)
+from pyadjoint.tape import stop_annotating
 s.tlm_value = deform
 tape.evaluate_tlm()
 dJdm = Jhat.derivative().vector().inner(deform.vector())
 Hm = compute_hessian(J, c, deform).vector().inner(deform.vector())
-taylor_test(Jhat, s0, deform, dJdm=dJdm, Hm=Hm)
+with stop_annotating():
+    taylor_test(Jhat, s0, deform, dJdm=dJdm, Hm=Hm)
+with stop_annotating():
+    taylor_test(forward, s0, deform, dJdm=dJdm, Hm=Hm)
