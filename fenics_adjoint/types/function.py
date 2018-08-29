@@ -5,6 +5,7 @@ from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, no_
 from pyadjoint.block import Block
 from pyadjoint.overloaded_type import OverloadedType, FloatingType
 from .compat import gather
+import ufl
 
 
 class Function(FloatingType, backend.Function):
@@ -45,8 +46,9 @@ class Function(FloatingType, backend.Function):
         # do not annotate in case of self assignment
         annotate = annotate_tape(kwargs) and self != other
         if annotate:
-            from .types import create_overloaded_object
-            other = create_overloaded_object(other)
+            if not isinstance(other, ufl.core.operator.Operator):
+                from .types import create_overloaded_object
+                other = create_overloaded_object(other)
             block = AssignBlock(self, other)
             tape = get_working_tape()
             tape.add_block(block)
@@ -156,47 +158,135 @@ class Function(FloatingType, backend.Function):
     def _ad_dim(self):
         return self.function_space().dim()
 
+    def _imul(self, other):
+        vec = self.vector()
+        vec *= other
+
+    def _iadd(self, other):
+        vec = self.vector()
+        vec += other.vector()
+
+    def _reduce(self, r, r0):
+        vec = self.vector().get_local()
+        for i in range(len(vec)):
+            r0 = r(vec[i], r0)
+        return r0
+
+    def _applyUnary(self, f):
+        vec = self.vector()
+        npdata = vec.get_local()
+        for i in range(len(npdata)):
+            npdata[i] = f(npdata[i])
+        vec.set_local(npdata)
+
+    def _applyBinary(self, f, y):
+        vec = self.vector()
+        npdata = vec.get_local()
+        npdatay = y.vector().get_local()
+        for i in range(len(vec)):
+            npdata[i] = f(npdata[i], npdatay[i])
+        vec.set_local(npdata)
+
+def _extract_functions_from_lincom(lincom, functions=None):
+    functions = functions or []
+    if isinstance(lincom, backend.Function):
+        functions.append(lincom)
+        return functions
+    else:
+        for op in lincom.ufl_operands:
+            functions = _extract_functions_from_lincom(op, functions)
+    return functions
 
 class AssignBlock(Block):
     def __init__(self, func, other):
         super(AssignBlock, self).__init__()
         self.add_dependency(func.block_variable)
-        self.add_dependency(other.block_variable)
+
+        if isinstance(other, OverloadedType):
+            self.add_dependency(other.block_variable)
+        else:
+            # Assume that this is a linear combination
+            functions = _extract_functions_from_lincom(other)
+            for f in functions:
+                self.add_dependency(f.block_variable)
+        self.expr = other
 
     @no_annotations
     def evaluate_adj(self):
         adj_input = self.get_outputs()[0].adj_value
+        deps = self.get_dependencies()
         if adj_input is None:
             return
-        if isinstance(self.get_dependencies()[1], AdjFloat):
+        if isinstance(deps[1], AdjFloat):
             adj_input = adj_input.sum()
-        self.get_dependencies()[1].add_adj_output(adj_input)
+            deps[1].add_adj_output(adj_input)
+        else:
+            V = deps[0].output.function_space()
+            adj_input_func = compat.function_from_vector(V, adj_input)
+            for i in range(1, len(deps)):
+                variable = deps[i]
+                adj_output = Function(V)
+                diff_expr = ufl.algorithms.expand_derivatives(
+                    backend.derivative(self.expr, variable.output, adj_input_func.copy(deepcopy=True)))
+                adj_output.assign(diff_expr)
+                variable.add_adj_output(adj_output.vector())
 
     @no_annotations
     def evaluate_tlm(self):
-        tlm_input = self.get_dependencies()[1].tlm_value
-        if tlm_input is None:
-            return
-        self.get_outputs()[0].add_tlm_output(tlm_input)
+        deps = self.get_dependencies()
+        if isinstance(deps[1], AdjFloat):
+            tlm_input = deps[1].tlm_value
+            if tlm_input is None:
+                return
+            self.get_outputs()[0].add_tlm_output(tlm_input)
+        else:
+            V = deps[0].output.function_space()
+            tlm_output = Function(V)
+            replace_map = {}
+            for i in range(1, len(deps)):
+                dep = deps[i]
+                tlm_input = dep.tlm_value or Function(V)
+                replace_map[dep.output] = tlm_input
+            expr = backend.replace(self.expr, replace_map)
+            backend.Function.assign(tlm_output, expr)
+            self.get_outputs()[0].add_tlm_output(tlm_output)
+
 
     @no_annotations
     def evaluate_hessian(self):
+        deps = self.get_dependencies()
         hessian_input = self.get_outputs()[0].hessian_value
         if hessian_input is None:
             return
-        self.get_dependencies()[1].add_hessian_output(hessian_input)
+        if isinstance(deps[1], AdjFloat):
+            hessian_input = hessian_input.sum()
+            deps[1].add_hessian_output(hessian_input)
+        else:
+            V = deps[0].output.function_space()
+            hessian_input_func = compat.function_from_vector(V, hessian_input)
+            for i in range(1, len(deps)):
+                variable = deps[i]
+                hessian_output = Function(V)
+                diff_expr = ufl.algorithms.expand_derivatives(
+                    backend.derivative(self.expr, variable.output, hessian_input_func.copy(deepcopy=True)))
+                hessian_output.assign(diff_expr)
+                variable.add_hessian_output(hessian_output.vector())
 
     @no_annotations
     def recompute(self):
         deps = self.get_dependencies()
-        other_bo = deps[1]
         # TODO: This is a quick-fix, so should be reviewed later.
         #       Introduced because Control values work by not letting their checkpoint property be overwritten.
         #       However this circumvents that by using assign. An alternative would be to create a
         #       Function, assign the values to the new function, and then set the checkpoint to this function.
         #       However that is rather memory inefficient I would say.
         if not self.get_outputs()[0].is_control:
-            backend.Function.assign(self.get_outputs()[0].saved_output, other_bo.saved_output)
+            replace_map = {}
+            for i in range(1, len(deps)):
+                dep = deps[i]
+                replace_map[dep.output] = dep.saved_output
+            expr = backend.replace(self.expr, replace_map)
+            backend.Function.assign(self.get_outputs()[0].saved_output, expr)
 
 
 class SplitBlock(Block):
