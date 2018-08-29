@@ -60,7 +60,6 @@
 # **************
 #
 # First, the :py:mod:`dolfin` and :py:mod:`dolfin_adjoint` modules are imported:
-import sys; print("Optimization not implemented"); sys.exit(1)
 from dolfin import *
 from dolfin_adjoint import *
 
@@ -199,7 +198,7 @@ solve(A, s.vector(), b)
 u, p = split(s)
 alpha = Constant(10)
 
-J = Functional(1./2*inner(grad(u), grad(u))*dx + alpha/2*inner(g, g)*ds(2))
+J = assemble(1./2*inner(grad(u), grad(u))*dx + alpha/2*inner(g, g)*ds(2))
 m = Control(g)
 Jhat = ReducedFunctional(J, m)
 
@@ -215,8 +214,8 @@ A, b = assemble_system(a, L, bcs)
 solve(A, s.vector(), b)
 plot(s.sub(0), title="Velocity")
 plot(s.sub(1), title="Pressure")
-interactive()
-
+import matplotlib.pyplot as plt
+plt.show()
 # Results
 # *******
 #

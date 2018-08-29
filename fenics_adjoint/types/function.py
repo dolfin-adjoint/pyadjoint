@@ -227,7 +227,7 @@ class AssignBlock(Block):
             for i in range(1, len(deps)):
                 dep = deps[i]
                 replace_map[dep.output] = dep.saved_output
-            expr = backend.replace(self.expr, replace_map)
+            expr = ufl.replace(self.expr, replace_map)
 
             V = deps[0].output.function_space()
             adj_input_func = compat.function_from_vector(V, adj_input)
@@ -258,7 +258,7 @@ class AssignBlock(Block):
                 dep = deps[i]
                 tlm_input = dep.tlm_value or Function(V)
                 replace_map[dep.output] = tlm_input
-            expr = backend.replace(self.expr, replace_map)
+            expr = ufl.replace(self.expr, replace_map)
             backend.Function.assign(tlm_output, expr)
             self.get_outputs()[0].add_tlm_output(tlm_output)
 
@@ -294,7 +294,7 @@ class AssignBlock(Block):
             for i in range(1, len(deps)):
                 dep = deps[i]
                 replace_map[dep.output] = dep.saved_output
-            expr = backend.replace(self.expr, replace_map)
+            expr = ufl.replace(self.expr, replace_map)
             backend.Function.assign(self.get_outputs()[0].saved_output, expr)
 
 
