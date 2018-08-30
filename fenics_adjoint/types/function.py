@@ -62,27 +62,13 @@ class Function(FloatingType, backend.Function):
         return ret
 
     def split(self, *args, **kwargs):
-        from .types import create_overloaded_object
         deepcopy = kwargs.get("deepcopy", False)
         annotate = annotate_tape(kwargs)
-        num_sub_spaces = backend.Function.function_space(self).num_sub_spaces()
-
         if deepcopy or not annotate:
-            split_backend = backend.Function.split(self, *args, **kwargs)
-            ret = ()
-            for i in range(num_sub_spaces):
-                if annotate:
-                    ret += (create_overloaded_object(split_backend[i],
-                                                     block_class=SplitBlock,
-                                                     _ad_floating_active=True,
-                                                     _ad_args=[self, i],
-                                                     _ad_output_args=[i],
-                                                     output_block_class=MergeBlock,
-                                                     _ad_outputs=[self]),)
-                else:
-                    ret += (create_overloaded_object(split_backend[i]),)
-            return ret
+            # TODO: This is wrong for deepcopy=True. You need to convert every subfunction into an OverloadedType.
+            return backend.Function.split(self, *args, **kwargs)
 
+        num_sub_spaces = backend.Function.function_space(self).num_sub_spaces()
         ret = [Function(self, i,
                         block_class=SplitBlock,
                         _ad_floating_active=True,
