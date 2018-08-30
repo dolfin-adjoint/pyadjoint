@@ -6,7 +6,7 @@ from pyadjoint.adjfloat import AdjFloat
 from pyadjoint.overloaded_type import OverloadedType
 
 
-def create_overloaded_object(obj):
+def create_overloaded_object(obj,**kwargs):
     """Creates an :class:`OverloadedType` instance corresponding `obj`.
 
     Args:
@@ -26,7 +26,7 @@ def create_overloaded_object(obj):
     elif isinstance(obj, backend.Function):
         # This will invoke the backend constructor in a way that is said to be only intended for internal library use. 
 
-        return Function(obj.function_space(), obj.vector())
+        return Function(obj.function_space(), obj.vector(),**kwargs)
     elif isinstance(obj, backend.Constant):
         return Constant(obj)
     elif isinstance(obj, backend.Mesh):
