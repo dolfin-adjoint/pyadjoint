@@ -200,7 +200,6 @@ def _extract_functions_from_lincom(lincom, functions=None):
 class AssignBlock(Block):
     def __init__(self, func, other):
         super(AssignBlock, self).__init__()
-        self.add_dependency(func.block_variable)
 
         if isinstance(other, OverloadedType):
             self.add_dependency(other.block_variable)
@@ -217,34 +216,32 @@ class AssignBlock(Block):
         deps = self.get_dependencies()
         if adj_input is None:
             return
-        if isinstance(deps[1].output, AdjFloat):
+        if isinstance(deps[0].output, AdjFloat):
             adj_input = adj_input.sum()
-            deps[1].add_adj_output(adj_input)
+            deps[0].add_adj_output(adj_input)
         else:
             # If what was assigned was not a lincom (only currently relevant in firedrake),
             # then we need to replace the coefficients in self.expr with new values.
             replace_map = {}
-            for i in range(1, len(deps)):
-                dep = deps[i]
+            for dep in deps:
                 replace_map[dep.output] = dep.saved_output
             expr = ufl.replace(self.expr, replace_map)
 
             V = deps[0].output.function_space()
             adj_input_func = compat.function_from_vector(V, adj_input)
-            for i in range(1, len(deps)):
-                variable = deps[i]
+            for dep in deps:
                 adj_output = Function(V)
                 diff_expr = ufl.algorithms.expand_derivatives(
-                    backend.derivative(expr, variable.saved_output, adj_input_func)
+                    backend.derivative(expr, dep.saved_output, adj_input_func)
                 )
                 adj_output.assign(diff_expr)
-                variable.add_adj_output(adj_output.vector())
+                dep.add_adj_output(adj_output.vector())
 
     @no_annotations
     def evaluate_tlm(self):
         deps = self.get_dependencies()
-        if isinstance(deps[1].output, AdjFloat):
-            tlm_input = deps[1].tlm_value
+        if isinstance(deps[0].output, AdjFloat):
+            tlm_input = deps[0].tlm_value
             if tlm_input is None:
                 return
             self.get_outputs()[0].add_tlm_output(tlm_input)
@@ -254,8 +251,7 @@ class AssignBlock(Block):
             V = deps[0].output.function_space()
             tlm_output = Function(V)
             replace_map = {}
-            for i in range(1, len(deps)):
-                dep = deps[i]
+            for dep in deps:
                 tlm_input = dep.tlm_value or Function(V)
                 replace_map[dep.output] = tlm_input
             expr = ufl.replace(self.expr, replace_map)
@@ -269,30 +265,28 @@ class AssignBlock(Block):
         hessian_input = self.get_outputs()[0].hessian_value
         if hessian_input is None:
             return
-        if isinstance(deps[1].output, AdjFloat):
+        if isinstance(deps[0].output, AdjFloat):
             hessian_input = hessian_input.sum()
-            deps[1].add_hessian_output(hessian_input)
+            deps[0].add_hessian_output(hessian_input)
         else:
             # Current implementation assumes lincom,
             # otherwise we need second-order derivatives here.
             V = deps[0].output.function_space()
             hessian_input_func = compat.function_from_vector(V, hessian_input)
-            for i in range(1, len(deps)):
-                variable = deps[i]
+            for dep in deps:
                 hessian_output = Function(V)
                 diff_expr = ufl.algorithms.expand_derivatives(
-                    backend.derivative(self.expr, variable.output, hessian_input_func)
+                    backend.derivative(self.expr, dep.output, hessian_input_func)
                 )
                 hessian_output.assign(diff_expr)
-                variable.add_hessian_output(hessian_output.vector())
+                dep.add_hessian_output(hessian_output.vector())
 
     @no_annotations
     def recompute(self):
         deps = self.get_dependencies()
         if not self.get_outputs()[0].is_control:
             replace_map = {}
-            for i in range(1, len(deps)):
-                dep = deps[i]
+            for dep in deps:
                 replace_map[dep.output] = dep.saved_output
             expr = ufl.replace(self.expr, replace_map)
             backend.Function.assign(self.get_outputs()[0].saved_output, expr)
