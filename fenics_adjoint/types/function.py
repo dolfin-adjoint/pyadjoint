@@ -98,6 +98,15 @@ class Function(FloatingType, backend.Function):
                 value = value.vector()
             backend.solve(M, ret.vector(), value)
             return ret
+        elif riesz_representation == "H1":
+            ret = Function(self.function_space())
+            u = backend.TrialFunction(self.function_space())
+            v = backend.TestFunction(self.function_space())
+            M = backend.assemble(backend.inner(u, v) * backend.dx + backend.inner(backend.grad(u), backend.grad(v)) * backend.dx)
+            if not isinstance(value, backend.Vector):
+                value = value.vector()
+            backend.solve(M, ret.vector(), value)
+            return ret
         else:
             raise NotImplementedError("Unknown Riesz representation %s" % riesz_representation)
 
@@ -136,6 +145,10 @@ class Function(FloatingType, backend.Function):
             return self.vector().inner(other.vector())
         elif riesz_representation == "L2":
             return backend.assemble(backend.inner(self, other) * backend.dx)
+        elif riesz_representation == "H1":
+            return backend.assemble((backend.inner(self, other) + backend.inner(backend.grad(self), backend.grad(other))) * backend.dx)
+        else:
+            raise NotImplementedError("Unknown Riesz representation %s" % riesz_representation)
 
     @staticmethod
     def _ad_assign_numpy(dst, src, offset):
