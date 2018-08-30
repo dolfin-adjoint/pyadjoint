@@ -98,6 +98,8 @@ class Function(FloatingType, backend.Function):
                 value = value.vector()
             backend.solve(M, ret.vector(), value)
             return ret
+        else:
+            raise NotImplementedError("Unknown Riesz representation %s" % riesz_representation)
 
     def _ad_create_checkpoint(self):
         if self.block is None:
