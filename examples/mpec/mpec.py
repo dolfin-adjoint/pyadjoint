@@ -123,6 +123,7 @@ if dolfin.__version__ == '2018.1.0.dev0':
 
 from fenics import *
 from fenics_adjoint import *
+from ufl.operators import Max
 set_log_level(LogLevel.ERROR)
 
 # Needed to have a nested conditional

@@ -166,7 +166,10 @@ else:
         :arg V: The function space
         :arg vector: The data to share.
         """
-        if not isinstance(vector, backend.Vector):
+        if isinstance(vector, backend.cpp.la.PETScVector)\
+           or  isinstance(vector, backend.cpp.la.Vector):
+            pass
+        elif not isinstance(vector, backend.Vector):
             # If vector is a fenics_adjoint.Function, which does not inherit
             # backend.cpp.function.Function with pybind11
             vector = vector._cpp_object
