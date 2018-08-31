@@ -77,11 +77,6 @@
 from fenics import *
 from fenics_adjoint import *
 
-import ufl;
-ufl.log.set_level(13)
-info_red("""PYBIND11 parallel error, EXITING""")
-exit(1)
-
 # Next we import the Python interface to IPOPT. If IPOPT is
 # unavailable on your system, we strongly :doc:`suggest you install it
 # <../../download/index>`; IPOPT is a well-established open-source
@@ -90,6 +85,7 @@ exit(1)
 try:
     import pyipopt
 except ImportError:
+    from ufl.log import info_red
     info_red("""This example depends on IPOPT and pyipopt. \
   When compiling IPOPT, make sure to link against HSL, as it \
   is a necessity for practical problems.""")
@@ -120,7 +116,7 @@ N = 10
 delta = 1.5  # The aspect ratio of the domain, 1 high and \delta wide
 V = Constant(1.0/3) * delta  # want the fluid to occupy 1/3 of the domain
 
-mesh = RectangleMesh(MPI.comm_world, Point(0.0, 0.0), Point(delta, 1.0), N, N)
+mesh = Mesh(RectangleMesh(MPI.comm_world, Point(0.0, 0.0), Point(delta, 1.0), N, N))
 A = FunctionSpace(mesh, "CG", 1)        # control function space
 
 U_h = VectorElement("CG", mesh.ufl_cell(), 2)
@@ -256,7 +252,7 @@ if __name__ == "__main__":
     solver = IPOPTSolver(problem, parameters=parameters)
     rho_opt = solver.solve()
 
-    rho_opt_xdmf = XDMFFile(mpi_comm_world(), "output/control_solution_guess.xdmf")
+    rho_opt_xdmf = XDMFFile(MPI.comm_world, "output/control_solution_guess.xdmf")
     rho_opt_xdmf.write(rho_opt)
 
 # With the optimised value for :math:`q=0.01` in hand, we *reset* the
@@ -276,7 +272,7 @@ if __name__ == "__main__":
 # save the optimisation iterations to
 # ``output/control_iterations_final.pvd``.
 
-    rho_intrm = XDMFFile(mpi_comm_world(), "intermediate-guess-%s.xdmf" % N)
+    rho_intrm = XDMFFile(MPI.comm_world, "intermediate-guess-%s.xdmf" % N)
     rho_intrm.write(rho)
 
     w = forward(rho)
@@ -303,7 +299,7 @@ if __name__ == "__main__":
     solver = IPOPTSolver(problem, parameters=parameters)
     rho_opt = solver.solve()
 
-    rho_opt_final = XDMFFile(mpi_comm_world(), "output/control_solution_final.xdmf")
+    rho_opt_final = XDMFFile(MPI.comm_world, "output/control_solution_final.xdmf")
     rho_opt_final.write(rho_opt)
 
 # The example code can be found in ``examples/stokes-topology/`` in the

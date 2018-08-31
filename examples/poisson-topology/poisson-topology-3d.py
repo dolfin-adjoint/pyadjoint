@@ -59,11 +59,6 @@
 from dolfin import *
 from dolfin_adjoint import *
 
-import ufl;
-ufl.log.set_level(13)
-info_red("""PYBIND11 parallel error, EXITING""")
-exit(1)
-
 # Next, we set some PETSc options to govern how the linear systems
 # are to be solved: this sets the number of smoother interations
 # in the smoothed aggregation multigrid.
@@ -78,6 +73,7 @@ PETScOptions.set("pc_gamg_agg_nsmooths", 1)
 try:
     import pyipopt
 except ImportError:
+    from ufl.log import info_red
     info_red("""This example depends on IPOPT and pyipopt. \
   When compiling IPOPT, make sure to link against HSL, as it \
   is a necessity for practical problems.""")
@@ -108,7 +104,7 @@ def k(a):
 # used for the control :math:`a` and forward solution :math:`T`.
 
 n = 50
-mesh = UnitCubeMesh(n, n, n)
+mesh = Mesh(UnitCubeMesh(n, n, n))
 A = FunctionSpace(mesh, "CG", 1)  # function space for control
 P = FunctionSpace(mesh, "CG", 1)  # function space for solution
 
@@ -184,7 +180,7 @@ if __name__ == "__main__":
 # Now we define the functional, compliance with a weak regularisation
 # term on the gradient of the material
 
-    J = Functional(f*T*dx + alpha * inner(grad(a), grad(a))*dx)
+    J = assemble(f*T*dx + alpha * inner(grad(a), grad(a))*dx)
     m = Control(a)
     Jhat = ReducedFunctional(J, m, eval_cb_post=eval_cb)
 
@@ -232,7 +228,7 @@ if __name__ == "__main__":
 # Compute the integral of the control over the domain
 
             integral = self.smass.inner(self.tmpvec.vector())
-            if MPI.rank(mpi_comm_world()) == 0:
+            if MPI.rank(MPI.comm_world) == 0:
                 print("Current control integral: ", integral)
             return [self.V - integral]
 
@@ -257,7 +253,7 @@ if __name__ == "__main__":
     solver = IPOPTSolver(problem, parameters=parameters)
     a_opt = solver.solve()
 
-    infile = XDMFFile(mpi_comm_world(), 'output-3d/control_solution.xdmf')
+    infile = XDMFFile(MPI.comm_world, 'output-3d/control_solution.xdmf')
     infile.write(a_opt)
 
 # The example code can be found in ``examples/poisson-topology/`` in the

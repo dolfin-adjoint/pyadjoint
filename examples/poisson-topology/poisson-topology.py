@@ -73,13 +73,11 @@ from fenics_adjoint import *
 # <../../download/index>`; IPOPT is a well-established open-source
 # optimisation algorithm.
 
-import ufl;
-ufl.log.set_level(13)
-info_red("""PYBIND11 parallel error, EXITING""")
-exit(1)
+
 try:
     import pyipopt
 except ImportError:
+    from ufl.log import info_red
     info_red("""This example depends on IPOPT and pyipopt. \
   When compiling IPOPT, make sure to link against HSL, as it \
   is a necessity for practical problems.""")

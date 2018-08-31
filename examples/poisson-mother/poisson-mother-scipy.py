@@ -47,7 +47,6 @@ alpha = Constant(1e-6)
 J = assemble((0.5*inner(u-d, u-d))*dx + alpha/2*f**2*dx)
 control = Control(f)
 rf = ReducedFunctional(J, control)
-tape.visualise("tape.dot", dot=True)
 f_opt = minimize(rf, bounds=(0.0, 0.8), tol=1e-10,
                  options={"gtol": 1e-10, "factr": 0.0})
 

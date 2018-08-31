@@ -1,8 +1,3 @@
-import dolfin
-import ufl;
-ufl.log.set_level(13)
-dolfin.info_red("""PYBIND11 parallel error, EXITING""")
-exit(1)
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
