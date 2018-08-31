@@ -275,6 +275,7 @@ class Tape(object):
         """
 
         import tensorflow as tf
+        tf.reset_default_graph()
         self._tf_add_blocks()
 
         optimizer = tf.train.GradientDescentOptimizer(0.001)
