@@ -18,7 +18,7 @@ bc = DirichletBC(V, Constant(1), "on_boundary")
 u = Function(V)
 solve(a==l, u, bcs=bc)
 
-J = assemble(u*dx(domain=mesh))
+J = assemble(u*dx(domain=mesh))**2
 c = Control(s)
 Jhat = ReducedFunctional(J, c)
 
@@ -34,17 +34,17 @@ Jhat(s)
 assert(r0>0.95)
 # First order taylor
 s.tlm_value = h
-#tape.evaluate_tlm()
-#r1 = taylor_test(Jhat, s, h, dJdm=J.block_variable.tlm_value)
-# assert(r1>1.95)
+tape.evaluate_tlm()
+r1 = taylor_test(Jhat, s, h, dJdm=J.block_variable.tlm_value)
+assert(r1>1.95)
 Jhat(s)
 
 # Second order taylor
 dJdm = Jhat.derivative().vector().inner(h.vector())
 Hm = compute_hessian(J, c, h).vector().inner(h.vector())
-# taylor_test(Jhat, s, h, dJdm=dJdm, Hm=Hm)
-# Jhat(s)
-dJdmm_exact = derivative(derivative(sin(X[1])* dx(domain=mesh),X,h), X, h)
+taylor_test(Jhat, s, h, dJdm=dJdm, Hm=Hm)
+Jhat(s)
+# dJdmm_exact = derivative(derivative(sin(X[1])* dx(domain=mesh),X,h), X, h)
 
 
 # # ---------------- hessian for assembly ----------------------

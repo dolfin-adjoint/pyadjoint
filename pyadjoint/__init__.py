@@ -19,3 +19,4 @@ from .optimization.optimization import minimize
 from .optimization.optimization_problem import MinimizationProblem
 from .optimization.ipopt_solver import IPOPTSolver
 from .optimization.constraints import InequalityConstraint
+from .optimization.moola_problem import MoolaOptimizationProblem

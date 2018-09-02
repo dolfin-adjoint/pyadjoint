@@ -61,7 +61,7 @@ import sys;
 
 from fenics import *
 from fenics_adjoint import *
-set_log_level(LogLevel.ERROR)
+#set_log_level(LogLevel.ERROR)
 
 # Next we import the Python interface to Moola. Moola is a collection
 # of optimisation solvers specifically designed for PDE-constrained
@@ -165,29 +165,30 @@ rf = ReducedFunctional(J, control)
 
 problem = MoolaOptimizationProblem(rf)
 f_moola = moola.DolfinPrimalVector(f)
-solver = moola.NewtonCG(problem, f_moola, options={'gtol': 1e-9,
-                                                   'maxiter': 20,
-                                                   'display': 3,
-                                                   'ncg_hesstol': 0})
+# solver = moola.NewtonCG(problem, f_moola, options={'gtol': 5e-6,
+#                                                    'maxiter': 20,
+#                                                    'display': 3,
+#                                                    'ncg_hesstol': 0})
 
 # Alternatively an L-BFGS solver could initialised by:
 #
 # .. code-block:: python
 #
-#    solver = moola.BFGS(problem, f_moola, options={'jtol': 0,
-#                                                   'gtol': 1e-9,
-#                                                   'Hinit': "default",
-#                                                   'maxiter': 100,
-#                                                   'mem_lim': 10})
-#
+solver = moola.BFGS(problem, f_moola, options={'jtol': 0,
+                                               'gtol': 1e-9,
+                                               'Hinit': "default",
+                                               'maxiter': 100,
+                                               'mem_lim': 10})
+
 # Then we can solve the optimisation problem, extract the optimal
 # control and plot it:
 
 sol = solver.solve()
 f_opt = sol['control'].data
 
-plot(f_opt, interactive=True, title="f_opt")
-
+plot(f_opt, title="f_opt")
+import matplotlib.pyplot as plt
+plt.show()
 # Define the expressions of the analytical solution
 f_analytic = Expression("1/(1+alpha*4*pow(pi, 4))*w", w=w, alpha=alpha, degree=3)
 u_analytic = Expression("1/(2*pow(pi, 2))*f", f=f_analytic, degree=3)
