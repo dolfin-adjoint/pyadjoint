@@ -9,7 +9,7 @@
 
 FROM quay.io/fenicsproject/stable:2017.2.0
 MAINTAINER Simon W. Funke <simon@simula.no>
-ARG DOLFIN_ADJOINT_BRANCH="master"
+ARG DOLFIN_ADJOINT_BRANCH="release"
 ARG MOOLA_BRANCH="master"
 
 USER fenics
