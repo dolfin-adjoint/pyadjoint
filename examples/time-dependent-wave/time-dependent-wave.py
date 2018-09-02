@@ -24,10 +24,10 @@ left.mark(boundary_parts, 0)
 right.mark(boundary_parts, 1)
 ds = Measure("ds", subdomain_data=boundary_parts)
 
-
-class Source(Expression):
+class Source(UserExpression):
     def __init__(self, omega=Constant(2e2), **kwargs):
         """ Construct the source function """
+        super().__init__(self,**kwargs)
         self.t = 0.0
         self.omega = omega
 
@@ -39,7 +39,7 @@ class Source(Expression):
             value[0] = 0.
 
 
-class SourceDerivative(Expression):
+class SourceDerivative(UserExpression):
     def __init__(self, omega=Constant(2e2), Source=None, **kwargs):
         """ Construct the source function """
         super().__init__(**kwargs)
@@ -84,7 +84,8 @@ def forward(excitation, c=Constant(1.), record=False, annotate=False, objective=
     t = 0.0        # Initial time
     T = 3.e-1      # Final time
     times = [t,]
-    objective(u1, times[-1])
+    if objective is not None:
+        objective(u1, times[-1])
     while t < T - .5*float(k):
         excitation.t = t + float(k)
         solve(a == L, u, annotate = annotate)
@@ -95,7 +96,6 @@ def forward(excitation, c=Constant(1.), record=False, annotate=False, objective=
         times.append(t)
         if record:
             rec.append(u1(1.0))
-        if annotate: adj_inc_timestep(t, t > T - .5*float(k))
         i += 1
         if objective is not None:
             objective(u1, times[-1])
@@ -123,16 +123,6 @@ def optimize(dbg=False):
     # provide the coefficient on which this expression depends and its derivative
     source.dependencies = [Omega]
     source.user_defined_derivatives = {Omega: SourceDerivative(Omega, Source = source, degree=3)}
-
-    if dbg:
-        # Check the recorded tape
-        success = replay_dolfin(tol = 0.0, stop = True)
-        print("replay: ", success)
-
-        # for the equations recorded on the forward run
-        adj_html("forward.html", "forward")
-        # for the equations to be assembled on the adjoint run
-        adj_html("adjoint.html", "adjoint")
 
     # Load references
     refs = np.loadtxt("recorded.txt")
@@ -189,7 +179,5 @@ if __name__ == "__main__":
         source = Source(Constant(2e2), degree=3)
         forward(source, 2*DOLFIN_PI, True)
 
-    if '-dbg' in sys.argv:
-        optimize(True)
     else:
         optimize()
