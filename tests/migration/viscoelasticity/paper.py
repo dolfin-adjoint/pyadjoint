@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 __author__ = "Marie E. Rognes (meg@simula.no)"
 __copyright__ = "Copyright (C) 2012 Marie Rognes"
 __license__  = "Distribute at will"

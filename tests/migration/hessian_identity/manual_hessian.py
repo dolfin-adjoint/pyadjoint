@@ -41,7 +41,7 @@ def HJ(u, m, J):
         # Gah UFL this is so bloody annoying. This should Just Work
         correct_args = ufl.algorithms.extract_arguments(d2Jdu2)
         current_args = ufl.algorithms.extract_arguments(ad2Fdu2)
-        ad2Fdu2 = replace(ad2Fdu2, dict(zip(current_args, correct_args)))
+        ad2Fdu2 = replace(ad2Fdu2, dict(list(zip(current_args, correct_args))))
 
         # Mixed derivate term in SOA
         d2Jdudm = derivative(dJdu, m, mdot)

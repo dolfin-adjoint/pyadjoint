@@ -21,53 +21,49 @@ _IGNORED_EXPRESSION_ATTRIBUTES = ['_ad_dim', '__init_subclass__', '_ufl_required
 
 _REMEMBERED_EXPRESSION_ATTRIBUTES = ["block_variable", "block", "block_class", "annotate_tape","user_defined_derivatives","ad_ignored_attributes"]
 
-def create_compiled_expression(original, cppcode, *args, **kwargs):
-    """Creates an overloaded CompiledExpression type from the supplied
-    CompiledExpression instance.
+class CompiledExpression(backend.CompiledExpression, FloatingType):
 
-    The argument `original` will be an (uninitialized) CompiledExpression instance,
-    which we extract the type from to build our own corresponding overloaded
-    CompiledExpression type.
-
-    Args:
-        original (:obj:`CompiledExpression`): The original CompiledExpression instance.
-        cppcode (:obj:`str`): The cppcode used to define the Expression.
-        *args: Extra arguments are just passed along to the backend handlers.
-        **kwargs: Keyword arguments are also just passed to backend handlers.
-
-    Returns:
-        :obj:`type`: An overloaded CompiledExpression type.
-
-    """
-    original_bases = type(original).__bases__
-    bases = (Expression, original_bases[1], original_bases[2], FloatingType)
-
-    original_init = type(original).__dict__["__init__"]
-
-    def __init__(self, cppcode, *args, **kwargs):
-        """Init method of our overloaded CompiledExpression classes.
-
-        """
-        self._ad_initialized = False
-        # pop annotate from kwargs before passing them on the backend init
+    def __init__(self, *args, **kwargs):
+        self._ad_attributes_dict = {}
+        self.ad_ignored_attributes = []
+        self.user_defined_derivatives = {}
         self.annotate_tape = annotate_tape(kwargs)
+        from IPython import embed; embed()
+        super(FloatingType, self).__init__(*args,
+                                          block_class=ExpressionBlock,
+                                          annotate=self.annotate_tape,
+                                          _ad_args=[self],
+                                          _ad_floating_active=True,
+                                          **kwargs)
+        super(backend.CompiledExpression, self).__init__(*args)#, **kwargs)
 
-        Expression.__init__(self, *args, **kwargs)
-        FloatingType.__init__(self,
-                              *args,
-                              block_class=ExpressionBlock,
-                              annotate=self.annotate_tape,
-                              _ad_args=[self],
-                              _ad_floating_active=True,
-                              **kwargs)
-        original_init(self, cppcode, *args, **kwargs)
+        
+    def _ad_function_space(self, mesh):
+        element = self.ufl_element()
+        fs_element = element.reconstruct(cell=mesh.ufl_cell())
+        return backend.FunctionSpace(mesh, fs_element)        
+        
+    def _ad_create_checkpoint(self):
+        ret = {}
+        for k in self._ad_attributes_dict:
+            v = self._ad_attributes_dict[k]
+            if isinstance(v, OverloadedType):
+                ret[k] = v.block_variable.saved_output
+            else:
+                ret[k] = v
+        return ret
 
-        self._ad_initialized = True
+    def _ad_restore_at_checkpoint(self, checkpoint):
+        for k in checkpoint:
+            self._ad_attributes_dict[k] = checkpoint[k]
+            super(backend.CompiledExpression,self).__setattr__(k, checkpoint[k])
+        return self 
 
-    return type.__new__(OverloadedExpressionMetaClass,
-                        "CompiledExpression",
-                        bases,
-                        {"__init__": __init__ })
+    def __setattr__(self, k, v):
+        # TODO: Maybe only add to dict if annotation is enabled?
+        if k not in _IGNORED_EXPRESSION_ATTRIBUTES:
+            self._ad_attributes_dict[k] = v
+        super(backend.CompiledExpression,self).__setattr__(k, v)
 
    
 class UserExpression(backend.UserExpression, FloatingType):

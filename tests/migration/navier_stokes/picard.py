@@ -3,7 +3,7 @@ on an L-shaped domain using Chorin's splitting method."""
 
 """This variant uses Picard iteration via the solver interface."""
 
-from __future__ import print_function
+
 from dolfin import *
 from dolfin_adjoint import *
 

@@ -9,7 +9,7 @@
 
 
 """
-from __future__ import print_function
+
 from dolfin import *
 from dolfin_adjoint import *
 

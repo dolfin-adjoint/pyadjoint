@@ -17,7 +17,7 @@ F(T) = action(momentum(T), u).
 
 """
 
-from __future__ import print_function
+
 from numpy import random
 from dolfin import *
 from math import log

@@ -1,4 +1,4 @@
-from __future__ import division
+
 
 import numpy as _np
 list_types = (_np.ndarray, list)
@@ -212,7 +212,7 @@ def init_values(**values):
     # State indices and limit checker
     state_ind = dict(s=(0, Range()), v=(1, Range()))
 
-    for state_name, value in values.items():
+    for state_name, value in list(values.items()):
         if state_name not in state_ind:
             raise ValueError("{{0}} is not a state.".format(state_name))
         ind, range = state_ind[state_name]
@@ -244,7 +244,7 @@ def default_parameters(**values):
         c_2=(3, Range()), c_3=(4, Range()), v_peak=(5, Range()), v_rest=(6,\
         Range()))
 
-    for param_name, value in values.items():
+    for param_name, value in list(values.items()):
         if param_name not in param_ind:
             raise ValueError("{{0}} is not a param".format(param_name))
         ind, range = param_ind[param_name]

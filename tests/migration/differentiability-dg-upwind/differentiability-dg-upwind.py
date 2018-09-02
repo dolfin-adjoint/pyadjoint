@@ -17,7 +17,7 @@ F(u) = action(advection(u), T).
 
 """
 
-from __future__ import print_function
+
 from numpy import random
 from dolfin import *
 

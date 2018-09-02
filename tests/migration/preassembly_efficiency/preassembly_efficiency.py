@@ -25,7 +25,7 @@ on an L-shaped domain using Chorin's splitting method."""
 
 # Begin demo
 
-from __future__ import print_function
+
 from fenics import *
 from fenics_adjoint import *
 

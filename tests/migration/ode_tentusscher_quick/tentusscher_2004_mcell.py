@@ -1,4 +1,4 @@
-from __future__ import division
+
 import numpy as _np
 list_types = (_np.ndarray, list)
 inf = float("infinity")
@@ -217,7 +217,7 @@ def init_values(**values):
         Ca_SR=(11, Range()), Ca_i=(12, Range()), g=(13, Range()), Na_i=(14,\
         Range()), V=(15, Range()), K_i=(16, Range()))
 
-    for state_name, value in values.items():
+    for state_name, value in list(values.items()):
         if state_name not in state_ind:
             raise ValueError("{{0}} is not a state.".format(state_name))
         ind, range = state_ind[state_name]
@@ -273,7 +273,7 @@ def default_parameters(**values):
         stim_period=(42, Range()), stim_start=(43, Range()), K_o=(44,\
         Range()))
 
-    for param_name, value in values.items():
+    for param_name, value in list(values.items()):
         if param_name not in param_ind:
             raise ValueError("{{0}} is not a param".format(param_name))
         ind, range = param_ind[param_name]
