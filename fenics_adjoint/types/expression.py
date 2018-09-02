@@ -6,6 +6,7 @@ from pyadjoint.overloaded_type import OverloadedType, FloatingType
 from pyadjoint.tape import get_working_tape, annotate_tape
 from pyadjoint.block import Block
 from pyadjoint.adjfloat import AdjFloat
+from . import Constant
 
 # TODO: After changes to how Expressions are overloaded, read through the docstrings
 #       and fix the inaccuracies. Also add docstrings where they are missing.
@@ -28,15 +29,22 @@ class CompiledExpression(backend.CompiledExpression, FloatingType):
         self.ad_ignored_attributes = []
         self.user_defined_derivatives = {}
         self.annotate_tape = annotate_tape(kwargs)
-        from IPython import embed; embed()
-        super(FloatingType, self).__init__(*args,
-                                          block_class=ExpressionBlock,
-                                          annotate=self.annotate_tape,
-                                          _ad_args=[self],
-                                          _ad_floating_active=True,
-                                          **kwargs)
-        super(backend.CompiledExpression, self).__init__(*args)#, **kwargs)
+        kwarg_copy = {arg:"" for arg in kwargs.keys()}
+        for key in kwargs.keys():
+            if isinstance(kwargs[key], Constant):
+                kwarg_copy[key] = kwargs[key]._cpp_object
+            else:
+                kwarg_copy[key] = kwargs[key]
 
+        backend.CompiledExpression.__init__(self, *args, **kwarg_copy)
+        FloatingType.__init__(self, *args,
+                              block_class=ExpressionBlock,
+                              annotate=self.annotate_tape,
+                            _ad_args=[self],
+                              _ad_floating_active=True,
+                              **kwargs)
+        for k in kwargs:
+            self.__setattr__(k, kwargs[k])
         
     def _ad_function_space(self, mesh):
         element = self.ufl_element()

@@ -88,7 +88,8 @@ class AssembleBlock(Block):
             c = block_variable.output
             c_rep = replaced_coeffs.get(c, c)
 
-            if isinstance(c, backend.Expression):
+            if isinstance(c, backend.Expression) or \
+               isinstance(c, backend.CompiledExpression):
                 # Create a FunctionSpace from self.form and Expression.
                 # And then make a TestFunction from this space.
                 mesh = self.form.ufl_domain().ufl_cargo()

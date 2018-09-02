@@ -49,8 +49,7 @@ if __name__ == "__main__":
     a = Constant(0.5)
     b = Constant(0.25)
     f = CompiledExpression(compile_cpp_code(cpp_code).MyCppExpression(),
-                           degree=1)
-    f.a =a, f.b=b
+                           degree=1, a=a, b=b)
 
     f.dependencies = [a, b]
 
@@ -67,7 +66,7 @@ if __name__ == "__main__":
     J = assemble(f**2*dx(domain=mesh))
     rf1 = ReducedFunctional(J, Control(a))
     rf2 = ReducedFunctional(J, Control(b))
-  
+
     h = Constant(1.0)
     assert taylor_test(rf1, a, h) > 1.9
     assert taylor_test(rf2, b, h) > 1.9
