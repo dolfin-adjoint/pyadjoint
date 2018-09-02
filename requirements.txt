@@ -3,4 +3,4 @@ scipy
 pytest
 sphinx
 sphinxcontrib-bibtex
-git+git://github.com/funsim/moola.git@master#egg=moola
+git+git://github.com/funsim/moola.git@master
