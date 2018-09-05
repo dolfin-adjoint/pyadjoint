@@ -32,9 +32,6 @@ class Constant(OverloadedType, backend.Constant):
 
         return ret
 
-    def _ad_convert_type(self, value, options={}):
-        return Constant(value)
-
     def get_derivative(self, options={}):
         return self._ad_convert_type(self.adj_value, options=options)
 
