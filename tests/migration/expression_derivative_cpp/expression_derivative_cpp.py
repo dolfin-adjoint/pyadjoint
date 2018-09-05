@@ -51,10 +51,8 @@ if __name__ == "__main__":
     f = CompiledExpression(compile_cpp_code(cpp_code).MyCppExpression(),
                            degree=1, a=a, b=b)
 
-    f.dependencies = [a, b]
-
     dfda = CompiledExpression(compile_cpp_code(da_cpp_code).MyAExpression(),
-                          degree=1)
+                              degree=1)
     dfda.a = a; dfda.b = b
 
     dfdb = CompiledExpression(compile_cpp_code(db_cpp_code).MyBExpression(),
@@ -68,6 +66,7 @@ if __name__ == "__main__":
     rf2 = ReducedFunctional(J, Control(b))
 
     h = Constant(1.0)
+
     assert taylor_test(rf1, a, h) > 1.9
     assert taylor_test(rf2, b, h) > 1.9
 

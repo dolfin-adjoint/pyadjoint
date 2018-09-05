@@ -65,7 +65,6 @@ def test_ignored_expression_attributes():
     from fenics_adjoint.types.expression import _IGNORED_EXPRESSION_ATTRIBUTES 
     assert(set(ignored_attrs) == set(_IGNORED_EXPRESSION_ATTRIBUTES))
 
-@pytest.mark.xfail(reason="Not implemented with pybind")
 def test_cpp_inline():
     # An expression that depends on a and b
     base_code = '''
@@ -101,30 +100,34 @@ def test_cpp_inline():
 
     cpp_code = base_code.replace("EXPRESSION", "(x[0] - a_)*b_*b_*a_")
     da_cpp_code = base_code.replace("EXPRESSION", "(x[0] - a_)*b_*b_ - b_*b_*a_")
+    da_cpp_code = da_cpp_code.replace("MyCppExpression", "MyAExpression")
     db_cpp_code = base_code.replace("EXPRESSION", "2*(x[0] - a_)*b_*a_")
+    db_cpp_code = db_cpp_code.replace("MyCppExpression", "MyBExpression")
 
     mesh = UnitSquareMesh(4, 4)
     V = FunctionSpace(mesh, "CG", 1)
 
-    a = 0.5
+    a = Constant(0.5)
     b = Constant(0.25)
 
     def J(a):
         if not isinstance(a, Constant):
             a = Constant(a)
-            f = CompiledExpression(compile_cpp_code(cpp_code).MyCppExpression(), degree=1)
-            f.a = a._cpp_object
-            f.b = b._cpp_object
+        f = CompiledExpression(compile_cpp_code(cpp_code).MyCppExpression(), degree=1)
+        f.a = a
+        f.b = b
 
-        dfda = Expression(da_cpp_code, degree=1)
-        dfda.a = a._cpp_object; dfda.b = b._cpp_object
+        dfda = CompiledExpression(compile_cpp_code(da_cpp_code).MyAExpression(), degree=1)
+        dfda.a = a._cpp_object;
+        dfda.b = b._cpp_object
 
-        dfdb = Expression(db_cpp_code, degree=1)
-        dfdb.a = a; dfdb.b = b
+        dfdb = CompiledExpression(compile_cpp_code(db_cpp_code).MyBExpression(), degree=1)
+        dfdb.a = a;
+        dfdb.b = b
 
         f.user_defined_derivatives = {a: dfda, b: dfdb}
 
-        return assemble(f**2*dx(domain=mesh))
+        return assemble(f ** 2 * dx(domain=mesh))
 
     _test_adjoint_constant(J, a)
 
