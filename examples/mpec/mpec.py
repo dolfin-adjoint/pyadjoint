@@ -114,13 +114,6 @@
 # First, the :py:mod:`dolfin` and :py:mod:`dolfin_adjoint` modules are
 # imported. We also tell DOLFIN to only print error messages to keep the
 # output comprehensible:
-import dolfin
-if dolfin.__version__ == '2018.1.0.dev0':
-    import ufl;
-    ufl.log.set_level(13)
-    dolfin.info_red("""PYBIND11 parallel error, EXITING""")
-    exit(1)
-
 from fenics import *
 from fenics_adjoint import *
 from ufl.operators import Max
