@@ -95,7 +95,6 @@ def main(u0, f):
     # Create linear solver and factorize matrix
     solver = LUSolver()
     solver.set_operator(A)
-    solver.parameters["reuse_factorization"] = True
 
     # Output file
     out_file = File("results/temperature.pvd")
@@ -129,15 +128,10 @@ if __name__ == "__main__":
     f  = Constant(0.0)
     u = main(u0, f=f)
 
-    if False:
-        # TODO: Not implemented.
-        assert replay_dolfin()
-
     J = assemble(u*u*dx)
     param = Control(f)
     Jhat = ReducedFunctional(J, param)
-    # TODO: Does not work with optimize.
-    #Jhat.optimize()
+    Jhat.optimize()
     assert_approx_equal(Jhat(f), J)
 
     dJdf = compute_gradient(J, param)

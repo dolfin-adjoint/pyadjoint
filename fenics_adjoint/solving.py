@@ -102,9 +102,6 @@ class SolveBlock(Block):
         else:
             self.linear = False
 
-        mesh = self.lhs.ufl_domain().ufl_cargo()
-        self.add_dependency(mesh.block_variable)
-
         for bc in self.bcs:
             self.add_dependency(bc.block_variable)
 
@@ -193,13 +190,6 @@ class SolveBlock(Block):
                     dFdm = dFdm * adj_var
                     dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
                     block_variable.add_adj_output([[dFdm, c_fs]])
-                elif isinstance(c, backend.Mesh):
-                    # Using Coordinate Derivative
-                    F_form_tmp = backend.action(F_form, adj_var)
-                    X = backend.SpatialCoordinate(c_rep)
-                    dF_ = backend.derivative(-F_form_tmp, X)
-                    dFdm = compat.assemble_adjoint_value(dF_, **self.assemble_kwargs)
-                    block_variable.add_adj_output(dFdm)
 
     @no_annotations
     def evaluate_tlm(self):
@@ -273,15 +263,6 @@ class SolveBlock(Block):
 
             elif isinstance(c, backend.Expression):
                 dFdm = -backend.derivative(F_form, c_rep, tlm_value)
-                dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
-
-                # Zero out boundary values from boundary conditions as they do not depend (directly) on c.
-                for bc in bcs:
-                    bc.apply(dFdm)
-
-            elif isinstance(c, backend.Mesh):
-                X = backend.SpatialCoordinate(c)
-                dFdm = backend.derivative(-F_form, X, tlm_value)
                 dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
 
                 # Zero out boundary values from boundary conditions as they do not depend (directly) on c.
@@ -367,13 +348,7 @@ class SolveBlock(Block):
             if (c == self.func and not self.linear) or tlm_input is None:
                 continue
 
-            if isinstance(c, backend.Mesh):
-                X = backend.SpatialCoordinate(c)
-                dFdu_adj = backend.action(dFdu_form, adj_sol)
-                d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdu_adj, X, tlm_input))
-                if len(d2Fdudm.integrals()) > 0:
-                    b_vector -= compat.assemble_adjoint_value(d2Fdudm)
-            elif not isinstance(c, backend.DirichletBC):
+            if not isinstance(c, backend.DirichletBC):
                 b_form += backend.derivative(dFdu_form, c_rep, tlm_input)
 
         b_form = ufl.algorithms.expand_derivatives(b_form)
@@ -416,22 +391,14 @@ class SolveBlock(Block):
             elif isinstance(c, backend.Expression):
                 mesh = F_form.ufl_domain().ufl_cargo()
                 W = c._ad_function_space(mesh)
-            elif isinstance(c, backend.Mesh):
-                X = backend.SpatialCoordinate(c)
-                element = X.ufl_domain().ufl_coordinate_element()
-                W = backend.FunctionSpace(c, element)
             else:
                 W = c.function_space()
 
             dc = backend.TrialFunction(W)
             form_adj = backend.action(F_form, adj_sol)
             form_adj2 = backend.action(F_form, adj_sol2)
-            if isinstance(c, backend.Mesh):
-                dFdm_adj = backend.derivative(form_adj, X, dc)
-                dFdm_adj2 = backend.derivative(form_adj2, X, dc)
-            else:
-                dFdm_adj = backend.derivative(form_adj, c_rep, dc)
-                dFdm_adj2 = backend.derivative(form_adj2, c_rep, dc)
+            dFdm_adj = backend.derivative(form_adj, c_rep, dc)
+            dFdm_adj2 = backend.derivative(form_adj2, c_rep, dc)
             try:
                 d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, fwd_block_variable.saved_output, tlm_output))    
             except ufl.log.UFLException:
@@ -454,13 +421,9 @@ class SolveBlock(Block):
                     continue
 
                 # TODO: If tlm_input is a Sum, this crashes in some instances?
-                if isinstance(c2_rep, backend.Mesh):
-                    X = backend.SpatialCoordinate(c2_rep)
-                    d2Fdm2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, X, tlm_input))
-                else:
-                    d2Fdm2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, c2_rep, tlm_input))
-                    if d2Fdm2.empty():
-                        continue
+                d2Fdm2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, c2_rep, tlm_input))
+                if d2Fdm2.empty():
+                    continue
 
                 output = -compat.assemble_adjoint_value(d2Fdm2)
 

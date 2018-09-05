@@ -224,13 +224,11 @@ def main(ic, params, amplitude, T=1.0, dt=0.01, annotate=False):
     (a_cn, L_cn) = system(F_cn)
     A_cn = assemble(a_cn)
     cn_solver = LUSolver(A_cn)
-    cn_solver.parameters["reuse_factorization"] = True
 
     F_bdf = bdf2_step(Z, z_star, z_, Constant(dk), g, v_D, ds, params)
     (a_bdf, L_bdf) = system(F_bdf)
     A_bdf = assemble(a_bdf)
     bdf_solver = LUSolver(A_bdf)
-    bdf_solver.parameters["reuse_factorization"] = True
 
     file = File("%s/forward_%d_%g.xml" % (dirname, 0, 0.0))
     file << ic

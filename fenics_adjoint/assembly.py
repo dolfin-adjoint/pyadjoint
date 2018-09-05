@@ -61,8 +61,6 @@ class AssembleBlock(Block):
     def __init__(self, form):
         super(AssembleBlock, self).__init__()
         self.form = form
-        mesh = self.form.ufl_domain().ufl_cargo()
-        self.add_dependency(mesh.block_variable)
         for c in self.form.coefficients():
             self.add_dependency(c.block_variable)
 
@@ -99,13 +97,6 @@ class AssembleBlock(Block):
                 dform = backend.derivative(form, c_rep, dc)
                 output = compat.assemble_adjoint_value(dform)
                 block_variable.add_adj_output([[adj_input * output, V]])
-                continue
-
-            elif isinstance(c, backend.Mesh):
-                X = backend.SpatialCoordinate(c_rep)
-                dform = backend.derivative(form, X)
-                output = compat.assemble_adjoint_value(dform)
-                block_variable.add_adj_output(adj_input * output)
                 continue
 
             if isinstance(c, backend.Function):
@@ -152,12 +143,6 @@ class AssembleBlock(Block):
                 output = compat.assemble_adjoint_value(dform)
                 self.get_outputs()[0].add_tlm_output(output)
 
-            elif isinstance(c, backend.Mesh):
-                X = backend.SpatialCoordinate(c_rep)
-                dform = backend.derivative(form, X, tlm_value)
-                output = compat.assemble_adjoint_value(dform)
-                self.get_outputs()[0].add_tlm_output(output)
-
     @no_annotations
     def evaluate_hessian(self):
         hessian_input = self.get_outputs()[0].hessian_value
@@ -188,17 +173,11 @@ class AssembleBlock(Block):
             elif isinstance(c1, backend.Constant):
                 mesh = compat.extract_mesh_from_form(form)
                 dc = backend.TestFunction(c1._ad_function_space(mesh))
-            elif isinstance(c1, backend.Mesh):
-                pass
             else:
                 continue
 
             # Special treatment if CoordinateDerivative
-            if isinstance(c1, backend.Mesh):
-                X = backend.SpatialCoordinate(c1)
-                dform = backend.derivative(form, X)
-            else:
-                dform = backend.derivative(form, c1_rep, dc)
+            dform = backend.derivative(form, c1_rep, dc)
 
             for bo2 in self.get_dependencies():
                 c2 = bo2.output
@@ -208,11 +187,7 @@ class AssembleBlock(Block):
                 if tlm_input is None:
                     continue
 
-                if isinstance(c2, backend.Mesh):
-                    X = backend.SpatialCoordinate(c2)
-                    ddform = backend.derivative(dform, X, tlm_input)
-                else:
-                    ddform = backend.derivative(dform, c2_rep, tlm_input)
+                ddform = backend.derivative(dform, c2_rep, tlm_input)
 
                 output = compat.assemble_adjoint_value(ddform)
 
@@ -221,8 +196,6 @@ class AssembleBlock(Block):
                 elif isinstance(c1, backend.Expression):
                     bo1.add_hessian_output([(adj_input * output, W)])
                 elif isinstance(c1, backend.Constant):
-                    bo1.add_hessian_output(adj_input*output)
-                elif isinstance(c1, backend.Mesh):
                     bo1.add_hessian_output(adj_input*output)
                 else:
                     continue

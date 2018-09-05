@@ -1,7 +1,6 @@
 import backend
 from .function import Function
 from .constant import Constant
-from .mesh import Mesh
 from pyadjoint.adjfloat import AdjFloat
 from pyadjoint.overloaded_type import OverloadedType
 
@@ -29,7 +28,5 @@ def create_overloaded_object(obj):
         return Function(obj.function_space(), obj.vector())
     elif isinstance(obj, backend.Constant):
         return Constant(obj)
-    elif isinstance(obj, backend.Mesh):
-        return Mesh(obj)
     else:
         raise NotImplementedError
