@@ -171,4 +171,52 @@ def test_dirichlet_bc_hessian():
     assert(taylor_test(Jhat, c, h, dJdm=dJdm, Hm=Hm) > 2.9)
 
 
+def test_dirichlet_bc_on_subspace():
+    tape = Tape()
+    set_working_tape(tape)
+
+    mesh = UnitSquareMesh(10, 10)
+    V_h = VectorElement("CG", mesh.ufl_cell(), 2)
+    Q_h = FiniteElement("CG", mesh.ufl_cell(), 1)
+
+    W = FunctionSpace(mesh, V_h * Q_h)
+    V = FunctionSpace(mesh, V_h)
+
+    v, q = TestFunctions(W)
+    x = TrialFunction(W)
+    u, p = split(x)
+    s = Function(W, name="State")
+
+    g = Function(V)
+    c = Constant((0.0, 0.0))
+
+    nu = Constant(1)
+
+    a = (nu * inner(grad(u), grad(v)) * dx
+         - inner(p, div(v)) * dx
+         - inner(q, div(u)) * dx
+         )
+    f = Function(V)
+    L = inner(f, v) * dx
+
+    u_inflow = Expression(("x[1]*(10-x[1])/25", "0"), degree=2)
+    # noslip = DirichletBC(W.sub(0), (0, 0),
+    #                     "on_boundary && (x[1] >= 9.9 || x[1] < 0.1)")
+    noslip = DirichletBC(W.sub(0), c,
+                         "on_boundary && (x[1] >= 0.9 || x[1] < 0.1)")
+    inflow = DirichletBC(W.sub(0), u_inflow, "on_boundary && x[0] <= 0.1")
+    bcs = [inflow, noslip]
+
+    solve(a == L, s, bcs)
+
+    J = assemble(inner(s, s)**2*dx)
+    control = Control(c)
+    Jhat = ReducedFunctional(J, control)
+    h = Constant((0.3,0.7))
+    dJdm = h._ad_dot(Jhat.derivative())
+    Hm = h._ad_dot(Jhat.hessian(h))
+
+    assert(taylor_test(Jhat, c, h, dJdm=dJdm, Hm=Hm) > 2.9)
+
+
 
