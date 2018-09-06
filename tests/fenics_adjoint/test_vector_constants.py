@@ -187,7 +187,6 @@ def test_dirichlet_bc_on_subspace():
     u, p = split(x)
     s = Function(W, name="State")
 
-    g = Function(V)
     c = Constant((0.0, 0.0))
 
     nu = Constant(1)
@@ -200,8 +199,6 @@ def test_dirichlet_bc_on_subspace():
     L = inner(f, v) * dx
 
     u_inflow = Expression(("x[1]*(10-x[1])/25", "0"), degree=2)
-    # noslip = DirichletBC(W.sub(0), (0, 0),
-    #                     "on_boundary && (x[1] >= 9.9 || x[1] < 0.1)")
     noslip = DirichletBC(W.sub(0), c,
                          "on_boundary && (x[1] >= 0.9 || x[1] < 0.1)")
     inflow = DirichletBC(W.sub(0), u_inflow, "on_boundary && x[0] <= 0.1")
