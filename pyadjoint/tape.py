@@ -77,7 +77,7 @@ class Tape(object):
     Each block represents one operation in the forward model.
 
     """
-    __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks"]
+    __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks", "_tf_registered_blocks"]
 
     def __init__(self, blocks=None):
         # Initialize the list of blocks on the tape.
@@ -86,6 +86,7 @@ class Tape(object):
         self._tf_tensors = {}
         # Keep a list of blocks that has been added to the TensorFlow graph
         self._tf_added_blocks = []
+        self._tf_registered_blocks = []
 
     def clear_tape(self):
         self.reset_variables()
@@ -206,8 +207,6 @@ class Tape(object):
         # If the block is a BlockVariable we use the class name of block.output
         if block.__class__.__name__ == "BlockVariable":
             if block.output.__class__.__name__ in ("AdjFloat",):
-                #name = str(block.output.__class__.__name__) + "_" + str(block)
-                #name = str(block.output.__class__.__name__)
                 name = str(block)
             else:
                 name = str(block.output.__class__.__name__)
@@ -215,42 +214,71 @@ class Tape(object):
             name = block.__class__.__name__
         return self._valid_tf_scope_name(name)
 
+    def _tf_register_blocks(self, name=None):
+        l = []
+        l.append(name)
+        for block in self.get_blocks():
+            if block in self._tf_added_blocks:
+                continue
+            self._tf_added_blocks.append(block)
+            l.append(block)
+        self._tf_registered_blocks.append(l)
+
+    def _tf_rebuild_registered_blocks(self):
+        """Remove blocks that no longer exist on the tape from registered blocks."""
+        new_registered_blocks = []
+        new_added_blocks = []
+        for scope in self._tf_registered_blocks:
+            l = [scope[0]]
+            for i in range(1, len(scope)):
+                block = scope[i]
+                if block in self.get_blocks():
+                    l.append(block)
+                    new_added_blocks.append(block)
+
+            if len(l) > 1:
+                new_registered_blocks.append(l)
+        self._tf_registered_blocks = new_registered_blocks
+        self._tf_added_blocks = new_added_blocks
+
     def _tf_add_blocks(self):
         """Add new blocks to the TensorFlow graph."""
 
         import tensorflow as tf
-        for block in self.get_blocks():
-            # Skip blocks that are already added
-            if block in self._tf_added_blocks:
-                continue
 
-            # Add this block such that we skip this block next time
-            self._tf_added_blocks.append(block)
+        self._tf_register_blocks()
+        self._tf_rebuild_registered_blocks()
 
-            # Block dependencies
-            in_tensors = []
-            for dep in block.get_dependencies():
-                if id(dep) in self._tf_tensors:
-                    in_tensors.append(self._tf_tensors[id(dep)])
-                else:
-                    with tf.name_scope(self._get_tf_scope_name(dep)):
-                        tin = tf.py_func(lambda: None, [], [tf.float64],
-                                         name=self._valid_tf_scope_name(str(dep)))
-                        in_tensors.append(tin)
-                        self._tf_tensors[id(dep)] = tin
+        for scope in self._tf_registered_blocks:
+            scope_name = scope[0]
+            with tf.name_scope(scope_name):
+                for i in range(1, len(scope)):
+                    block = scope[i]
 
-            # Block node
-            with tf.name_scope(self._get_tf_scope_name(block)):
-                tensor = tf.py_func(lambda: None, in_tensors, [tf.float64],
-                                    name=self._valid_tf_scope_name(str(block)))
-                self._tf_tensors[id(block)] = tensor
+                    # Block dependencies
+                    in_tensors = []
+                    for dep in block.get_dependencies():
+                        if id(dep) in self._tf_tensors:
+                            in_tensors.append(self._tf_tensors[id(dep)])
+                        else:
+                            with tf.name_scope(self._get_tf_scope_name(dep)):
+                                tin = tf.py_func(lambda: None, [], [tf.float64],
+                                                 name=self._valid_tf_scope_name(str(dep)))
+                                in_tensors.append(tin)
+                                self._tf_tensors[id(dep)] = tin
 
-            # Block outputs
-            for out in block.get_outputs():
-                with tf.name_scope(self._get_tf_scope_name(out)):
-                    tout = tf.py_func(lambda: None, [tensor], [tf.float64],
-                                      name=self._valid_tf_scope_name(str(out)))
-                    self._tf_tensors[id(out)] = tout
+                    # Block node
+                    with tf.name_scope(self._get_tf_scope_name(block)):
+                        tensor = tf.py_func(lambda: None, in_tensors, [tf.float64],
+                                            name=self._valid_tf_scope_name(str(block)))
+                        self._tf_tensors[id(block)] = tensor
+
+                    # Block outputs
+                    for out in block.get_outputs():
+                        with tf.name_scope(self._get_tf_scope_name(out)):
+                            tout = tf.py_func(lambda: None, [tensor], [tf.float64],
+                                              name=self._valid_tf_scope_name(str(out)))
+                            self._tf_tensors[id(out)] = tout
 
     @contextmanager
     def name_scope(self, name=None):
@@ -259,11 +287,9 @@ class Tape(object):
         Args:
             name (str|None): Name of scope to use. Default None.
         """
-        import tensorflow as tf
-        self._tf_add_blocks()
+        self._tf_register_blocks()
         yield
-        with tf.name_scope(name):
-            self._tf_add_blocks()
+        self._tf_register_blocks(name)
 
     def visualise(self, logdir="log", launch_tensorboard=False, open_in_browser=False):
         """Makes a visualisation of the tape as a graph using TensorFlow.
@@ -278,11 +304,8 @@ class Tape(object):
         tf.reset_default_graph()
         self._tf_add_blocks()
 
-        optimizer = tf.train.GradientDescentOptimizer(0.001)
-
         # Write graph to file
         with tf.Session() as sess:
-            #gradient = optimizer.compute_gradients(tensor[0])[0][0]
             writer = tf.summary.FileWriter(logdir, sess.graph)
             writer.close()
 
