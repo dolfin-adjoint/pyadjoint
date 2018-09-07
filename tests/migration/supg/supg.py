@@ -131,7 +131,7 @@ if __name__ == "__main__":
     J = assemble(u*u*dx)
     param = Control(f)
     Jhat = ReducedFunctional(J, param)
-    Jhat.optimize()
+    Jhat.optimize_tape()
     assert_approx_equal(Jhat(f), J)
 
     dJdf = compute_gradient(J, param)
