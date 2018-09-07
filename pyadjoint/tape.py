@@ -207,7 +207,7 @@ class Tape(object):
         # If the block is a BlockVariable we use the class name of block.output
         if block.__class__.__name__ == "BlockVariable":
             if block.output.__class__.__name__ in ("AdjFloat",):
-                name = str(block)
+                name = str(block.output.__class__.__name__) + "_" + str(block)
             else:
                 name = str(block.output.__class__.__name__)
         else:
