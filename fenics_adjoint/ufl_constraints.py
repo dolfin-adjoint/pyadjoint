@@ -1,4 +1,5 @@
 import backend
+import ufl
 import ufl.algorithms
 import numpy
 
@@ -53,7 +54,7 @@ class UFLConstraint(Constraint):
         # in the constraint, so that our writing it isn't
         # bothering anyone else
         self.u = backend_types.Function(self.V)
-        self.form = backend.replace(form, {u: self.u})
+        self.form = ufl.replace(form, {u: self.u})
 
         self.trial = backend.TrialFunction(self.V)
         self.dform = backend.derivative(self.form, self.u, self.trial)
@@ -110,7 +111,7 @@ class UFLConstraint(Constraint):
             m = m[0]
         self.update_control(m)
 
-        asm = backend.assemble(dp*backend.replace(self.dform, {self.trial: self.test}))
+        asm = backend.assemble(dp*ufl.replace(self.dform, {self.trial: self.test}))
         if isinstance(result, backend.Function):
             if backend.__name__ in ["dolfin", "fenics"]:
                 result.vector().zero()
@@ -128,7 +129,7 @@ class UFLConstraint(Constraint):
             m = m[0]
         self.update_control(m)
 
-        H = dm*backend.replace(self.hess, {self.trial: dp})
+        H = dm*ufl.replace(self.hess, {self.trial: dp})
         if isinstance(result, backend.Function):
             if backend.__name__ in ["dolfin", "fenics"]:
                 if self.zero_hess:
