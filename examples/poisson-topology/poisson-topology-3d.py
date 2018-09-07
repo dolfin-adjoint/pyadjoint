@@ -106,7 +106,7 @@ def k(a):
 # TODO: Previously it was n = 50, but then the adjoint equation solve runs out of memory on my system,
 #       Change to n = 50 when dolfin-adjoint allows manipulating solver method for the adjoint equation with fenics.
 n = 10
-mesh = Mesh(UnitCubeMesh(n, n, n))
+mesh = UnitCubeMesh(n, n, n)
 A = FunctionSpace(mesh, "CG", 1)  # function space for control
 P = FunctionSpace(mesh, "CG", 1)  # function space for solution
 

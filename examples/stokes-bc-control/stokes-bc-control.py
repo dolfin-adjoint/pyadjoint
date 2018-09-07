@@ -8,29 +8,19 @@
 #
 # .. sectionauthor:: Simon W. Funke <simon@simula.no>, André Massing <massing@simula.no>
 #
-# This example demonstrates how to optimise Dirichlet boundary
-# conditions with the optimisation framework in `dolfin-adjoint` using
-# the Nitsche method.
-#
-# A detailed introduction to the Nitsche method and its applications
-# can be found in :cite:`nitsche1971`, :cite:`hansbo2005`,
-# :cite:`bazilevs2007`.
+# This example demonstrates how to compute the sensitivity with respect to the Dirichlet
+# boundary conditions in pyadjoint.
 #
 # Problem definition
 # ******************
 #
-# Consider the problem of minimising the compliance
-#
-# .. math::
-#       \min_{g, u, p} \ \frac{1}{2}\int_{\Omega} \nabla u \cdot \nabla u~\textrm{d}x +  \frac{\alpha}{2} \int_{\partial \Omega_{\textrm{in}}} g^2~\textrm{d}s
-#
-# subject to the Stokes equations
+# Consider the Stokes equations
 #
 # .. math::
 #       -\nu \Delta u + \nabla p &= 0  \qquad \mathrm{in} \ \Omega \\
 #                         \mathrm{div }\  u &= 0  \qquad \mathrm{in} \ \Omega  \\
 #
-# and Dirichlet boundary conditions
+# with Dirichlet boundary conditions
 #
 # .. math::
 #           u &= g  \qquad \mathrm{on} \ \partial \Omega_{\textrm{cirlce}} \\
@@ -51,10 +41,10 @@
 #     :scale: 35
 #     :align: center
 #
-# Physically, this setup corresponds to minimising the loss of flow
-# energy into heat by actively controlling the in/outflow at the
-# circle boundary. To avoid excessive control solutions, non-zero
-# control values are penalised via the regularisation term.
+# The goal is to compute the sensitivity of the functional
+#
+# .. math::
+#        \frac{1}{2}\int_{\Omega} \nabla u \cdot \nabla u~\textrm{d}x \\
 #
 # Implementation
 # **************
@@ -63,6 +53,10 @@
 from dolfin import *
 from dolfin_adjoint import *
 
+# Change matplotlib backend to work in docker.
+import matplotlib
+matplotlib.use("agg")
+
 # Next, we load the mesh. The mesh was generated with mshr; see make-mesh.py
 # in the same directory.
 
@@ -70,12 +64,14 @@ mesh_xdmf = XDMFFile(MPI.comm_world, "rectangle-less-circle.xdmf")
 mesh = Mesh()
 mesh_xdmf.read(mesh)
 
+
 # Then, we define the discrete function spaces. A Taylor-Hood
 # finite-element pair is a suitable choice for the Stokes equations.
 # The control function is the Dirichlet boundary value on the velocity
 # field and is hence be a function on the velocity space (note: FEniCS
 # cannot restrict functions to boundaries, hence the control is
 # defined over the entire domain).
+
 
 V_h = VectorElement("CG", mesh.ufl_cell(), 2)
 Q_h = FiniteElement("CG", mesh.ufl_cell(), 1)
@@ -86,23 +82,8 @@ v, q = TestFunctions(W)
 x = TrialFunction(W)
 u, p = split(x)
 s = Function(W, name="State")
-g = Function(V.collapse(), name="Control")
-
-# The Nitsche method requires the computation of boundary integrals
-# over :math:`\partial \Omega_{\textrm{circle}}`.  Therefore, we need
-# to create a measure for these integrals, which will be accessible as
-# :py:data:`ds(2)` in the definition of the variational formulation.
-
-
-class Circle(SubDomain):
-    def inside(self, x, on_boundary):
-        return on_boundary and (x[0]-10)**2 + (x[1]-5)**2 < 3**2
-
-facet_marker = MeshFunction("size_t", mesh, mesh.geometric_dimension()-1)
-facet_marker.set_all(10)
-Circle().mark(facet_marker, 2)
-
-ds = ds(subdomain_data=facet_marker)
+V_collapse = V.collapse()
+g = Function(V_collapse, name="Control")
 
 # Now we define some parameters, including the Nitsche penalty
 # parameter :math:`\gamma` (typically 10), the mesh element size
@@ -112,16 +93,23 @@ ds = ds(subdomain_data=facet_marker)
 
 # Set parameter values
 nu = Constant(1)     # Viscosity coefficient
-gamma = Constant(10)    # Nitsche penalty parameter
-n = FacetNormal(mesh)
-h = 2*Circumradius(mesh)
 
 # Define boundary conditions
-u_inflow = Expression(("x[1]*(10-x[1])/25", "0"),degree=3)
+u_inflow = Expression(("x[1]*(10-x[1])/25", "0"), degree=1)
 noslip = DirichletBC(W.sub(0), (0, 0),
                      "on_boundary && (x[1] >= 9.9 || x[1] < 0.1)")
 inflow = DirichletBC(W.sub(0), u_inflow, "on_boundary && x[0] <= 0.1")
-bcs = [inflow, noslip]
+
+class Circle(SubDomain):
+    def inside(self, x, on_boundary):
+        return on_boundary and (x[0]-10)**2 + (x[1]-5)**2 < 3**2
+
+facet_marker = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
+facet_marker.set_all(10)
+Circle().mark(facet_marker, 2)
+
+ds = ds(subdomain_data=facet_marker)
+circle = DirichletBC(W.sub(0), g, facet_marker, 2)
 
 # The Dirichlet condition at the circle is enforced by the Nitsche
 # approach.  To begin with we derive the standard weak formulation of
@@ -170,30 +158,17 @@ bcs = [inflow, noslip]
 #             + \left<q n, g\right>_{\partial \Omega_{\textrm{circle}}}
 #
 # In code, this becomes:
+bcs = [inflow, noslip, circle]
 
 a = (nu*inner(grad(u), grad(v))*dx
-     - nu*inner(grad(u)*n, v)*ds(2)
-     - nu*inner(grad(v)*n, u)*ds(2)
-     + gamma/h*nu*inner(u, v)*ds(2)
      - inner(p, div(v))*dx
-     + inner(p*n, v)*ds(2)
      - inner(q, div(u))*dx
-     + inner(q*n, u)*ds(2)
      )
-L = (- nu*inner(grad(v)*n, g)*ds(2)
-     + gamma/h*nu*inner(g, v)*ds(2)
-     + inner(q*n, g)*ds(2)
-     )
-
-# Next we assemble and solve the system once to record it with
-# :py:mod:`dolin-adjoint`.
+f = Function(V_collapse)
+L = inner(f, v)*dx
 
 A, b = assemble_system(a, L, bcs)
 solve(A, s.vector(), b)
-
-# Next we define the functional of interest :math:`J`, the
-# optimisation parameter :math:`g`, and derive the create the reduced
-# functional.
 
 u, p = split(s)
 alpha = Constant(10)
@@ -202,20 +177,23 @@ J = assemble(1./2*inner(grad(u), grad(u))*dx + alpha/2*inner(g, g)*ds(2))
 m = Control(g)
 Jhat = ReducedFunctional(J, m)
 
-# Now, everything is set up to run the optimisation and to plot the
-# results. By default, :py:func:`minimize` uses the L-BFGS-B
-# algorithm.
+g_opt = minimize(Jhat, options={"disp": True})
 
-g_opt = minimize(Jhat)
+import matplotlib.pyplot as plt
 plot(g_opt, title="Optimised boundary")
+plt.savefig("opt_g.png")
+plt.clf()
 
 g.assign(g_opt)
 A, b = assemble_system(a, L, bcs)
 solve(A, s.vector(), b)
 plot(s.sub(0), title="Velocity")
+plt.savefig("velocity.png")
+plt.clf()
 plot(s.sub(1), title="Pressure")
 import matplotlib.pyplot as plt
 plt.show()
+plt.savefig("pressure.png")
 # Results
 # *******
 #

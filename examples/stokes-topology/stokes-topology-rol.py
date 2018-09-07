@@ -74,23 +74,18 @@
 # First, the :py:mod:`dolfin` and :py:mod:`dolfin_adjoint` modules are
 # imported:
 
+from __future__ import print_function
 from fenics import *
 from fenics_adjoint import *
 
-# Next we import the Python interface to IPOPT. If IPOPT is
-# unavailable on your system, we strongly :doc:`suggest you install it
-# <../../download/index>`; IPOPT is a well-established open-source
-# optimisation algorithm.
+# Next we import the Python interface to ROL.
 
 try:
-    import pyipopt
+    import ROL
 except ImportError:
-    from ufl.log import info_red
-    info_red("""This example depends on IPOPT and pyipopt. \
-  When compiling IPOPT, make sure to link against HSL, as it \
-  is a necessity for practical problems.""")
+    info_red("""This example depends on ROL.""")
     raise
-
+set_log_level(30)
 # turn off redundant output in parallel
 parameters["std_out_all_processes"] = False
 
@@ -112,11 +107,11 @@ def alpha(rho):
 # Taylor-Hood finite element to discretise the Stokes equations
 # :cite:`taylor1973`.
 
-N = 10
+N = 20
 delta = 1.5  # The aspect ratio of the domain, 1 high and \delta wide
 V = Constant(1.0/3) * delta  # want the fluid to occupy 1/3 of the domain
 
-mesh = Mesh(RectangleMesh(MPI.comm_world, Point(0.0, 0.0), Point(delta, 1.0), N, N))
+mesh = RectangleMesh(mpi_comm_world(), Point(0.0, 0.0), Point(delta, 1.0), N, N)
 A = FunctionSpace(mesh, "CG", 1)        # control function space
 
 U_h = VectorElement("CG", mesh.ufl_cell(), 2)
@@ -125,7 +120,7 @@ W = FunctionSpace(mesh, U_h*P_h)          # mixed Taylor-Hood function space
 
 # Define the boundary condition on velocity
 
-class InflowOutflow(UserExpression):
+class InflowOutflow(Expression):
     def eval(self, values, x):
         values[1] = 0.0
         values[0] = 0.0
@@ -153,13 +148,15 @@ class InflowOutflow(UserExpression):
 def forward(rho):
     """Solve the forward problem for a given fluid distribution rho(x)."""
     w = Function(W)
-    (u, p) = TrialFunctions(W)
+    (u, p) = split(w)
     (v, q) = TestFunctions(W)
 
     F = (alpha(rho) * inner(u, v) * dx + inner(grad(u), grad(v)) * dx +
          inner(grad(p), v) * dx  + inner(div(u), q) * dx)
-    bc = DirichletBC(W.sub(0), InflowOutflow(degree=1), "on_boundary")
-    solve(lhs(F) == rhs(F), w, bcs=bc)
+    bc = DirichletBC(W.sub(0), InflowOutflow(degree=2), "on_boundary")
+    PETScOptions.set("snes_type", "ksponly")
+    PETScOptions.set("snes_monitor_cancel")
+    solve(F == 0, w, bcs=bc, solver_parameters={"nonlinear_solver": "snes", "snes_solver": {"linear_solver": "mumps"}})
 
     return w
 
@@ -184,10 +181,10 @@ if __name__ == "__main__":
 # callback to dump the control iterates to disk for visualisation. As
 # this optimisation problem (:math:`q=0.01`) is solved only to generate
 # an initial guess for the main task (:math:`q=0.1`), we shall save
-# these iterates in ``output/control_iterations_guess.pvd``.
+# these iterates in ``output-rol/control_iterations_guess.pvd``.
 
-    controls = File("output/control_iterations_guess.pvd")
-    allctrls = File("output/allcontrols.pvd")
+    controls = File("output-rol/control_iterations_guess.pvd")
+    allctrls = File("output-rol/allcontrols.pvd")
     rho_viz = Function(A, name="ControlVisualisation")
     def eval_cb(j, rho):
         rho_viz.assign(rho)
@@ -214,19 +211,38 @@ if __name__ == "__main__":
 
 # Now that all the ingredients are in place, we can perform the initial
 # optimisation. We set the maximum number of iterations for this initial
-# optimisation problem to 30; there's no need to solve this to
+# optimisation problem to 3; there's no need to solve this to
 # completion, as its only purpose is to generate an initial guess.
 
     # Solve the optimisation problem with q = 0.01
     problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=volume_constraint)
-    parameters = {'maximum_iterations': 20}
+    params = {
+        'General': {
+            'Secant': {'Type': 'Limited-Memory BFGS', 'Maximum Storage': 10}},
+        'Step': {
+            'Type': 'Augmented Lagrangian',
+            'Line Search': {
+                'Descent Method': {
+                    'Type': 'Quasi-Newton Step'
+                }
+            },
+            'Augmented Lagrangian': {
+                'Subproblem Step Type': 'Line Search',
+                'Subproblem Iteration Limit': 10
+            }
+        },
+        'Status Test': {
+            'Gradient Tolerance': 1e-7,
+            'Iteration Limit': 3
+        }
+    }
 
-    solver = IPOPTSolver(problem, parameters=parameters)
+
+    solver = ROLSolver(problem, params, inner_product="L2")
     rho_opt = solver.solve()
 
-    rho_opt_xdmf = XDMFFile(MPI.comm_world, "output/control_solution_guess.xdmf")
+    rho_opt_xdmf = XDMFFile(mpi_comm_world(), "output-rol/control_solution_guess.xdmf")
     rho_opt_xdmf.write(rho_opt)
-
 # With the optimised value for :math:`q=0.01` in hand, we *reset* the
 # dolfin-adjoint state, clearing its tape, and configure the new problem
 # we want to solve. We need to update the values of :math:`q` and
@@ -242,16 +258,16 @@ if __name__ == "__main__":
 # tape, but this way is easier to understand.) We will also redefine the
 # functionals and parameters; this time, the evaluation callback will
 # save the optimisation iterations to
-# ``output/control_iterations_final.pvd``.
+# ``output-rol/control_iterations_final.pvd``.
 
-    rho_intrm = XDMFFile(MPI.comm_world, "intermediate-guess-%s.xdmf" % N)
+    rho_intrm = XDMFFile(mpi_comm_world(), "output-rol/intermediate-guess-%s.xdmf" % N)
     rho_intrm.write(rho)
 
     w = forward(rho)
     (u, p) = split(w)
 
     # Define the reduced functionals
-    controls = File("output/control_iterations_final.pvd")
+    controls = File("output-rol/control_iterations_final.pvd")
     rho_viz = Function(A, name="ControlVisualisation")
     def eval_cb(j, rho):
         rho_viz.assign(rho)
@@ -266,12 +282,11 @@ if __name__ == "__main__":
 # from the solution of :math:`q=0.01`:
 
     problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=volume_constraint)
-    parameters = {'maximum_iterations': 100}
-
-    solver = IPOPTSolver(problem, parameters=parameters)
+    params["Status Test"]["Iteration Limit"] = 15
+    solver = ROLSolver(problem, params, inner_product="L2")
     rho_opt = solver.solve()
 
-    rho_opt_final = XDMFFile(MPI.comm_world, "output/control_solution_final.xdmf")
+    rho_opt_final = XDMFFile(mpi_comm_world(), "output-rol/control_solution_final.xdmf")
     rho_opt_final.write(rho_opt)
 
 # The example code can be found in ``examples/stokes-topology/`` in the
@@ -279,32 +294,10 @@ if __name__ == "__main__":
 #
 # .. code-block:: bash
 #
-#   $ mpiexec -n 4 python stokes-topology.py
+#   $ mpiexec -n 4 python stokes-topology-rol.py
 #   ...
-#   Number of Iterations....: 100
-#
-#                                      (scaled)                 (unscaled)
-#   Objective...............:   4.5944633030224409e+01    4.5944633030224409e+01
-#   Dual infeasibility......:   1.8048641504211900e-03    1.8048641504211900e-03
-#   Constraint violation....:   0.0000000000000000e+00    0.0000000000000000e+00
-#   Complementarity.........:   9.6698653740681504e-05    9.6698653740681504e-05
-#   Overall NLP error.......:   1.8048641504211900e-03    1.8048641504211900e-03
-#
-#
-#   Number of objective function evaluations             = 105
-#   Number of objective gradient evaluations             = 101
-#   Number of equality constraint evaluations            = 0
-#   Number of inequality constraint evaluations          = 105
-#   Number of equality constraint Jacobian evaluations   = 0
-#   Number of inequality constraint Jacobian evaluations = 101
-#   Number of Lagrangian Hessian evaluations             = 0
-#   Total CPU secs in IPOPT (w/o function evaluations)   =     11.585
-#   Total CPU secs in NLP function evaluations           =    556.795
-#
-#   EXIT: Maximum Number of Iterations Exceeded.
-#
 # The optimisation iterations can be visualised by opening
-# ``output/control_iterations_final.pvd`` in paraview. The resulting
+# ``output-rol/control_iterations_final.pvd`` in paraview. The resulting
 # solution appears very similar to the solution proposed in
 # :cite:`borrvall2003`.
 #

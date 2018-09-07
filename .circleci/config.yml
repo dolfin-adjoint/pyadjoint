@@ -48,7 +48,6 @@ jobs:
       - run:
           name: run tests
           command: |
-            # python -m pytest -v tests/fenics_adjoint/
             python3 -m pytest -v tests/fenics_adjoint/
 
       - save_cache:

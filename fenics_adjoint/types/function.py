@@ -85,8 +85,9 @@ class Function(FloatingType, backend.Function):
         return vec
 
     @no_annotations
-    def _ad_convert_type(self, value, options={}):
-        riesz_representation = options.pop("riesz_representation", "l2")
+    def _ad_convert_type(self, value, options=None):
+        options = {} if options is None else options
+        riesz_representation = options.get("riesz_representation", "l2")
 
         if riesz_representation == "l2":
             return Function(self.function_space(), value)
@@ -94,11 +95,25 @@ class Function(FloatingType, backend.Function):
             ret = Function(self.function_space())
             u = backend.TrialFunction(self.function_space())
             v = backend.TestFunction(self.function_space())
-            M = backend.assemble(u * v * backend.dx)
+            M = backend.assemble(backend.inner(u, v) * backend.dx)
+            if not isinstance(value, backend.GenericVector):
+                value = value.vector()
             backend.solve(M, ret.vector(), value)
             return ret
-        else:
+        elif riesz_representation == "H1":
+            ret = Function(self.function_space())
+            u = backend.TrialFunction(self.function_space())
+            v = backend.TestFunction(self.function_space())
+            M = backend.assemble(
+                backend.inner(u, v) * backend.dx + backend.inner(backend.grad(u), backend.grad(v)) * backend.dx)
+            if not isinstance(value, backend.GenericVector):
+                value = value.vector()
+            backend.solve(M, ret.vector(), value)
+            return ret
+        elif callable(riesz_representation):
             return riesz_representation(value)
+        else:
+            raise NotImplementedError("Unknown Riesz representation %s" % riesz_representation)
 
     def _ad_create_checkpoint(self):
         if self.block is None:
@@ -128,8 +143,17 @@ class Function(FloatingType, backend.Function):
         backend.Function.assign(r, self+other)
         return r
 
-    def _ad_dot(self, other):
-        return self.vector().inner(other.vector())
+    def _ad_dot(self, other, options=None):
+        options = {} if options is None else options
+        riesz_representation = options.get("riesz_representation", "l2")
+        if riesz_representation == "l2":
+            return self.vector().inner(other.vector())
+        elif riesz_representation == "L2":
+            return backend.assemble(backend.inner(self, other) * backend.dx)
+        elif riesz_representation == "H1":
+            return backend.assemble((backend.inner(self, other) + backend.inner(backend.grad(self), backend.grad(other))) * backend.dx)
+        else:
+            raise NotImplementedError("Unknown Riesz representation %s" % riesz_representation)
 
     @staticmethod
     def _ad_assign_numpy(dst, src, offset):
@@ -164,7 +188,9 @@ class Function(FloatingType, backend.Function):
 
     def _iadd(self, other):
         vec = self.vector()
-        vec += other.vector()
+        # FIXME: PETSc complains when we add the same vector to itself.
+        # So we make a copy.
+        vec += other.vector().copy()
 
     def _reduce(self, r, r0):
         vec = self.vector().get_local()
@@ -178,14 +204,17 @@ class Function(FloatingType, backend.Function):
         for i in range(len(npdata)):
             npdata[i] = f(npdata[i])
         vec.set_local(npdata)
+        vec.apply("insert")
 
     def _applyBinary(self, f, y):
         vec = self.vector()
         npdata = vec.get_local()
         npdatay = y.vector().get_local()
-        for i in range(len(vec)):
+        for i in range(len(npdata)):
             npdata[i] = f(npdata[i], npdatay[i])
         vec.set_local(npdata)
+        vec.apply("insert")
+
 
 def _extract_functions_from_lincom(lincom, functions=None):
     functions = functions or []
@@ -196,6 +225,7 @@ def _extract_functions_from_lincom(lincom, functions=None):
         for op in lincom.ufl_operands:
             functions = _extract_functions_from_lincom(op, functions)
     return functions
+
 
 class AssignBlock(Block):
     def __init__(self, func, other):

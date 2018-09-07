@@ -13,12 +13,20 @@ if backend.__name__ == "firedrake":
 
     backend.functionspaceimpl.FunctionSpace._ad_parent_space = property(lambda self: self.parent)
 
+    backend.functionspaceimpl.WithGeometry._ad_parent_space = property(lambda self: self.parent)
+
     def extract_subfunction(u, V):
-        r = u
-        while V.index:
-            r = r.sub(V.index)
-            V = V.parent
-        return r
+        """If V is a subspace of the function-space of u, return the component of u that is in that subspace."""
+        if V.index is not None:
+            # V is an indexed subspace of a MixedFunctionSpace
+            return u.sub(V.index)
+        elif V.component is not None:
+            # V is a vector component subspace.
+            # The vector functionspace V.parent may itself be a subspace
+            # so call this function recursively
+            return extract_subfunction(u, V.parent).sub(V.component)
+        else:
+            return u
 
     def create_bc(bc, value=None, homogenize=None):
         """Create a new bc object from an existing one.
@@ -113,6 +121,8 @@ if backend.__name__ == "firedrake":
     def gather(vec):
         return vec.gather()
 
+    linalg_solve = backend.solve
+
 else:
     MatrixType = (backend.cpp.la.Matrix, backend.cpp.la.GenericMatrix)
     VectorType = backend.cpp.la.GenericVector
@@ -161,10 +171,10 @@ else:
         return bc
 
     def function_from_vector(V, vector):
-        """Create a new Function sharing data.
+        """Create a new Function from a vector.
 
         :arg V: The function space
-        :arg vector: The data to share.
+        :arg vector: The vector data.
         """
         if isinstance(vector, backend.cpp.la.PETScVector)\
            or  isinstance(vector, backend.cpp.la.Vector):
@@ -173,7 +183,9 @@ else:
             # If vector is a fenics_adjoint.Function, which does not inherit
             # backend.cpp.function.Function with pybind11
             vector = vector._cpp_object
-        return backend.Function(V, vector)
+        r = backend.Function(V)
+        r.vector()[:] = vector
+        return r
 
     def inner(a, b):
         """Compute the l2 inner product of a and b.
@@ -228,3 +240,12 @@ else:
             arr = vec  # Assume it's a gathered numpy array already
 
         return arr
+
+    def linalg_solve(*args, **kwargs):
+        """Temporary workaround for kwargs not expected in fenics linalg,
+        but possible in firedrake.
+
+        A better solution is expected in the future.
+
+        """
+        return backend.solve(*args)

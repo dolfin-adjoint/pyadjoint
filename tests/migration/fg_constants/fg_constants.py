@@ -35,5 +35,5 @@ if __name__ == "__main__":
         soln = main(ic, params, annotate=False)
         return assemble(soln*soln*dx)
 
-    minconv = taylor_test_multiple(J, [a, b], hs, dJda)
+    minconv = taylor_test(J, [a, b], hs, dJda)
     assert minconv > 1.9

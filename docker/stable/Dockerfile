@@ -7,10 +7,15 @@
 # Simon W. Funke <simon@simula.no>
 # Jack S. Hale <jack.hale@uni.lu>
 
-FROM quay.io/fenicsproject/stable:2017.2.0
+FROM quay.io/fenicsproject/stable:2018.1.0.r2
 MAINTAINER Simon W. Funke <simon@simula.no>
 ARG DOLFIN_ADJOINT_BRANCH="release"
 ARG MOOLA_BRANCH="master"
+
+USER fenics
+ENV IPOPT_VER=3.12.9
+
+COPY dolfin-adjoint.conf $FENICS_HOME/dolfin-adjoint.conf
 
 USER fenics
 ENV IPOPT_VER=3.12.9
@@ -30,9 +35,11 @@ RUN /bin/bash -l -c "source $FENICS_HOME/dolfin-adjoint.conf && \
                      update_pyipopt && \
                      clean_up"
 
+USER fenics
 COPY WELCOME $FENICS_HOME/WELCOME
 RUN echo "source $FENICS_HOME/dolfin-adjoint.conf" >> $FENICS_HOME/.bash_profile
 
 RUN /bin/bash -l -c "python3 -c \"import fenics_adjoint\""
+RUN /bin/bash -l -c "python3 -c \"import dolfin; import pyipopt\""
 
 USER root

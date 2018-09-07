@@ -251,6 +251,7 @@ if __name__ == "__main__":
     solver = IPOPTSolver(problem, parameters=parameters)
     a_opt = solver.solve()
 
+    File("output/final_solution.pvd") << a_opt
     xdmf_filename = XDMFFile(MPI.comm_world, "output/final_solution.xdmf")
     xdmf_filename.write(a_opt)
 

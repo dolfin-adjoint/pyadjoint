@@ -1,5 +1,9 @@
 # Type dependencies
 from . import block
+import re
+import os
+import threading
+from contextlib import contextmanager
 
 # TOOD: Save/checkpoint functions always. Not just on assign.
 
@@ -73,11 +77,15 @@ class Tape(object):
     Each block represents one operation in the forward model.
 
     """
-    __slots__ = ["_blocks"]
+    __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks"]
 
     def __init__(self, blocks=None):
         # Initialize the list of blocks on the tape.
         self._blocks = [] if blocks is None else blocks
+        # Dictionary of TensorFlow tensors. Key is id(block).
+        self._tf_tensors = {}
+        # Keep a list of blocks that has been added to the TensorFlow graph
+        self._tf_added_blocks = []
 
     def clear_tape(self):
         self.reset_variables()
@@ -180,71 +188,116 @@ class Tape(object):
                 valid_blocks.append(block)
         self._blocks = list(reversed(valid_blocks))
 
-    def create_graph(self, backend="networkx", scale=1.0):
-        import networkx as nx
+    def _valid_tf_scope_name(self, name):
+        """Return a valid TensorFlow scope name"""
+        valid_name = ""
+        p = re.compile("[A-Za-z0-9_.\\-]")
+        for ch in name:
+            match = p.match(ch)
+            if not match:
+                if valid_name and valid_name[-1] != "_":
+                    valid_name += "_"
+            else:
+                valid_name += ch
+        return valid_name
 
-        G = nx.DiGraph()
-        for i, block in enumerate(self._blocks):
-            block.create_graph(G, pos=i, scale=scale)
+    def _get_tf_scope_name(self, block):
+        """Return a TensorFlow scope name based on the block's class name."""
+        # If the block is a BlockVariable we use the class name of block.output
+        if block.__class__.__name__ == "BlockVariable":
+            if block.output.__class__.__name__ in ("AdjFloat",):
+                #name = str(block.output.__class__.__name__) + "_" + str(block)
+                #name = str(block.output.__class__.__name__)
+                name = str(block)
+            else:
+                name = str(block.output.__class__.__name__)
+        else:
+            name = block.__class__.__name__
+        return self._valid_tf_scope_name(name)
 
-        return G
+    def _tf_add_blocks(self):
+        """Add new blocks to the TensorFlow graph."""
 
-    def visualise(self, filename=None, scale=1.0, dot=False):
-        """Makes a visualisation of the tape as a graph.
+        import tensorflow as tf
+        for block in self.get_blocks():
+            # Skip blocks that are already added
+            if block in self._tf_added_blocks:
+                continue
 
-        For bigger tapes it is recommended to set the keyword argument
-        `dot` to True. It should then save a file in dot format and you
-        can render it using Graphviz dot.
+            # Add this block such that we skip this block next time
+            self._tf_added_blocks.append(block)
+
+            # Block dependencies
+            in_tensors = []
+            for dep in block.get_dependencies():
+                if id(dep) in self._tf_tensors:
+                    in_tensors.append(self._tf_tensors[id(dep)])
+                else:
+                    with tf.name_scope(self._get_tf_scope_name(dep)):
+                        tin = tf.py_func(lambda: None, [], [tf.float64],
+                                         name=self._valid_tf_scope_name(str(dep)))
+                        in_tensors.append(tin)
+                        self._tf_tensors[id(dep)] = tin
+
+            # Block node
+            with tf.name_scope(self._get_tf_scope_name(block)):
+                tensor = tf.py_func(lambda: None, in_tensors, [tf.float64],
+                                    name=self._valid_tf_scope_name(str(block)))
+                self._tf_tensors[id(block)] = tensor
+
+            # Block outputs
+            for out in block.get_outputs():
+                with tf.name_scope(self._get_tf_scope_name(out)):
+                    tout = tf.py_func(lambda: None, [tensor], [tf.float64],
+                                      name=self._valid_tf_scope_name(str(out)))
+                    self._tf_tensors[id(out)] = tout
+
+    @contextmanager
+    def name_scope(self, name=None):
+        """Returns a context manager that creates hierarchical names for TensorFlow operations.
 
         Args:
-            filename (str|None): File to save the visualisation. Default None.
-            scale (float): Scales the distances between nodes.
-                Only relevant for dot set to False. Default 1.0.
-            dot (bool): Write to specified file in dot-format. Default False.
-                If this is True, then filename must be set.
-
-        Raises:
-            NotImplementedError: If you choose dot-format but supply no filename.
-
+            name (str|None): Name of scope to use. Default None.
         """
-        G = self.create_graph(scale=scale)
+        import tensorflow as tf
+        self._tf_add_blocks()
+        yield
+        with tf.name_scope(name):
+            self._tf_add_blocks()
 
-        if dot:
-            from networkx.drawing.nx_agraph import write_dot
-            if filename:
-                write_dot(G, filename)
-            else:
-                raise NotImplementedError
-        else:
-            import networkx as nx
-            import pylab as plt
+    def visualise(self, logdir="log", launch_tensorboard=False, open_in_browser=False):
+        """Makes a visualisation of the tape as a graph using TensorFlow.
 
-            # Draw nodes
-            fixed_node_positions = nx.get_node_attributes(G, 'position')
-            pos = nx.spring_layout(G, pos=fixed_node_positions, fixed=fixed_node_positions.keys())
+        Args:
+            logdir (str): Directory where event files for TensorBoard is stored. Default log.
+            launch_tensorboard (bool): Launch TensorBoard in the background. Default False.
+            open_in_browser (bool): Opens http://localhost:6006/ in a web browser. Default False.
+        """
 
+        import tensorflow as tf
+        tf.reset_default_graph()
+        self._tf_add_blocks()
 
-            node_colors = list(nx.get_node_attributes(G, 'node_color').values())
-            nx.draw_networkx_nodes(G, pos,
-                                   node_color=node_colors,
-                                   node_size=500,
-                                   alpha=0.8)
-            node_labels = nx.get_node_attributes(G, 'label')
+        optimizer = tf.train.GradientDescentOptimizer(0.001)
 
-            # Draw edges
-            nx.draw_networkx_edges(G, pos, width=1.0, alpha=0.5)
-            nx.draw_networkx_labels(G, pos, labels=node_labels)
+        # Write graph to file
+        with tf.Session() as sess:
+            #gradient = optimizer.compute_gradients(tensor[0])[0][0]
+            writer = tf.summary.FileWriter(logdir, sess.graph)
+            writer.close()
 
-            edge_labels = nx.get_edge_attributes(G, 'label')
-            nx.draw_networkx_edge_labels(G, pos, labels=edge_labels)
+        if not launch_tensorboard or not open_in_browser:
+            print("Run the command line:\n" \
+                  "--> tensorboard --logdir={}\n" \
+                  "Then open http://localhost:6006/ in your web browser.".format(logdir))
 
-            # Turn axis off
-            plt.axis('off')
+        if launch_tensorboard:
+            def launchTensorBoard():
+                os.system('tensorboard --logdir=' + logdir)
 
-            # Show or save graph
-            if not filename:
-                plt.show()
-                plt.clf()
-            else:
-                plt.savefig(filename)
+            t = threading.Thread(target=launchTensorBoard, args=([]))
+            t.start()
 
+        if open_in_browser:
+            import webbrowser
+            webbrowser.open_new_tab("http://localhost:6006/")

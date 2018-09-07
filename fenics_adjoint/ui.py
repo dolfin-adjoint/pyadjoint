@@ -4,6 +4,7 @@ from .solving import solve
 from .projection import project
 from .interpolation import interpolate
 from .types import Function, Constant, DirichletBC, FunctionSpace
+from .ufl_constraints import UFLEqualityConstraint, UFLInequalityConstraint
 if backend.__name__ != "firedrake":
     from .types import Expression, UserExpression, CompiledExpression
     from .types import io
@@ -14,10 +15,10 @@ from .variational_solver import (NonlinearVariationalProblem, NonlinearVariation
 from pyadjoint import (Tape, set_working_tape, get_working_tape,
                        pause_annotation, continue_annotation,
                        ReducedFunctional,
-                       taylor_test, taylor_test_multiple,
+                       taylor_test,
                        compute_gradient, compute_hessian,
                        AdjFloat, Control, minimize, MinimizationProblem,
-                       IPOPTSolver, InequalityConstraint,
+                       IPOPTSolver, ROLSolver, InequalityConstraint, EqualityConstraint,
                        MoolaOptimizationProblem)
 
 tape = Tape()

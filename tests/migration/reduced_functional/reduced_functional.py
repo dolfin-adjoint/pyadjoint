@@ -46,4 +46,4 @@ if False:
 
 h2 = Function(W)
 h2.vector()[:] = rand(W.dim())
-assert taylor_test_multiple(Jhat, [rho, g], [h, h2]) > 1.9
+assert taylor_test(Jhat, [rho, g], [h, h2]) > 1.9

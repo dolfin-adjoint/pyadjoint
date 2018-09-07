@@ -30,9 +30,11 @@ RUN /bin/bash -l -c "source $FENICS_HOME/dolfin-adjoint.conf && \
                      update_pyipopt && \
                      clean_up"
 
+USER fenics
 COPY WELCOME $FENICS_HOME/WELCOME
 RUN echo "source $FENICS_HOME/dolfin-adjoint.conf" >> $FENICS_HOME/.bash_profile
 
 RUN /bin/bash -l -c "python3 -c \"import fenics_adjoint\""
+RUN /bin/bash -l -c "python3 -c \"import dolfin; import pyipopt\""
 
 USER root
