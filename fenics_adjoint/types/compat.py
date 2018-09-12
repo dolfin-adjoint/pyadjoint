@@ -44,9 +44,7 @@ if backend.__name__ == "firedrake":
             raise ValueError("Cannot provide both value and homogenize")
         if homogenize:
             value = 0
-        return backend.DirichletBC(bc.function_space(),
-                                   value,
-                                   bc.sub_domain, method=bc.method)
+        return bc.reconstruct(g=value)
 
     # Most of this is to deal with Firedrake assembly returning
     # Function whereas Dolfin returns Vector.
