@@ -82,9 +82,9 @@ class DirichletBCBlock(Block):
         Block.__init__(self)
         self.function_space = args[0]
         self.parent_space = self.function_space
-        if hasattr(self.function_space, "_ad_parent_space") and self.function_space._ad_parent_space is not None:
-            self.parent_space = self.function_space._ad_parent_space
-        self.collapsed_space = None
+        while hasattr(self.parent_space, "_ad_parent_space") and self.parent_space._ad_parent_space is not None:
+            self.parent_space = self.parent_space._ad_parent_space
+        self.collapsed_space = self.function_space
         if self.function_space != self.parent_space:
             self.collapsed_space = self.function_space.collapse()
 
@@ -115,7 +115,7 @@ class DirichletBCBlock(Block):
                 if isinstance(c, Constant):
                     adj_value = backend.Function(self.parent_space)
                     adj_input.apply(adj_value.vector())
-                    if self.collapsed_space is not None:
+                    if self.function_space != self.parent_space:
                         vec = compat.extract_bc_subvector(adj_value, self.collapsed_space, bc)
                         adj_value = compat.function_from_vector(self.collapsed_space, vec)
 
@@ -145,6 +145,11 @@ class DirichletBCBlock(Block):
                     adj_input.apply(adj_value.vector())
                     adj_output = compat.extract_bc_subvector(adj_value, c.function_space(), bc)
                     block_variable.add_adj_output(adj_output)
+                elif isinstance(c, backend.Expression):
+                    adj_value = backend.Function(self.parent_space)
+                    adj_input.apply(adj_value.vector())
+                    adj_output = compat.extract_bc_subvector(adj_value, self.collapsed_space, bc)
+                    block_variable.add_adj_output([[adj_output, self.collapsed_space]])
 
     @no_annotations
     def evaluate_tlm(self):
@@ -155,6 +160,9 @@ class DirichletBCBlock(Block):
             tlm_input = block_variable.tlm_value
             if tlm_input is None:
                 continue
+
+            if self.function_space != self.parent_space and not isinstance(tlm_input, ufl.Coefficient):
+                tlm_input = backend.project(tlm_input, self.collapsed_space)
 
             # TODO: This is gonna crash for dirichletbcs with multiple dependencies (can't add two bcs)
             #       However, if there is multiple dependencies, we need to AD the expression (i.e if value=f*g then
@@ -177,7 +185,7 @@ class DirichletBCBlock(Block):
                 if isinstance(c, Constant):
                     hessian_value = backend.Function(self.parent_space)
                     hessian_input.apply(hessian_value.vector())
-                    if self.collapsed_space is not None:
+                    if self.function_space != self.parent_space:
                         vec = compat.extract_bc_subvector(hessian_value, self.collapsed_space, bc)
                         hessian_value = compat.function_from_vector(self.collapsed_space, vec)
 
@@ -206,6 +214,11 @@ class DirichletBCBlock(Block):
                     hessian_input.apply(hessian_value.vector())
                     hessian_output = compat.extract_bc_subvector(hessian_value, c.function_space(), bc)
                     block_variable.add_hessian_output(hessian_output)
+                elif isinstance(c, backend.Expression):
+                    hessian_value = backend.Function(self.parent_space)
+                    hessian_input.apply(hessian_value.vector())
+                    hessian_output = compat.extract_bc_subvector(hessian_value, self.collapsed_space, bc)
+                    block_variable.add_hessian_output([[hessian_output, self.collapsed_space]])
 
     @no_annotations
     def recompute(self):
