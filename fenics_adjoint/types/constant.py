@@ -43,7 +43,7 @@ class Constant(OverloadedType, backend.Constant):
 
     def _ad_convert_type(self, value, options={}):
         value = constant_function_firedrake_compat(value)
-        return Constant(self._preserved_ufl_shape_values(value))
+        return self._constant_from_values(value)
 
     def _ad_function_space(self, mesh):
         element = self.ufl_element()
@@ -51,18 +51,16 @@ class Constant(OverloadedType, backend.Constant):
         return backend.FunctionSpace(mesh, fs_element)
 
     def _ad_create_checkpoint(self):
-        return Constant(self._preserved_ufl_shape_values())
+        return self._constant_from_values()
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
 
     def _ad_mul(self, other):
-        values = self._preserved_ufl_shape_values(self.values() * other)
-        return Constant(values)
+        return self._constant_from_values(self.values() * other)
 
     def _ad_add(self, other):
-        values = self._preserved_ufl_shape_values(self.values() + other.values())
-        return Constant(values)
+        return self._constant_from_values(self.values() + other.values())
 
     def _ad_dot(self, other, options=None):
         return sum(self.values()*other.values())
@@ -81,16 +79,16 @@ class Constant(OverloadedType, backend.Constant):
         return a.tolist()
 
     def _ad_copy(self):
-        return Constant(self._preserved_ufl_shape_values())
+        return self._constant_from_values()
 
     def _ad_dim(self):
         return numpy.prod(self.values().shape)
 
     def _imul(self, other):
-        self.assign(ufl_shape_workaround(self.values() * other))
+        self.assign(self._constant_from_values(self.values() * other))
 
     def _iadd(self, other):
-        self.assign(ufl_shape_workaround(self.values() + other.values()))
+        self.assign(self._constant_from_values(self.values() + other.values()))
 
     def _reduce(self, r, r0):
         npdata = self.values()
@@ -103,7 +101,7 @@ class Constant(OverloadedType, backend.Constant):
         npdatacopy = npdata.copy()
         for i in range(len(npdata)):
             npdatacopy[i] = f(npdata[i])
-        self.assign(ufl_shape_workaround(npdatacopy))
+        self.assign(self._constant_from_values(npdatacopy))
 
     def _applyBinary(self, f, y):
         npdata = self.values()
@@ -111,23 +109,23 @@ class Constant(OverloadedType, backend.Constant):
         npdatay = y.values()
         for i in range(len(npdata)):
             npdatacopy[i] = f(npdata[i], npdatay[i])
-        self.assign(ufl_shape_workaround(npdatacopy))
+        self.assign(self._constant_from_values(npdatacopy))
 
-    def _preserved_ufl_shape_values(self, values=None):
-        """Returns the self.values() as a numpy array reshaped to self.ufl_shape.
+    def _constant_from_values(self, values=None):
+        """Returns a new Constant with self.values() while preserving self.ufl_shape.
 
-        The return value is compatible with the Constant constructor, such that ufl_shape is preserved.
-        If the optional argument `values` is provided, then `values` will be reshaped instead.
+        If the optional argument `values` is provided, then `values` will be the values of the
+        new Constant instead, still preserving the ufl_shape of self.
 
         Args:
-            values (numpy.array): An optional argument to reshape instead of self.values().
+            values (numpy.array): An optional argument to use instead of self.values().
 
         Returns:
-            numpy.array: The reshaped array.
+            Constant: The created Constant
 
         """
         values = self.values() if values is None else values
-        return numpy.reshape(values, self.ufl_shape)
+        return Constant(numpy.reshape(values, self.ufl_shape))
 
 
 class AssignBlock(Block):
