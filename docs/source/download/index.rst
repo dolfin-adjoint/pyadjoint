@@ -10,6 +10,11 @@ Installing dolfin-adjoint
 
 .. _dolfin-adjoint/libadjoint: http://dolfin-adjoint-doc.readthedocs.io/en/latest/download/index.html
 
+Source code
+===========
+
+The source code of `pyadjoint` is available on https://bitbucket.org/dolfin-adjoint/pyadjoint.
+
 PIP (all platforms, recommended)
 ================================
 
@@ -23,7 +28,7 @@ Test your installation by running:
 
 .. code-block:: bash
 
-    python -c "import fenics_adjoint"
+    python3 -c "import fenics_adjoint"
 
 Optional dependencies:
 ----------------------
@@ -81,6 +86,10 @@ The FEniCS Docker script can also be used to create persistent sessions::
 
     fenicsproject create myproject quay.io/dolfinadjoint/pyadjoint
     fenicsproject start myproject
+
+To create a session that has access to the current folder from the host::
+
+    docker run -ti -v $(pwd):/home/fenics/shared quay.io/dolfinadjoint/pyadjoint
 
 Development version:
 --------------------

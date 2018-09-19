@@ -152,7 +152,8 @@ class IPOPTSolver(OptimizationSolver):
 
             # The constraint function
             def fun_g(x, user_data=None):
-                return numpy.array(constraint.function(x))
+                out = numpy.array(constraint.function(x), dtype=float)
+                return out
 
             # The constraint Jacobian:
             # flag = True  means 'tell me the sparsity pattern';
@@ -168,7 +169,8 @@ class IPOPTSolver(OptimizationSolver):
                     return (numpy.array(rows), numpy.array(cols))
                 else:
                     j = constraint.jacobian(x)
-                    return numpy.array(gather(j))
+                    out = numpy.array(gather(j), dtype=float)
+                    return out
 
             # The bounds for the constraint: by the definition of our
             # constraint type, the lower bound is always zero,

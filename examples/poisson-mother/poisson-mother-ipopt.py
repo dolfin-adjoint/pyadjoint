@@ -54,8 +54,6 @@ problem = MinimizationProblem(rf)
 parameters = {"tolerance": 1e-12}
 solver = IPOPTSolver(problem, parameters=parameters)
 f_opt = solver.solve()
-plot(f_opt)
-interactive()
 
 # Define the expressions of the analytical solution
 

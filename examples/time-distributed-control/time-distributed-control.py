@@ -82,14 +82,10 @@ T = 2
 ctrls = OrderedDict()
 t = float(dt)
 while t <= T:
-    ctrls[t] = Function(V, annotate=True)
+    ctrls[t] = Function(V)
     t += float(dt)
 
-# The following function implements a heat equation solver in FEniCS. The
-# only `dolfin-adjoint` specific functions are `adj_start_timestep` and
-# `adj_inc_timestep` to communicute the time-levels to `dolfin_adjoint`, and the
-# `annotate` flag in the assignment to enforce that the update of the forcing
-# function is captured in the `dolfin-adjoint` tape:
+# The following function implements a heat equation solver in FEniCS.
 
 def solve_heat(ctrls):
     u = TrialFunction(V)
@@ -113,7 +109,7 @@ def solve_heat(ctrls):
 
         # Update data function
         data.t = t
-        d.assign(interpolate(data, V), annotate=True)
+        d.assign(interpolate(data, V))
 
         # Solve PDE
         solve(a == L, u_0, bc)
@@ -192,10 +188,9 @@ opt_ctrls = minimize(rf, options={"maxiter": 50})
 
 # The following code creates these plots:
 
-from matplotlib import pyplot, rc
-rc('text', usetex=True)
+from matplotlib import pyplot
 x = [c((0.5, 0.5)) for c in opt_ctrls]
-pyplot.plot(x, label="$\\alpha={}$".format(float(alpha)))
+pyplot.plot(x, label="alpha={}".format(float(alpha)))
 pyplot.ylim([-3, 3])
 pyplot.legend()
 pyplot.savefig("control_alpha={}.png".format(float(alpha)))

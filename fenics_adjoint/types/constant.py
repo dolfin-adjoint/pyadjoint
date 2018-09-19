@@ -64,7 +64,7 @@ class Constant(OverloadedType, backend.Constant):
         values = self._preserved_ufl_shape_values(self.values() + other.values())
         return Constant(values)
 
-    def _ad_dot(self, other):
+    def _ad_dot(self, other, options=None):
         return sum(self.values()*other.values())
 
     @staticmethod
@@ -84,7 +84,34 @@ class Constant(OverloadedType, backend.Constant):
         return Constant(self._preserved_ufl_shape_values())
 
     def _ad_dim(self):
-        return self.value_size()
+        return numpy.prod(self.values().shape)
+
+    def _imul(self, other):
+        self.assign(ufl_shape_workaround(self.values() * other))
+
+    def _iadd(self, other):
+        self.assign(ufl_shape_workaround(self.values() + other.values()))
+
+    def _reduce(self, r, r0):
+        npdata = self.values()
+        for i in range(len(npdata)):
+            r0 = r(npdata[i], r0)
+        return r0
+
+    def _applyUnary(self, f):
+        npdata = self.values()
+        npdatacopy = npdata.copy()
+        for i in range(len(npdata)):
+            npdatacopy[i] = f(npdata[i])
+        self.assign(ufl_shape_workaround(npdatacopy))
+
+    def _applyBinary(self, f, y):
+        npdata = self.values()
+        npdatacopy = self.values().copy()
+        npdatay = y.values()
+        for i in range(len(npdata)):
+            npdatacopy[i] = f(npdata[i], npdatay[i])
+        self.assign(ufl_shape_workaround(npdatacopy))
 
     def _preserved_ufl_shape_values(self, values=None):
         """Returns the self.values() as a numpy array reshaped to self.ufl_shape.

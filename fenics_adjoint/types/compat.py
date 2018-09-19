@@ -13,12 +13,20 @@ if backend.__name__ == "firedrake":
 
     backend.functionspaceimpl.FunctionSpace._ad_parent_space = property(lambda self: self.parent)
 
+    backend.functionspaceimpl.WithGeometry._ad_parent_space = property(lambda self: self.parent)
+
     def extract_subfunction(u, V):
-        r = u
-        while V.index:
-            r = r.sub(V.index)
-            V = V.parent
-        return r
+        """If V is a subspace of the function-space of u, return the component of u that is in that subspace."""
+        if V.index is not None:
+            # V is an indexed subspace of a MixedFunctionSpace
+            return u.sub(V.index)
+        elif V.component is not None:
+            # V is a vector component subspace.
+            # The vector functionspace V.parent may itself be a subspace
+            # so call this function recursively
+            return extract_subfunction(u, V.parent).sub(V.component)
+        else:
+            return u
 
     def create_bc(bc, value=None, homogenize=None):
         """Create a new bc object from an existing one.
@@ -36,9 +44,7 @@ if backend.__name__ == "firedrake":
             raise ValueError("Cannot provide both value and homogenize")
         if homogenize:
             value = 0
-        return backend.DirichletBC(bc.function_space(),
-                                   value,
-                                   bc.sub_domain, method=bc.method)
+        return bc.reconstruct(g=value)
 
     # Most of this is to deal with Firedrake assembly returning
     # Function whereas Dolfin returns Vector.
@@ -121,11 +127,12 @@ else:
     FunctionType = backend.cpp.Function
     FunctionSpaceType = backend.cpp.FunctionSpace
 
-    class FunctionSpace(backend.FunctionSpace):
-        def sub(self, i):
-            V = backend.FunctionSpace.sub(self, i)
-            V._ad_parent_space = self
-            return V
+    backend_fs_sub = backend.FunctionSpace.sub
+    def _fs_sub(self, i):
+        V = backend_fs_sub(self, i)
+        V._ad_parent_space = self
+        return V
+    backend.FunctionSpace.sub = _fs_sub
 
     def extract_subfunction(u, V):
         component = V.component()
@@ -157,12 +164,14 @@ else:
                                    *bc.domain_args)
 
     def function_from_vector(V, vector):
-        """Create a new Function sharing data.
+        """Create a new Function from a vector.
 
         :arg V: The function space
-        :arg vector: The data to share.
+        :arg vector: The vector data.
         """
-        return backend.Function(V, vector)
+        r = backend.Function(V)
+        r.vector()[:] = vector
+        return r
 
     def inner(a, b):
         """Compute the l2 inner product of a and b.
