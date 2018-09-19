@@ -22,7 +22,7 @@
 # Consider the problem of minimising the compliance
 #
 # .. math::
-#       \min_{g, u, p} \ \frac{1}{2}\int_{\Omega} \nabla u \cdot \nabla u~\textrm{d}x +  \frac{\alpha}{2} \int_{\partial \Omega_{\textrm{in}}} g^2~\textrm{d}s
+#       \min_{g, u, p} \ \frac{1}{2}\int_{\Omega} \nabla u \cdot \nabla u~\textrm{d}x +  \frac{\alpha}{2} \int_{\partial \Omega_{\textrm{circle}}} g^2~\textrm{d}s
 #
 # subject to the Stokes equations
 #
