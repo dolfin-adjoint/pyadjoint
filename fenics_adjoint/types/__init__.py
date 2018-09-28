@@ -6,6 +6,5 @@ if backend.__name__ != "firedrake":
     # Currently not implemented.
     from .expression import Expression
 from .function import Function
-from .function_space import FunctionSpace
 
 from .types import create_overloaded_object

@@ -46,8 +46,7 @@ if __name__ == "__main__":
     alpha = Constant(1.0e-7)
     J = assemble(sum(inner(true - computed, true - computed)*dx for (time, true, computed) in combined if time >= 0.01)
                  + alpha*inner(grad(guess_ic), grad(guess_ic))*dx)
-    print(J)
-    exit()
+
     m = Control(guess_ic)
 
     m_ex = Function(V, name="Temperature")
@@ -56,12 +55,10 @@ if __name__ == "__main__":
         m_ex.assign(m)
         viz << m_ex
 
-    rf = ReducedFunctional(J, m)#, derivative_cb_post=derivative_cb)
+    rf = ReducedFunctional(J, m)
 
     problem = MinimizationProblem(rf)
     parameters = { 'maximum_iterations': 50 }
 
     solver = IPOPTSolver(problem, parameters=parameters)
     rho_opt = solver.solve()
-
-    # m_opt = problem.solve()

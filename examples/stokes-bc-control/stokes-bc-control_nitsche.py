@@ -99,7 +99,7 @@ class Circle(SubDomain):
     def inside(self, x, on_boundary):
         return on_boundary and (x[0]-10)**2 + (x[1]-5)**2 < 3**2
 
-facet_marker = FacetFunction("size_t", mesh)
+facet_marker = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
 facet_marker.set_all(10)
 Circle().mark(facet_marker, 2)
 
@@ -115,7 +115,7 @@ ds = ds(subdomain_data=facet_marker)
 nu = Constant(1)     # Viscosity coefficient
 gamma = Constant(10)    # Nitsche penalty parameter
 n = FacetNormal(mesh)
-h = CellSize(mesh)
+h = CellDiameter(mesh)
 
 # Define boundary conditions
 u_inflow = Expression(("x[1]*(10-x[1])/25", "0"), degree=2)
@@ -213,9 +213,10 @@ plot(g_opt, title="Optimised boundary")
 g.assign(g_opt)
 A, b = assemble_system(a, L, bcs)
 solve(A, s.vector(), b)
+import matplotlib.pyplot as plt
 plot(s.sub(0), title="Velocity")
 plot(s.sub(1), title="Pressure")
-interactive()
+plt.show()
 
 # Results
 # *******

@@ -1,7 +1,8 @@
 from .tape import no_annotations
 
 
-class Block(object):
+class \
+        Block(object):
     """Base class for all Tape Block types.
     
     Each instance of a Block type represents an elementary operation in the

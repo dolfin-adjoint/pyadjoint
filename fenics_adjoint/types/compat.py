@@ -44,9 +44,7 @@ if backend.__name__ == "firedrake":
             raise ValueError("Cannot provide both value and homogenize")
         if homogenize:
             value = 0
-        return backend.DirichletBC(bc.function_space(),
-                                   value,
-                                   bc.sub_domain, method=bc.method)
+        return bc.reconstruct(g=value)
 
     # Most of this is to deal with Firedrake assembly returning
     # Function whereas Dolfin returns Vector.
@@ -129,11 +127,12 @@ else:
     FunctionType = backend.cpp.Function
     FunctionSpaceType = backend.cpp.FunctionSpace
 
-    class FunctionSpace(backend.FunctionSpace):
-        def sub(self, i):
-            V = backend.FunctionSpace.sub(self, i)
-            V._ad_parent_space = self
-            return V
+    backend_fs_sub = backend.FunctionSpace.sub
+    def _fs_sub(self, i):
+        V = backend_fs_sub(self, i)
+        V._ad_parent_space = self
+        return V
+    backend.FunctionSpace.sub = _fs_sub
 
     def extract_subfunction(u, V):
         component = V.component()
