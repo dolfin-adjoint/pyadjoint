@@ -259,7 +259,7 @@ class AssignBlock(Block):
             for dep in deps:
                 adj_output = Function(V)
                 diff_expr = ufl.algorithms.expand_derivatives(
-                    backend.derivative(expr, dep.saved_output, adj_input_func)
+                    ufl.derivative(expr, dep.saved_output, adj_input_func)
                 )
                 adj_output.assign(diff_expr)
                 dep.add_adj_output(adj_output.vector())
@@ -303,7 +303,7 @@ class AssignBlock(Block):
             for dep in deps:
                 hessian_output = Function(V)
                 diff_expr = ufl.algorithms.expand_derivatives(
-                    backend.derivative(self.expr, dep.output, hessian_input_func)
+                    ufl.derivative(self.expr, dep.output, hessian_input_func)
                 )
                 hessian_output.assign(diff_expr)
                 dep.add_hessian_output(hessian_output.vector())
