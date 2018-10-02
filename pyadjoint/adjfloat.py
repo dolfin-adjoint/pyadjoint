@@ -141,8 +141,8 @@ class FloatOperatorBlock(Block):
         for term in self.terms:
             self.add_dependency(term)
 
-    def recompute(self):
-        self.get_outputs()[0].checkpoint = self.operator(*(term.saved_output for term in self.terms))
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        return self.operator(*(term.saved_output for term in self.terms))
 
 
 class PowBlock(FloatOperatorBlock):
@@ -169,15 +169,16 @@ class AddBlock(FloatOperatorBlock):
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         return adj_inputs[0]
 
-    def evaluate_tlm(self):
-        output = self.get_outputs()[0]
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        tlm_output = 0.
         for term in self.terms:
             tlm_input = term.tlm_value
 
             if tlm_input is None:
                 continue
 
-            output.add_tlm_output(tlm_input)
+            tlm_output += tlm_input
+        return tlm_output
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
@@ -203,16 +204,16 @@ class MulBlock(FloatOperatorBlock):
         other_idx = 0 if idx == 1 else 1
         return float.__mul__(adj_inputs[0], inputs[other_idx])
 
-    def evaluate_tlm(self):
-        output = self.get_outputs()[0]
-
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        tlm_output = 0.
         for i, j in zip((0, 1), (1, 0)):
             tlm_input = self.terms[i].tlm_value
 
             if tlm_input is None:
                 continue
 
-            output.add_tlm_output(float.__mul__(tlm_input, self.terms[j].saved_output))
+            tlm_output += float.__mul__(tlm_input, self.terms[j].saved_output)
+        return tlm_output
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
@@ -253,9 +254,5 @@ class NegBlock(FloatOperatorBlock):
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         return float.__neg__(adj_inputs[0])
 
-    def evaluate_tlm(self):
-        tlm_input = self.terms[0].tlm_value
-        if tlm_input is None:
-            return
-
-        self.get_outputs()[0].add_tlm_output(float.__neg__(tlm_input))
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        return float.__neg__(tlm_inputs[0])

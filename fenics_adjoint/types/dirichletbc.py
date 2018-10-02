@@ -150,13 +150,10 @@ class DirichletBCBlock(Block):
                 adj_output += r
         return adj_output
 
-    @no_annotations
-    def evaluate_tlm(self):
-        output = self.get_outputs()[0]
-        bc = output.saved_output
-
-        for block_variable in self.get_dependencies():
-            tlm_input = block_variable.tlm_value
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        bc = block_variable.saved_output
+        for bv in self.get_dependencies():
+            tlm_input = bv.tlm_value
             if tlm_input is None:
                 continue
 
@@ -167,7 +164,7 @@ class DirichletBCBlock(Block):
             #       However, if there is multiple dependencies, we need to AD the expression (i.e if value=f*g then
             #       dvalue = tlm_f * g + f * tlm_g). Right now we can only handle value=f => dvalue = tlm_f.
             m = compat.create_bc(bc, value=tlm_input)
-            output.add_tlm_output(m)
+        return m
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):

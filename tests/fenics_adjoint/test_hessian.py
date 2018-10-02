@@ -36,7 +36,7 @@ def test_simple_solve():
     Jhat = ReducedFunctional(J, c)
 
     h = Function(V)
-    h.vector()[:] = rand(V.dim())
+    h.vector()[:] = 1 #rand(V.dim())
 
     dJdm = Jhat.derivative().vector().inner(h.vector())
     Hm = compute_hessian(J, c, h).vector().inner(h.vector())
@@ -73,7 +73,7 @@ def test_simple_solve_rf():
     Jhat = ReducedFunctional(J, c)
 
     h = Function(V)
-    h.vector()[:] = rand(V.dim())
+    h.vector()[:] = 1 #rand(V.dim())
 
     dJdm = Jhat.derivative().vector().inner(h.vector())
     Hm = Jhat.hessian(h).vector().inner(h.vector())
@@ -105,7 +105,7 @@ def test_mixed_derivatives():
     J = assemble(u_**2*dx)
     J.adj_value = 1.0
     h = Function(V)
-    h.vector()[:] = rand(V.dim())
+    h.vector()[:] = 1 #rand(V.dim())
     f.tlm_value = h
     g.tlm_value = h
 
@@ -187,7 +187,7 @@ def test_nonlinear():
     Jhat = ReducedFunctional(J, Control(f))
 
     h = Function(V)
-    h.vector()[:] = rand(V.dim())
+    h.vector()[:] = 1 #rand(V.dim())
 
     J.adj_value = 1.0
     f.tlm_value = h
@@ -227,7 +227,7 @@ def test_dirichlet():
     Jhat = ReducedFunctional(J, Control(c))
 
     h = Function(V)
-    h.vector()[:] = rand(V.dim())
+    h.vector()[:] = 1 #rand(V.dim())
 
     J.adj_value = 1.0
     c.tlm_value = h
@@ -332,7 +332,7 @@ def test_burgers():
 
     Jhat = ReducedFunctional(J, Control(ic))
     h = Function(V)
-    h.vector()[:] = rand(V.dim())
+    h.vector()[:] = 1 #rand(V.dim())
     g = ic.copy(deepcopy=True)
     J.adj_value = 1.0
     ic.tlm_value = h
@@ -381,4 +381,13 @@ def convergence_rates(E_values, eps_values):
         r.append(log(E_values[i] / E_values[i - 1]) / log(eps_values[i] / eps_values[i - 1]))
     print(r)
     return r
+
+if __name__ == "__main__":
+    test_simple_solve()
+    test_expression()
+    test_burgers()
+    test_function()
+    test_mixed_derivatives()
+    test_nonlinear()
+    test_simple_solve_rf()
 

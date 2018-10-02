@@ -203,7 +203,6 @@ class Function(FloatingType, backend.Function):
         vec.set_local(npdata)
         vec.apply("insert")
 
-
     def _applyBinary(self, f, y):
         vec = self.vector()
         npdata = vec.get_local()
@@ -212,6 +211,7 @@ class Function(FloatingType, backend.Function):
             npdata[i] = f(npdata[i], npdatay[i])
         vec.set_local(npdata)
         vec.apply("insert")
+
 
 def _extract_functions_from_lincom(lincom, functions=None):
     functions = functions or []
@@ -240,17 +240,17 @@ class AssignBlock(Block):
             self.lincom = True
 
     def prepare_evaluate_adj(self, inputs, adj_inputs, relevant_dependencies):
+        V = self.get_outputs()[0].output.function_space()
+        adj_input_func = compat.function_from_vector(V, adj_inputs[0])
+
         if not self.lincom:
-            return None
+            return adj_input_func
         # If what was assigned was not a lincom (only currently relevant in firedrake),
         # then we need to replace the coefficients in self.expr with new values.
         replace_map = {}
         for dep in self.get_dependencies():
             replace_map[dep.output] = dep.saved_output
         expr = backend.replace(self.expr, replace_map)
-
-        V = self.get_outputs()[0].output.function_space()
-        adj_input_func = compat.function_from_vector(V, adj_inputs[0])
         return expr, adj_input_func
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
@@ -258,7 +258,9 @@ class AssignBlock(Block):
             if isinstance(block_variable.output, (AdjFloat, backend.Constant)):
                 return adj_inputs[0].sum()
             else:
-                return adj_inputs[0]
+                adj_output = backend.Function(block_variable.output.function_space())
+                adj_output.assign(prepared)
+                return adj_output.vector()
         else:
             # Linear combination
             expr, adj_input_func = prepared
@@ -269,26 +271,28 @@ class AssignBlock(Block):
             adj_output.assign(diff_expr)
             return adj_output.vector()
 
-    @no_annotations
-    def evaluate_tlm(self):
-        deps = self.get_dependencies()
+    def prepare_evaluate_tlm(self, inputs, tlm_inputs, relevant_outputs):
         if not self.lincom:
-            tlm_input = deps[0].tlm_value
-            if tlm_input is None:
-                return
-            self.get_outputs()[0].add_tlm_output(tlm_input)
-        else:
-            # Current implementation assumes lincom,
-            # otherwise we need to perform ufl derivative len(deps) times.
-            V = deps[0].output.function_space()
-            tlm_output = Function(V)
-            replace_map = {}
-            for dep in deps:
-                tlm_input = dep.tlm_value or Function(V)
-                replace_map[dep.output] = tlm_input
-            expr = backend.replace(self.expr, replace_map)
-            backend.Function.assign(tlm_output, expr)
-            self.get_outputs()[0].add_tlm_output(tlm_output)
+            return None
+
+        replace_map = {}
+        for dep in self.get_dependencies():
+            V = dep.output.function_space()
+            tlm_input = dep.tlm_value or Function(V)
+            replace_map[dep.output] = tlm_input
+        expr = backend.replace(self.expr, replace_map)
+
+        return expr
+
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        if not self.lincom:
+            return tlm_inputs[0]
+
+        expr = prepared
+        V = block_variable.output.function_space()
+        tlm_output = Function(V)
+        backend.Function.assign(tlm_output, expr)
+        return tlm_output
 
     def prepare_evaluate_hessian(self, inputs, hessian_inputs, adj_inputs, relevant_dependencies):
         return self.prepare_evaluate_adj(inputs, hessian_inputs, relevant_dependencies)
@@ -299,18 +303,21 @@ class AssignBlock(Block):
         # otherwise we need second-order derivatives here.
         return self.evaluate_adj_component(inputs, hessian_inputs, block_variable, idx, prepared)
 
-    @no_annotations
-    def recompute(self):
-        deps = self.get_dependencies()
-        if not self.get_outputs()[0].is_control:
-            if not self.lincom:
-                expr = deps[0].saved_output
-            else:
-                replace_map = {}
-                for dep in deps:
-                    replace_map[dep.output] = dep.saved_output
-                expr = backend.replace(self.expr, replace_map)
-            backend.Function.assign(self.get_outputs()[0].saved_output, expr)
+    def prepare_recompute_component(self, inputs, relevant_outputs):
+        if not self.lincom:
+            return None
+
+        replace_map = {}
+        for dep in self.get_dependencies():
+            replace_map[dep.output] = dep.saved_output
+        return backend.replace(self.expr, replace_map)
+
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        if not self.lincom:
+            prepared = inputs[0]
+        output = Function(block_variable.output.function_space())
+        backend.Function.assign(output, prepared)
+        return output
 
 
 class SplitBlock(Block):
@@ -322,23 +329,18 @@ class SplitBlock(Block):
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         return adj_inputs[0]
 
-    def evaluate_tlm(self):
-        tlm_input = self.get_dependencies()[0].tlm_value
-        if tlm_input is None:
-            return
-        self.get_outputs()[0].add_tlm_output(
-            backend.Function.sub(tlm_input, self.idx, deepcopy=True)
-        )
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        return backend.Function.sub(tlm_inputs[0], self.idx, deepcopy=True)
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
         return hessian_inputs[0]
 
-    def recompute(self):
-        dep = self.get_dependencies()[0].checkpoint
-        self.get_outputs()[0].checkpoint = backend.Function.sub(dep, self.idx, deepcopy=True)
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        return backend.Function.sub(inputs[0], self.idx, deepcopy=True)
 
 
+# TODO: This block is not valid in fenics and not correctly implemented. It should never be used.
 class MergeBlock(Block):
     def __init__(self, func, idx):
         super(MergeBlock, self).__init__()

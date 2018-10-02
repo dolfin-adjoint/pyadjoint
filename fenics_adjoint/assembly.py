@@ -103,37 +103,21 @@ class AssembleBlock(Block):
         output = compat.assemble_adjoint_value(dform)
         return adj_input * output
 
-    @no_annotations
-    def evaluate_tlm(self):
-        replaced_coeffs = {}
-        for block_variable in self.get_dependencies():
-            coeff = block_variable.output
-            replaced_coeffs[coeff] = block_variable.saved_output
+    def prepare_evaluate_tlm(self, inputs, tlm_inputs, relevant_outputs):
+        return self.prepare_evaluate_adj(inputs, tlm_inputs, self.get_dependencies())
 
-        form = backend.replace(self.form, replaced_coeffs)
-
-        for block_variable in self.get_dependencies():
-            c = block_variable.output
-            c_rep = replaced_coeffs.get(c, c)
-            tlm_value = block_variable.tlm_value
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        form = prepared
+        dform = 0.
+        for bv in self.get_dependencies():
+            c_rep = bv.saved_output
+            tlm_value = bv.tlm_value
 
             if tlm_value is None:
                 continue
 
-            if isinstance(c, backend.Function):
-                dform = backend.derivative(form, c_rep, tlm_value)
-                output = compat.assemble_adjoint_value(dform)
-                self.get_outputs()[0].add_tlm_output(output)
-
-            elif isinstance(c, backend.Constant):
-                dform = backend.derivative(form, c_rep, tlm_value)
-                output = compat.assemble_adjoint_value(dform)
-                self.get_outputs()[0].add_tlm_output(output)
-
-            elif isinstance(c, backend.Expression):
-                dform = backend.derivative(form, c_rep, tlm_value)
-                output = compat.assemble_adjoint_value(dform)
-                self.get_outputs()[0].add_tlm_output(output)
+            dform += backend.derivative(form, c_rep, tlm_value)
+        return compat.assemble_adjoint_value(dform)
 
     def prepare_evaluate_hessian(self, inputs, hessian_inputs, adj_inputs, relevant_dependencies):
         return self.prepare_evaluate_adj(inputs, adj_inputs, relevant_dependencies)
@@ -178,21 +162,11 @@ class AssembleBlock(Block):
         else:
             return hessian_output
 
-    @no_annotations
-    def recompute(self):
-        replaced_coeffs = {}
-        for block_variable in self.get_dependencies():
-            coeff = block_variable.output
-            replaced_coeffs[coeff] = block_variable.saved_output
+    def prepare_recompute_component(self, inputs, relevant_outputs):
+        return self.prepare_evaluate_adj(inputs, None, None)
 
-        form = backend.replace(self.form, replaced_coeffs)
-
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        form = prepared
         output = backend.assemble(form)
         output = create_overloaded_object(output)
-
-        self.get_outputs()[0].checkpoint = output._ad_create_checkpoint()
-        # TODO: Assemble might output a float (AdjFloat), but this is NOT treated as
-        #       a Coefficient by UFL and so the correct dependencies are not setup for Solve/Assemble blocks if
-        #       the AdjFloat is used directly in a form. Using it in a Constant before a form would also not help,
-        #       because the Constant is always seen as a leaf node, and thus can't depend on this AdjFloat.
-        #       Right now the only workaround is using it in an Expression.
+        return output

@@ -266,13 +266,15 @@ class ExpressionBlock(Block):
                     adj_output += backend.interpolate(adj_func, c.function_space()).vector()
         return adj_output
 
-    def evaluate_tlm(self):
-        output = self.get_outputs()[0]
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
         # Restore _ad_attributes_dict.
-        output.saved_output
+        block_variable.saved_output
 
+        tlm_output = 0.
+        tlm_used = False
         for block_variable in self.get_dependencies():
-            if block_variable.tlm_value is None:
+            tlm_input = block_variable.tlm_value
+            if tlm_input is None:
                 continue
 
             c = block_variable.output
@@ -283,9 +285,11 @@ class ExpressionBlock(Block):
                 if key not in self.expression.ad_ignored_attributes:
                     setattr(self.expression.user_defined_derivatives[c], key, self.expression._ad_attributes_dict[key])
 
-            tlm_input = block_variable.tlm_value
-
-            output.add_tlm_output(tlm_input * self.expression.user_defined_derivatives[c])
+            tlm_used = True
+            tlm_output += tlm_input * self.expression.user_defined_derivatives[c]
+        if not tlm_used:
+            return None
+        return tlm_output
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
@@ -361,13 +365,13 @@ class ExpressionBlock(Block):
                     hessian_output += backend.interpolate(hessian_func, c1.function_space()).vector()
         return hessian_output
 
-    def recompute(self):
+    def recompute_component(self, inputs, block_variable, idx, prepared):
         checkpoint = self.get_outputs()[0].checkpoint
 
         if checkpoint:
-            for block_variable in self.get_dependencies():
-                key = self.dependency_keys[block_variable.output]
-                checkpoint[key] = block_variable.saved_output
+            for bv in self.get_dependencies():
+                key = self.dependency_keys[bv.output]
+                checkpoint[key] = bv.saved_output
 
     def __str__(self):
         return "Expression block"

@@ -196,11 +196,9 @@ class SolveBlock(Block):
         else:
             return dFdm
 
-    @no_annotations
-    def evaluate_tlm(self):
+    def prepare_evaluate_tlm(self, inputs, tlm_inputs, relevant_outputs):
         fwd_block_variable = self.get_outputs()[0]
         u = fwd_block_variable.output
-        V = u.function_space()
 
         if self.linear:
             tmp_u = Function(self.func.function_space()) # Replace later? Maybe save function space on initialization.
@@ -232,51 +230,49 @@ class SolveBlock(Block):
             bcs.append(bc)
             bc.apply(dFdu)
 
+        r = {}
+        r["form"] = F_form
+        r["dFdu"] = dFdu
+        r["coeffs"] = replaced_coeffs
+        return r
+
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        F_form = prepared["form"]
+        dFdu = prepared["dFdu"]
+        replaced_coeffs = prepared["coeffs"]
+        V = self.get_outputs()[idx].output.function_space()
+
+        bcs = []
+        dFdm = 0.
         for block_variable in self.get_dependencies():
             tlm_value = block_variable.tlm_value
-            if tlm_value is None:
+            c = block_variable.output
+
+            if isinstance(c, backend.DirichletBC):
+                if tlm_value is None:
+                    bcs.append(compat.create_bc(c, homogenize=True))
+                else:
+                    bcs.append(tlm_value)
                 continue
 
-            c = block_variable.output
-            c_rep = replaced_coeffs.get(c, c)
+            if tlm_value is None:
+                continue
 
             if c == self.func and not self.linear:
                 continue
 
-            if isinstance(c, backend.Function):
-                # TODO: If tlm_value is a Sum, will this crash in some instances? Should we project?
-                dFdm = -backend.derivative(F_form, c_rep, tlm_value)
-                dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
+            c_rep = replaced_coeffs.get(c, c)
+            dFdm += -backend.derivative(F_form, c_rep, tlm_value)
 
-                # Zero out boundary values from boundary conditions as they do not depend (directly) on c.
-                for bc in bcs:
-                    bc.apply(dFdm)
+        if isinstance(dFdm, float):
+            dFdm = Function(V).vector()
+        else:
+            dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
 
-            elif isinstance(c, backend.Constant):
-                dFdm = -backend.derivative(F_form, c_rep, tlm_value)
-                dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
-
-                # Zero out boundary values from boundary conditions as they do not depend (directly) on c.
-                for bc in bcs:
-                    bc.apply(dFdm)
-
-            elif isinstance(c, backend.DirichletBC):
-                #tmp_bc = backend.DirichletBC(V, tlm_value, c_rep.user_sub_domain())
-                dFdm = backend.Function(V).vector()
-                tlm_value.apply(dFdu, dFdm)
-
-            elif isinstance(c, backend.Expression):
-                dFdm = -backend.derivative(F_form, c_rep, tlm_value)
-                dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
-
-                # Zero out boundary values from boundary conditions as they do not depend (directly) on c.
-                for bc in bcs:
-                    bc.apply(dFdm)
-
-            dudm = Function(V)
-            compat.linalg_solve(dFdu, dudm.vector(), dFdm, **self.kwargs)
-
-            fwd_block_variable.add_tlm_output(dudm)
+        dudm = Function(V)
+        [bc.apply(dFdm) for bc in bcs]
+        compat.linalg_solve(dFdu, dudm.vector(), dFdm, **self.kwargs)
+        return dudm
 
     def prepare_evaluate_hessian(self, inputs, hessian_inputs, adj_inputs, relevant_dependencies):
         # First fetch all relevant values
@@ -450,12 +446,8 @@ class SolveBlock(Block):
         else:
             return hessian_output
 
-    @no_annotations
-    def recompute(self):
-        if self.get_outputs()[0].is_control:
-            return
-
-        func = self.get_outputs()[0].saved_output
+    def prepare_recompute_component(self, inputs, relevant_outputs):
+        func = backend.Function(self.get_outputs()[0].output.function_space())
         replace_lhs_coeffs = {}
         replace_rhs_coeffs = {}
         bcs = []
@@ -481,13 +473,15 @@ class SolveBlock(Block):
         if self.linear:
             rhs = backend.replace(self.rhs, replace_rhs_coeffs)
 
-        # Here we overwrite the checkpoint (if nonlin solve). Is this a good idea?
-        # In theory should not matter, but may sometimes lead to
-        # unexpected results if not careful.
-        backend.solve(lhs == rhs, func, bcs, **self.forward_kwargs)
-        # Save output for use in later re-computations.
-        # TODO: Consider redesigning the saving system so a new deepcopy isn't created on each forward replay.
-        self.get_outputs()[0].checkpoint = func._ad_create_checkpoint()
+        return lhs == rhs, func, bcs
+
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        eq = prepared[0]
+        func = prepared[1]
+        bcs = prepared[2]
+
+        backend.solve(eq, func, bcs, **self.forward_kwargs)
+        return func
 
 
 class Form(object):
