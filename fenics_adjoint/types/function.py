@@ -266,7 +266,7 @@ class AssignBlock(Block):
             expr, adj_input_func = prepared
             adj_output = backend.Function(block_variable.output.function_space())
             diff_expr = ufl.algorithms.expand_derivatives(
-                backend.derivative(expr, block_variable.saved_output, adj_input_func)
+                ufl.derivative(expr, block_variable.saved_output, adj_input_func)
             )
             adj_output.assign(diff_expr)
             return adj_output.vector()
