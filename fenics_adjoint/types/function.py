@@ -3,11 +3,12 @@ from . import compat
 from pyadjoint.adjfloat import AdjFloat
 from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, no_annotations
 from pyadjoint.block import Block
-from pyadjoint.overloaded_type import OverloadedType, FloatingType
+from pyadjoint.overloaded_type import OverloadedType, FloatingType, create_overloaded_object, register_overloaded_type
 from .compat import gather
 import ufl
 
 
+@register_overloaded_type
 class Function(FloatingType, backend.Function):
     def __init__(self, *args, **kwargs):
         super(Function, self).__init__(*args,
@@ -21,9 +22,13 @@ class Function(FloatingType, backend.Function):
                                        **kwargs)
         backend.Function.__init__(self, *args, **kwargs)
 
-    def copy(self, *args, **kwargs):
-        from .types import create_overloaded_object
+    @classmethod
+    def _ad_init_object(cls, obj):
+        r = cls(obj.function_space())
+        r.vector()[:] = obj.vector()
+        return r
 
+    def copy(self, *args, **kwargs):
         annotate = annotate_tape(kwargs)
         c = backend.Function.copy(self, *args, **kwargs)
         func = create_overloaded_object(c)
@@ -47,7 +52,6 @@ class Function(FloatingType, backend.Function):
         annotate = annotate_tape(kwargs) and self != other
         if annotate:
             if not isinstance(other, ufl.core.operator.Operator):
-                from .types import create_overloaded_object
                 other = create_overloaded_object(other)
             block = AssignBlock(self, other)
             tape = get_working_tape()

@@ -1,6 +1,6 @@
 from .tape import get_working_tape, annotate_tape
 from .block import Block
-from .overloaded_type import OverloadedType
+from .overloaded_type import OverloadedType, register_overloaded_type
 
 
 def annotate_operator(operator):
@@ -42,6 +42,7 @@ def annotate_operator(operator):
     return annotated_operator
 
 
+@register_overloaded_type
 class AdjFloat(OverloadedType, float):
     def __new__(cls, *args, **kwargs):
         return float.__new__(cls, *args)
