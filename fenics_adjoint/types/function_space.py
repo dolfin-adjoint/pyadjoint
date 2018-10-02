@@ -1,1 +1,1 @@
-from .compat import FunctionSpace, extract_subfunction
+from .compat import extract_subfunction

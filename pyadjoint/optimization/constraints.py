@@ -84,7 +84,11 @@ class MergedConstraints(Constraint):
 
     def jacobian_adjoint_action(self, m, dp, result):
 
-        result.vector().zero()
+        if hasattr(result.vector(), "zero"):
+            result.vector().zero()
+        else:
+            result.vector().assign(0)
+
         tmp = result.__class__.copy(result, deepcopy=True)
 
         for (i, c) in enumerate(self.constraints):

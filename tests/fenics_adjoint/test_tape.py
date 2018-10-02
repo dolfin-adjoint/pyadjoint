@@ -5,6 +5,7 @@ from fenics import *
 from fenics_adjoint import *
 
 def test_tape_visualisation():
+    pytest.importorskip("tensorflow")
     mesh = IntervalMesh(10, 0, 1)
     V = FunctionSpace(mesh, "Lagrange", 1)
 
@@ -63,6 +64,7 @@ def test_tape_time():
     assemble(u_1**2*dx)
 
 def test_tape_time_visualisation():
+    pytest.importorskip("tensorflow")
     set_working_tape(Tape())
 
     mesh = IntervalMesh(10, 0, 1)
@@ -103,5 +105,13 @@ def test_tape_time_visualisation():
             t += dt
 
     assemble(u_1**2*dx)
+    tape.visualise()
 
+def test_visualise_negative_float():
+    set_working_tape(Tape())
+    a = AdjFloat(-1.0)
+    b = AdjFloat(2.0)
+    c = a + b
+
+    tape = get_working_tape()
     tape.visualise()

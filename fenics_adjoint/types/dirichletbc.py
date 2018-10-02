@@ -57,13 +57,36 @@ class DirichletBC(FloatingType, backend.DirichletBC):
         return self
 
 
+def _extract_subindices(V):
+    assert V.num_sub_spaces() > 0
+    r = []
+    for i in range(V.num_sub_spaces()):
+        l = [i]
+        _build_subindices(l, r, V.sub(i))
+        l.pop()
+    return r
+
+
+def _build_subindices(l, r, V):
+    if V.num_sub_spaces() <= 0:
+        r.append(tuple(l))
+    else:
+        for i in range(V.num_sub_spaces()):
+            l.append(i)
+            _build_subindices(l, r, V)
+            l.pop()
+
+
 class DirichletBCBlock(Block):
     def __init__(self, *args):
         Block.__init__(self)
         self.function_space = args[0]
         self.parent_space = self.function_space
-        if hasattr(self.function_space, "_ad_parent_space") and self.function_space._ad_parent_space is not None:
-            self.parent_space = self.function_space._ad_parent_space
+        while hasattr(self.parent_space, "_ad_parent_space") and self.parent_space._ad_parent_space is not None:
+            self.parent_space = self.parent_space._ad_parent_space
+        self.collapsed_space = self.function_space
+        if self.function_space != self.parent_space:
+            self.collapsed_space = self.function_space.collapse()
 
         if len(args) >= 2 and isinstance(args[1], OverloadedType):
             self.add_dependency(args[1].block_variable)
@@ -92,13 +115,24 @@ class DirichletBCBlock(Block):
                 if isinstance(c, Constant):
                     adj_value = backend.Function(self.parent_space)
                     adj_input.apply(adj_value.vector())
+                    if self.function_space != self.parent_space:
+                        vec = compat.extract_bc_subvector(adj_value, self.collapsed_space, bc)
+                        adj_value = compat.function_from_vector(self.collapsed_space, vec)
+
                     if adj_value.ufl_shape == () or adj_value.ufl_shape[0] <= 1:
                         block_variable.add_adj_output(adj_value.vector().sum())
                     else:
                         adj_output = []
-                        for i in range(adj_value.ufl_shape[0]):
-                            # TODO: This might not be the optimal way to extract the subfunction vectors.
-                            adj_output.append(adj_value.sub(i, deepcopy=True).vector().sum())
+                        subindices = _extract_subindices(self.function_space)
+                        for indices in subindices:
+                            current_subfunc = adj_value
+                            prev_idx = None
+                            for i in indices:
+                                if prev_idx is not None:
+                                    current_subfunc = current_subfunc.sub(prev_idx)
+                                prev_idx = i
+                            adj_output.append(current_subfunc.sub(prev_idx, deepcopy=True).vector().sum())
+
                         block_variable.add_adj_output(numpy.array(adj_output))
                 elif isinstance(c, Function):
                     # TODO: This gets a little complicated.
@@ -111,6 +145,11 @@ class DirichletBCBlock(Block):
                     adj_input.apply(adj_value.vector())
                     adj_output = compat.extract_bc_subvector(adj_value, c.function_space(), bc)
                     block_variable.add_adj_output(adj_output)
+                elif isinstance(c, backend.Expression):
+                    adj_value = backend.Function(self.parent_space)
+                    adj_input.apply(adj_value.vector())
+                    adj_output = compat.extract_bc_subvector(adj_value, self.collapsed_space, bc)
+                    block_variable.add_adj_output([[adj_output, self.collapsed_space]])
 
     @no_annotations
     def evaluate_tlm(self):
@@ -121,6 +160,9 @@ class DirichletBCBlock(Block):
             tlm_input = block_variable.tlm_value
             if tlm_input is None:
                 continue
+
+            if self.function_space != self.parent_space and not isinstance(tlm_input, ufl.Coefficient):
+                tlm_input = backend.project(tlm_input, self.collapsed_space)
 
             # TODO: This is gonna crash for dirichletbcs with multiple dependencies (can't add two bcs)
             #       However, if there is multiple dependencies, we need to AD the expression (i.e if value=f*g then
@@ -143,13 +185,23 @@ class DirichletBCBlock(Block):
                 if isinstance(c, Constant):
                     hessian_value = backend.Function(self.parent_space)
                     hessian_input.apply(hessian_value.vector())
+                    if self.function_space != self.parent_space:
+                        vec = compat.extract_bc_subvector(hessian_value, self.collapsed_space, bc)
+                        hessian_value = compat.function_from_vector(self.collapsed_space, vec)
+
                     if hessian_value.ufl_shape == () or hessian_value.ufl_shape[0] <= 1:
                         block_variable.add_hessian_output(hessian_value.vector().sum())
                     else:
                         hessian_output = []
-                        for i in range(hessian_value.ufl_shape[0]):
-                            # TODO: This might not be the optimal way to extract the subfunction vectors.
-                            hessian_output.append(hessian_value.sub(i, deepcopy=True).vector().sum())
+                        subindices = _extract_subindices(self.function_space)
+                        for indices in subindices:
+                            current_subfunc = hessian_value
+                            prev_idx = None
+                            for i in indices:
+                                if prev_idx is not None:
+                                    current_subfunc = current_subfunc.sub(prev_idx)
+                                prev_idx = i
+                            hessian_output.append(current_subfunc.sub(prev_idx, deepcopy=True).vector().sum())
                         block_variable.add_hessian_output(numpy.array(hessian_output))
                 elif isinstance(c, Function):
                     # TODO: This gets a little complicated.
@@ -162,6 +214,11 @@ class DirichletBCBlock(Block):
                     hessian_input.apply(hessian_value.vector())
                     hessian_output = compat.extract_bc_subvector(hessian_value, c.function_space(), bc)
                     block_variable.add_hessian_output(hessian_output)
+                elif isinstance(c, backend.Expression):
+                    hessian_value = backend.Function(self.parent_space)
+                    hessian_input.apply(hessian_value.vector())
+                    hessian_output = compat.extract_bc_subvector(hessian_value, self.collapsed_space, bc)
+                    block_variable.add_hessian_output([[hessian_output, self.collapsed_space]])
 
     @no_annotations
     def recompute(self):
