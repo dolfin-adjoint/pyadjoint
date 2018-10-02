@@ -219,16 +219,7 @@ class SolveBlock(Block):
 
         # Obtain dFdu.
         dFdu = backend.derivative(F_form, fwd_block_variable.saved_output, backend.TrialFunction(u.function_space()))
-
         dFdu = backend.assemble(dFdu, **self.assemble_kwargs)
-
-        # Homogenize and apply boundary conditions on dFdu.
-        bcs = []
-        for bc in self.bcs:
-            if isinstance(bc, backend.DirichletBC):
-                bc = compat.create_bc(bc, homogenize=True)
-            bcs.append(bc)
-            bc.apply(dFdu)
 
         r = {}
         r["form"] = F_form
@@ -265,12 +256,12 @@ class SolveBlock(Block):
             dFdm += -backend.derivative(F_form, c_rep, tlm_value)
 
         if isinstance(dFdm, float):
-            dFdm = Function(V).vector()
+            dFdm = backend.Function(V).vector()
         else:
             dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
 
-        dudm = Function(V)
-        [bc.apply(dFdm) for bc in bcs]
+        dudm = backend.Function(V)
+        [bc.apply(dFdu, dFdm) for bc in bcs]
         compat.linalg_solve(dFdu, dudm.vector(), dFdm, **self.kwargs)
         return dudm
 

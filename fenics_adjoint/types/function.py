@@ -3,7 +3,9 @@ from . import compat
 from pyadjoint.adjfloat import AdjFloat
 from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, no_annotations
 from pyadjoint.block import Block
-from pyadjoint.overloaded_type import OverloadedType, FloatingType, create_overloaded_object, register_overloaded_type
+from pyadjoint.overloaded_type import (OverloadedType, FloatingType,
+                                       create_overloaded_object, register_overloaded_type,
+                                       get_overloaded_class)
 from .compat import gather
 import ufl
 
@@ -134,13 +136,13 @@ class Function(FloatingType, backend.Function):
 
     @no_annotations
     def _ad_mul(self, other):
-        r = Function(self.function_space())
+        r = get_overloaded_class(backend.Function)(self.function_space())
         backend.Function.assign(r, self*other)
         return r
 
     @no_annotations
     def _ad_add(self, other):
-        r = Function(self.function_space())
+        r = get_overloaded_class(backend.Function)(self.function_space())
         backend.Function.assign(r, self+other)
         return r
 
@@ -176,7 +178,7 @@ class Function(FloatingType, backend.Function):
         return m_a.tolist()
 
     def _ad_copy(self):
-        r = Function(self.function_space())
+        r = get_overloaded_class(backend.Function)(self.function_space())
         backend.Function.assign(r, self)
         return r
 
@@ -282,7 +284,7 @@ class AssignBlock(Block):
         replace_map = {}
         for dep in self.get_dependencies():
             V = dep.output.function_space()
-            tlm_input = dep.tlm_value or Function(V)
+            tlm_input = dep.tlm_value or backend.Function(V)
             replace_map[dep.output] = tlm_input
         expr = backend.replace(self.expr, replace_map)
 
@@ -294,7 +296,7 @@ class AssignBlock(Block):
 
         expr = prepared
         V = block_variable.output.function_space()
-        tlm_output = Function(V)
+        tlm_output = backend.Function(V)
         backend.Function.assign(tlm_output, expr)
         return tlm_output
 
@@ -319,7 +321,7 @@ class AssignBlock(Block):
     def recompute_component(self, inputs, block_variable, idx, prepared):
         if not self.lincom:
             prepared = inputs[0]
-        output = Function(block_variable.output.function_space())
+        output = backend.Function(block_variable.output.function_space())
         backend.Function.assign(output, prepared)
         return output
 

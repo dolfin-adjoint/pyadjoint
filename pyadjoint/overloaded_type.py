@@ -5,6 +5,10 @@ from .block_variable import BlockVariable
 _overloaded_types = {}
 
 
+def get_overloaded_class(backend_class):
+    return _overloaded_types[backend_class]
+
+
 def create_overloaded_object(obj):
     """Creates an OverloadedType instance corresponding `obj`.
 
