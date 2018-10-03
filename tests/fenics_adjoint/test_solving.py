@@ -394,7 +394,7 @@ def _test_adjoint_function_boundary(J, bc, f):
         bc.set_value(f)
         Jm = J(bc)
         Jm.adj_value = 1.0
-        tape.evaluate()
+        tape.evaluate_adj()
 
         dJdbc = bc.adj_value
 
@@ -424,7 +424,7 @@ def _test_adjoint_constant_boundary(J, bc):
         bc.set_value(c)
         Jm = J(bc)
         Jm.adj_value = 1.0
-        tape.evaluate()
+        tape.evaluate_adj()
 
         dJdbc = bc.adj_value[0]
 
@@ -454,7 +454,7 @@ def _test_adjoint_constant(J, c):
         tape.clear_tape()
         Jm = J(c)
         Jm.adj_value = 1.0
-        tape.evaluate()
+        tape.evaluate_adj()
 
         dJdc = c.adj_value[0]
         print(dJdc)
@@ -485,7 +485,7 @@ def _test_adjoint(J, f):
         tape.clear_tape()
         Jm = J(f)
         Jm.adj_value = 1.0
-        tape.evaluate()
+        tape.evaluate_adj()
 
         dJdf = f.adj_value
 

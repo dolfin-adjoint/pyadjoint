@@ -2,6 +2,65 @@ from .tape import get_working_tape, annotate_tape
 from .block_variable import BlockVariable
 
 
+_overloaded_types = {}
+
+
+def get_overloaded_class(backend_class):
+    return _overloaded_types[backend_class]
+
+
+def create_overloaded_object(obj):
+    """Creates an OverloadedType instance corresponding `obj`.
+
+    If an OverloadedType corresponding to `obj` has not been registered
+    through `register_overloaded_type`, a RuntimeWarning will be issued.
+
+    Args:
+        obj (object): The object to create an overloaded instance from.
+
+    Returns:
+        OverloadedType
+
+    """
+    if isinstance(obj, OverloadedType):
+        return obj
+
+    obj_type = type(obj)
+    if obj_type in _overloaded_types:
+        overloaded_type = _overloaded_types[obj_type]
+        return overloaded_type._ad_init_object(obj)
+    else:
+        import warnings
+        warnings.warn("Could not find overloaded class of type '{}'.".format(obj_type))
+        return obj
+
+
+def register_overloaded_type(overloaded_type, classes=None):
+    """Register an overloaded type for use in `create_overloaded_object`
+
+    Overloaded types used with this function should have implemented a classmethod `_ad_create_object`.
+    For usage as a decorator, OverloadedType should be the first base of `overloaded_type`, and `classes`
+    the second base.
+
+    Args:
+        overloaded_type (type): The OverloadedType subclass to register.
+        classes (type, tuple, optional): The original class/classes that this OverloadedType subclass
+        overloads.
+
+    Returns:
+        type: returns only `overloaded_type` such that it can be used as a decorator.
+
+    """
+    if isinstance(classes, (tuple, list)):
+        for cl in classes:
+            register_overloaded_type(overloaded_type, classes=cl)
+    else:
+        if classes is None:
+            classes = overloaded_type.__bases__[1]
+        _overloaded_types[classes] = overloaded_type
+    return overloaded_type
+
+
 class OverloadedType(object):
     """Base class for OverloadedType types.
 
@@ -15,6 +74,22 @@ class OverloadedType(object):
     """
     def __init__(self, *args, **kwargs):
         self.original_block_variable = self.create_block_variable()
+
+    @classmethod
+    def _ad_init_object(cls, obj):
+        """This method will often need to be overridden.
+
+        The method should implement a way to reconstruct a new overloaded instance
+        from a (possibly) not-overloaded instance.
+
+        Args:
+            obj: An instance of the original type
+
+        Returns:
+            OverloadedType: An overloaded instance which is considered the same as `obj`.
+
+        """
+        return cls(obj)
 
     def create_block_variable(self):
         self.block_variable = BlockVariable(self)

@@ -33,7 +33,7 @@ class NormaliseBlock(Block):
     def __str__(self):
         return 'NormaliseBlock'
 
-    def evaluate_adj(self):
+    def evaluate_adj(self, markings=False):
         adj_input = self.get_outputs()[0].adj_value
         dependency = self.get_dependencies()[0]
         x = dependency.saved_output.vector()

@@ -101,63 +101,59 @@ class DirichletBCBlock(Block):
             #         (Either by actually running our project or by "manually" inserting a project block).
             pass
 
-    @no_annotations
-    def evaluate_adj(self):
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         bc = self.get_outputs()[0].saved_output
-        adj_inputs = self.get_outputs()[0].adj_value
-
-        if adj_inputs is None:
-            return
-
+        c = block_variable.output
+        adj_inputs = adj_inputs[0]
+        adj_output = None
         for adj_input in adj_inputs:
-            for block_variable in self.get_dependencies():
-                c = block_variable.output
-                if isinstance(c, Constant):
-                    adj_value = backend.Function(self.parent_space)
-                    adj_input.apply(adj_value.vector())
-                    if self.function_space != self.parent_space:
-                        vec = compat.extract_bc_subvector(adj_value, self.collapsed_space, bc)
-                        adj_value = compat.function_from_vector(self.collapsed_space, vec)
+            if isinstance(c, Constant):
+                adj_value = backend.Function(self.parent_space)
+                adj_input.apply(adj_value.vector())
+                if self.function_space != self.parent_space:
+                    vec = compat.extract_bc_subvector(adj_value, self.collapsed_space, bc)
+                    adj_value = compat.function_from_vector(self.collapsed_space, vec)
 
-                    if adj_value.ufl_shape == () or adj_value.ufl_shape[0] <= 1:
-                        block_variable.add_adj_output(adj_value.vector().sum())
-                    else:
-                        adj_output = []
-                        subindices = _extract_subindices(self.function_space)
-                        for indices in subindices:
-                            current_subfunc = adj_value
-                            prev_idx = None
-                            for i in indices:
-                                if prev_idx is not None:
-                                    current_subfunc = current_subfunc.sub(prev_idx)
-                                prev_idx = i
-                            adj_output.append(current_subfunc.sub(prev_idx, deepcopy=True).vector().sum())
+                if adj_value.ufl_shape == () or adj_value.ufl_shape[0] <= 1:
+                    r = adj_value.vector().sum()
+                else:
+                    output = []
+                    subindices = _extract_subindices(self.function_space)
+                    for indices in subindices:
+                        current_subfunc = adj_value
+                        prev_idx = None
+                        for i in indices:
+                            if prev_idx is not None:
+                                current_subfunc = current_subfunc.sub(prev_idx)
+                            prev_idx = i
+                        output.append(current_subfunc.sub(prev_idx, deepcopy=True).vector().sum())
 
-                        block_variable.add_adj_output(numpy.array(adj_output))
-                elif isinstance(c, Function):
-                    # TODO: This gets a little complicated.
-                    #       The function may belong to a different space,
-                    #       and with `Function.set_allow_extrapolation(True)`
-                    #       you can even use the Function outside its domain.
-                    # For now we will just assume the FunctionSpace is the same for
-                    # the BC and the Function.
-                    adj_value = backend.Function(self.parent_space)
-                    adj_input.apply(adj_value.vector())
-                    adj_output = compat.extract_bc_subvector(adj_value, c.function_space(), bc)
-                    block_variable.add_adj_output(adj_output)
-                elif isinstance(c, backend.Expression):
-                    adj_value = backend.Function(self.parent_space)
-                    adj_input.apply(adj_value.vector())
-                    adj_output = compat.extract_bc_subvector(adj_value, self.collapsed_space, bc)
-                    block_variable.add_adj_output([[adj_output, self.collapsed_space]])
+                    r = numpy.array(output)
+            elif isinstance(c, Function):
+                # TODO: This gets a little complicated.
+                #       The function may belong to a different space,
+                #       and with `Function.set_allow_extrapolation(True)`
+                #       you can even use the Function outside its domain.
+                # For now we will just assume the FunctionSpace is the same for
+                # the BC and the Function.
+                adj_value = backend.Function(self.parent_space)
+                adj_input.apply(adj_value.vector())
+                r = compat.extract_bc_subvector(adj_value, c.function_space(), bc)
+            elif isinstance(c, backend.Expression):
+                adj_value = backend.Function(self.parent_space)
+                adj_input.apply(adj_value.vector())
+                output = compat.extract_bc_subvector(adj_value, self.collapsed_space, bc)
+                r  = [[output, self.collapsed_space]]
+            if adj_output is None:
+                adj_output = r
+            else:
+                adj_output += r
+        return adj_output
 
-    @no_annotations
-    def evaluate_tlm(self):
-        output = self.get_outputs()[0]
-        bc = output.saved_output
-
-        for block_variable in self.get_dependencies():
-            tlm_input = block_variable.tlm_value
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        bc = block_variable.saved_output
+        for bv in self.get_dependencies():
+            tlm_input = bv.tlm_value
             if tlm_input is None:
                 continue
 
@@ -168,57 +164,12 @@ class DirichletBCBlock(Block):
             #       However, if there is multiple dependencies, we need to AD the expression (i.e if value=f*g then
             #       dvalue = tlm_f * g + f * tlm_g). Right now we can only handle value=f => dvalue = tlm_f.
             m = compat.create_bc(bc, value=tlm_input)
-            output.add_tlm_output(m)
+        return m
 
-    @no_annotations
-    def evaluate_hessian(self):
-        # TODO: This is the exact same as evaluate_adj for now. Consider refactoring for no duplicate code.
-        bc = self.get_outputs()[0].saved_output
-        hessian_inputs = self.get_outputs()[0].hessian_value
-
-        if hessian_inputs is None:
-            return
-
-        for hessian_input in hessian_inputs:
-            for block_variable in self.get_dependencies():
-                c = block_variable.output
-                if isinstance(c, Constant):
-                    hessian_value = backend.Function(self.parent_space)
-                    hessian_input.apply(hessian_value.vector())
-                    if self.function_space != self.parent_space:
-                        vec = compat.extract_bc_subvector(hessian_value, self.collapsed_space, bc)
-                        hessian_value = compat.function_from_vector(self.collapsed_space, vec)
-
-                    if hessian_value.ufl_shape == () or hessian_value.ufl_shape[0] <= 1:
-                        block_variable.add_hessian_output(hessian_value.vector().sum())
-                    else:
-                        hessian_output = []
-                        subindices = _extract_subindices(self.function_space)
-                        for indices in subindices:
-                            current_subfunc = hessian_value
-                            prev_idx = None
-                            for i in indices:
-                                if prev_idx is not None:
-                                    current_subfunc = current_subfunc.sub(prev_idx)
-                                prev_idx = i
-                            hessian_output.append(current_subfunc.sub(prev_idx, deepcopy=True).vector().sum())
-                        block_variable.add_hessian_output(numpy.array(hessian_output))
-                elif isinstance(c, Function):
-                    # TODO: This gets a little complicated.
-                    #       The function may belong to a different space,
-                    #       and with `Function.set_allow_extrapolation(True)`
-                    #       you can even use the Function outside its domain.
-                    # For now we will just assume the FunctionSpace is the same for
-                    # the BC and the Function.
-                    hessian_value = backend.Function(self.parent_space)
-                    hessian_input.apply(hessian_value.vector())
-                    hessian_output = compat.extract_bc_subvector(hessian_value, c.function_space(), bc)
-                    block_variable.add_hessian_output(hessian_output)
-                elif isinstance(c, backend.Expression):
-                    hessian_value = backend.Function(self.parent_space)
-                    hessian_input.apply(hessian_value.vector())
-                    hessian_output = compat.extract_bc_subvector(hessian_value, self.collapsed_space, bc)
-                    block_variable.add_hessian_output([[hessian_output, self.collapsed_space]])
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+                                   relevant_dependencies, prepared=None):
+        # The same as evaluate_adj but with hessian values.
+        return self.evaluate_adj_component(inputs, hessian_inputs, block_variable, idx)
 
     @no_annotations
     def recompute(self):

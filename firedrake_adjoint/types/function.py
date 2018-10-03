@@ -1,7 +1,8 @@
+import backend
 import fenics_adjoint.types.function as function
 from pyadjoint.tape import annotate_tape, stop_annotating, get_working_tape
 from fenics_adjoint.projection import ProjectBlock
-from fenics_adjoint.types import create_overloaded_object
+from pyadjoint.overloaded_type import create_overloaded_object, register_overloaded_type
 
 
 class Function(function.Function):
@@ -32,3 +33,5 @@ class Function(function.Function):
                                 for i, (fs, dat) in
                                 enumerate(zip(self.function_space(), self.dat)))
         return self._split
+
+register_overloaded_type(Function, backend.Function)

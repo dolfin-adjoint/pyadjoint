@@ -1,20 +1,19 @@
 import backend
 from pyadjoint.tape import get_working_tape, no_annotations
-from pyadjoint.overloaded_type import OverloadedType
+from pyadjoint.overloaded_type import OverloadedType, create_overloaded_object, register_overloaded_type
 from .compat import constant_function_firedrake_compat
 from pyadjoint.block import Block
 
 import numpy
 
 
+@register_overloaded_type
 class Constant(OverloadedType, backend.Constant):
     def __init__(self, *args, **kwargs):
         super(Constant, self).__init__(*args, **kwargs)
         backend.Constant.__init__(self, *args, **kwargs)
 
     def assign(self, *args, **kwargs):
-        from .types import create_overloaded_object
-
         annotate_tape = kwargs.pop("annotate_tape", True)
         if annotate_tape:
             other = args[0]
@@ -131,24 +130,18 @@ class Constant(OverloadedType, backend.Constant):
 class AssignBlock(Block):
     def __init__(self, func, other):
         super(AssignBlock, self).__init__()
-        self.add_dependency(func.block_variable)
         self.add_dependency(other.block_variable)
 
-    def evaluate_adj(self):
-        adj_input = self.get_outputs()[0].adj_value
-        self.get_dependencies()[1].add_adj_output(adj_input)
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        return adj_inputs[0]
 
-    def evaluate_tlm(self):
-        tlm_input = self.get_dependencies()[1].tlm_value
-        self.get_outputs()[0].add_tlm_output(tlm_input)
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        return tlm_inputs[0]
 
-    def evaluate_hessian(self):
-        hessian_input = self.get_outputs()[0].hessian_value
-        self.get_dependencies()[1].add_hessian_output(hessian_input)
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+                                   relevant_dependencies, prepared=None):
+        return hessian_inputs[0]
 
-    def recompute(self):
-        deps = self.get_dependencies()
-        other_bo = deps[1]
-
-        backend.Constant.assign(self.get_outputs()[0].saved_output, other_bo.saved_output)
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        return Constant._constant_from_values(block_variable.output, inputs[0])
 
