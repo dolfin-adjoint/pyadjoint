@@ -1,5 +1,5 @@
 import backend
-from .types import create_overloaded_object
+from pyadjoint.overloaded_type import create_overloaded_object
 
 
 def interpolate(*args, **kwargs):

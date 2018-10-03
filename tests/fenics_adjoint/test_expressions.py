@@ -287,7 +287,7 @@ def _test_adjoint_constant(J, c):
         #tape.visualise(dot=True, filename="expr.dot")
         #import sys; sys.exit()
         Jm.adj_value = 1.0
-        tape.evaluate()
+        tape.evaluate_adj()
 
         dJdc = c.adj_value
         print(dJdc)
@@ -320,7 +320,7 @@ def _test_adjoint(J, f):
         tape.clear_tape()
         Jm = J(f)
         Jm.adj_value = 1.0
-        tape.evaluate()
+        tape.evaluate_adj()
 
         dJdf = f.adj_value
 

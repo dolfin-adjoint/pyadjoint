@@ -8,12 +8,14 @@ if backend.__name__ == "firedrake":
     FunctionSpaceType = (backend.functionspaceimpl.FunctionSpace,
                          backend.functionspaceimpl.WithGeometry,
                          backend.functionspaceimpl.MixedFunctionSpace)
+    ExpressionType = backend.Expression
 
     FunctionSpace = backend.FunctionSpace
 
     backend.functionspaceimpl.FunctionSpace._ad_parent_space = property(lambda self: self.parent)
 
     backend.functionspaceimpl.WithGeometry._ad_parent_space = property(lambda self: self.parent)
+
 
     def extract_subfunction(u, V):
         """If V is a subspace of the function-space of u, return the component of u that is in that subspace."""
@@ -44,9 +46,7 @@ if backend.__name__ == "firedrake":
             raise ValueError("Cannot provide both value and homogenize")
         if homogenize:
             value = 0
-        return backend.DirichletBC(bc.function_space(),
-                                   value,
-                                   bc.sub_domain, method=bc.method)
+        return bc.reconstruct(g=value)
 
     # Most of this is to deal with Firedrake assembly returning
     # Function whereas Dolfin returns Vector.
@@ -128,12 +128,14 @@ else:
     VectorType = backend.cpp.la.GenericVector
     FunctionType = backend.cpp.function.Function
     FunctionSpaceType = backend.cpp.function.FunctionSpace
+    ExpressionType = backend.function.expression.BaseExpression
 
-    class FunctionSpace(backend.FunctionSpace):
-        def sub(self, i):
-            V = backend.FunctionSpace.sub(self, i)
-            V._ad_parent_space = self
-            return V
+    backend_fs_sub = backend.FunctionSpace.sub
+    def _fs_sub(self, i):
+        V = backend_fs_sub(self, i)
+        V._ad_parent_space = self
+        return V
+    backend.FunctionSpace.sub = _fs_sub
 
     def extract_subfunction(u, V):
         component = V.component()

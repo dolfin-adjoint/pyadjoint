@@ -2,7 +2,8 @@ import backend
 import ufl
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape, no_annotations
 from pyadjoint.block import Block
-from .types import create_overloaded_object, compat
+from pyadjoint.overloaded_type import create_overloaded_object
+from .types import compat
 
 
 def assemble(*args, **kwargs):
@@ -62,17 +63,12 @@ class AssembleBlock(Block):
         super(AssembleBlock, self).__init__()
         self.form = form
         for c in self.form.coefficients():
-            self.add_dependency(c.block_variable)
+            self.add_dependency(c.block_variable, no_duplicates=True)
 
     def __str__(self):
         return str(self.form)
 
-    @no_annotations
-    def evaluate_adj(self):
-        adj_input = self.get_outputs()[0].adj_value
-        if adj_input is None:
-            return
-
+    def prepare_evaluate_adj(self, inputs, adj_inputs, relevant_dependencies):
         replaced_coeffs = {}
         for block_variable in self.get_dependencies():
             coeff = block_variable.output
@@ -81,148 +77,99 @@ class AssembleBlock(Block):
                 replaced_coeffs[coeff] = c_rep
 
         form = ufl.replace(self.form, replaced_coeffs)
+        return form
 
-        for block_variable in self.get_dependencies():
-            c = block_variable.output
-            c_rep = replaced_coeffs.get(c, c)
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        form = prepared
+        adj_input = adj_inputs[0]
+        c = block_variable.output
+        c_rep = block_variable.saved_output
 
-            if isinstance(c, backend.Expression) or \
-               isinstance(c, backend.CompiledExpression):
-                # Create a FunctionSpace from self.form and Expression.
-                # And then make a TestFunction from this space.
-                mesh = self.form.ufl_domain().ufl_cargo()
-                V = c._ad_function_space(mesh)
-                dc = backend.TestFunction(V)
-
-                dform = backend.derivative(form, c_rep, dc)
-                output = compat.assemble_adjoint_value(dform)
-                block_variable.add_adj_output([[adj_input * output, V]])
-                continue
-
-            if isinstance(c, backend.Function):
-                dc = backend.TestFunction(c.function_space())
-            elif isinstance(c, backend.Constant):
-                mesh = compat.extract_mesh_from_form(self.form)
-                dc = backend.TestFunction(c._ad_function_space(mesh))
+        if isinstance(c, compat.ExpressionType):
+            # Create a FunctionSpace from self.form and Expression.
+            # And then make a TestFunction from this space.
+            mesh = self.form.ufl_domain().ufl_cargo()
+            V = c._ad_function_space(mesh)
+            dc = backend.TestFunction(V)
 
             dform = backend.derivative(form, c_rep, dc)
             output = compat.assemble_adjoint_value(dform)
-            block_variable.add_adj_output(adj_input * output)
+            return [[adj_input * output, V]]
 
-    @no_annotations
-    def evaluate_tlm(self):
-        replaced_coeffs = {}
-        for block_variable in self.get_dependencies():
-            coeff = block_variable.output
-            c_rep = block_variable.saved_output
-            if coeff in self.form.coefficients():
-                replaced_coeffs[coeff] = c_rep
+        if isinstance(c, backend.Function):
+            dc = backend.TestFunction(c.function_space())
+        elif isinstance(c, backend.Constant):
+            mesh = compat.extract_mesh_from_form(self.form)
+            dc = backend.TestFunction(c._ad_function_space(mesh))
 
-        form = ufl.replace(self.form, replaced_coeffs)
+        dform = backend.derivative(form, c_rep, dc)
+        output = compat.assemble_adjoint_value(dform)
+        return adj_input * output
 
-        for block_variable in self.get_dependencies():
-            c = block_variable.output
-            c_rep = replaced_coeffs.get(c, c)
-            tlm_value = block_variable.tlm_value
+    def prepare_evaluate_tlm(self, inputs, tlm_inputs, relevant_outputs):
+        return self.prepare_evaluate_adj(inputs, tlm_inputs, self.get_dependencies())
+
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        form = prepared
+        dform = 0.
+        for bv in self.get_dependencies():
+            c_rep = bv.saved_output
+            tlm_value = bv.tlm_value
 
             if tlm_value is None:
                 continue
 
-            if isinstance(c, backend.Function):
-                dform = backend.derivative(form, c_rep, tlm_value)
-                output = compat.assemble_adjoint_value(dform)
-                self.get_outputs()[0].add_tlm_output(output)
+            dform += backend.derivative(form, c_rep, tlm_value)
+        return compat.assemble_adjoint_value(dform)
 
-            elif isinstance(c, backend.Constant):
-                dform = backend.derivative(form, c_rep, tlm_value)
-                output = compat.assemble_adjoint_value(dform)
-                self.get_outputs()[0].add_tlm_output(output)
+    def prepare_evaluate_hessian(self, inputs, hessian_inputs, adj_inputs, relevant_dependencies):
+        return self.prepare_evaluate_adj(inputs, adj_inputs, relevant_dependencies)
 
-            elif isinstance(c, backend.Expression):
-                dform = backend.derivative(form, c_rep, tlm_value)
-                output = compat.assemble_adjoint_value(dform)
-                self.get_outputs()[0].add_tlm_output(output)
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+                                   relevant_dependencies, prepared=None):
+        form = prepared
+        hessian_input = hessian_inputs[0]
+        adj_input = adj_inputs[0]
 
-    @no_annotations
-    def evaluate_hessian(self):
-        hessian_input = self.get_outputs()[0].hessian_value
-        adj_input = self.get_outputs()[0].adj_value
+        c1 = block_variable.output
+        c1_rep = block_variable.saved_output
 
-        if hessian_input is None:
-            return
+        if isinstance(c1, backend.Function):
+            dc = backend.TestFunction(c1.function_space())
+        elif isinstance(c1, backend.Expression):
+            mesh = form.ufl_domain().ufl_cargo()
+            W = c1._ad_function_space(mesh)
+            dc = backend.TestFunction(W)
+        elif isinstance(c1, backend.Constant):
+            mesh = compat.extract_mesh_from_form(form)
+            dc = backend.TestFunction(c1._ad_function_space(mesh))
+        else:
+            return None
 
-        replaced_coeffs = {}
-        for block_variable in self.get_dependencies():
-            coeff = block_variable.output
-            c_rep = block_variable.saved_output
-            if coeff in self.form.coefficients():
-                replaced_coeffs[coeff] = c_rep
+        dform = backend.derivative(form, c1_rep, dc)
+        hessian_outputs = hessian_input*dform
 
-        form = ufl.replace(self.form, replaced_coeffs)
+        for other_idx, bv in relevant_dependencies:
+            c2_rep = bv.saved_output
+            tlm_input = bv.tlm_value
 
-        for bo1 in self.get_dependencies():
-            c1 = bo1.output
-            c1_rep = replaced_coeffs.get(c1, c1)
-
-            if isinstance(c1, backend.Function):
-                dc = backend.TestFunction(c1.function_space())
-            elif isinstance(c1, backend.Expression):
-                mesh = form.ufl_domain().ufl_cargo()
-                W = c1._ad_function_space(mesh)
-                dc = backend.TestFunction(W)
-            elif isinstance(c1, backend.Constant):
-                mesh = compat.extract_mesh_from_form(form)
-                dc = backend.TestFunction(c1._ad_function_space(mesh))
-            else:
+            if tlm_input is None:
                 continue
 
-            # Special treatment if CoordinateDerivative
-            dform = backend.derivative(form, c1_rep, dc)
+            ddform = backend.derivative(dform, c2_rep, tlm_input)
+            hessian_outputs += adj_input*ddform
 
-            for bo2 in self.get_dependencies():
-                c2 = bo2.output
-                c2_rep = replaced_coeffs.get(c2, c2)
-                tlm_input = bo2.tlm_value
+        hessian_output = compat.assemble_adjoint_value(hessian_outputs)
+        if isinstance(c1, backend.Expression):
+            return [(hessian_output, W)]
+        else:
+            return hessian_output
 
-                if tlm_input is None:
-                    continue
+    def prepare_recompute_component(self, inputs, relevant_outputs):
+        return self.prepare_evaluate_adj(inputs, None, None)
 
-                ddform = backend.derivative(dform, c2_rep, tlm_input)
-
-                output = compat.assemble_adjoint_value(ddform)
-
-                if isinstance(c1, backend.Function):
-                    bo1.add_hessian_output(adj_input*output)
-                elif isinstance(c1, backend.Expression):
-                    bo1.add_hessian_output([(adj_input * output, W)])
-                elif isinstance(c1, backend.Constant):
-                    bo1.add_hessian_output(adj_input*output)
-                else:
-                    continue
-
-            output = compat.assemble_adjoint_value(dform)
-            if isinstance(c1, backend.Expression):
-                bo1.add_hessian_output([(hessian_input*output, W)])
-            else:
-                bo1.add_hessian_output(hessian_input*output)
-
-    @no_annotations
-    def recompute(self):
-        replaced_coeffs = {}
-        for block_variable in self.get_dependencies():
-            coeff = block_variable.output
-            c_rep = block_variable.saved_output
-            if coeff in self.form.coefficients():
-                replaced_coeffs[coeff] = c_rep
-
-        form = ufl.replace(self.form, replaced_coeffs)
-
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        form = prepared
         output = backend.assemble(form)
         output = create_overloaded_object(output)
-
-        self.get_outputs()[0].checkpoint = output._ad_create_checkpoint()
-        # TODO: Assemble might output a float (AdjFloat), but this is NOT treated as
-        #       a Coefficient by UFL and so the correct dependencies are not setup for Solve/Assemble blocks if
-        #       the AdjFloat is used directly in a form. Using it in a Constant before a form would also not help,
-        #       because the Constant is always seen as a leaf node, and thus can't depend on this AdjFloat.
-        #       Right now the only workaround is using it in an Expression.
+        return output

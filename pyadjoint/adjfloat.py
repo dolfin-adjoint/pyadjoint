@@ -1,6 +1,6 @@
 from .tape import get_working_tape, annotate_tape
 from .block import Block
-from .overloaded_type import OverloadedType
+from .overloaded_type import OverloadedType, register_overloaded_type
 
 
 def annotate_operator(operator):
@@ -42,6 +42,7 @@ def annotate_operator(operator):
     return annotated_operator
 
 
+@register_overloaded_type
 class AdjFloat(OverloadedType, float):
     def __new__(cls, *args, **kwargs):
         return float.__new__(cls, *args)
@@ -141,33 +142,26 @@ class FloatOperatorBlock(Block):
         for term in self.terms:
             self.add_dependency(term)
 
-    def recompute(self):
-        self.get_outputs()[0].checkpoint = self.operator(*(term.saved_output for term in self.terms))
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        return self.operator(*(term.saved_output for term in self.terms))
 
 
 class PowBlock(FloatOperatorBlock):
 
     operator = staticmethod(float.__pow__)
 
-    def evaluate_adj(self):
-        adj_input = self.get_outputs()[0].adj_value
-        if adj_input is None:
-            return
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        base_value = inputs[0]
+        exponent_value = inputs[1]
+        adj_input = adj_inputs[0]
 
-        base = self.terms[0]
-        exponent = self.terms[1]
-
-        base_value = base.saved_output
-        exponent_value = exponent.saved_output
-
-        base_adj = float.__mul__(float.__mul__(adj_input, exponent_value),
-                                 float.__pow__(base_value, exponent_value-1))
-        base.add_adj_output(base_adj)
-
-        from numpy import log
-        exponent_adj = float.__mul__(float.__mul__(adj_input, log(base_value)),
-                                     float.__pow__(base_value, exponent_value))
-        exponent.add_adj_output(exponent_adj)
+        if idx == 0:
+            return float.__mul__(float.__mul__(adj_input, exponent_value),
+                                 float.__pow__(base_value, exponent_value - 1))
+        else:
+            from numpy import log
+            return float.__mul__(float.__mul__(adj_input, log(base_value)),
+                                 float.__pow__(base_value, exponent_value))
 
     def evaluate_tlm(self):
         output = self.get_outputs()[0]
@@ -238,44 +232,34 @@ class AddBlock(FloatOperatorBlock):
 
     operator = staticmethod(float.__add__)
 
-    def evaluate_adj(self):
-        adj_input = self.get_outputs()[0].adj_value
-        if adj_input is None:
-            return
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        return adj_inputs[0]
 
-        for term in self.terms:
-            term.add_adj_output(adj_input)
-
-    def evaluate_tlm(self):
-        output = self.get_outputs()[0]
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        tlm_output = 0.
         for term in self.terms:
             tlm_input = term.tlm_value
 
             if tlm_input is None:
                 continue
 
-            output.add_tlm_output(tlm_input)
+            tlm_output += tlm_input
+        return tlm_output
 
-    def evaluate_hessian(self):
-        hessian_input = self.get_outputs()[0].hessian_value
-        if hessian_input is None:
-            return
-
-        for term in self.terms:
-            term.add_hessian_output(hessian_input)
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+                                   relevant_dependencies, prepared=None):
+        return hessian_inputs[0]
 
 
 class SubBlock(FloatOperatorBlock):
 
     operator = staticmethod(float.__sub__)
 
-    def evaluate_adj(self):
-        adj_input = self.get_outputs()[0].adj_value
-        if adj_input is None:
-            return
-
-        self.terms[0].add_adj_output(adj_input)
-        self.terms[1].add_adj_output(float.__neg__(adj_input))
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        if idx == 0:
+            return adj_inputs[0]
+        else:
+            return float.__neg__(adj_inputs[0])
 
     def evaluate_tlm(self):
         output = self.get_outputs()[0]
@@ -298,66 +282,51 @@ class MulBlock(FloatOperatorBlock):
 
     operator = staticmethod(float.__mul__)
 
-    def evaluate_adj(self):
-        adj_input = self.get_outputs()[0].adj_value
-        if adj_input is None:
-            return
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        other_idx = 0 if idx == 1 else 1
+        return float.__mul__(adj_inputs[0], inputs[other_idx])
 
-        self.terms[0].add_adj_output(float.__mul__(adj_input, self.terms[1].saved_output))
-        self.terms[1].add_adj_output(float.__mul__(adj_input, self.terms[0].saved_output))
-
-    def evaluate_tlm(self):
-        output = self.get_outputs()[0]
-
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        tlm_output = 0.
         for i, j in zip((0, 1), (1, 0)):
             tlm_input = self.terms[i].tlm_value
 
             if tlm_input is None:
                 continue
 
-            output.add_tlm_output(float.__mul__(tlm_input, self.terms[j].saved_output))
+            tlm_output += float.__mul__(tlm_input, self.terms[j].saved_output)
+        return tlm_output
 
-    def evaluate_hessian(self):
-        output = self.get_outputs()[0]
-        hessian_input = output.hessian_value
-        adj_input = output.adj_value
-
-        if hessian_input is None:
-            return
-
-        for i, j in zip((0, 1), (1, 0)):
-            tlm_input = self.terms[j].tlm_value
-
-            mixed = 0.0
-            if tlm_input is not None:
-                # Mixed derivative contribution.
-                mixed = float.__mul__(adj_input, self.terms[j].tlm_value)
-
-            self.terms[i].add_hessian_output(
-                float.__add__(mixed, float.__mul__(hessian_input, self.terms[j].saved_output))
-            )
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+                                   relevant_dependencies, prepared=None):
+        adj_input = adj_inputs[0]
+        hessian_input = hessian_inputs[0]
+        other_idx = 0 if idx == 1 else 1
+        mixed = 0.0
+        for other_idx, bv in relevant_dependencies:
+            if other_idx != idx and bv.tlm_value is not None:
+                mixed = float.__mul__(adj_input, bv.tlm_value)
+        return float.__add__(mixed, float.__mul__(hessian_input, inputs[other_idx]))
 
 
 class DivBlock(FloatOperatorBlock):
 
     operator = staticmethod(float.__truediv__)
 
-    def evaluate_adj(self):
-        adj_input = self.get_outputs()[0].adj_value
-        if adj_input is None:
-            return
-
-        self.terms[0].add_adj_output(float.__mul__(
-            adj_input,
-            float.__truediv__(1., self.terms[1].saved_output)
-        ))
-        self.terms[1].add_adj_output(float.__mul__(
-            adj_input,
-            float.__neg__(float.__truediv__(
-                self.terms[0].saved_output,
-                float.__pow__(self.terms[1].saved_output, 2)
-            ))
-        ))
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        if idx == 0:
+            return float.__mul__(
+                adj_inputs[0],
+                float.__truediv__(1., inputs[1])
+            )
+        else:
+            return float.__mul__(
+                adj_inputs[0],
+                float.__neg__(float.__truediv__(
+                    inputs[0],
+                    float.__pow__(inputs[1], 2)
+                ))
+            )
 
     def evaluate_tlm(self):
         output = self.get_outputs()[0]
@@ -426,19 +395,11 @@ class NegBlock(FloatOperatorBlock):
 
     operator = staticmethod(float.__neg__)
 
-    def evaluate_adj(self):
-        adj_input = self.get_outputs()[0].adj_value
-        if adj_input is None:
-            return
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        return float.__neg__(adj_inputs[0])
 
-        self.terms[0].add_adj_output(float.__neg__(adj_input))
-
-    def evaluate_tlm(self):
-        tlm_input = self.terms[0].tlm_value
-        if tlm_input is None:
-            return
-
-        self.get_outputs()[0].add_tlm_output(float.__neg__(tlm_input))
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        return float.__neg__(tlm_inputs[0])
 
     def evaluate_hessian(self):
         hessian_input = self.get_outputs()[0].hessian_value

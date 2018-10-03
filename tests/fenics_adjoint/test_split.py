@@ -38,7 +38,7 @@ def test_split():
     j = assemble(u**2*dx)
     rf = ReducedFunctional(j, Control(ic))
 
-    taylor_test(rf, ic.copy(deepcopy=True), h=project(Constant([1, 1]), ic.function_space()))
+    assert taylor_test(rf, ic.copy(deepcopy=True), h=project(Constant([1, 1]), ic.function_space())) > 1.9
 
 
 def test_fn_split():
@@ -51,5 +51,20 @@ def test_fn_split():
 
     h = Function(Z)
     h.vector()[:] = rand(Z.dim())
-    taylor_test(rf, ic, h)
+    assert taylor_test(rf, ic, h) > 1.9
+
+
+def test_fn_split_hessian():
+    set_working_tape(Tape())
+    ic = Function(Z)
+
+    u = main(ic, fnsplit=True)
+    j = assemble(u ** 4 * dx)
+    rf = ReducedFunctional(j, Control(ic))
+
+    h = Function(Z)
+    h.vector()[:] = rand(Z.dim())
+    dJdm = rf.derivative()._ad_dot(h)
+    Hm = rf.hessian(h)._ad_dot(h)
+    assert taylor_test(rf, ic, h, dJdm=dJdm, Hm=Hm) > 2.9
 

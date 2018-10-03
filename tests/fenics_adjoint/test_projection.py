@@ -26,7 +26,7 @@ def test_projection():
 	J = assemble(u**2*dx)
 
 	J.adj_value = 1.0
-	tape.evaluate()
+	tape.evaluate_adj()
 
 	dJdf = f.adj_value
 	# TODO: This test does nothing. Make it actually test projection.
