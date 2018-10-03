@@ -3,7 +3,8 @@ from fenics import *
 from fenics_adjoint import *
 from math import sqrt
 
-from numpy.random import rand
+from numpy.random import rand, seed
+seed(12)
 
 
 # Class representing the intial conditions
