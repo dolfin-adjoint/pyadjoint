@@ -22,7 +22,7 @@ class Placeholder(BlockVariable):
 
     """
     def __init__(self, obj):
-        super(BlockVariable, self).__init__()
+        super(Placeholder, self).__init__(obj)
         self.block_variable = obj.block_variable
         obj.block_variable = self
         self.linked_bv = None
