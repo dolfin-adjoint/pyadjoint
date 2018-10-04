@@ -179,7 +179,7 @@ if __name__ == "__main__":
 
     J = assemble(f*T*dx + alpha * inner(grad(a), grad(a))*dx)
     m = Control(a)
-    Jhat = ReducedFunctional(J, m) #, eval_cb_post=eval_cb)
+    Jhat = ReducedFunctional(J, m, eval_cb_post=eval_cb)
 
 # This :py:class:`ReducedFunctional` object solves the forward PDE using
 # dolfin-adjoint's tape each time the functional is to be evaluated, and

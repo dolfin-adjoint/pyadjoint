@@ -30,7 +30,6 @@ examples:
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/salt-fingering/salt-fingering.py $(EXAMPLES_OUT)/salt-fingering/salt-fingering.rst
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/klein/klein.py $(EXAMPLES_OUT)/klein/klein.rst
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/time-distributed-control/time-distributed-control.py $(EXAMPLES_OUT)/time-distributed-control/time-distributed-control.rst
-	cp $(EXAMPLES_IN)/time-distributed-control/*.png $(EXAMPLES_OUT)/time-distributed-control/
 	cp $(EXAMPLES_IN)/time-dependent-wave/*.py source/_static
 
 run_tutorials:

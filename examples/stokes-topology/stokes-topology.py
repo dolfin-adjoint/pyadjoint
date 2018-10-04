@@ -112,7 +112,7 @@ def alpha(rho):
 # Taylor-Hood finite element to discretise the Stokes equations
 # :cite:`taylor1973`.
 
-N = 10
+N = 100
 delta = 1.5  # The aspect ratio of the domain, 1 high and \delta wide
 V = Constant(1.0/3) * delta  # want the fluid to occupy 1/3 of the domain
 
@@ -199,7 +199,7 @@ if __name__ == "__main__":
 
     J = assemble(0.5 * inner(alpha(rho) * u, u) * dx + mu * inner(grad(u), grad(u)) * dx)
     m = Control(rho)
-    Jhat = ReducedFunctional(J, m) #, eval_cb_post=eval_cb)
+    Jhat = ReducedFunctional(J, m, eval_cb_post=eval_cb)
 
 # The control constraints are the same as the :doc:`Poisson topology
 # example <../poisson-topology/poisson-topology>`, and so won't be
@@ -260,7 +260,7 @@ if __name__ == "__main__":
 
     J = assemble(0.5 * inner(alpha(rho) * u, u) * dx + mu * inner(grad(u), grad(u)) * dx)
     m = Control(rho)
-    Jhat = ReducedFunctional(J, m) #, eval_cb_post=eval_cb)
+    Jhat = ReducedFunctional(J, m, eval_cb_post=eval_cb)
 
 # We can now solve the optimisation problem with :math:`q=0.1`, starting
 # from the solution of :math:`q=0.01`:

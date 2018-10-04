@@ -114,8 +114,8 @@
 # First, the :py:mod:`dolfin` and :py:mod:`dolfin_adjoint` modules are
 # imported. We also tell DOLFIN to only print error messages to keep the
 # output comprehensible:
-from fenics import *
-from fenics_adjoint import *
+from dolfin import *
+from dolfin_adjoint import *
 from ufl.operators import Max
 set_log_level(LogLevel.ERROR)
 
@@ -135,6 +135,8 @@ def smoothmax(r, eps=1e-4):
 mesh = UnitSquareMesh(128, 128)
 V = FunctionSpace(mesh, "CG", 1)  # The function space for the solution and control functions
 y = Function(V, name="Solution")
+# Define a Control for the initial guess so we can modify it later.
+ic = Control(y)
 u = Function(V, name="Control")
 w = TestFunction(V)
 
@@ -142,8 +144,12 @@ w = TestFunction(V)
 # constraint with the penalisation parameter set to
 # :math:`\alpha=10^{-2}`.  This initial value of :math:`\alpha` will
 # then be iteratively reduced to better approximate the underlying MPEC.
+# To ensure that new values of :math:`\alpha` are reflected on the tape,
+# we define a ``Placeholder`` before using it.
 
 alpha = Constant(1e-2)
+from pyadjoint.placeholder import Placeholder
+Placeholder(alpha)
 # The source term
 f = interpolate(Expression("-std::abs(x[0]*x[1] - 0.5) + 0.25", degree=1), V)
 F = inner(grad(y), grad(w))*dx - 1 / alpha * inner(smoothmax(-y), w)*dx - inner(f + u, w)*dx
@@ -165,8 +171,6 @@ J = assemble(0.5*inner(y - yd, y - yd)*dx + nu/2*inner(u, u)*dx)
 
 # Formulate the reduced problem
 m = Control(u)  # Create a parameter from u, as it is the variable we want to optimise
-alpha_m = Control(alpha)  # Also tell dolfin-adjoint that alpha is a parameter,
-                          # this will allow us to modify its value on the tape
 Jhat = ReducedFunctional(J, m)
 
 # Create output files
@@ -206,19 +210,19 @@ for i in range(4):
 # ``dolfin-adjoint`` tape.
 #
 # First, we extract the optimised state (the ``y`` function) from the
-# tape. This is done with the ``DolfinAdjointVariable.tape_value()``
+# tape. This is done with the ``Control.tape_value()``
 # function. By default it returns the last known iteration of that
 # function on the tape, which is exactly what we want here:
 
-    y_opt = y.block_variable.saved_output
+    y_opt = Control(y).tape_value()
 
 # The next line modifies the tape such that the initial guess for ``y``
 # (to be used in the Newton solver in the forward problem) is set to
 # ``y_opt``.  This is achieved with the
-# :py:func:`FunctionControl.update
-# <dolfin_adjoint.FunctionControl.update>` function:
+# :py:func:`Control.update
+# <dolfin_adjoint.Control.update>` function and the initial guess control defined earlier:
 
-#    Control(y).update(y_opt)
+    ic.update(y_opt)
 
 # Finally, we store the optimal state and control to disk and print some
 # statistics:

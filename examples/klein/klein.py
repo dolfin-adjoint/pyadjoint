@@ -198,6 +198,7 @@ adj_time = adj_timer.stop()
 # Next we plot the computed sensitivity and print timing statistics comparing
 # the runtime of the forward and adjoint solves.
 
+File("output/dJdm.pvd") << dJdm
 plot(dJdm, title="Sensitivity of ||u(t=%f)||_L2 with respect to u(t=0)." % t)
 show()
 

@@ -103,8 +103,6 @@ def k(a):
 # Next we define the mesh (a unit square) and the function spaces to be
 # used for the control :math:`a` and forward solution :math:`T`.
 
-# TODO: Previously it was n = 50, but then the adjoint equation solve runs out of memory on my system,
-#       Change to n = 50 when dolfin-adjoint allows manipulating solver method for the adjoint equation with fenics.
 n = 10
 mesh = UnitCubeMesh(n, n, n)
 A = FunctionSpace(mesh, "CG", 1)  # function space for control

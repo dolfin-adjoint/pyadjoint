@@ -58,6 +58,7 @@
 
 from dolfin import *
 from dolfin_adjoint import *
+set_log_level(LogLevel.ERROR)
 
 # Next, we load the mesh. The mesh was generated with mshr; see make-mesh.py
 # in the same directory.
@@ -86,7 +87,6 @@ s = Function(W, name="State")
 V_collapse = V.collapse()
 g = Function(V_collapse, name="Control")
 
-f = Function(V_collapse)
 nu = Constant(1)
 
 # Our functional requires the computation of a boundary integral
@@ -137,7 +137,7 @@ a = (nu*inner(grad(u), grad(v))*dx
      - inner(p, div(v))*dx
      - inner(q, div(u))*dx
      )
-L = inner(f, v)*dx
+L = inner(Constant((0, 0)), v)*dx
 
 # Next we assemble and solve the system once to record it with
 # :py:mod:`dolin-adjoint`.
@@ -179,11 +179,11 @@ plot(s.sub(1), title="Pressure")
 #
 #   $ python stokes-bc-control.py
 #     ...
-#     At iterate    9    f=  1.98909D+01    |proj g|=  6.05347D-04
+#     At iterate   19    f=  1.99805D+01    |proj g|=  3.73343D-04
 #
-#     At iterate   10    f=  1.98909D+01    |proj g|=  1.12697D-04
+#     At iterate   20    f=  1.99805D+01    |proj g|=  1.34691D-04
 #
-#     At iterate   11    f=  1.98909D+01    |proj g|=  7.03065D-05
+#     At iterate   21    f=  1.99805D+01    |proj g|=  6.16572D-05
 #
 #                * * *
 #
@@ -198,8 +198,8 @@ plot(s.sub(1), title="Pressure")
 #                * * *
 #
 #        N    Tit     Tnf  Tnint  Skip  Nact     Projg        F
-#     14384     11     13      1     0     0   7.031D-05   1.989D+01
-#       F =   19.890932240156282
+#     15708     21     26      1     0     0   6.166D-05   1.998D+01
+#       F =   19.980459647407621
 #
 #     CONVERGENCE: REL_REDUCTION_OF_F_<=_FACTR*EPSMCH
 #
