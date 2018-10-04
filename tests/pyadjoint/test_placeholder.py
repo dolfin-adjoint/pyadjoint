@@ -30,21 +30,3 @@ def test_simple():
     assert Jhat.derivative() == 0.5 * 2.0 * 6
     assert Jhat(5.0) == 5.0 * 15
     assert Jhat.derivative() == 15
-
-
-def test_intermediate_adjoint_values():
-    a = AdjFloat(4.0)
-    b = AdjFloat(9.0)
-
-    c = a*b
-    d = AdjFloat(25.0)
-    # Demonstrate how controls can be used to get intermediate derivatives
-    p = Control(d)
-    e = c*d
-
-    Jhat = ReducedFunctional(e, Control(a))
-    assert Jhat(4.0) == e
-    assert Jhat(4.0) == e
-    assert Jhat.derivative() == b*d
-    assert p.get_derivative() == c
-
