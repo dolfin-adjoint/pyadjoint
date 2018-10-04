@@ -1,4 +1,4 @@
-from .overloaded_type import OverloadedType
+from .overloaded_type import OverloadedType, create_overloaded_object
 
 
 class Control(object):
@@ -40,6 +40,9 @@ class Control(object):
 
     def data(self):
         return self.block_variable.checkpoint
+
+    def tape_value(self):
+        return create_overloaded_object(self.block_variable.saved_output)
 
     def get_derivative(self, options={}):
         return self.control._ad_convert_type(self.block_variable.adj_value, options=options)
