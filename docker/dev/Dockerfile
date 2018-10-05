@@ -34,6 +34,5 @@ RUN echo "source $FENICS_HOME/dolfin-adjoint.conf" >> $FENICS_HOME/.bash_profile
 
 RUN /bin/bash -l -c "python3 -c \"import fenics_adjoint\""
 RUN /bin/bash -l -c "python3 -c \"import dolfin; import pyipopt\""
-#RUN /bin/bash -l -c "python3 -c \"import Optizelle"
 
 USER root

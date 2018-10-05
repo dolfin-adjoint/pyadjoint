@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(name='dolfin_adjoint',
-      version='2017.2.0',
+      version='2017.2.1',
       description='High-level automatic differentiation library for FEniCS.',
       author='Sebastian Kenji Mitusch',
       author_email='sebastkm@math.uio.no',
@@ -14,6 +14,5 @@ setup(name='dolfin_adjoint',
                 'pyadjoint.optimization'],
       package_dir={'fenics_adjoint': 'fenics_adjoint', 'pyadjoint': 'pyadjoint',
                    'firedrake_adjoint': 'firedrake_adjoint', 'dolfin_adjoint': 'dolfin_adjoint'},
-      install_requires=['scipy', 'pytest', 'sphinx', 'sphinxcontrib-bibtex', 'moola', 'tensorflow'],
-      dependency_links=['git+https://github.com/funsim/moola.git@master ']
+      install_requires=['scipy', 'pytest', 'sphinx', 'sphinxcontrib-bibtex', 'moola<=0.1.5', 'tensorflow'],
       )

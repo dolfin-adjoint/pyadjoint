@@ -7,7 +7,7 @@
 # Simon W. Funke <simon@simula.no>
 # Jack S. Hale <jack.hale@uni.lu>
 
-FROM quay.io/fenicsproject/stable:latest
+FROM quay.io/fenicsproject/stable:2017.2.0
 MAINTAINER Simon W. Funke <simon@simula.no>
 
 USER fenics
@@ -33,6 +33,5 @@ RUN echo "source $FENICS_HOME/dolfin-adjoint.conf" >> $FENICS_HOME/.bash_profile
 
 RUN /bin/bash -l -c "python3 -c \"import fenics_adjoint\""
 RUN /bin/bash -l -c "python3 -c \"import dolfin; import pyipopt\""
-#RUN /bin/bash -l -c "python3 -c \"import Optizelle"
 
 USER root
