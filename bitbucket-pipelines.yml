@@ -1,4 +1,4 @@
-image: quay.io/fenicsproject/stable:latest
+image: quay.io/fenicsproject_dev/dolfin:py3-fw-coordinate-derivative
 
 
 pipelines:

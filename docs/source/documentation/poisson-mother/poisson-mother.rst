@@ -57,10 +57,9 @@ We start our implementation by importing the :py:mod:`dolfin` and
 
 ::
 
-  from __future__ import print_function
-  from fenics import *
-  from fenics_adjoint import *
-  set_log_level(ERROR)
+  from dolfin import *
+  from dolfin_adjoint import *
+  set_log_level(LogLevel.ERROR)
   
 Next we import the Python interface to Moola. Moola is a collection
 of optimisation solvers specifically designed for PDE-constrained
@@ -82,7 +81,7 @@ domain:
   n = 64
   mesh = UnitSquareMesh(n, n)
   
-  cf = CellFunction("bool", mesh)
+  cf = MeshFunction("bool", mesh, mesh.geometric_dimension())
   subdomain = CompiledSubDomain('std::abs(x[0]-0.5) < 0.25 && std::abs(x[1]-0.5) < 0.25')
   subdomain.mark(cf, True)
   mesh = refine(mesh, cf)
@@ -101,7 +100,7 @@ the temperature and the control function.
   V = FunctionSpace(mesh, "CG", 1)
   W = FunctionSpace(mesh, "DG", 0)
   
-  f = interpolate(Expression("x[0]+x[1]", degree=1), W, name='Control')
+  f = interpolate(Expression("x[0]+x[1]", name='Control', degree=1), W)
   u = Function(V, name='State')
   v = TestFunction(V)
   
@@ -140,7 +139,7 @@ variable.
   d = Expression("d*w", d=d, w=w, degree=3) 
   
   alpha = Constant(1e-6)
-  J = Functional((0.5*inner(u-d, u-d))*dx + alpha/2*f**2*dx)
+  J = assemble((0.5*inner(u-d, u-d))*dx + alpha/2*f**2*dx)
   control = Control(f)
   
 The next step is to formulate the so-called reduced optimisation
@@ -201,7 +200,7 @@ control and plot it:
   sol = solver.solve()
   f_opt = sol['control'].data
   
-  plot(f_opt, interactive=True, title="f_opt")
+  plot(f_opt, title="f_opt")
   
   # Define the expressions of the analytical solution
   f_analytic = Expression("1/(1+alpha*4*pow(pi, 4))*w", w=w, alpha=alpha, degree=3)

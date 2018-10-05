@@ -11,7 +11,7 @@ def test_projection():
 	mesh = IntervalMesh(10, 0, 1)
 	V = FunctionSpace(mesh, "Lagrange", 1)
 
-	class MyExpression1(Expression):
+	class MyExpression1(UserExpression):
 	    def eval_cell(self, value, x, ufc_cell):
 	        if ufc_cell.index > 10:
 	            value[0] = 1.0

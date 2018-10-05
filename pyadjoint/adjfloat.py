@@ -163,6 +163,71 @@ class PowBlock(FloatOperatorBlock):
             return float.__mul__(float.__mul__(adj_input, log(base_value)),
                                  float.__pow__(base_value, exponent_value))
 
+    def evaluate_tlm(self):
+        output = self.get_outputs()[0]
+
+        base = self.terms[0]
+        exponent = self.terms[1]
+
+        base_value = base.saved_output
+        exponent_value = exponent.saved_output
+
+        if base.tlm_value is not None:
+            base_tlm = float.__mul__(float.__mul__(base.tlm_value, exponent_value),
+                                     float.__pow__(base_value, exponent_value - 1))
+            output.add_tlm_output(base_tlm)
+
+        if exponent.tlm_value is not None:
+            from numpy import log
+            exponent_adj = float.__mul__(float.__mul__(exponent.tlm_value, log(base_value)),
+                                         float.__pow__(base_value, exponent_value))
+            output.add_tlm_output(exponent_adj)
+
+    def evaluate_hessian(self):
+        output = self.get_outputs()[0]
+        hessian_input = output.hessian_value
+        adj_input = output.adj_value
+        if hessian_input is None:
+            return
+
+        base = self.terms[0]
+        exponent = self.terms[1]
+
+        base_value = base.saved_output
+        exponent_value = exponent.saved_output
+
+        # First we do the base hessian (minus the mixed derivative)
+        if base.tlm_value is not None:
+            second_order = float.__mul__(float.__mul__(
+                float.__mul__(adj_input, float.__mul__(exponent_value, exponent_value - 1)),
+                float.__pow__(base_value, exponent_value - 2)), base.tlm_value)
+            base.add_hessian_output(second_order)
+
+        first_order = float.__mul__(float.__mul__(hessian_input, exponent_value),
+                                    float.__pow__(base_value, exponent_value - 1))
+        base.add_hessian_output(first_order)
+
+        # Then we do the exponent hessian (minus the mixed derivative)
+        from numpy import log
+        if exponent.tlm_value is not None:
+            second_order = float.__mul__(float.__mul__(float.__mul__(adj_input, float.__pow__(log(base_value), 2)),
+                                         float.__pow__(base_value, exponent_value)), base.tlm_value)
+            exponent.add_hessian_output(second_order)
+
+        first_order = float.__mul__(float.__mul__(hessian_input, log(base_value)),
+                                    float.__pow__(base_value, exponent_value))
+        exponent.add_hessian_output(first_order)
+
+        # Lastly we add mixed derivative terms
+        mixed = float.__mul__(adj_input, float.__mul__(
+            float.__pow__(base_value, exponent_value - 1),
+            float.__add__(float.__mul__(exponent_value, log(base_value)), 1)))
+        if exponent.tlm_value is not None:
+            base.add_hessian_output(float.__mul__(exponent.tlm_value, mixed))
+        if base.tlm_value is not None:
+            exponent.add_hessian_output(float.__mul__(base.tlm_value, mixed))
+
+
 class AddBlock(FloatOperatorBlock):
 
     operator = staticmethod(float.__add__)
@@ -196,6 +261,22 @@ class SubBlock(FloatOperatorBlock):
         else:
             return float.__neg__(adj_inputs[0])
 
+    def evaluate_tlm(self):
+        output = self.get_outputs()[0]
+        tlm_input_0 = self.terms[0].tlm_value
+        if tlm_input_0 is not None:
+            output.add_tlm_output(tlm_input_0)
+        tlm_input_1 = self.terms[1].tlm_value
+        if tlm_input_1 is not None:
+            output.add_tlm_output(float.__neg__(tlm_input_1))
+
+    def evaluate_hessian(self):
+        hessian_input = self.get_outputs()[0].hessian_value
+        if hessian_input is None:
+            return
+
+        self.terms[0].add_hessian_output(hessian_input)
+        self.terms[1].add_hessian_output(float.__neg__(hessian_input))
 
 class MulBlock(FloatOperatorBlock):
 
@@ -247,6 +328,68 @@ class DivBlock(FloatOperatorBlock):
                 ))
             )
 
+    def evaluate_tlm(self):
+        output = self.get_outputs()[0]
+
+        if self.terms[0].tlm_value is not None:
+            output.add_tlm_output(float.__mul__(
+                self.terms[0].tlm_value,
+                float.__truediv__(1., self.terms[1].saved_output)
+            ))
+        if self.terms[1].tlm_value is not None:
+            output.add_tlm_output(float.__mul__(
+                self.terms[1].tlm_value,
+                float.__neg__(float.__truediv__(
+                    self.terms[0].saved_output,
+                    float.__pow__(self.terms[1].saved_output, 2)
+                ))
+            ))
+
+    def evaluate_hessian(self):
+        output = self.get_outputs()[0]
+        hessian_input = output.hessian_value
+        adj_input = output.adj_value
+        if hessian_input is None:
+            return
+
+        numerator = self.terms[0]
+        denominator = self.terms[1]
+
+        numerator_value = numerator.saved_output
+        denominator_value = denominator.saved_output
+
+        # The function is linear in the numerator
+        numerator.add_hessian_output(float.__mul__(
+            hessian_input,
+            float.__truediv__(1., denominator_value)
+        ))
+
+        # Now for the denominator
+        denominator.add_hessian_output(float.__mul__(
+            hessian_input,
+            float.__neg__(float.__truediv__(
+                numerator_value,
+                float.__pow__(denominator_value, 2.)
+            ))
+        ))
+
+        if denominator.tlm_value is not None:
+            denominator.add_hessian_output(float.__mul__(
+                float.__mul__(
+                    adj_input,
+                    float.__truediv__(
+                        float.__mul__(2., numerator_value),
+                        float.__pow__(denominator_value, 3)
+                    )
+                ), denominator.tlm_value))
+
+        # Now for mixed derivative
+        mixed = float.__neg__(float.__truediv__(adj_input, float.__pow__(denominator_value, 2)))
+        if denominator.tlm_value is not None:
+            numerator.add_hessian_output(float.__mul__(denominator.tlm_value, mixed))
+        if numerator.tlm_value is not None:
+            denominator.add_hessian_output(float.__mul__(numerator.tlm_value, mixed))
+
 
 class NegBlock(FloatOperatorBlock):
 
@@ -257,3 +400,10 @@ class NegBlock(FloatOperatorBlock):
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
         return float.__neg__(tlm_inputs[0])
+
+    def evaluate_hessian(self):
+        hessian_input = self.get_outputs()[0].hessian_value
+        if hessian_input is None:
+            return
+
+        self.terms[0].add_hessian_output(float.__neg__(hessian_input))

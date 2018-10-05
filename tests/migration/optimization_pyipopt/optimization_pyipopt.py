@@ -1,7 +1,6 @@
 """ Solves an optimisation problem with the Burgers equation as constraint, using
 the pyipopt Python bindings to IPOPT"""
 
-from __future__ import print_function
 import sys
 
 from fenics import *
@@ -14,7 +13,7 @@ except ImportError:
     info_blue("pyipopt bindings unavailable, skipping test")
     sys.exit(0)
 
-dolfin.set_log_level(ERROR)
+set_log_level(LogLevel.ERROR)
 
 n = 10
 mesh = UnitIntervalMesh(n)

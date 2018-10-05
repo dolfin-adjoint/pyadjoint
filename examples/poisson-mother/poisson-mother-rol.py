@@ -3,7 +3,7 @@ from fenics import *
 from fenics_adjoint import *
 import numpy
 
-set_log_level(ERROR)
+set_log_level(LogLevel.ERROR)
 
 n = 10
 mesh = UnitSquareMesh(n, n)
@@ -18,18 +18,18 @@ numpy.random.seed(0)
 
 
 def randomly_refine(initial_mesh, ratio_to_refine=.3):
-    cf = CellFunction('bool', initial_mesh)
+    cf = MeshFunction('bool', initial_mesh, initial_mesh.topology().dim())
     for k in range(len(cf)):
         if numpy.random.rand() < ratio_to_refine:
             cf[k] = True
-    return refine(initial_mesh, cell_markers=cf)
+    return refine(initial_mesh, cf)
 
 
 k = 4
 for i in range(k):
     mesh = randomly_refine(mesh)
 
-cf = CellFunction("bool", mesh)
+cf = MeshFunction("bool", mesh, mesh.topology().dim())
 subdomain = CompiledSubDomain(
     'std::abs(x[0]-0.5) < 0.25 && std::abs(x[1]-0.5) < 0.25')
 subdomain.mark(cf, True)

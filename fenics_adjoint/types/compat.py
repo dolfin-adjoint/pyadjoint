@@ -8,12 +8,14 @@ if backend.__name__ == "firedrake":
     FunctionSpaceType = (backend.functionspaceimpl.FunctionSpace,
                          backend.functionspaceimpl.WithGeometry,
                          backend.functionspaceimpl.MixedFunctionSpace)
+    ExpressionType = backend.Expression
 
     FunctionSpace = backend.FunctionSpace
 
     backend.functionspaceimpl.FunctionSpace._ad_parent_space = property(lambda self: self.parent)
 
     backend.functionspaceimpl.WithGeometry._ad_parent_space = property(lambda self: self.parent)
+
 
     def extract_subfunction(u, V):
         """If V is a subspace of the function-space of u, return the component of u that is in that subspace."""
@@ -122,10 +124,11 @@ if backend.__name__ == "firedrake":
     linalg_solve = backend.solve
 
 else:
-    MatrixType = (backend.cpp.Matrix, backend.GenericMatrix)
+    MatrixType = (backend.cpp.la.Matrix, backend.cpp.la.GenericMatrix)
     VectorType = backend.cpp.la.GenericVector
-    FunctionType = backend.cpp.Function
-    FunctionSpaceType = backend.cpp.FunctionSpace
+    FunctionType = backend.cpp.function.Function
+    FunctionSpaceType = backend.cpp.function.FunctionSpace
+    ExpressionType = backend.function.expression.BaseExpression
 
     backend_fs_sub = backend.FunctionSpace.sub
     def _fs_sub(self, i):
@@ -159,9 +162,15 @@ else:
             bc = backend.DirichletBC(bc)
             bc.homogenize()
             return bc
-        return backend.DirichletBC(bc.function_space(),
-                                   value,
-                                   *bc.domain_args)
+        try:
+            # FIXME: Not perfect handling of Initialization, wait for development in dolfin.DirihcletBC
+            bc =  backend.DirichletBC(backend.FunctionSpace(bc.function_space()),
+                                      value, *bc.domain_args)
+        except AttributeError:
+            bc = backend.DirichletBC(backend.FunctionSpace(bc.function_space()),
+                                     value,
+                                     bc.sub_domain, method=bc.method())
+        return bc
 
     def function_from_vector(V, vector):
         """Create a new Function from a vector.
@@ -169,6 +178,13 @@ else:
         :arg V: The function space
         :arg vector: The vector data.
         """
+        if isinstance(vector, backend.cpp.la.PETScVector)\
+           or  isinstance(vector, backend.cpp.la.Vector):
+            pass
+        elif not isinstance(vector, backend.Vector):
+            # If vector is a fenics_adjoint.Function, which does not inherit
+            # backend.cpp.function.Function with pybind11
+            vector = vector._cpp_object
         r = backend.Function(V)
         r.vector()[:] = vector
         return r
@@ -185,9 +201,9 @@ else:
         """Extract from value (a function in a mixed space), the sub
         function corresponding to the part of the space bc applies
         to.  Vtarget is the target (collapsed) space."""
-        assigner = backend.FunctionAssigner(Vtarget, bc.function_space())
+        assigner = backend.FunctionAssigner(Vtarget, backend.FunctionSpace(bc.function_space()))
         output = backend.Function(Vtarget)
-        assigner.assign(output, extract_subfunction(value, bc.function_space()))
+        assigner.assign(output, extract_subfunction(value, backend.FunctionSpace(bc.function_space())))
         return output.vector()
 
     def extract_mesh_from_form(form):
@@ -215,16 +231,11 @@ else:
 
     def gather(vec):
         import numpy
-        if isinstance(vec, backend.cpp.Function):
+        if isinstance(vec, backend.cpp.function.Function):
             vec = vec.vector()
 
-        if isinstance(vec, backend.cpp.GenericVector):
-            try:
-                arr = backend.cpp.DoubleArray(vec.size())
-                vec.gather(arr, numpy.arange(vec.size(), dtype='I'))
-                arr = arr.array().tolist()
-            except TypeError:
-                arr = vec.gather(numpy.arange(vec.size(), dtype='intc'))
+        if isinstance(vec, backend.cpp.la.GenericVector):
+            arr = vec.gather(numpy.arange(vec.size(), dtype='I'))
         elif isinstance(vec, list):
             return list(map(gather, vec))
         else:

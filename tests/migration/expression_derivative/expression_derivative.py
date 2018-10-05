@@ -44,13 +44,13 @@ if __name__ == "__main__":
 
     h = Constant(1.0)
     print("Forward: ", rf1(c))
-    print("Derivative: ", rf1.derivative().values())
+    print("Derivative: ", list(rf1.derivative().values()))
 
     assert taylor_test(rf1, c, h) > 1.9
     rf1(Constant(1.0))
 
     print("Forward: ", rf2(d))
-    print("Derivative: ", rf2.derivative().values())
+    print("Derivative: ", list(rf2.derivative().values()))
 
     assert taylor_test(rf2, d, h) > 1.9
 

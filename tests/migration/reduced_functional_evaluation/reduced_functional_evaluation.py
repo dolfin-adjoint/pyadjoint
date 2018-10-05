@@ -1,12 +1,12 @@
 ''' A simple test that compares the functional value computed manually and with libadjoints functional_evaluation.
     Writting this test was motivated by the bug described on https://bugs.launchpad.net/dolfin-adjoint/+bug/1032291 '''
-from __future__ import print_function
+
 from fenics import *
 from fenics_adjoint import *
 import sys
 
 # Global settings
-set_log_level(ERROR)
+set_log_level(LogLevel.ERROR)
 
 mesh = UnitSquareMesh(10, 10)
 V = FunctionSpace(mesh, "DG", 1)

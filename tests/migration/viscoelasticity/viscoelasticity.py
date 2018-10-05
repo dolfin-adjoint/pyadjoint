@@ -73,9 +73,9 @@ def get_box():
     # Mark all facets by 0, exterior facets by 1, and then top and
     # bottom by 2
     try:
-        boundaries = FacetFunction("sizet", mesh)
+        boundaries = MeshFunction("sizet", mesh, mesh.geometric_dimension()-1)
     except:
-        boundaries = FacetFunction("size_t", mesh)
+        boundaries = MeshFunction("size_t", mesh, mesh.geometric_dimension()-1)
 
     boundaries.set_all(0)
     on_bdry = AutoSubDomain(lambda x, on_boundary: on_boundary)
@@ -224,13 +224,11 @@ def main(ic, params, amplitude, T=1.0, dt=0.01, annotate=False):
     (a_cn, L_cn) = system(F_cn)
     A_cn = assemble(a_cn)
     cn_solver = LUSolver(A_cn)
-    cn_solver.parameters["reuse_factorization"] = True
 
     F_bdf = bdf2_step(Z, z_star, z_, Constant(dk), g, v_D, ds, params)
     (a_bdf, L_bdf) = system(F_bdf)
     A_bdf = assemble(a_bdf)
     bdf_solver = LUSolver(A_bdf)
-    bdf_solver.parameters["reuse_factorization"] = True
 
     file = File("%s/forward_%d_%g.xml" % (dirname, 0, 0.0))
     file << ic
@@ -270,7 +268,6 @@ def main(ic, params, amplitude, T=1.0, dt=0.01, annotate=False):
         # Update time and variables
         t += dk
         z_.assign(z)
-
         progress += 1
         iteration += 1
 
@@ -281,19 +278,15 @@ if __name__ == "__main__":
     # Adjust behaviour at will:
     T = 0.05
     dt = 0.01
-    set_log_level(PROGRESS)
+    set_log_level(LogLevel.PROGRESS)
 
     ic = Function(Z)
     # Play forward run
-    info_blue("Running forward ... ")
+    print("Running forward ... ")
     z = main(ic, params, amplitude, T=T, dt=dt, annotate=True)
 
     # Replay forward
-    info_blue("Replaying forward run ... ")
-
-    if False:
-        # TODO: Not implemented.
-        replay_dolfin()
+    print("Replaying forward run ... ")
 
     # Use elastic/viscous traction on vertical plane as goal
     (sigma0, sigma1, v, gamma) = split(z)
@@ -310,6 +303,6 @@ if __name__ == "__main__":
         J = assemble(inner(sigma0[2], sigma0[2])*dx)
         return J
 
-    info_blue("Checking adjoint correctness ... ")
+    print("Checking adjoint correctness ... ")
     minconv = taylor_test(Jfunc, amplitude, h, dJdm)
     assert minconv > 1.8

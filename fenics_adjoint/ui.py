@@ -6,7 +6,7 @@ from .interpolation import interpolate
 from .types import Function, Constant, DirichletBC
 from .ufl_constraints import UFLEqualityConstraint, UFLInequalityConstraint
 if backend.__name__ != "firedrake":
-    from .types import Expression
+    from .types import Expression, UserExpression, CompiledExpression
     from .types import io
     from .newton_solver import NewtonSolver
     from .lusolver import LUSolver
@@ -19,7 +19,7 @@ from pyadjoint import (Tape, set_working_tape, get_working_tape,
                        compute_gradient, compute_hessian,
                        AdjFloat, Control, minimize, MinimizationProblem,
                        IPOPTSolver, ROLSolver, InequalityConstraint, EqualityConstraint,
-                       MoolaOptimizationProblem)
+                       MoolaOptimizationProblem, print_optimization_methods)
 
 tape = Tape()
 set_working_tape(tape)

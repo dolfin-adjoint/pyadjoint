@@ -31,6 +31,7 @@ class DirichletBC(FloatingType, backend.DirichletBC):
         # Call backend constructor after popped AD specific keyword args.
         backend.DirichletBC.__init__(self, *args, **kwargs)
 
+        self._g = args[1]
         self._ad_args = args
         self._ad_kwargs = kwargs
 
@@ -128,7 +129,8 @@ class DirichletBCBlock(Block):
                             prev_idx = i
                         output.append(current_subfunc.sub(prev_idx, deepcopy=True).vector().sum())
 
-                    r = numpy.array(output)
+                    r = backend.cpp.la.Vector(backend.MPI.comm_world, len(output))
+                    r[:] = output
             elif isinstance(c, Function):
                 # TODO: This gets a little complicated.
                 #       The function may belong to a different space,
@@ -143,7 +145,7 @@ class DirichletBCBlock(Block):
                 adj_value = backend.Function(self.parent_space)
                 adj_input.apply(adj_value.vector())
                 output = compat.extract_bc_subvector(adj_value, self.collapsed_space, bc)
-                r  = [[output, self.collapsed_space]]
+                r = [[output, self.collapsed_space]]
             if adj_output is None:
                 adj_output = r
             else:
@@ -154,6 +156,7 @@ class DirichletBCBlock(Block):
         bc = block_variable.saved_output
         for bv in self.get_dependencies():
             tlm_input = bv.tlm_value
+
             if tlm_input is None:
                 continue
 

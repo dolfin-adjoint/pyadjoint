@@ -8,7 +8,7 @@
 # and differentiate a functional of the solution u with respect to the
 # parameter f.
 
-from __future__ import print_function
+
 from dolfin import *
 from dolfin_adjoint import *
 from dolfin_adjoint.utils import homogenize
@@ -90,7 +90,7 @@ def dJ(u, m, u_adj):
     adFmdm = adjoint(dFmdm) # the args argument to adjoint is the biggest time-waster ever. Everything else about the system is so beautiful :-/
     current_args = ufl.algorithms.extract_arguments(adFmdm)
     correct_args = [TestFunction(Vm), TrialFunction(Vu)]
-    adFmdm = replace(adFmdm, dict(zip(current_args, correct_args)))
+    adFmdm = replace(adFmdm, dict(list(zip(current_args, correct_args))))
 
     dJdm = expand(derivative(Jm, m, TestFunction(Vm)))
 
@@ -132,7 +132,7 @@ def HJ(u, m):
         adFmdm = adjoint(dFmdm)
         current_args = ufl.algorithms.extract_arguments(adFmdm)
         correct_args = [TestFunction(Vm), TrialFunction(Vu)]
-        adFmdm = replace(adFmdm, dict(zip(current_args, correct_args)))
+        adFmdm = replace(adFmdm, dict(list(zip(current_args, correct_args))))
 
         Jm = J(u, m)
         dJdm = ufl.algorithms.expand_derivatives(derivative(Jm, m, TestFunction(Vm)))

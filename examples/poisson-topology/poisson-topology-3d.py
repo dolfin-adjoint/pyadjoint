@@ -56,8 +56,6 @@
 #
 # First, the :py:mod:`dolfin` and :py:mod:`dolfin_adjoint` modules are
 # imported:
-
-from __future__ import print_function
 from dolfin import *
 from dolfin_adjoint import *
 
@@ -75,6 +73,7 @@ PETScOptions.set("pc_gamg_agg_nsmooths", 1)
 try:
     import pyipopt
 except ImportError:
+    from ufl.log import info_red
     info_red("""This example depends on IPOPT and pyipopt. \
   When compiling IPOPT, make sure to link against HSL, as it \
   is a necessity for practical problems.""")
@@ -88,7 +87,7 @@ parameters["form_compiler"]["cpp_optimize_flags"] = "-O3 -ffast-math -march=nati
 # Next we define some constants, and the Solid Isotropic Material with
 # Penalisation (SIMP) rule.
 
-V = Constant(0.4)      # volume bound on the control
+V = Constant(0.4, name="Control")      # volume bound on the control
 p = Constant(5)        # power used in the solid isotropic material
 # with penalisation (SIMP) rule, to encourage the control solution to attain either 0 or 1
 eps = Constant(1.0e-3) # epsilon used in the solid isotropic material
@@ -104,8 +103,6 @@ def k(a):
 # Next we define the mesh (a unit square) and the function spaces to be
 # used for the control :math:`a` and forward solution :math:`T`.
 
-# TODO: Previously it was n = 50, but then the adjoint equation solve runs out of memory on my system,
-#       Change to n = 50 when dolfin-adjoint allows manipulating solver method for the adjoint equation with fenics.
 n = 10
 mesh = UnitCubeMesh(n, n, n)
 A = FunctionSpace(mesh, "CG", 1)  # function space for control
@@ -232,7 +229,7 @@ if __name__ == "__main__":
 # Compute the integral of the control over the domain
 
             integral = self.smass.inner(self.tmpvec.vector())
-            if MPI.rank(mpi_comm_world()) == 0:
+            if MPI.rank(MPI.comm_world) == 0:
                 print("Current control integral: ", integral)
             return [self.V - integral]
 
@@ -257,7 +254,7 @@ if __name__ == "__main__":
     solver = IPOPTSolver(problem, parameters=parameters)
     a_opt = solver.solve()
 
-    infile = XDMFFile(mpi_comm_world(), 'output-3d/control_solution.xdmf')
+    infile = XDMFFile(MPI.comm_world, 'output-3d/control_solution.xdmf')
     infile.write(a_opt)
 
 # The example code can be found in ``examples/poisson-topology/`` in the

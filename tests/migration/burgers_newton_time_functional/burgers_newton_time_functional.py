@@ -3,7 +3,7 @@ Implementation of Burger's equation with nonlinear solve in each
 timestep and a functional integrating over time
 """
 
-from __future__ import print_function
+
 
 from fenics import *
 from fenics_adjoint import *

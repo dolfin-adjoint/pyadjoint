@@ -1,12 +1,11 @@
 import backend
 
-
-backend_genericmatrix_mul = backend.GenericMatrix.__mul__
+backend_genericmatrix_mul = backend.cpp.la.GenericMatrix.__mul__
 
 
 def adjoint_genericmatrix_mul(self, other):
     out = backend_genericmatrix_mul(self, other)
-    if hasattr(self, 'form') and isinstance(other, backend.GenericVector):
+    if hasattr(self, 'form') and isinstance(other, backend.cpp.la.GenericVector):
         if hasattr(other, 'form'):
             out.form = backend.action(self.form, other.form)
         elif hasattr(other, 'function'):
@@ -17,4 +16,4 @@ def adjoint_genericmatrix_mul(self, other):
 
     return out
 
-backend.GenericMatrix.__mul__ = adjoint_genericmatrix_mul
+backend.cpp.la.GenericMatrix.__mul__ = adjoint_genericmatrix_mul

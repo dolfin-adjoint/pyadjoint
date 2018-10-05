@@ -1,11 +1,8 @@
 """ Solves an optimisation problem with the Burgers equation as constraint """
 
-from __future__ import print_function
-
 from fenics import *
 from fenics_adjoint import *
-
-dolfin.set_log_level(ERROR)
+set_log_level(LogLevel.ERROR)
 
 n = 10
 mesh = UnitIntervalMesh(n)

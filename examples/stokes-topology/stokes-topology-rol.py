@@ -111,7 +111,7 @@ N = 20
 delta = 1.5  # The aspect ratio of the domain, 1 high and \delta wide
 V = Constant(1.0/3) * delta  # want the fluid to occupy 1/3 of the domain
 
-mesh = RectangleMesh(mpi_comm_world(), Point(0.0, 0.0), Point(delta, 1.0), N, N)
+mesh = RectangleMesh(MPI.comm_world, Point(0.0, 0.0), Point(delta, 1.0), N, N)
 A = FunctionSpace(mesh, "CG", 1)        # control function space
 
 U_h = VectorElement("CG", mesh.ufl_cell(), 2)
@@ -120,7 +120,7 @@ W = FunctionSpace(mesh, U_h*P_h)          # mixed Taylor-Hood function space
 
 # Define the boundary condition on velocity
 
-class InflowOutflow(Expression):
+class InflowOutflow(UserExpression):
     def eval(self, values, x):
         values[1] = 0.0
         values[0] = 0.0
@@ -241,7 +241,7 @@ if __name__ == "__main__":
     solver = ROLSolver(problem, params, inner_product="L2")
     rho_opt = solver.solve()
 
-    rho_opt_xdmf = XDMFFile(mpi_comm_world(), "output-rol/control_solution_guess.xdmf")
+    rho_opt_xdmf = XDMFFile(MPI.comm_world, "output-rol/control_solution_guess.xdmf")
     rho_opt_xdmf.write(rho_opt)
 # With the optimised value for :math:`q=0.01` in hand, we *reset* the
 # dolfin-adjoint state, clearing its tape, and configure the new problem
@@ -260,7 +260,7 @@ if __name__ == "__main__":
 # save the optimisation iterations to
 # ``output-rol/control_iterations_final.pvd``.
 
-    rho_intrm = XDMFFile(mpi_comm_world(), "output-rol/intermediate-guess-%s.xdmf" % N)
+    rho_intrm = XDMFFile(MPI.comm_world, "output-rol/intermediate-guess-%s.xdmf" % N)
     rho_intrm.write(rho)
 
     w = forward(rho)
@@ -286,7 +286,7 @@ if __name__ == "__main__":
     solver = ROLSolver(problem, params, inner_product="L2")
     rho_opt = solver.solve()
 
-    rho_opt_final = XDMFFile(mpi_comm_world(), "output-rol/control_solution_final.xdmf")
+    rho_opt_final = XDMFFile(MPI.comm_world, "output-rol/control_solution_final.xdmf")
     rho_opt_final.write(rho_opt)
 
 # The example code can be found in ``examples/stokes-topology/`` in the

@@ -85,7 +85,8 @@ while t <= T:
     ctrls[t] = Function(V)
     t += float(dt)
 
-# The following function implements a heat equation solver in FEniCS.
+# The following function implements a heat equation solver in FEniCS,
+# and constructs the first functional term.
 
 def solve_heat(ctrls):
     u = TrialFunction(V)
@@ -153,11 +154,11 @@ u, d, j = solve_heat(ctrls)
 #
 # In code this is translates to:
 
-alpha = Constant(1e-3)
+alpha = Constant(1e-1)
 regularisation = alpha/2*sum([1/dt*(fb-fa)**2*dx for fb, fa in
     zip(list(ctrls.values())[1:], list(ctrls.values())[:-1])])
 
-# We add the regularisation term to the functional value and define define the controls:
+# We add the regularisation term to the first functional term and define define the controls:
 
 J = j + assemble(regularisation)
 m = [Control(c) for c in ctrls.values()]
@@ -167,6 +168,13 @@ m = [Control(c) for c in ctrls.values()]
 rf = ReducedFunctional(J, m)
 opt_ctrls = minimize(rf, options={"maxiter": 50})
 
+from matplotlib import pyplot, rc
+rc('text', usetex=True)
+x = [c((0.5, 0.5)) for c in opt_ctrls]
+pyplot.plot(x, label="$\\alpha={}$".format(float(alpha)))
+pyplot.ylim([-3, 3])
+pyplot.legend()
+
 # If we solve this optimisation problem with varying :math:`\alpha` parameters,
 # we observe that we get different behaviour in the controls: the higher the
 # alpha value, the "smoother" the control function becomes. The following plots
@@ -174,23 +182,14 @@ opt_ctrls = minimize(rf, options={"maxiter": 50})
 # over time for different :math:`\alpha` values:
 
 # .. image:: control_alpha=0.0001.png
-#     :scale: 50
+#     :scale: 45
 #     :align: left
 # .. image:: control_alpha=0.001.png
-#     :scale: 50
+#     :scale: 45
 #     :align: right
 # .. image:: control_alpha=0.01.png
-#     :scale: 50
+#     :scale: 45
 #     :align: left
 # .. image:: control_alpha=0.1.png
-#     :scale: 50
+#     :scale: 45
 #     :align: right
-
-# The following code creates these plots:
-
-from matplotlib import pyplot
-x = [c((0.5, 0.5)) for c in opt_ctrls]
-pyplot.plot(x, label="alpha={}".format(float(alpha)))
-pyplot.ylim([-3, 3])
-pyplot.legend()
-pyplot.savefig("control_alpha={}.png".format(float(alpha)))

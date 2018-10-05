@@ -9,7 +9,7 @@ except ImportError:
     sys.exit(0)
 
 
-dolfin.set_log_level(ERROR)
+set_log_level(LogLevel.ERROR)
 parameters['std_out_all_processes'] = False
 
 def solve_pde(u, V, m, n):
@@ -67,3 +67,4 @@ if __name__ == "__main__":
     # Compute the error
     control_error = errornorm(m_analytic, m_opt)
     state_error = errornorm(u_analytic, u)
+

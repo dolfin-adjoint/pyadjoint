@@ -3,7 +3,7 @@ from fenics_adjoint import *
 
 from numpy.random import rand
 
-mesh = UnitIntervalMesh(mpi_comm_world(), 2)
+mesh = UnitIntervalMesh(MPI.comm_world, 2)
 
 W = FunctionSpace(mesh, "CG", 1)
 rho = project(Constant(1), W)

@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 from fenics import *
 from fenics_adjoint import *
 
@@ -52,7 +52,7 @@ if __name__ == "__main__":
         assert success
 
     data = true_states[-1].copy(deepcopy=True, annotate=False)
-    combined = zip(times, true_states, computed_states)
+    combined = list(zip(times, true_states, computed_states))
     J_orig = assemble(inner(u - data, u - data)*dx)
     print("Base functional value: ", J_orig)
 

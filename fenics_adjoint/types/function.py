@@ -102,7 +102,7 @@ class Function(FloatingType, backend.Function):
             u = backend.TrialFunction(self.function_space())
             v = backend.TestFunction(self.function_space())
             M = backend.assemble(backend.inner(u, v) * backend.dx)
-            if not isinstance(value, backend.Vector):
+            if not isinstance(value, backend.GenericVector):
                 value = value.vector()
             backend.solve(M, ret.vector(), value)
             return ret
@@ -110,11 +110,14 @@ class Function(FloatingType, backend.Function):
             ret = Function(self.function_space())
             u = backend.TrialFunction(self.function_space())
             v = backend.TestFunction(self.function_space())
-            M = backend.assemble(backend.inner(u, v) * backend.dx + backend.inner(backend.grad(u), backend.grad(v)) * backend.dx)
-            if not isinstance(value, backend.Vector):
+            M = backend.assemble(
+                backend.inner(u, v) * backend.dx + backend.inner(backend.grad(u), backend.grad(v)) * backend.dx)
+            if not isinstance(value, backend.GenericVector):
                 value = value.vector()
             backend.solve(M, ret.vector(), value)
             return ret
+        elif callable(riesz_representation):
+            return riesz_representation(value)
         else:
             raise NotImplementedError("Unknown Riesz representation %s" % riesz_representation)
 
@@ -256,7 +259,7 @@ class AssignBlock(Block):
         replace_map = {}
         for dep in self.get_dependencies():
             replace_map[dep.output] = dep.saved_output
-        expr = backend.replace(self.expr, replace_map)
+        expr = ufl.replace(self.expr, replace_map)
         return expr, adj_input_func
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
@@ -286,7 +289,7 @@ class AssignBlock(Block):
             V = dep.output.function_space()
             tlm_input = dep.tlm_value or backend.Function(V)
             replace_map[dep.output] = tlm_input
-        expr = backend.replace(self.expr, replace_map)
+        expr = ufl.replace(self.expr, replace_map)
 
         return expr
 
@@ -316,7 +319,7 @@ class AssignBlock(Block):
         replace_map = {}
         for dep in self.get_dependencies():
             replace_map[dep.output] = dep.saved_output
-        return backend.replace(self.expr, replace_map)
+        return ufl.replace(self.expr, replace_map)
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
         if not self.lincom:

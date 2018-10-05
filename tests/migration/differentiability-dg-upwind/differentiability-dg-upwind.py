@@ -17,7 +17,7 @@ F(u) = action(advection(u), T).
 
 """
 
-from __future__ import print_function
+
 from numpy import random
 from dolfin import *
 
@@ -43,7 +43,7 @@ def form(w):
     T = TrialFunction(V)
     v = TestFunction(V)
 
-    h = CellSize(mesh)
+    h = 2*Circumradius(mesh)
     n = FacetNormal(mesh)
 
     u = split(w)[0]

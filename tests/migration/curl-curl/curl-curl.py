@@ -3,6 +3,7 @@ from fenics_adjoint import *
 from distutils.version import LooseVersion
 
 mesh = UnitCubeMesh(2, 2, 2)
+import dolfin
 if LooseVersion(dolfin.__version__) > LooseVersion('1.3.0'):
     dx = dx(mesh)
 

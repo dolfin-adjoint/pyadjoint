@@ -9,7 +9,7 @@
 
 
 """
-from __future__ import print_function
+
 from dolfin import *
 from dolfin_adjoint import *
 
@@ -67,7 +67,7 @@ class VolumeConstraint(InequalityConstraint):
         integral = self.smass.inner(self.tmpvec.vector())
         vecmax   = m.vector().max()
         vecmin   = m.vector().min()
-        if MPI.rank(mpi_comm_world()) == 0:
+        if MPI.rank(MPI.comm_world) == 0:
             print("Current control integral: ", integral)
             print("Maximum of control: ", vecmax)
             print("Minimum of control: ", vecmin)

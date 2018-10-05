@@ -1,7 +1,7 @@
 from fenics import *
 from fenics_adjoint import *
 
-mesh = UnitIntervalMesh(mpi_comm_world(), 2)
+mesh = UnitIntervalMesh(MPI.comm_world, 2)
 
 W = FunctionSpace(mesh, "CG", 1)
 rho = Constant(1)

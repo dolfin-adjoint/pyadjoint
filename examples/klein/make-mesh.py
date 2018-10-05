@@ -5,7 +5,6 @@ Parametric description taken from
 http://paulbourke.net/geometry/klein/
 """
 
-from __future__ import print_function
 from dolfin import *
 import numpy
 
@@ -78,7 +77,7 @@ def wrap_mesh(mesh, pbs):
 
     wrapped_mesh = Mesh()
     editor = MeshEditor()
-    editor.open(wrapped_mesh, mesh.topology().dim(), mesh.geometry().dim())
+    editor.open(wrapped_mesh, "triangle", mesh.topology().dim(), mesh.geometry().dim())
     editor.init_vertices(mesh.num_vertices() - slaves_hit)
     editor.init_cells(mesh.num_cells())
 
@@ -99,18 +98,25 @@ wrapped_mesh = wrap_mesh(mesh, [LeftRightPeriodicBoundary(), TopBottomPeriodicBo
 
 # Map parametric coordinates (u, v) to (x, y, z)
 a = 2.0 ; n = 2; m = 1
+
 code = r'''
-class KleinMap : public Expression
+#include <pybind11/pybind11.h>
+namespace py = pybind11;
+#include <dolfin/function/Expression.h>
+#include <pybind11/eigen.h>
+
+class KleinMap : public dolfin::Expression
 {
   public:
 
-void eval(Array<double>& values, const Array<double>& x) const
+void eval(Eigen::Ref<Eigen::VectorXd> values, Eigen::Ref<const Eigen::VectorXd> x) const
 {
   double u = x[0];
   double v = x[1];
   values[0] = (%(a)s + cos(%(n)s*u/2.0) * sin(v) - sin(%(n)s*u/2.0) * sin(2*v)) * cos(%(m)s*u/2.0);
   values[1] = (%(a)s + cos(%(n)s*u/2.0) * sin(v) - sin(%(n)s*u/2.0) * sin(2*v)) * sin(%(m)s*u/2.0);
   values[2] = sin(%(n)s*u/2.0) * sin(v) + cos(%(n)s*u/2.0) * sin(2*v);
+
 }
 
 std::size_t value_rank() const
@@ -124,14 +130,20 @@ std::size_t value_dimension(std::size_t i) const
 }
 
 };
+  PYBIND11_MODULE(SIGNATURE, m)
+    {
+    py::class_<KleinMap, std::shared_ptr<KleinMap>, dolfin::Expression>
+    (m, "KleinMap")
+    .def(py::init<>());
+}
 ''' % {'a': a, 'm': m, 'n': n}
 
 V = VectorFunctionSpace(mesh, "Lagrange", 1, dim=3)
 
-KleinMap = Expression(code, element=V.ufl_element())
+KleinMap = CompiledExpression(compile_cpp_code(code).KleinMap(), element=V.ufl_element())
 
 def transform_mesh(mesh, coord_map):
-    if isinstance(coord_map, Expression):
+    if isinstance(coord_map, function.expression.BaseExpression):
         single_map = coord_map
         coord_map = lambda coords: [single_map(pt) for pt in coords]
 
@@ -143,7 +155,7 @@ def transform_mesh(mesh, coord_map):
 
     new_mesh = Mesh()
     editor = MeshEditor()
-    editor.open(new_mesh, tdim, gdim)
+    editor.open(new_mesh, "triangle", tdim, gdim)
     editor.init_vertices(mesh.num_vertices())
     editor.init_cells(mesh.num_cells())
 
@@ -157,7 +169,6 @@ def transform_mesh(mesh, coord_map):
     return new_mesh
 
 new_mesh = transform_mesh(wrapped_mesh, KleinMap)
-outfile = XDMFFile(mpi_comm_world(), 'klein.xdmf')
+outfile = XDMFFile(MPI.comm_world, 'klein.xdmf')
 outfile.write(new_mesh)
 
-plot(new_mesh, wireframe=True, interactive=True)

@@ -10,11 +10,11 @@ from fenics_adjoint import *
 
 
 def setup(n=20):
-    set_log_level(ERROR)
+    set_log_level(LogLevel.ERROR)
 
     mesh = UnitSquareMesh(n, n)
 
-    cf = CellFunction("bool", mesh)
+    cf = MeshFunction("bool", mesh, mesh.topology().dim())
     subdomain = CompiledSubDomain(
         'std::abs(x[0]-0.5) < 0.25 && std::abs(x[1]-0.5) < 0.25')
     subdomain.mark(cf, True)

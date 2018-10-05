@@ -130,7 +130,7 @@ class \
         The method should implement a routine for evaluating the adjoint of the block.
 
         """
-        raise NotImplementedError
+        raise NotImplementedError(type(self))
 
     def evaluate_tlm(self, markings=False):
         deps = self.get_dependencies()
@@ -249,7 +249,7 @@ class \
         are evaluated in reverse (starting with the last block on the tape).
 
         """
-        raise NotImplementedError
+        raise NotImplementedError(type(self))
 
     def recompute(self, markings=False):
         outputs = self.get_outputs()

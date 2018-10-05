@@ -1,8 +1,7 @@
 from __future__ import print_function
 from .reduced_functional import ReducedFunctional
-from .tape import stop_annotating, no_annotations, get_working_tape
+from .tape import no_annotations, get_working_tape
 from .enlisting import Enlist
-from .drivers import compute_hessian 
 from .control import Control
 from .adjfloat import AdjFloat
 
@@ -44,15 +43,6 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         return m
 
     def get_global(self, m):
-        """
-        m_global = []
-        for i, control in enumerate(self.controls):
-            # This is a little ugly, but we need to go through the control to get to the OverloadedType.
-            # There is no guarantee that dJdm[i] is an OverloadedType and not a backend type.
-            m_global += control.fetch_numpy(m[i])
-
-        return numpy.array(m_global, dtype="d")
-        """
         m_global = []
         for i, v in enumerate(Enlist(m)):
             if isinstance(v, Control):
@@ -74,10 +64,6 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         # In the case that the control values have changed since the last forward run,
         # we first need to rerun the forward model with the new controls to have the
         # correct forward solutions
-        #m = [p.data() for p in self.controls]
-        #if m_array is not None and (m_array != self.get_global(m)).any():
-        #    info_red("Rerunning forward model before computing derivative")
-        #    self(m_array)
         if m_array is not None:
             self.__call__(m_array)
         dJdm = self.rf.derivative()
@@ -175,7 +161,6 @@ class ReducedFunctionalNumPy(ReducedFunctional):
             info("j = %f\t\t|dJ| = %f" % (f[0], np.linalg.norm(dj)))
             return np.array([dj]), gJac, fail
 
-
         # Instantiate the optimization problem
         opt_prob = pyOpt.Optimization(name, obj)
         opt_prob.addObj('J')
@@ -212,18 +197,6 @@ class ReducedFunctionalNumPy(ReducedFunctional):
                     opt_prob.addConGroup(str(i) + 'th constraint', c._get_constraint_dim(), type='i', lower=0.0, upper=np.inf)
 
         return opt_prob, grad
-
-
-def copy_data(m):
-    ''' Returns a deep copy of the given Function/Constant. '''
-    if hasattr(m, "vector"):
-        return Function(m.function_space())
-    elif hasattr(m, "value_size"):
-        return Constant(m(()))
-    elif hasattr(m, "copy"):
-        return m.copy()
-    else:
-        raise TypeError('Unknown control type %s.' % str(type(m)))
 
 
 def set_local(coeffs, m_array):

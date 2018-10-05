@@ -23,6 +23,22 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
+class MockType(type):
+    @classmethod
+    def __getattr__(cls, name):
+        if name in ('__file__', '__path__'):
+            return '/dev/null'
+        elif name[0] == name[0].upper():
+            if name in MOCK_META_CLASSES:
+                mockType = MockType(name, (MockMeta, ), {})
+            else:
+                mockType = MockType(name, (Mock, ), {})
+            mockType.__module__ = __name__
+            setattr(cls, name, mockType)
+            return mockType
+        else:
+            return Mock()
+
 # Create Mock classes for FEniCS
 class Mock(object):
 
@@ -52,9 +68,9 @@ class Mock(object):
             return '/dev/null'
         elif name[0] == name[0].upper():
             if name in MOCK_META_CLASSES:
-                mockType = type(name, (MockMeta, ), {})
+                mockType = MockType(name, (MockMeta, ), {})
             else:
-                mockType = type(name, (Mock, ), {})
+                mockType = MockType(name, (Mock, ), {})
             mockType.__module__ = __name__
             setattr(cls, name, mockType)
             return mockType
@@ -64,7 +80,7 @@ class Mock(object):
 MOCK_MODULES = ['dolfin', 'ffc', 'backend.fem', 'backend.fem.projection', 'backend.PeriodicBC',
                 'backend.HDF5File',
                 'backend.HDF5File.read',
-                'backend', 'ufl', 'numpy', 'scipy', 'scipy.optimize', 'ufl.classes',
+                'backend', 'ufl', 'scipy', 'scipy.optimize', 'ufl.classes',
                 'ufl.algorithms', 'ufl.operators',
                 'tensorflow']
 for mod_name in MOCK_MODULES:
@@ -126,6 +142,7 @@ author = u'Sebastian Mitusch'
 # built documents.
 #
 # The short X.Y version.
+#from IPython import embed; embed()
 import pyadjoint
 version = pyadjoint.__version__
 # The full version, including alpha/beta/rc tags.
@@ -169,7 +186,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # If true, sectionauthor and moduleauthor directives will be shown in the
 # output. They are ignored by default.
 #
-# show_authors = False
+show_authors = True
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'

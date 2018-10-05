@@ -47,7 +47,7 @@ class BlockVariable(object):
 
     @no_annotations
     def save_output(self, overwrite=True):
-        if overwrite or not self.checkpoint:
+        if overwrite or self.checkpoint is None:
             self._checkpoint = self.output._ad_create_checkpoint()
 
     @property

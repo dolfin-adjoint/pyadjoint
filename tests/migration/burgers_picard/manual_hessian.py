@@ -1,9 +1,9 @@
-from __future__ import print_function
+
 from dolfin import *
 from dolfin_adjoint import *
 import ufl.algorithms
 
-parameters["adjoint"]["stop_annotating"] = True
+pause_annotation()
 
 n = 2
 mesh = UnitIntervalMesh(n)
@@ -81,7 +81,7 @@ def dJ(u, m, u_adj):
     adFmdm = adjoint(dFmdm) # the args argument to adjoint is the biggest time-waster ever. Everything else about the system is so beautiful :-/
     current_args = ufl.algorithms.extract_arguments(adFmdm)
     correct_args = [TestFunction(V), TrialFunction(V)]
-    adFmdm = replace(adFmdm, dict(zip(current_args, correct_args)))
+    adFmdm = replace(adFmdm, dict(list(zip(current_args, correct_args))))
 
     dJdm = derivative(Jm, m, TestFunction(V))
 
@@ -125,7 +125,7 @@ def HJ(u, m):
         adFmdm = adjoint(dFmdm)
         current_args = ufl.algorithms.extract_arguments(adFmdm)
         correct_args = [TestFunction(V), TrialFunction(V)]
-        adFmdm = replace(adFmdm, dict(zip(current_args, correct_args)))
+        adFmdm = replace(adFmdm, dict(list(zip(current_args, correct_args))))
 
         Jm = J(u, m)
         dJdm = ufl.algorithms.expand_derivatives(derivative(Jm, m, TestFunction(V)))

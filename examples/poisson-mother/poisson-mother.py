@@ -55,10 +55,9 @@
 # We start our implementation by importing the :py:mod:`dolfin` and
 # :py:mod:`dolfin_adjoint` modules:
 
-from __future__ import print_function
-from fenics import *
-from fenics_adjoint import *
-set_log_level(ERROR)
+from dolfin import *
+from dolfin_adjoint import *
+set_log_level(LogLevel.ERROR)
 
 # Next we import the Python interface to Moola. Moola is a collection
 # of optimisation solvers specifically designed for PDE-constrained
@@ -76,7 +75,7 @@ import moola
 n = 64
 mesh = UnitSquareMesh(n, n)
 
-cf = CellFunction("bool", mesh)
+cf = MeshFunction("bool", mesh, mesh.geometric_dimension())
 subdomain = CompiledSubDomain('std::abs(x[0]-0.5) < 0.25 && std::abs(x[1]-0.5) < 0.25')
 subdomain.mark(cf, True)
 mesh = refine(mesh, cf)
@@ -93,7 +92,7 @@ mesh = refine(mesh, cf)
 V = FunctionSpace(mesh, "CG", 1)
 W = FunctionSpace(mesh, "DG", 0)
 
-f = interpolate(Expression("x[0]+x[1]", degree=1), W)
+f = interpolate(Expression("x[0]+x[1]", name='Control', degree=1), W)
 u = Function(V, name='State')
 v = TestFunction(V)
 
@@ -176,14 +175,14 @@ solver = moola.NewtonCG(problem, f_moola, options={'gtol': 1e-9,
 #                                                   'Hinit': "default",
 #                                                   'maxiter': 100,
 #                                                   'mem_lim': 10})
-#
+
 # Then we can solve the optimisation problem, extract the optimal
 # control and plot it:
 
 sol = solver.solve()
 f_opt = sol['control'].data
 
-plot(f_opt, interactive=True, title="f_opt")
+plot(f_opt, title="f_opt")
 
 # Define the expressions of the analytical solution
 f_analytic = Expression("1/(1+alpha*4*pow(pi, 4))*w", w=w, alpha=alpha, degree=3)

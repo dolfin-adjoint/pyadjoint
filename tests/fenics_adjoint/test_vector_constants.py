@@ -65,7 +65,6 @@ def test_solve_assemble():
 
     assert(taylor_test(Jhat, c, Constant((1, 1, 1))) > 1.9)
 
-
 def test_dirichlet_bc():
     tape = Tape()
     set_working_tape(tape)
@@ -137,7 +136,6 @@ def test_solve_assemble_hessian():
     Hm = h._ad_dot(Jhat.hessian(h))
 
     assert(taylor_test(Jhat, c, h, dJdm=dJdm, Hm=Hm) > 2.9)
-
 
 def test_dirichlet_bc_hessian():
     tape = Tape()

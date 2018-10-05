@@ -10,7 +10,6 @@ from .types.function_space import extract_subfunction
 
 # TODO: Clean up: some inaccurate comments. Reused code. Confusing naming with dFdm when denoting the control as c.
 
-
 def solve(*args, **kwargs):
     '''This solve routine wraps the real Dolfin solve call. Its purpose is to annotate the model,
     recording what solves occur and what forms are involved, so that the adjoint and tangent linear models may be
@@ -76,8 +75,6 @@ class SolveBlock(Block):
             self.assemble_kwargs = {}
             if "solver_parameters" in kwargs and "mat_type" in kwargs["solver_parameters"]:
                 self.assemble_kwargs["mat_type"] = kwargs["solver_parameters"]["mat_type"]
-
-            #self.add_output(self.func.create_block_variable())
         else:
             # Linear algebra problem.
             # TODO: Consider checking if attributes exist.
@@ -136,7 +133,7 @@ class SolveBlock(Block):
                 replaced_coeffs[coeff] = block_variable.saved_output
         replaced_coeffs[tmp_u] = fwd_block_variable.saved_output
 
-        F_form = backend.replace(F_form, replaced_coeffs)
+        F_form = ufl.replace(F_form, replaced_coeffs)
 
         dFdu = backend.derivative(F_form, fwd_block_variable.saved_output, backend.TrialFunction(u.function_space()))
         dFdu_form = backend.adjoint(dFdu)
@@ -179,7 +176,7 @@ class SolveBlock(Block):
         elif isinstance(c, backend.Constant):
             mesh = compat.extract_mesh_from_form(F_form)
             trial_function = backend.TrialFunction(c._ad_function_space(mesh))
-        elif isinstance(c, backend.Expression):
+        elif isinstance(c, compat.ExpressionType):
             mesh = F_form.ufl_domain().ufl_cargo()
             c_fs = c._ad_function_space(mesh)
             trial_function = backend.TrialFunction(c_fs)
@@ -191,7 +188,7 @@ class SolveBlock(Block):
         dFdm = backend.adjoint(dFdm)
         dFdm = dFdm * adj_sol
         dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
-        if isinstance(c, backend.Expression):
+        if isinstance(c, compat.ExpressionType):
             return [[dFdm, c_fs]]
         else:
             return dFdm
@@ -215,7 +212,7 @@ class SolveBlock(Block):
 
         replaced_coeffs[tmp_u] = fwd_block_variable.saved_output
 
-        F_form = backend.replace(F_form, replaced_coeffs)
+        F_form = ufl.replace(F_form, replaced_coeffs)
 
         # Obtain dFdu.
         dFdu = backend.derivative(F_form, fwd_block_variable.saved_output, backend.TrialFunction(u.function_space()))
@@ -290,7 +287,7 @@ class SolveBlock(Block):
                 replaced_coeffs[coeff] = block_variable.saved_output
 
         replaced_coeffs[tmp_u] = fwd_block_variable.saved_output
-        F_form = backend.replace(F_form, replaced_coeffs)
+        F_form = ufl.replace(F_form, replaced_coeffs)
 
         # Define the equation Form. This class is an initial step in refactoring
         # the SolveBlock methods.
@@ -321,6 +318,7 @@ class SolveBlock(Block):
         # Start piecing together the rhs of the soa equation
         b = hessian_input.copy()
         b_form = d2Fdu2
+        b_vector = 0.0
 
         for _, bo in relevant_dependencies:
             c = bo.output
@@ -331,12 +329,13 @@ class SolveBlock(Block):
                 continue
 
             if not isinstance(c, backend.DirichletBC):
-                d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdu_form, c_rep, tlm_input))
-                b_form += d2Fdudm
+                b_form += backend.derivative(dFdu_form, c_rep, tlm_input)
 
+        b_form = ufl.algorithms.expand_derivatives(b_form)
         if len(b_form.integrals()) > 0:
             b_form = backend.adjoint(b_form)
             b -= compat.assemble_adjoint_value(backend.action(b_form, adj_sol))
+        b += b_vector
         b_copy = b.copy()
 
         for bc in bcs:
@@ -458,11 +457,11 @@ class SolveBlock(Block):
                 if self.linear and c in self.rhs.coefficients():
                     replace_rhs_coeffs[c] = c_rep
 
-        lhs = backend.replace(self.lhs, replace_lhs_coeffs)
+        lhs = ufl.replace(self.lhs, replace_lhs_coeffs)
 
         rhs = 0
         if self.linear:
-            rhs = backend.replace(self.rhs, replace_rhs_coeffs)
+            rhs = ufl.replace(self.rhs, replace_rhs_coeffs)
 
         return lhs == rhs, func, bcs
 

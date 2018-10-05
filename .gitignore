@@ -3,10 +3,12 @@
 *.swp
 docs/_build/*
 *.egg-info
-
+*.py~
 
 # Generated files
 *.pvd
 *.vtu
 *.dot
 .idea/*
+*.xml
+*.msh

@@ -72,9 +72,11 @@ class AssembleBlock(Block):
         replaced_coeffs = {}
         for block_variable in self.get_dependencies():
             coeff = block_variable.output
-            replaced_coeffs[coeff] = block_variable.saved_output
+            c_rep = block_variable.saved_output
+            if coeff in self.form.coefficients():
+                replaced_coeffs[coeff] = c_rep
 
-        form = backend.replace(self.form, replaced_coeffs)
+        form = ufl.replace(self.form, replaced_coeffs)
         return form
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
@@ -83,7 +85,7 @@ class AssembleBlock(Block):
         c = block_variable.output
         c_rep = block_variable.saved_output
 
-        if isinstance(c, backend.Expression):
+        if isinstance(c, compat.ExpressionType):
             # Create a FunctionSpace from self.form and Expression.
             # And then make a TestFunction from this space.
             mesh = self.form.ufl_domain().ufl_cargo()
