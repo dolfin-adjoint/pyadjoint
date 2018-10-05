@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# .. _stokes-bc-control-example:
+#
 # .. py:currentmodule:: dolfin_adjoint
 #
 # Dirichlet BC control of the Stokes equations
@@ -133,6 +135,7 @@ bcs = [inflow, noslip, circle]
 #     L(u,p;v,q) =&\ 0
 #
 # In code, this becomes:
+
 a = (nu*inner(grad(u), grad(v))*dx
      - inner(p, div(v))*dx
      - inner(q, div(u))*dx
@@ -146,7 +149,7 @@ A, b = assemble_system(a, L, bcs)
 solve(A, s.vector(), b)
 
 # Next we define the functional of interest :math:`J`, the
-# optimisation parameter :math:`g`, and derive the create the reduced
+# optimisation parameter :math:`g`, and create the reduced
 # functional.
 
 u, p = split(s)

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 # .. _klein:
 #
 # .. py:currentmodule:: dolfin_adjoint
@@ -36,7 +37,7 @@
 #
 # .. math::
 #            \frac{\partial u}{\partial t} - \nu \nabla^{2} u= 0
-#             \quad & \textrm{in\phantom{r} } \Omega \times (0, T), \\
+#             \quad & \textrm{in }\phantom{r} \Omega \times (0, T), \\
 #            u = g  \quad & \textrm{for } \Omega \times \{0\}.
 #
 #
@@ -73,10 +74,10 @@
 # **************
 
 # We start the implementation by importing the :py:mod:`dolfin` and
-# :py:mod:`fenics_adjoint` modules.
+# :py:mod:`dolfin_adjoint` modules.
 
-from fenics import *
-from fenics_adjoint import *
+from dolfin import *
+from dolfin_adjoint import *
 from matplotlib.pyplot import show
 
 # Next we load a triangulation of the Klein bottle as a mesh file.
@@ -134,23 +135,6 @@ step = 0.1
 # Define the variational formulation of the problem
 F = u*v*dx - u_old*v*dx + step*nu*inner(grad(v), grad(u))*dx
 
-# One remark before we continue with solving the forward problem.  Generally,
-# the adjoint equations depend on the solutions of the forward model.
-# Therefore, dolfin-adjoint stores every forward solution in memory by default.
-# While this approach is fast, it requires significant memory which can
-# quickly become infeasible for large-scale, time-dependent applications. For
-# such situations, an optimal checkpointing strategy based on the revolve
-# library :cite:`griewank2000` may be used, which trades off memory required
-# for additional computational cost. The following code demonstrates how
-# checkpointing would be activated:
-
-#adj_checkpointing('multistage', steps=11, snaps_on_disk=1, snaps_in_ram=3, verbose=True)
-
-# We leave checkpointing deactivated for now, but will present runtime results
-# with checkpointing at the end of this section.  More information on
-# checkpointing can found in the :doc:`checkpointing section
-# <../../documentation/checkpointing>`.
-
 # The next step is to solve the time-dependent forward problem.
 
 fwd_timer = Timer("Forward run")
@@ -174,10 +158,7 @@ while t <= T:
 # into :math:`u_{\textrm{old}}`. Note the annotate=True argument, which tells
 # dolfin-adjoint that this assignment is part of the forward model computation.
 # Without it, the model output would have no dependency on the initial condition
-# :math:`g` and the sensitivity would just be 0.  Also note the
-# :py:func:`adj_inc_timestep <dolfin_adjoint.adj_inc_timestep>` call.  This
-# function indicates the end of a time step and is only required with
-# checkpointing enabled.
+# :math:`g` and the sensitivity would just be 0.
 
 # At this point, we can compute the objective functional :math:`J` and compute
 # the sensitivity with respect to the initial condition :math:`g`:
@@ -213,16 +194,16 @@ print("Adjoint to forward runtime ratio: ", adj_time / fwd_time)
 
 #   $ python klein.py
 #   ...
-#   Forward time:  8.62722325325
-#   Adjoint time:  7.75998806953
-#   Adjoint to forward runtime ratio:  0.899476904879
+#   Forward time:  10.2843107
+#   Adjoint time:  10.2380923
+#   Adjoint to forward runtime ratio:  0.9955059311850623
 
 # Since the forward model is linear, the theoretical optimum of the adjoint and forward runtime ratio is 1.
-# Indeed, the observed value achieves this performances, and even slightly outperforms it.
+# Indeed, the observed value achieves this performances.
 
 # The following image on the left shows the initial temperature variation
-# :math:`u(T=0)` and the image on the right the final temperature variation
-# :math:`u(T=1)`.  The diffusion of the initial temperature variation over the
+# :math:`u(t=0)` and the image on the right the final temperature variation
+# :math:`u(t=1)`.  The diffusion of the initial temperature variation over the
 # time period is clearly visible.
 
 # .. image:: u_combined.png
@@ -230,33 +211,12 @@ print("Adjoint to forward runtime ratio: ", adj_time / fwd_time)
 #     :align: center
 
 # The next image shows the computed sensitivity :math:`\textrm{d} (\|u(t=1)\|) /
-# \textrm{d}(u(T=0))`:
+# \textrm{d}(u(t=0))`:
 
 # .. image:: klein-sensitivity.png
 #     :scale: 30
 #     :align: center
 
-
-# Checkpointing timings
-# ---------------------
-
-# Checkpointing is crucial to limit the memory requirements when running
-# large-scale models with many time steps.
-
-# In the following test, we investigate the additional computational cost when
-# using checkpointing over the default store-all strategy in dolfin-adjoint.
-# The following table compares the slow-down factor with 11 timesteps, no disk
-# checkpoints, and with varying memory checkpoints:
-
-# =====================================================    ====   ====  ====   ==== =====================
-# Number of memory checkpoints                              2      3     4      5   11 (no checkpointing)
-# =====================================================    ====   ====  ====   ==== =====================
-# Theoretical optimal adjoint to forward runtime ratio     5.00   2.18  1.63   1.45 1.00
-# Observed adjoint to forward runtime ratio                5.07   2.26  1.73   1.53 0.90
-# =====================================================    ====   ====  ====   ==== =====================
-
-# These results indicate that the performance of dolfin-adjoint with
-# checkpointing is close to the predicted optimal performance.
 
 # .. rubric:: References
 

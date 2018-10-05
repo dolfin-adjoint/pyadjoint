@@ -74,8 +74,8 @@
 # First, the :py:mod:`dolfin` and :py:mod:`dolfin_adjoint` modules are
 # imported:
 
-from fenics import *
-from fenics_adjoint import *
+from dolfin import *
+from dolfin_adjoint import *
 
 # Next we import the Python interface to IPOPT. If IPOPT is
 # unavailable on your system, we strongly :doc:`suggest you install it
@@ -85,8 +85,7 @@ from fenics_adjoint import *
 try:
     import pyipopt
 except ImportError:
-    from ufl.log import info_red
-    info_red("""This example depends on IPOPT and pyipopt. \
+    print("""This example depends on IPOPT and pyipopt. \
   When compiling IPOPT, make sure to link against HSL, as it \
   is a necessity for practical problems.""")
     raise
@@ -202,8 +201,9 @@ if __name__ == "__main__":
     Jhat = ReducedFunctional(J, m, eval_cb_post=eval_cb)
 
 # The control constraints are the same as the :doc:`Poisson topology
-# example <../poisson-topology/poisson-topology>`, and so won't be
-# discussed again here.
+# example <../poisson-topology/poisson-topology>`, but this time we use
+# the UFLInequalityConstraint class to demonstrate the ease of implementing
+# inequality constraints with UFL.
 
     # Bound constraints
     lb = 0.0
@@ -214,7 +214,7 @@ if __name__ == "__main__":
 
 # Now that all the ingredients are in place, we can perform the initial
 # optimisation. We set the maximum number of iterations for this initial
-# optimisation problem to 30; there's no need to solve this to
+# optimisation problem to 20; there's no need to solve this to
 # completion, as its only purpose is to generate an initial guess.
 
     # Solve the optimisation problem with q = 0.01
@@ -234,7 +234,6 @@ if __name__ == "__main__":
 
     q.assign(0.1)
     rho.assign(rho_opt)
-#    adj_reset()
     set_working_tape(Tape())
 
 # Since we have cleared the tape, we need to execute the forward model

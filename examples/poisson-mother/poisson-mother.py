@@ -54,6 +54,7 @@
 #
 # We start our implementation by importing the :py:mod:`dolfin` and
 # :py:mod:`dolfin_adjoint` modules:
+
 from dolfin import *
 from dolfin_adjoint import *
 set_log_level(LogLevel.ERROR)
@@ -169,11 +170,11 @@ solver = moola.NewtonCG(problem, f_moola, options={'gtol': 1e-9,
 #
 # .. code-block:: python
 #
-#solver = moola.BFGS(problem, f_moola, options={'jtol': 0,
-#                                               'gtol': 1e-9,
-#                                               'Hinit': "default",
-#                                               'maxiter': 100,
-#                                               'mem_lim': 10})
+#    solver = moola.BFGS(problem, f_moola, options={'jtol': 0,
+#                                                   'gtol': 1e-9,
+#                                                   'Hinit': "default",
+#                                                   'maxiter': 100,
+#                                                   'mem_lim': 10})
 
 # Then we can solve the optimisation problem, extract the optimal
 # control and plot it:

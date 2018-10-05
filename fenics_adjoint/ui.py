@@ -19,7 +19,7 @@ from pyadjoint import (Tape, set_working_tape, get_working_tape,
                        compute_gradient, compute_hessian,
                        AdjFloat, Control, minimize, MinimizationProblem,
                        IPOPTSolver, ROLSolver, InequalityConstraint, EqualityConstraint,
-                       MoolaOptimizationProblem)
+                       MoolaOptimizationProblem, print_optimization_methods)
 
 tape = Tape()
 set_working_tape(tape)

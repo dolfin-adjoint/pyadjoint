@@ -77,8 +77,7 @@ from fenics_adjoint import *
 try:
     import pyipopt
 except ImportError:
-    from ufl.log import info_red
-    info_red("""This example depends on IPOPT and pyipopt. \
+    print("""This example depends on IPOPT and pyipopt. \
   When compiling IPOPT, make sure to link against HSL, as it \
   is a necessity for practical problems.""")
     raise

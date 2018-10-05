@@ -168,6 +168,13 @@ m = [Control(c) for c in ctrls.values()]
 rf = ReducedFunctional(J, m)
 opt_ctrls = minimize(rf, options={"maxiter": 50})
 
+from matplotlib import pyplot, rc
+rc('text', usetex=True)
+x = [c((0.5, 0.5)) for c in opt_ctrls]
+pyplot.plot(x, label="$\\alpha={}$".format(float(alpha)))
+pyplot.ylim([-3, 3])
+pyplot.legend()
+
 # If we solve this optimisation problem with varying :math:`\alpha` parameters,
 # we observe that we get different behaviour in the controls: the higher the
 # alpha value, the "smoother" the control function becomes. The following plots
@@ -175,23 +182,14 @@ opt_ctrls = minimize(rf, options={"maxiter": 50})
 # over time for different :math:`\alpha` values:
 
 # .. image:: control_alpha=0.0001.png
-#     :scale: 50
+#     :scale: 45
 #     :align: left
 # .. image:: control_alpha=0.001.png
-#     :scale: 50
+#     :scale: 45
 #     :align: right
 # .. image:: control_alpha=0.01.png
-#     :scale: 50
+#     :scale: 45
 #     :align: left
 # .. image:: control_alpha=0.1.png
-#     :scale: 50
+#     :scale: 45
 #     :align: right
-
-# The following code creates these plots:
-
-from matplotlib import pyplot, rc
-rc('text', usetex=True)
-x = [c((0.5, 0.5)) for c in opt_ctrls]
-pyplot.plot(x, label="$\\alpha={}$".format(float(alpha)))
-pyplot.ylim([-3, 3])
-pyplot.legend()

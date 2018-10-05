@@ -5,8 +5,7 @@ def compute_gradient(J, m, options=None, tape=None):
     """
     Compute the gradient of J with respect to the initialisation value of m, 
     that is the value of m at its creation.
-    
-    
+
     Args:
         J (AdjFloat):  The objective functional.
         m (list or instance of Control): The (list of) controls.

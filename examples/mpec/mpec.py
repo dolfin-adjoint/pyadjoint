@@ -114,6 +114,7 @@
 # First, the :py:mod:`dolfin` and :py:mod:`dolfin_adjoint` modules are
 # imported. We also tell DOLFIN to only print error messages to keep the
 # output comprehensible:
+
 from dolfin import *
 from dolfin_adjoint import *
 from ufl.operators import Max
@@ -189,10 +190,10 @@ for i in range(4):
     alpha.assign(float(alpha)/2)
     print("Set alpha to %f." % float(alpha))
 
-# We rely on a useful property of dolfin-adjoint here: if a ``Constant``
-# object is used as a control (here achieved by creating the
-# :py:class:`Control <dolfin_adjoint.Control>` object
-# above), dolfin-adjoint does not copy that ``Constant`` object, but
+# We rely on a useful property of dolfin-adjoint here: if an object
+# has been used while being a Placeholder (here achieved by creating the
+# :py:class:`Placeholder <pyadjoint.placeholder.Placeholder>` object
+# above), dolfin-adjoint does not copy that object, but
 # keeps a reference to it instead.  That means that assigning a new
 # value to ``alpha`` has the effect that the optimisation routine will
 # automatically use that new value.
