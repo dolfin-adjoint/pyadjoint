@@ -1,9 +1,4 @@
 import numpy as np
-#from ..reduced_functional_numpy import ReducedFunctionalNumPy, get_global
-#from ..reduced_functional import ReducedFunctional
-#from ..utils import gather
-#from ..compatibility import rank
-#from ..misc import noannotations
 import six
 
 from ..reduced_functional import ReducedFunctional
