@@ -1,4 +1,4 @@
-__version__ = '2017.2.1'
+__version__ = '2018.1.0'
 __author__  = 'Sebastian Kenji Mitusch'
 __credits__ = []
 __license__ = 'LGPL-3'

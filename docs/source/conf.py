@@ -142,7 +142,6 @@ author = u'Sebastian Mitusch'
 # built documents.
 #
 # The short X.Y version.
-#from IPython import embed; embed()
 import pyadjoint
 version = pyadjoint.__version__
 # The full version, including alpha/beta/rc tags.
