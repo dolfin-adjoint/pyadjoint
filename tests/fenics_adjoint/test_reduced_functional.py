@@ -81,7 +81,7 @@ def test_wrt_function_dirichlet_boundary():
     up = Up()
     down = Down()
 
-    boundary = FacetFunction("size_t", mesh)
+    boundary = MeshFunction("size_t", mesh, mesh.geometric_dimension()-1)
     boundary.set_all(0)
     up.mark(boundary, 1)
     down.mark(boundary,2)
@@ -371,7 +371,7 @@ def test_multiple_control():
     h.vector()[:] = rand(V.dim())
     h2 = Function(V)
     h2.vector()[:] = rand(V.dim())
-    assert taylor_test_multiple(Jhat, [p_value, p_value], [h, h2]) > 1.9
+    assert taylor_test(Jhat, [p_value, p_value], [h, h2]) > 1.9
 
 
 def test_dirichlet_updating():
@@ -511,7 +511,7 @@ def test_multiple_reduced_functionals():
     h = Function(V)
     h.vector()[:] = rand(V.dim())
     hs = [Constant(1), h]
-    assert taylor_test_multiple(Jhat, [b, f], hs) > 1.9
+    assert taylor_test(Jhat, [b, f], hs) > 1.9
 
     Jhat = ReducedFunctional(J, controls[1])
     assert taylor_test(Jhat, f, h) > 1.9
@@ -535,7 +535,7 @@ def test_dependent_controls():
     Jhat = ReducedFunctional(J, controls)
 
     with pytest.raises(RuntimeError):
-        Jhat.optimize()
+        Jhat.optimize_tape()
 
 
 def test_control_optimized_reduced_functional():
@@ -566,7 +566,7 @@ def test_control_optimized_reduced_functional():
 
     tape = get_working_tape()
     pre_optimized_len = len(tape.get_blocks())
-    Jhat.optimize()
+    Jhat.optimize_tape()
     assert len(tape.get_blocks()) < pre_optimized_len
     assert taylor_test(Jhat, p_value, h) > 1.9
 
@@ -590,12 +590,12 @@ def test_functional_optimized_reduced_functional():
 
     tape = get_working_tape()
     pre_len = len(tape.get_blocks())
-    Jhat.optimize()
+    Jhat.optimize_tape()
     assert pre_len == len(tape.get_blocks())
 
     J2 = assemble(sol**4*dx)
     assert pre_len < len(tape.get_blocks())
-    Jhat.optimize()
+    Jhat.optimize_tape()
     assert pre_len == len(tape.get_blocks())
 
     h = Function(V)
@@ -627,12 +627,12 @@ def test_multiple_optimized_reduced_functionals():
     assert pre_len == len(tape.get_blocks())
     assert pre_len == len(tape2.get_blocks())
 
-    Jhat.optimize()
+    Jhat.optimize_tape()
     assert pre_len > len(tape.get_blocks())
     assert pre_len == len(tape2.get_blocks())
 
     Jhat2 = ReducedFunctional(J2, control, tape=tape2)
-    Jhat2.optimize()
+    Jhat2.optimize_tape()
 
     h = Function(V)
     h.vector()[:] = rand(V.dim())

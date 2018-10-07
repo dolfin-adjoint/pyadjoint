@@ -7,8 +7,9 @@ from fenics_adjoint import *
 # For asserts
 from pyadjoint.overloaded_type import OverloadedType, FloatingType
 
+
 def test_subclass_expression():
-    class MyExpression1(Expression):
+    class MyExpression1(UserExpression):
         def eval_cell(self, value, x, ufc_cell):
             if ufc_cell.index > 10:
                 value[0] = 1.0
@@ -19,18 +20,14 @@ def test_subclass_expression():
 
     # Expression is a base (seems obvious from the definition above,
     # but metaclass magic makes it not so obvious):
-    assert(Expression in MyExpression1.__bases__)
+    assert(UserExpression in MyExpression1.__bases__)
 
     # OverloadedType is a base of the subclass:
-    assert(FloatingType in MyExpression1.__bases__)
     assert(isinstance(f, OverloadedType))
-
 
 def test_jit_expression():
     f = Expression("a*sin(k*pi*x[0])*cos(k*pi*x[1])", a=2, k=3, degree=2)
-
     assert(isinstance(f, OverloadedType))
-
 
 def test_jit_expression_evaluations():
     f = Expression("u", u=1, degree=1)
@@ -43,10 +40,11 @@ def test_jit_expression_evaluations():
     assert(f(0.0) == 2)
     assert(f.u == 2)
 
+@pytest.mark.xfail(reason="Not implemented with pybind, Issue #988")
 def test_ignored_expression_attributes():
     ignored_attrs = []
 
-    class _DummyExpressionClass(Expression):
+    class _DummyExpressionClass(UserExpression):
         def eval(self, value, x):
             pass
 
@@ -70,24 +68,41 @@ def test_ignored_expression_attributes():
 def test_cpp_inline():
     # An expression that depends on a and b
     base_code = '''
-    class MyCppExpression : public Expression
+    #include <pybind11/pybind11.h>
+    namespace py = pybind11;
+    #include <dolfin/function/Expression.h>
+    #include <dolfin/function/Constant.h>
+    class MyCppExpression : public dolfin::Expression
     {
     public:
-          std::shared_ptr<Constant> a;
-          std::shared_ptr<Constant> b;
-      MyCppExpression() : Expression() {}
+          std::shared_ptr<dolfin::Constant> a;
+          std::shared_ptr<dolfin::Constant> b;
+      MyCppExpression() : dolfin::Expression() {}
 
-      void eval(Array<double>& values, const Array<double>& x) const
+      void eval(dolfin::Array<double>& values, const dolfin::Array<double>& x) const
       {
         double a_ = (double) *a;
         double b_ = (double) *b;
         values[0] = EXPRESSION;
       }
-    };'''
+    };
+
+    PYBIND11_MODULE(SIGNATURE, m)
+    {
+    py::class_<MyCppExpression, std::shared_ptr<MyCppExpression>, dolfin::Expression>
+    (m, "MyCppExpression")
+    .def(py::init<>())
+    .def_readwrite("a", &MyCppExpression::a)
+    .def_readwrite("b", &MyCppExpression::b);
+}
+
+    '''
 
     cpp_code = base_code.replace("EXPRESSION", "(x[0] - a_)*b_*b_*a_")
     da_cpp_code = base_code.replace("EXPRESSION", "(x[0] - a_)*b_*b_ - b_*b_*a_")
+    da_cpp_code = da_cpp_code.replace("MyCppExpression", "MyAExpression")
     db_cpp_code = base_code.replace("EXPRESSION", "2*(x[0] - a_)*b_*a_")
+    db_cpp_code = db_cpp_code.replace("MyCppExpression", "MyBExpression")
 
     mesh = UnitSquareMesh(4, 4)
     V = FunctionSpace(mesh, "CG", 1)
@@ -98,18 +113,21 @@ def test_cpp_inline():
     def J(a):
         if not isinstance(a, Constant):
             a = Constant(a)
-        f = Expression(cpp_code, degree=1)
-        f.a = a; f.b = b
+        f = CompiledExpression(compile_cpp_code(cpp_code).MyCppExpression(), degree=1)
+        f.a = a
+        f.b = b
 
-        dfda = Expression(da_cpp_code, degree=1)
-        dfda.a = a; dfda.b = b
+        dfda = CompiledExpression(compile_cpp_code(da_cpp_code).MyAExpression(), degree=1)
+        dfda.a = a._cpp_object;
+        dfda.b = b._cpp_object
 
-        dfdb = Expression(db_cpp_code, degree=1)
-        dfdb.a = a; dfdb.b = b
+        dfdb = CompiledExpression(compile_cpp_code(db_cpp_code).MyBExpression(), degree=1)
+        dfdb.a = a;
+        dfdb.b = b
 
         f.user_defined_derivatives = {a: dfda, b: dfdb}
 
-        return assemble(f**2*dx(domain=mesh))
+        return assemble(f ** 2 * dx(domain=mesh))
 
     _test_adjoint_constant(J, a)
 
@@ -138,8 +156,9 @@ def test_inline_function_control():
 
     _test_adjoint(J, g)
 
-class UserDefinedExpr(Expression):
+class UserDefinedExpr(UserExpression):
     def __init__(self, m, t, **kwargs):
+        UserExpression.__init__(self,**kwargs)
         self.m = m
         self.t = t
 
@@ -177,7 +196,7 @@ def test_time_dependent_class():
         if not isinstance(f, Constant):
             f = Constant(f)
         u_1 = Function(V)
-        u_1.vector()[:] = 1 
+        u_1.vector()[:] = 1
         expr = UserDefinedExpr(m=f, t=dt, degree=1)
         expr_deriv = UserDefinedExpr(m=1.0, t=dt, degree=1, annotate=False)
         expr.ad_ignored_attributes = ["m"]
@@ -268,7 +287,7 @@ def _test_adjoint_constant(J, c):
         #tape.visualise(dot=True, filename="expr.dot")
         #import sys; sys.exit()
         Jm.adj_value = 1.0
-        tape.evaluate()
+        tape.evaluate_adj()
 
         dJdc = c.adj_value
         print(dJdc)
@@ -301,7 +320,7 @@ def _test_adjoint(J, f):
         tape.clear_tape()
         Jm = J(f)
         Jm.adj_value = 1.0
-        tape.evaluate()
+        tape.evaluate_adj()
 
         dJdf = f.adj_value
 

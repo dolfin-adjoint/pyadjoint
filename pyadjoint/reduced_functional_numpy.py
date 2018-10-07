@@ -1,9 +1,9 @@
 from __future__ import print_function
 from .reduced_functional import ReducedFunctional
-from .tape import stop_annotating, no_annotations, get_working_tape
+from .tape import no_annotations, get_working_tape
 from .enlisting import Enlist
-from .drivers import compute_hessian 
 from .control import Control
+from .adjfloat import AdjFloat
 
 import numpy
 
@@ -18,46 +18,22 @@ class ReducedFunctionalNumPy(ReducedFunctional):
     """
 
     def __init__(self, functional, controls=None, tape=None):
-        if isinstance(functional, ReducedFunctional):
-            rf = functional
-            super(ReducedFunctionalNumPy, self).__init__(functional=rf.functional,
-                                                         controls=rf.controls.delist(),
-                                                         tape=rf.tape,
-                                                         eval_cb_pre=rf.eval_cb_pre,
-                                                         eval_cb_post=rf.eval_cb_post,
-                                                         derivative_cb_pre=rf.derivative_cb_pre,
-                                                         derivative_cb_post=rf.derivative_cb_post
-                                                         )
-            return
+        if isinstance(functional, AdjFloat):
+            functional = ReducedFunctional(functional=functional,
+                                           controls=controls,
+                                           tape=tape)
+        self.rf = functional
 
-        super(ReducedFunctionalNumPy, self).__init__(functional, controls, tape)
-
-        """
-        self.current_func_value = rf.current_func_value
-
-        self.__base_call__ = rf.__call__
-        self.__base_derivative__ = rf.derivative
-        self.__base_hessian__ = rf.hessian
-
-        self.rf = rf
-        """
+    def __getattr__(self, item):
+        return getattr(self.rf, item)
 
     def __call__(self, m_array):
         """An implementation of the reduced functional evaluation
             that accepts the control values as an array of scalars
 
         """
-        offset = 0
-        for control in self.controls:
-            offset = control.update_numpy(m_array, offset)
-
-        blocks = self.tape.get_blocks()
-        with self.marked_controls():
-            with stop_annotating():
-                for i in range(len(blocks)):
-                    blocks[i].recompute()
-
-        return self.functional.block_variable.checkpoint
+        m_copies = [control.copy_data() for control in self.controls]
+        return self.rf.__call__(self.set_local(m_copies, m_array))
 
     def set_local(self, m, m_array):
         offset = 0
@@ -67,15 +43,6 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         return m
 
     def get_global(self, m):
-        """
-        m_global = []
-        for i, control in enumerate(self.controls):
-            # This is a little ugly, but we need to go through the control to get to the OverloadedType.
-            # There is no guarantee that dJdm[i] is an OverloadedType and not a backend type.
-            m_global += control.fetch_numpy(m[i])
-
-        return numpy.array(m_global, dtype="d")
-        """
         m_global = []
         for i, v in enumerate(Enlist(m)):
             if isinstance(v, Control):
@@ -97,13 +64,9 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         # In the case that the control values have changed since the last forward run,
         # we first need to rerun the forward model with the new controls to have the
         # correct forward solutions
-        #m = [p.data() for p in self.controls]
-        #if m_array is not None and (m_array != self.get_global(m)).any():
-        #    info_red("Rerunning forward model before computing derivative")
-        #    self(m_array)
         if m_array is not None:
             self.__call__(m_array)
-        dJdm = ReducedFunctional.derivative(self)
+        dJdm = self.rf.derivative()
         dJdm = Enlist(dJdm)
 
         m_global = []
@@ -122,7 +85,7 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         # TODO: Consider if we really need to run derivative here.
         self.derivative()
         m_copies = [control.copy_data() for control in self.controls]
-        Hm = compute_hessian(self.functional, self.controls, self.set_local(m_copies, m_dot_array))
+        Hm = self.rf.hessian(self.set_local(m_copies, m_dot_array))
         Hm = Enlist(Hm)
 
         m_global = []
@@ -198,7 +161,6 @@ class ReducedFunctionalNumPy(ReducedFunctional):
             info("j = %f\t\t|dJ| = %f" % (f[0], np.linalg.norm(dj)))
             return np.array([dj]), gJac, fail
 
-
         # Instantiate the optimization problem
         opt_prob = pyOpt.Optimization(name, obj)
         opt_prob.addObj('J')
@@ -237,18 +199,6 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         return opt_prob, grad
 
 
-def copy_data(m):
-    ''' Returns a deep copy of the given Function/Constant. '''
-    if hasattr(m, "vector"):
-        return Function(m.function_space())
-    elif hasattr(m, "value_size"):
-        return Constant(m(()))
-    elif hasattr(m, "copy"):
-        return m.copy()
-    else:
-        raise TypeError('Unknown control type %s.' % str(type(m)))
-
-
 def set_local(coeffs, m_array):
     offset = 0
     for m in Enlist(coeffs):
@@ -261,4 +211,4 @@ def gather(m):
     if isinstance(m, list):
         return list(map(gather, m))
     else:
-        return m._ad_to_list()
+        return m._ad_to_list(m)

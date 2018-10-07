@@ -3,22 +3,24 @@ from .assembly import assemble, assemble_system
 from .solving import solve
 from .projection import project
 from .interpolation import interpolate
-from .types import Function, Constant, DirichletBC, FunctionSpace
+from .types import Function, Constant, DirichletBC
+from .ufl_constraints import UFLEqualityConstraint, UFLInequalityConstraint
 if backend.__name__ != "firedrake":
-    from .types import Expression
+    from .types import Expression, UserExpression, CompiledExpression
     from .types import io
     from .newton_solver import NewtonSolver
     from .lusolver import LUSolver
 from .variational_solver import (NonlinearVariationalProblem, NonlinearVariationalSolver,
                                  LinearVariationalProblem, LinearVariationalSolver)
-from .linear_solver import LinearSolver
+#from .linear_solver import LinearSolver
 from pyadjoint import (Tape, set_working_tape, get_working_tape,
                        pause_annotation, continue_annotation,
                        ReducedFunctional,
-                       taylor_test, taylor_test_multiple,
+                       taylor_test,
                        compute_gradient, compute_hessian,
                        AdjFloat, Control, minimize, MinimizationProblem,
-                       IPOPTSolver, InequalityConstraint)
+                       IPOPTSolver, ROLSolver, InequalityConstraint, EqualityConstraint,
+                       MoolaOptimizationProblem, print_optimization_methods)
 
 tape = Tape()
 set_working_tape(tape)

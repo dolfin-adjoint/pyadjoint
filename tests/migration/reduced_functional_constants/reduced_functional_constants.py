@@ -1,7 +1,7 @@
 from fenics import *
 from fenics_adjoint import *
 
-mesh = UnitIntervalMesh(mpi_comm_world(), 2)
+mesh = UnitIntervalMesh(MPI.comm_world, 2)
 
 W = FunctionSpace(mesh, "CG", 1)
 rho = Constant(1)
@@ -36,4 +36,4 @@ Jhat([rho, g])
 
 direction = [Constant(1), Constant(1)]
 
-assert taylor_test_multiple(Jhat, [rho, g], direction) > 1.9
+assert taylor_test(Jhat, [rho, g], direction) > 1.9

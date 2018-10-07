@@ -1,6 +1,6 @@
 """Verify the tangent linear model of example 5.2 in 10.1007/s10589-009-9307-9"""
 
-from __future__ import print_function
+
 from dolfin import *
 from dolfin_adjoint import *
 

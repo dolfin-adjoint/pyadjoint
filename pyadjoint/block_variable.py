@@ -14,6 +14,8 @@ class BlockVariable(object):
         self._checkpoint = None
         self.is_control = False
         self.floating_type = False
+        # Helper flag for use during tape traversals.
+        self.marked_in_path = False
 
     def add_adj_output(self, val):
         if self.adj_value is None:
@@ -45,7 +47,7 @@ class BlockVariable(object):
 
     @no_annotations
     def save_output(self, overwrite=True):
-        if overwrite or not self.checkpoint:
+        if overwrite or self.checkpoint is None:
             self._checkpoint = self.output._ad_create_checkpoint()
 
     @property

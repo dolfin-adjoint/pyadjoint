@@ -3,7 +3,7 @@ Implementation of Burger's equation with nonlinear solve in each
 timestep
 """
 
-from __future__ import print_function
+
 import sys
 
 from dolfin import *

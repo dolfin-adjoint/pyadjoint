@@ -1,4 +1,4 @@
-from dolfin import Mesh, Expression
+from dolfin import Mesh, UserExpression
 from math import exp, sqrt, pi
 
 import sw_lib
@@ -22,7 +22,7 @@ params["dt"]=params["finish_time"]/4000.
 # Rossby radius.
 LR=c/params["f"]
 
-class InitialConditions(Expression):
+class InitialConditions(UserExpression):
     def eval(self, values, X):
         r=(X[0]**2+X[1]**2)**0.5
         if r>0.0001:

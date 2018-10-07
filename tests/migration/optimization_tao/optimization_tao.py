@@ -1,5 +1,5 @@
 """ Solves a MMS problem with smooth control """
-from __future__ import print_function
+
 from fenics import *
 from fenics_adjoint import *
 try:

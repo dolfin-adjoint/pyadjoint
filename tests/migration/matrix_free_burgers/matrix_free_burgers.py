@@ -2,7 +2,7 @@
 Naive implementation of Burgers' equation, goes oscillatory later
 """
 
-from __future__ import print_function
+
 import sys
 
 from dolfin import *

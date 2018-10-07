@@ -1,6 +1,6 @@
-networkx
 scipy
 pytest
 sphinx
 sphinxcontrib-bibtex
 git+https://github.com/funsim/moola.git@master
+tensorflow

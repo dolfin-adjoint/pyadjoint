@@ -8,17 +8,27 @@ if backend.__name__ == "firedrake":
     FunctionSpaceType = (backend.functionspaceimpl.FunctionSpace,
                          backend.functionspaceimpl.WithGeometry,
                          backend.functionspaceimpl.MixedFunctionSpace)
+    ExpressionType = backend.Expression
 
     FunctionSpace = backend.FunctionSpace
 
     backend.functionspaceimpl.FunctionSpace._ad_parent_space = property(lambda self: self.parent)
 
+    backend.functionspaceimpl.WithGeometry._ad_parent_space = property(lambda self: self.parent)
+
+
     def extract_subfunction(u, V):
-        r = u
-        while V.index:
-            r = r.sub(V.index)
-            V = V.parent
-        return r
+        """If V is a subspace of the function-space of u, return the component of u that is in that subspace."""
+        if V.index is not None:
+            # V is an indexed subspace of a MixedFunctionSpace
+            return u.sub(V.index)
+        elif V.component is not None:
+            # V is a vector component subspace.
+            # The vector functionspace V.parent may itself be a subspace
+            # so call this function recursively
+            return extract_subfunction(u, V.parent).sub(V.component)
+        else:
+            return u
 
     def create_bc(bc, value=None, homogenize=None):
         """Create a new bc object from an existing one.
@@ -36,9 +46,7 @@ if backend.__name__ == "firedrake":
             raise ValueError("Cannot provide both value and homogenize")
         if homogenize:
             value = 0
-        return backend.DirichletBC(bc.function_space(),
-                                   value,
-                                   bc.sub_domain, method=bc.method)
+        return bc.reconstruct(g=value)
 
     # Most of this is to deal with Firedrake assembly returning
     # Function whereas Dolfin returns Vector.
@@ -60,19 +68,13 @@ if backend.__name__ == "firedrake":
 
     def extract_bc_subvector(value, Vtarget, bc):
         """Extract from value (a function in a mixed space), the sub
-        vector corresponding to the part of the space bc applies
-        to.  Vtarget is the target (collapsed) space."""
-        return extract_bc_subfunction(value, Vtarget, bc).vector()
-
-    def extract_bc_subfunction(value, Vtarget, bc):
-        """Extract from value (a function in a mixed space), the sub
         function corresponding to the part of the space bc applies
         to.  Vtarget is the target (collapsed) space."""
         r = value
         for idx in bc._indices:
             r = r.sub(idx)
         assert Vtarget == r.function_space()
-        return r
+        return r.vector()
 
     def extract_mesh_from_form(form):
         """Takes in a form and extracts a mesh which can be used to construct function spaces.
@@ -119,17 +121,21 @@ if backend.__name__ == "firedrake":
     def gather(vec):
         return vec.gather()
 
-else:
-    MatrixType = (backend.cpp.Matrix, backend.GenericMatrix)
-    VectorType = backend.cpp.la.GenericVector
-    FunctionType = backend.cpp.Function
-    FunctionSpaceType = backend.cpp.FunctionSpace
+    linalg_solve = backend.solve
 
-    class FunctionSpace(backend.FunctionSpace):
-        def sub(self, i):
-            V = backend.FunctionSpace.sub(self, i)
-            V._ad_parent_space = self
-            return V
+else:
+    MatrixType = (backend.cpp.la.Matrix, backend.cpp.la.GenericMatrix)
+    VectorType = backend.cpp.la.GenericVector
+    FunctionType = backend.cpp.function.Function
+    FunctionSpaceType = backend.cpp.function.FunctionSpace
+    ExpressionType = backend.function.expression.BaseExpression
+
+    backend_fs_sub = backend.FunctionSpace.sub
+    def _fs_sub(self, i):
+        V = backend_fs_sub(self, i)
+        V._ad_parent_space = self
+        return V
+    backend.FunctionSpace.sub = _fs_sub
 
     def extract_subfunction(u, V):
         component = V.component()
@@ -156,17 +162,32 @@ else:
             bc = backend.DirichletBC(bc)
             bc.homogenize()
             return bc
-        return backend.DirichletBC(bc.function_space(),
-                                   value,
-                                   *bc.domain_args)
+        try:
+            # FIXME: Not perfect handling of Initialization, wait for development in dolfin.DirihcletBC
+            bc =  backend.DirichletBC(backend.FunctionSpace(bc.function_space()),
+                                      value, *bc.domain_args)
+        except AttributeError:
+            bc = backend.DirichletBC(backend.FunctionSpace(bc.function_space()),
+                                     value,
+                                     bc.sub_domain, method=bc.method())
+        return bc
 
     def function_from_vector(V, vector):
-        """Create a new Function sharing data.
+        """Create a new Function from a vector.
 
         :arg V: The function space
-        :arg vector: The data to share.
+        :arg vector: The vector data.
         """
-        return backend.Function(V, vector)
+        if isinstance(vector, backend.cpp.la.PETScVector)\
+           or  isinstance(vector, backend.cpp.la.Vector):
+            pass
+        elif not isinstance(vector, backend.Vector):
+            # If vector is a fenics_adjoint.Function, which does not inherit
+            # backend.cpp.function.Function with pybind11
+            vector = vector._cpp_object
+        r = backend.Function(V)
+        r.vector()[:] = vector
+        return r
 
     def inner(a, b):
         """Compute the l2 inner product of a and b.
@@ -178,18 +199,12 @@ else:
 
     def extract_bc_subvector(value, Vtarget, bc):
         """Extract from value (a function in a mixed space), the sub
-        vector corresponding to the part of the space bc applies
-        to.  Vtarget is the target (collapsed) space."""
-        return extract_bc_subfunction(value, Vtarget, bc).vector()
-
-    def extract_bc_subfunction(value, Vtarget, bc):
-        """Extract from value (a function in a mixed space), the sub
         function corresponding to the part of the space bc applies
         to.  Vtarget is the target (collapsed) space."""
-        assigner = backend.FunctionAssigner(Vtarget, bc.function_space())
+        assigner = backend.FunctionAssigner(Vtarget, backend.FunctionSpace(bc.function_space()))
         output = backend.Function(Vtarget)
-        assigner.assign(output, extract_subfunction(value, bc.function_space()))
-        return output
+        assigner.assign(output, extract_subfunction(value, backend.FunctionSpace(bc.function_space())))
+        return output.vector()
 
     def extract_mesh_from_form(form):
         """Takes in a form and extracts a mesh which can be used to construct function spaces.
@@ -216,19 +231,23 @@ else:
 
     def gather(vec):
         import numpy
-        if isinstance(vec, backend.cpp.Function):
+        if isinstance(vec, backend.cpp.function.Function):
             vec = vec.vector()
 
-        if isinstance(vec, backend.cpp.GenericVector):
-            try:
-                arr = backend.cpp.DoubleArray(vec.size())
-                vec.gather(arr, numpy.arange(vec.size(), dtype='I'))
-                arr = arr.array().tolist()
-            except TypeError:
-                arr = vec.gather(numpy.arange(vec.size(), dtype='intc'))
+        if isinstance(vec, backend.cpp.la.GenericVector):
+            arr = vec.gather(numpy.arange(vec.size(), dtype='I'))
         elif isinstance(vec, list):
             return list(map(gather, vec))
         else:
             arr = vec  # Assume it's a gathered numpy array already
 
         return arr
+
+    def linalg_solve(*args, **kwargs):
+        """Temporary workaround for kwargs not expected in fenics linalg,
+        but possible in firedrake.
+
+        A better solution is expected in the future.
+
+        """
+        return backend.solve(*args)

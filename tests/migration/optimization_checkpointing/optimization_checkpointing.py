@@ -1,6 +1,6 @@
 """ Solves an optimisation problem with the Burgers equation as constraint """
 
-from __future__ import print_function
+
 import sys
 
 from dolfin import *

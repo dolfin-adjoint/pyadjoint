@@ -1,7 +1,7 @@
 import backend
 from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating
 from pyadjoint.block import Block
-from .types import create_overloaded_object
+from pyadjoint.overloaded_type import create_overloaded_object
 from .solving import SolveBlock
 
 

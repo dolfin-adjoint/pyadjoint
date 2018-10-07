@@ -3,7 +3,7 @@ from fenics_adjoint import *
 
 from numpy.random import rand
 
-mesh = UnitIntervalMesh(mpi_comm_world(), 2)
+mesh = UnitIntervalMesh(MPI.comm_world, 2)
 
 W = FunctionSpace(mesh, "CG", 1)
 rho = project(Constant(1), W)
@@ -46,4 +46,4 @@ if False:
 
 h2 = Function(W)
 h2.vector()[:] = rand(W.dim())
-assert taylor_test_multiple(Jhat, [rho, g], [h, h2]) > 1.9
+assert taylor_test(Jhat, [rho, g], [h, h2]) > 1.9

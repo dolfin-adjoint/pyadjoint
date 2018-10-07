@@ -8,7 +8,7 @@ pytest.importorskip("fenics")
 from fenics import *
 from fenics_adjoint import *
 
-set_log_level(CRITICAL)
+set_log_level(LogLevel.CRITICAL)
 
 n = 30
 mesh = UnitIntervalMesh(n)
@@ -92,7 +92,7 @@ def _test_adjoint(J, f, solve_type):
         tape.clear_tape()
         Jm = J(f, solve_type)
         Jm.adj_value = 1.0
-        tape.evaluate()
+        tape.evaluate_adj()
 
         dJdf = f.adj_value
         #print dJdf.array()

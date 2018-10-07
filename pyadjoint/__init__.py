@@ -1,4 +1,4 @@
-__version__ = '2017.2.0'
+__version__ = '2018.1.0'
 __author__  = 'Sebastian Kenji Mitusch'
 __credits__ = []
 __license__ = 'LGPL-3'
@@ -12,10 +12,12 @@ from .tape import (Tape,
 from .adjfloat import AdjFloat
 from .reduced_functional import ReducedFunctional
 from .drivers import compute_gradient, compute_hessian
-from .verification import taylor_test, taylor_test_multiple
+from .verification import taylor_test
 from .overloaded_type import OverloadedType
 from .control import Control
-from .optimization.optimization import minimize
+from .optimization.optimization import minimize, print_optimization_methods
 from .optimization.optimization_problem import MinimizationProblem
 from .optimization.ipopt_solver import IPOPTSolver
-from .optimization.constraints import InequalityConstraint
+from .optimization.rol_solver import ROLSolver
+from .optimization.constraints import InequalityConstraint, EqualityConstraint
+from .optimization.moola_problem import MoolaOptimizationProblem

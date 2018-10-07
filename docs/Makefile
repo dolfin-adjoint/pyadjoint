@@ -24,14 +24,12 @@ EXAMPLES_OUT = source/documentation
 examples:
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/poisson-mother/poisson-mother.py $(EXAMPLES_OUT)/poisson-mother/poisson-mother.rst
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/poisson-topology/poisson-topology.py $(EXAMPLES_OUT)/poisson-topology/poisson-topology.rst
-	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/stokes-bc-control/stokes-bc-control_new.py $(EXAMPLES_OUT)/stokes-bc-control/stokes-bc-control.rst
+	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/stokes-bc-control/stokes-bc-control.py $(EXAMPLES_OUT)/stokes-bc-control/stokes-bc-control.rst
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/stokes-topology/stokes-topology.py $(EXAMPLES_OUT)/stokes-topology/stokes-topology.rst
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/mpec/mpec.py $(EXAMPLES_OUT)/mpec/mpec.rst
-	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/salt-fingering/salt-fingering.py $(EXAMPLES_OUT)/salt-fingering/salt-fingering.rst
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/klein/klein.py $(EXAMPLES_OUT)/klein/klein.rst
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/time-distributed-control/time-distributed-control.py $(EXAMPLES_OUT)/time-distributed-control/time-distributed-control.rst
-	cp $(EXAMPLES_IN)/time-distributed-control/*.png $(EXAMPLES_OUT)/time-distributed-control/
-	cp $(EXAMPLES_IN)/time-dependent-wave/*.py source/_static
+	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/time-dependent-wave/time-dependent-wave.py $(EXAMPLES_OUT)/time-dependent-wave/time-dependent-wave.rst
 
 run_tutorials:
 	python source/_static/tutorial1.py

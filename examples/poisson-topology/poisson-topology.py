@@ -65,7 +65,6 @@
 # First, the :py:mod:`dolfin` and :py:mod:`dolfin_adjoint` modules are
 # imported:
 
-from __future__ import print_function
 from fenics import *
 from fenics_adjoint import *
 
@@ -74,10 +73,11 @@ from fenics_adjoint import *
 # <../../download/index>`; IPOPT is a well-established open-source
 # optimisation algorithm.
 
+
 try:
     import pyipopt
 except ImportError:
-    info_red("""This example depends on IPOPT and pyipopt. \
+    print("""This example depends on IPOPT and pyipopt. \
   When compiling IPOPT, make sure to link against HSL, as it \
   is a necessity for practical problems.""")
     raise
@@ -178,7 +178,7 @@ if __name__ == "__main__":
 
     J = assemble(f*T*dx + alpha * inner(grad(a), grad(a))*dx)
     m = Control(a)
-    Jhat = ReducedFunctional(J, m) #, eval_cb_post=eval_cb)
+    Jhat = ReducedFunctional(J, m, eval_cb_post=eval_cb)
 
 # This :py:class:`ReducedFunctional` object solves the forward PDE using
 # dolfin-adjoint's tape each time the functional is to be evaluated, and
@@ -225,7 +225,7 @@ if __name__ == "__main__":
 # Compute the integral of the control over the domain
 
             integral = self.smass.inner(self.tmpvec.vector())
-            if MPI.rank(mpi_comm_world()) == 0:
+            if MPI.rank(MPI.comm_world) == 0:
                 print("Current control integral: ", integral)
             return [self.V - integral]
 
@@ -250,7 +250,8 @@ if __name__ == "__main__":
     solver = IPOPTSolver(problem, parameters=parameters)
     a_opt = solver.solve()
 
-    xdmf_filename = XDMFFile(mpi_comm_world(), "output/final_solution.xdmf")
+    File("output/final_solution.pvd") << a_opt
+    xdmf_filename = XDMFFile(MPI.comm_world, "output/final_solution.xdmf")
     xdmf_filename.write(a_opt)
 
 # The example code can be found in ``examples/poisson-topology/`` in the

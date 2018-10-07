@@ -72,7 +72,7 @@ def test_mixed_boundary():
     up = Up()
     down = Down()
 
-    boundary = FacetFunction("size_t", mesh)
+    boundary = MeshFunction("size_t", mesh,mesh.geometric_dimension()-1)
     boundary.set_all(0)
     up.mark(boundary, 1)
     down.mark(boundary,2)
@@ -167,7 +167,7 @@ def xtest_wrt_function_dirichlet_boundary():
     up = Up()
     down = Down()
 
-    boundary = FacetFunction("size_t", mesh)
+    boundary = MeshFunction("size_t", mesh, mesh.geometric_dimension()-1)
     boundary.set_all(0)
     up.mark(boundary, 1)
     down.mark(boundary,2)
@@ -222,7 +222,7 @@ def test_wrt_function_neumann_boundary():
     up = Up()
     down = Down()
 
-    boundary = FacetFunction("size_t", mesh)
+    boundary = MeshFunction("size_t", mesh, mesh.geometric_dimension()-1)
     boundary.set_all(0)
     up.mark(boundary, 1)
     down.mark(boundary,2)
@@ -295,7 +295,7 @@ def test_wrt_constant_neumann_boundary():
     up = Up()
     down = Down()
 
-    boundary = FacetFunction("size_t", mesh)
+    boundary = MeshFunction("size_t", mesh, mesh.geometric_dimension()-1)
     boundary.set_all(0)
     up.mark(boundary, 1)
     down.mark(boundary,2)
@@ -394,7 +394,7 @@ def _test_adjoint_function_boundary(J, bc, f):
         bc.set_value(f)
         Jm = J(bc)
         Jm.adj_value = 1.0
-        tape.evaluate()
+        tape.evaluate_adj()
 
         dJdbc = bc.adj_value
 
@@ -424,7 +424,7 @@ def _test_adjoint_constant_boundary(J, bc):
         bc.set_value(c)
         Jm = J(bc)
         Jm.adj_value = 1.0
-        tape.evaluate()
+        tape.evaluate_adj()
 
         dJdbc = bc.adj_value[0]
 
@@ -454,7 +454,7 @@ def _test_adjoint_constant(J, c):
         tape.clear_tape()
         Jm = J(c)
         Jm.adj_value = 1.0
-        tape.evaluate()
+        tape.evaluate_adj()
 
         dJdc = c.adj_value[0]
         print(dJdc)
@@ -485,7 +485,7 @@ def _test_adjoint(J, f):
         tape.clear_tape()
         Jm = J(f)
         Jm.adj_value = 1.0
-        tape.evaluate()
+        tape.evaluate_adj()
 
         dJdf = f.adj_value
 
