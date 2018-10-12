@@ -14,5 +14,10 @@ setup(name='dolfin_adjoint',
                 'pyadjoint.optimization'],
       package_dir={'fenics_adjoint': 'fenics_adjoint', 'pyadjoint': 'pyadjoint',
                    'firedrake_adjoint': 'firedrake_adjoint', 'dolfin_adjoint': 'dolfin_adjoint'},
-      install_requires=['scipy', 'pytest', 'sphinx', 'sphinxcontrib-bibtex', 'moola>=0.1.6', 'tensorflow'],
+      install_requires=['scipy', 'tensorflow'],
+      extras_require={
+        'moola': ['moola>=0.1.6'],
+        'test': ['pytest'],
+        'doc': ['sphinx', 'sphinxcontrib-bibtex'],
+      },
       )
