@@ -137,6 +137,24 @@ else:
         return V
     backend.FunctionSpace.sub = _fs_sub
 
+    backend_fs_collapse = backend.FunctionSpace.collapse
+    def _fs_collapse(self, collapsed_dofs=False):
+        """Overloaded FunctionSpace.collapse to limit the amount of MPI communicator created.
+        """
+        if not hasattr(self, "_ad_collapsed_space"):
+            # Get the cpp version of the FunctionSpace
+            self._ad_collapsed_space = self._cpp_object.collapse()
+        cpp_space, dofs = self._ad_collapsed_space
+
+        # Extend with the python layer
+        V = backend.FunctionSpace(cpp_space)
+
+        if collapsed_dofs:
+            return V, dofs
+        else:
+            return V
+    backend.FunctionSpace.collapse = _fs_collapse
+
     def extract_subfunction(u, V):
         component = V.component()
         r = u

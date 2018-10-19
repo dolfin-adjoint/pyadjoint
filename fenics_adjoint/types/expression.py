@@ -27,11 +27,14 @@ class BaseExpression(FloatingType):
                               _ad_floating_active=True,
                               **kwargs)
         self._ad_initialized = True
+        self._cached_fs = {}
 
     def _ad_function_space(self, mesh):
-        element = self.ufl_element()
-        fs_element = element.reconstruct(cell=mesh.ufl_cell())
-        return backend.FunctionSpace(mesh, fs_element)
+        if mesh not in self._cached_fs:
+            element = self.ufl_element()
+            fs_element = element.reconstruct(cell=mesh.ufl_cell())
+            self._cached_fs[mesh] = backend.FunctionSpace(mesh, fs_element)
+        return self._cached_fs[mesh]
 
     def save_attribute(self, key, value):
         self._ad_attributes_dict[key] = value
