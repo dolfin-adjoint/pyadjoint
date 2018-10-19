@@ -1,7 +1,7 @@
 Change log
 ==========
 
-dolfin-adjoint 2018.1.0 [2018-xx-xx]
+dolfin-adjoint 2018.1.0 [2018-10-05]
 ------------------------------------
 
 - Support for FEniCS 2018.1.0
