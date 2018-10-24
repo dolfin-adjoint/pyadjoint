@@ -70,12 +70,10 @@ class LUSolveBlockHelper(object):
     def __init__(self):
         self.forward_solver = None
         self.adjoint_solver = None
-        self.rhs_bcs = None
 
     def reset(self):
         self.forward_solver = None
         self.adjoint_solver = None
-        self.rhs_bcs = None
 
 
 class LUSolveBlock(SolveBlock):

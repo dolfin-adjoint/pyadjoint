@@ -86,12 +86,10 @@ class KrylovSolveBlockHelper(object):
     def __init__(self):
         self.forward_solver = None
         self.adjoint_solver = None
-        self.rhs_bcs = None
 
     def reset(self):
         self.forward_solver = None
         self.adjoint_solver = None
-        self.rhs_bcs = None
 
 
 class KrylovSolveBlock(SolveBlock):
@@ -171,7 +169,6 @@ class KrylovSolveBlock(SolveBlock):
         if solver is None:
             solver = backend.KrylovSolver(self.method, self.preconditioner)
             if self.assemble_system:
-                v = lhs.arguments()[0]
                 A, _ = backend.assemble_system(lhs, rhs, bcs)
                 if self.pc_operator is not None:
                     P = self._replace_form(self.pc_operator)
