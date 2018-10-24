@@ -5,6 +5,7 @@ from pyadjoint.block import Block
 from .types import Function, DirichletBC
 from .types import compat
 from .types.function_space import extract_subfunction
+import numpy
 
 # Type dependencies
 
@@ -227,7 +228,6 @@ class SolveBlock(Block):
 
         # Obtain dFdu.
         dFdu = backend.derivative(F_form, fwd_block_variable.saved_output, backend.TrialFunction(u.function_space()))
-        dFdu = backend.assemble(dFdu, **self.assemble_kwargs)
 
         r = {}
         r["form"] = F_form
@@ -261,14 +261,14 @@ class SolveBlock(Block):
             dFdm += -backend.derivative(F_form, c_rep, tlm_value)
 
         if isinstance(dFdm, float):
-            dFdm = backend.Function(V).vector()
-        else:
-            dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
+            v = dFdu.arguments()[0]
+            dFdm = backend.inner(backend.Constant(numpy.zeros(v.ufl_shape)), v)*backend.dx
 
         dudm = backend.Function(V)
-        [bc.apply(dFdu, dFdm) for bc in bcs]
-        compat.linalg_solve(dFdu, dudm.vector(), dFdm, **self.kwargs)
-        return dudm
+        return self._assemble_and_solve_tlm_eq(dFdu, dFdm, dudm, bcs)
+
+    def _assemble_and_solve_tlm_eq(self, dFdu, dFdm, dudm, bcs):
+        return self._forward_solve(dFdu, dFdm, dudm, bcs)
 
     def _assemble_soa_eq_rhs(self, dFdu_form, adj_sol, hessian_input, d2Fdu2):
         # Start piecing together the rhs of the soa equation

@@ -125,6 +125,7 @@ class ReducedFunctional(object):
         for i, value in enumerate(values):
             self.controls[i].update(value)
 
+        self.tape.reset_blocks()
         blocks = self.tape.get_blocks()
         with self.marked_controls():
             with stop_annotating():

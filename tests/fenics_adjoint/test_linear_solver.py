@@ -39,37 +39,28 @@ def test_lu_solver():
     # Define variational problem
     (u, p) = TrialFunctions(W)
     (v, q) = TestFunctions(W)
-    f = Constant((0.0, 0.0, 0.0))
+    f = Constant((1.0, 1.0, 1.0))
     a = inner(grad(u), grad(v)) * dx + div(v) * p * dx + q * div(u) * dx
     L = inner(f, v) * dx
-
-    # Form for use in constructing preconditioner matrix
-    b = inner(grad(u), grad(v)) * dx + p * q * dx
 
     # Assemble system
     A, bb = assemble_system(a, L, bcs)
 
-    # Assemble preconditioner system
-    P, btmp = assemble_system(b, L, bcs)
-
     # Create LU solver
-    solver = LinearSolver(mpi_comm_world(), "direct")
+    solver = LUSolver()
 
     # Associate operator matrix (A)
     solver.set_operator(A)
 
     # Solve
     U = Function(W)
-    U.vector()[:] = 1.0
+    U.vector()[:] = 0.0
     solver.solve(U.vector(), bb)
 
-    # assert adjglobals.adjointer.equation_count > 0
-    # assert replay_dolfin(tol=5.0e-9)
     J = assemble(inner(U, U) * inner(U, U) * dx)
     Jhat = ReducedFunctional(J, Control(f))
     assert J == Jhat(f)
 
-    # Jhat(f)
     h = Constant((1.0, 1.0, 1.0))
     dJdm = h._ad_dot(Jhat.derivative())
     Hm = h._ad_dot(Jhat.hessian(h))
@@ -127,19 +118,17 @@ def test_krylov_solver_preconditioner():
     P, btmp = assemble_system(b, L, bcs)
 
     # Create Krylov solver and AMG preconditioner
-    solver = LinearSolver(mpi_comm_world(), "tfqmr", "amg")
+    solver = KrylovSolver("tfqmr", "amg")
 
     # Associate operator (A) and preconditioner matrix (P)
     solver.set_operators(A, P)
 
     # Solve
     U = Function(W)
-    U.vector()[:] = 0.0
-    # solver.parameters["monitor_convergence"] = True
+    U.vector()[:] = 1.0
     solver.parameters["relative_tolerance"] = 1.0e-14
     solver.parameters["absolute_tolerance"] = 1.0e-12
-    # TODO: Even if nonzero initial guess is True, we do not keep track of the initial guess.
-    solver.parameters["nonzero_initial_guess"] = True
+    solver.parameters["nonzero_initial_guess"] = False
     solver.solve(U.vector(), bb)
 
     J = assemble(inner(U, U) * inner(U, U) * dx)
@@ -192,17 +181,11 @@ def test_lu_solver_function_ctrl():
     a = inner(grad(u), grad(v)) * dx + div(v) * p * dx + q * div(u) * dx
     L = inner(f, v) * dx
 
-    # Form for use in constructing preconditioner matrix
-    b = inner(grad(u), grad(v)) * dx + p * q * dx
-
     # Assemble system
     A, bb = assemble_system(a, L, bcs)
 
-    # Assemble preconditioner system
-    P, btmp = assemble_system(b, L, bcs)
-
     # Create LU solver
-    solver = LinearSolver(mpi_comm_world(), "direct")
+    solver = LUSolver()
 
     # Associate operator matrix (A)
     solver.set_operator(A)
@@ -275,21 +258,18 @@ def test_krylov_solver_preconditioner_function_ctrl():
     P, btmp = assemble_system(b, L, bcs)
 
     # Create Krylov solver and AMG preconditioner
-    solver = LinearSolver(mpi_comm_world(), "tfqmr", "amg")
+    solver = KrylovSolver("tfqmr", "amg")
 
     # Associate operator (A) and preconditioner matrix (P)
     solver.set_operators(A, P)
 
     # Solve
     U = Function(W)
-    U.vector()[:] = 0.0
-    # solver.parameters["monitor_convergence"] = True
+    U.vector()[:] = 1.0
     solver.parameters["relative_tolerance"] = 1.0e-14
     solver.parameters["absolute_tolerance"] = 1.0e-12
-    # TODO: Even if nonzero initial guess is True, we do not keep track of the initial guess.
     solver.parameters["nonzero_initial_guess"] = True
     solver.solve(U.vector(), bb)
-
     J = assemble(inner(U, U) * inner(U, U) * dx)
     Jhat = ReducedFunctional(J, Control(f))
     assert J == Jhat(f)
@@ -299,4 +279,3 @@ def test_krylov_solver_preconditioner_function_ctrl():
     dJdm = h._ad_dot(Jhat.derivative())
     Hm = h._ad_dot(Jhat.hessian(h))
     assert taylor_test(Jhat, f, h, dJdm=dJdm, Hm=Hm) > 2.9
-

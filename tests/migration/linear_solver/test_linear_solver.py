@@ -4,6 +4,7 @@ from os import path
 import subprocess
 
 
+@pytest.mark.xfail(reason="LinearSolver is not part of the python interface in dolfin 2018")
 def test(request):
     test_file = path.split(path.dirname(str(request.fspath)))[1] + ".py"
     test_dir = path.split(str(request.fspath))[0]

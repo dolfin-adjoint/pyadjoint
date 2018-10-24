@@ -163,7 +163,7 @@ class PowBlock(FloatOperatorBlock):
             return float.__mul__(float.__mul__(adj_input, log(base_value)),
                                  float.__pow__(base_value, exponent_value))
 
-    def evaluate_tlm(self):
+    def evaluate_tlm(self, markings=False):
         output = self.get_outputs()[0]
 
         base = self.terms[0]
@@ -183,7 +183,7 @@ class PowBlock(FloatOperatorBlock):
                                          float.__pow__(base_value, exponent_value))
             output.add_tlm_output(exponent_adj)
 
-    def evaluate_hessian(self):
+    def evaluate_hessian(self, markings=False):
         output = self.get_outputs()[0]
         hessian_input = output.hessian_value
         adj_input = output.adj_value
@@ -261,7 +261,7 @@ class SubBlock(FloatOperatorBlock):
         else:
             return float.__neg__(adj_inputs[0])
 
-    def evaluate_tlm(self):
+    def evaluate_tlm(self, markings=False):
         output = self.get_outputs()[0]
         tlm_input_0 = self.terms[0].tlm_value
         if tlm_input_0 is not None:
@@ -270,7 +270,7 @@ class SubBlock(FloatOperatorBlock):
         if tlm_input_1 is not None:
             output.add_tlm_output(float.__neg__(tlm_input_1))
 
-    def evaluate_hessian(self):
+    def evaluate_hessian(self, markings=False):
         hessian_input = self.get_outputs()[0].hessian_value
         if hessian_input is None:
             return
@@ -328,7 +328,7 @@ class DivBlock(FloatOperatorBlock):
                 ))
             )
 
-    def evaluate_tlm(self):
+    def evaluate_tlm(self, markings=False):
         output = self.get_outputs()[0]
 
         if self.terms[0].tlm_value is not None:
@@ -345,7 +345,7 @@ class DivBlock(FloatOperatorBlock):
                 ))
             ))
 
-    def evaluate_hessian(self):
+    def evaluate_hessian(self, markings=False):
         output = self.get_outputs()[0]
         hessian_input = output.hessian_value
         adj_input = output.adj_value
@@ -401,7 +401,7 @@ class NegBlock(FloatOperatorBlock):
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
         return float.__neg__(tlm_inputs[0])
 
-    def evaluate_hessian(self):
+    def evaluate_hessian(self, markings=False):
         hessian_input = self.get_outputs()[0].hessian_value
         if hessian_input is None:
             return

@@ -9,10 +9,10 @@ if backend.__name__ != "firedrake":
     from .types import Expression, UserExpression, CompiledExpression
     from .types import io
     from .newton_solver import NewtonSolver
-    from .lusolver import LUSolver
+    from .lu_solver import LUSolver
+    from .krylov_solver import KrylovSolver
 from .variational_solver import (NonlinearVariationalProblem, NonlinearVariationalSolver,
                                  LinearVariationalProblem, LinearVariationalSolver)
-#from .linear_solver import LinearSolver
 from pyadjoint import (Tape, set_working_tape, get_working_tape,
                        pause_annotation, continue_annotation,
                        ReducedFunctional,

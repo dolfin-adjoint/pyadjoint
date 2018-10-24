@@ -41,7 +41,7 @@ Currently working tests:
 - [ ] hessian_identity_list2 (Should work but testing interface is lacking for hessian with multiple controls)
 - [ ] interpolate (Interpolate is not implemented yet)
 - [ ] krylov_reevaluate (KrylovSolver is not implemented)
-- [ ] linear_solver (LinearSolver is not implemented)
+- [ ] linear_solver (LinearSolver is not part of the dolfin 2018 interface)
 - [x] list_parameter 
 - [ ] localsolver (LocalSolver not implemented)
 - [ ] localsolver_factorize (LocalSolver not implemented)

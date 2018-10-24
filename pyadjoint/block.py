@@ -1,8 +1,7 @@
 from .tape import no_annotations
 
 
-class \
-        Block(object):
+class Block(object):
     """Base class for all Tape Block types.
     
     Each instance of a Block type represents an elementary operation in the
@@ -12,11 +11,16 @@ class \
         :func:`evaluate_adj`
 
     """
-    __slots__ = ['_dependencies', '_outputs']
+    __slots__ = ['_dependencies', '_outputs', 'block_helper']
 
     def __init__(self):
         self._dependencies = []
         self._outputs = []
+        self.block_helper = None
+
+    def reset(self):
+        if self.block_helper is not None:
+            self.block_helper.reset()
 
     def add_dependency(self, dep, no_duplicates=False):
         """Adds object to the block dependencies.
