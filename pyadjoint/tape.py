@@ -109,6 +109,12 @@ class Tape(object):
         self.reset_variables()
         self._blocks = []
 
+    def reset_blocks(self):
+        """Calls the Block.reset method of all blocks on the tape.
+        """
+        for block in self._blocks:
+            block.reset()
+
     def add_block(self, block):
         """
         Adds a block to the tape and returns the index.
