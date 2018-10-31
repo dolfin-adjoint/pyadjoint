@@ -181,7 +181,7 @@ class SolveBlock(Block):
             bc.apply(dFdu, dJdu)
 
         adj_sol = Function(self.function_space)
-        backend.solve(dFdu, adj_sol.vector(), dJdu)
+        compat.linalg_solve(dFdu, adj_sol.vector(), dJdu, **self.kwargs)
 
         adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
             backend.action(dFdu_form, adj_sol)))
