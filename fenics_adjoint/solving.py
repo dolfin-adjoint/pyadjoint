@@ -25,15 +25,9 @@ def solve(*args, **kwargs):
 
     if annotate:
         tape = get_working_tape()
-        adj_cb = kwargs.pop("adj_cb", None)
-        adj_bdy_cb = kwargs.pop("adj_bdy_cb", None)
-        adj2_cb = kwargs.pop("adj2_cb", None)
-        adj2_bdy_cb = kwargs.pop("adj2_bdy_cb", None)
-        block = SolveBlock(*args, **kwargs,
-                           adj_cb=adj_cb,
-                           adj_bdy_cb=adj_bdy_cb,
-                           adj2_cb=adj2_cb,
-                           adj2_bdy_cb=adj2_bdy_cb)
+        sb_kwargs = SolveBlock.pop_kwargs(kwargs)
+        sb_kwargs.update(kwargs)
+        block = SolveBlock(*args, **sb_kwargs)
         tape.add_block(block)
 
     with stop_annotating():
@@ -61,6 +55,16 @@ class SolveBlock(Block):
         self._init_solver_parameters(*args, **kwargs)
         self._init_dependencies(*args, **kwargs)
         self.function_space = self.func.function_space()
+
+    @staticmethod
+    def pop_kwargs(kwargs):
+        """Takes in a dictionary of keyword arguments,
+        and pops the ones used by SolveBlock"""
+        keys = ["adj_cb", "adj_bdy_cb", "adj2_cb", "adj2_bdy_cb"]
+        d = {}
+        for k in keys:
+            d[k] = kwargs.pop(k, None)
+        return d
 
     def __str__(self):
         return "{} = {}".format(str(self.lhs), str(self.rhs))

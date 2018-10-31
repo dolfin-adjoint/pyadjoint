@@ -52,10 +52,12 @@ class LUSolver(backend.LUSolver):
             parameters = self.parameters.copy()
 
             tape = get_working_tape()
+            sb_kwargs = SolveBlock.pop_kwargs(kwargs)
             block = LUSolveBlock(A, x, b,
                                  lu_solver_parameters=parameters,
                                  block_helper=block_helper,
-                                 lu_solver_method=self.method)
+                                 lu_solver_method=self.method,
+                                 **sb_kwargs)
             tape.add_block(block)
 
         out = backend.LUSolver.solve(self, *args, **kwargs)

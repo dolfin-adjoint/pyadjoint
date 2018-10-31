@@ -21,7 +21,8 @@ def project(*args, **kwargs):
 
     if annotate:
         bcs = kwargs.pop("bcs", [])
-        block = ProjectBlock(args[0], args[1], output, bcs)
+        sb_kwargs = SolveBlock.pop_kwargs(kwargs)
+        block = ProjectBlock(args[0], args[1], output, bcs, **sb_kwargs)
 
         tape = get_working_tape()
         tape.add_block(block)
@@ -32,10 +33,10 @@ def project(*args, **kwargs):
 
 
 class ProjectBlock(SolveBlock):
-    def __init__(self, v, V, output, bcs=[]):
+    def __init__(self, v, V, output, bcs=[], *args, **kwargs):
         w = backend.TestFunction(V)
         Pv = backend.TrialFunction(V)
         a = backend.inner(w, Pv)*backend.dx
         L = backend.inner(w, v)*backend.dx
 
-        super(ProjectBlock, self).__init__(a == L, output, bcs)
+        super(ProjectBlock, self).__init__(a == L, output, bcs, *args, **kwargs)

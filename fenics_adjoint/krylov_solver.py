@@ -65,13 +65,15 @@ class KrylovSolver(backend.KrylovSolver):
             nonzero_initial_guess = parameters["nonzero_initial_guess"] or False
 
             tape = get_working_tape()
+            sb_kwargs = SolveBlock.pop_kwargs(kwargs)
             block = KrylovSolveBlock(A, x, b,
                                      krylov_solver_parameters=parameters,
                                      block_helper=block_helper,
                                      nonzero_initial_guess=nonzero_initial_guess,
                                      pc_operator=self.pc_operator,
                                      krylov_method=self.method,
-                                     krylov_preconditioner=self.preconditioner)
+                                     krylov_preconditioner=self.preconditioner,
+                                     **sb_kwargs)
             tape.add_block(block)
 
         out = backend.KrylovSolver.solve(self, *args, **kwargs)

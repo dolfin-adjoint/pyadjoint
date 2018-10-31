@@ -20,7 +20,10 @@ class NewtonSolver(backend.NewtonSolver):
 
             u = vec.function
 
-            block = SolveBlock(F == 0, u, bcs, solver_parameters={"newton_solver": self.parameters.to_dict()})
+            sb_kwargs = SolveBlock.pop_kwargs(kwargs)
+            block = SolveBlock(F == 0, u, bcs,
+                               solver_parameters={"newton_solver": self.parameters.to_dict()},
+                               **sb_kwargs)
             tape.add_block(block)
 
         newargs = [self] + list(args)

@@ -38,12 +38,14 @@ class NonlinearVariationalSolver(backend.NonlinearVariationalSolver):
         if annotate:
             tape = get_working_tape()
             problem = self._ad_problem
+            sb_kwargs = SolveBlock.pop_kwargs(kwargs)
+            sb_kwargs.update(self._ad_kwargs)
             # TODO need to extend annotation to remember more about solvers.
             block = SolveBlock(problem._ad_F == 0,
                                problem._ad_u,
                                problem._ad_bcs,
                                *self._ad_args,
-                               **self._ad_kwargs)
+                               **sb_kwargs)
             tape.add_block(block)
 
         with stop_annotating():
@@ -90,11 +92,13 @@ class LinearVariationalSolver(backend.LinearVariationalSolver):
         if annotate:
             tape = get_working_tape()
             problem = self._ad_problem
+            sb_kwargs = SolveBlock.pop_kwargs(kwargs)
+            sb_kwargs.update(self._ad_kwargs)
             block = SolveBlock(problem._ad_a == problem._ad_L,
                                problem._ad_u,
                                problem._ad_bcs,
                                *self._ad_args,
-                               **self._ad_kwargs)
+                               **sb_kwargs)
             tape.add_block(block)
 
         with stop_annotating():
