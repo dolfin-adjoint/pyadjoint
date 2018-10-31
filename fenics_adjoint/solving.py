@@ -25,7 +25,15 @@ def solve(*args, **kwargs):
 
     if annotate:
         tape = get_working_tape()
-        block = SolveBlock(*args, **kwargs)
+        adj_cb = kwargs.pop("adj_cb", None)
+        adj_bdy_cb = kwargs.pop("adj_bdy_cb", None)
+        adj2_cb = kwargs.pop("adj2_cb", None)
+        adj2_bdy_cb = kwargs.pop("adj2_bdy_cb", None)
+        block = SolveBlock(*args, **kwargs,
+                           adj_cb=adj_cb,
+                           adj_bdy_cb=adj_bdy_cb,
+                           adj2_cb=adj2_cb,
+                           adj2_bdy_cb=adj2_bdy_cb)
         tape.add_block(block)
 
     with stop_annotating():
@@ -44,6 +52,10 @@ def solve(*args, **kwargs):
 class SolveBlock(Block):
     def __init__(self, *args, **kwargs):
         super(SolveBlock, self).__init__()
+        self.adj_cb = kwargs.pop("adj_cb", None)
+        self.adj_bdy_cb = kwargs.pop("adj_bdy_cb", None)
+        self.adj2_cb = kwargs.pop("adj2_cb", None)
+        self.adj2_bdy_cb = kwargs.pop("adj2_bdy_cb", None)
         self.adj_sol = None
         self.varform = isinstance(args[0], ufl.equation.Equation)
         self._init_solver_parameters(*args, **kwargs)
@@ -149,6 +161,10 @@ class SolveBlock(Block):
         dJdu = dJdu.copy()
         adj_sol, adj_sol_bdy = self._assemble_and_solve_adj_eq(dFdu_form, dJdu)
         self.adj_sol = adj_sol
+        if self.adj_cb is not None:
+            self.adj_cb(adj_sol)
+        if self.adj_bdy_cb is not None:
+            self.adj_bdy_cb(adj_sol_bdy)
 
         r = {}
         r["form"] = F_form
@@ -297,6 +313,10 @@ class SolveBlock(Block):
     def _assemble_and_solve_soa_eq(self, dFdu_form, adj_sol, hessian_input, d2Fdu2):
         b = self._assemble_soa_eq_rhs(dFdu_form, adj_sol, hessian_input, d2Fdu2)
         adj_sol2, adj_sol2_bdy = self._assemble_and_solve_adj_eq(dFdu_form, b)
+        if self.adj2_cb is not None:
+            self.adj2_cb(adj_sol2)
+        if self.adj2_bdy_cb is not None:
+            self.adj2_bdy_cb(adj_sol2_bdy)
         return adj_sol2, adj_sol2_bdy
 
     def prepare_evaluate_hessian(self, inputs, hessian_inputs, adj_inputs, relevant_dependencies):
