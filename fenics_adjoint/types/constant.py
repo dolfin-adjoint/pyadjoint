@@ -38,6 +38,9 @@ class Constant(OverloadedType, backend.Constant):
         self.original_block_variable.checkpoint = value._ad_create_checkpoint()
 
     def _ad_convert_type(self, value, options={}):
+        if value is None:
+            # TODO: Should the default be 0 constant here or return just None?
+            return Constant(numpy.zeros(self.ufl_shape))
         value = constant_function_firedrake_compat(value)
         return self._constant_from_values(value)
 
