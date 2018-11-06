@@ -32,7 +32,6 @@ def test_linear_problem():
     _test_adjoint(J, f)
 
 
-
 def test_singular_linear_problem():
     """This tests whether nullspace and solver_parameters are passed on in adjoint solves"""
     mesh = UnitSquareMesh(10, 10)
