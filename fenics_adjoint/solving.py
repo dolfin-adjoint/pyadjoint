@@ -101,6 +101,7 @@ class SolveBlock(Block):
                 self.bcs = args[2]
             elif "bcs" in kwargs:
                 self.bcs = self.kwargs.pop("bcs")
+                self.forward_kwargs.pop("bcs")
             else:
                 self.bcs = []
 

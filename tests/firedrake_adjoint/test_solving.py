@@ -3,6 +3,7 @@ pytest.importorskip("firedrake")
 
 from firedrake import *
 from firedrake_adjoint import *
+from numpy.testing import assert_approx_equal
 
 
 def test_linear_problem():
@@ -20,8 +21,13 @@ def test_linear_problem():
     def J(f):
         a = inner(grad(u), grad(v))*dx
         L = f*v*dx
-        solve(a == L, u_, bc)
+        solve(a == L, u_, bcs=bc)
         return assemble(u_**2*dx)
+
+    # this tests a bug in recompute() if bcs= keyword argument is provided in solve
+    J0 = J(f)
+    rf = ReducedFunctional(J0, Control(f))
+    assert_approx_equal(rf(f), J0)
 
     _test_adjoint(J, f)
 
