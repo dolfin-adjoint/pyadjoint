@@ -1,8 +1,8 @@
 import backend
 import ufl
-from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape, no_annotations
+from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
 from pyadjoint.block import Block
-from .types import Function, DirichletBC
+from .types import Function
 from .types import compat
 from .types.function_space import extract_subfunction
 import numpy
@@ -10,6 +10,7 @@ import numpy
 # Type dependencies
 
 # TODO: Clean up: some inaccurate comments. Reused code. Confusing naming with dFdm when denoting the control as c.
+
 
 def solve(*args, **kwargs):
     """This solve routine wraps the real Dolfin solve call. Its purpose is to annotate the model,
@@ -44,6 +45,9 @@ def solve(*args, **kwargs):
 
 
 class SolveBlock(Block):
+
+    pop_kwargs_keys = ["adj_cb", "adj_bdy_cb", "adj2_cb", "adj2_bdy_cb"]
+
     def __init__(self, *args, **kwargs):
         super(SolveBlock, self).__init__()
         self.adj_cb = kwargs.pop("adj_cb", None)
@@ -55,16 +59,6 @@ class SolveBlock(Block):
         self._init_solver_parameters(*args, **kwargs)
         self._init_dependencies(*args, **kwargs)
         self.function_space = self.func.function_space()
-
-    @staticmethod
-    def pop_kwargs(kwargs):
-        """Takes in a dictionary of keyword arguments,
-        and pops the ones used by SolveBlock"""
-        keys = ["adj_cb", "adj_bdy_cb", "adj2_cb", "adj2_bdy_cb"]
-        d = {}
-        for k in keys:
-            d[k] = kwargs.pop(k, None)
-        return d
 
     def __str__(self):
         return "{} = {}".format(str(self.lhs), str(self.rhs))

@@ -1,5 +1,5 @@
 import pytest
-pytest.importorskip("fenics")
+pytest.importorskip("tensorflow")
 
 from fenics import *
 from fenics_adjoint import *

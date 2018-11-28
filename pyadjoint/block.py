@@ -1,4 +1,6 @@
 from .tape import no_annotations
+from .enlisting import Enlist
+from .overloaded_type import create_overloaded_object
 
 
 class Block(object):
@@ -12,11 +14,23 @@ class Block(object):
 
     """
     __slots__ = ['_dependencies', '_outputs', 'block_helper']
+    pop_kwargs_keys = []
 
     def __init__(self):
         self._dependencies = []
         self._outputs = []
         self.block_helper = None
+
+    @classmethod
+    def pop_kwargs(cls, kwargs):
+        """Takes in a dictionary of keyword arguments,
+        and pops the ones used by the Block-subclass `cls`
+        """
+        keys = cls.pop_kwargs_keys
+        d = {}
+        for k in keys:
+            d[k] = kwargs.pop(k, None)
+        return d
 
     def reset(self):
         if self.block_helper is not None:

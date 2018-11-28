@@ -38,6 +38,7 @@ class stop_annotating(object):
     def __exit__(self, *args):
         continue_annotation()
 
+
 def no_annotations(function):
     """Decorator to turn off annotation for the decorated function."""
     def wrapper(*args, **kwargs):

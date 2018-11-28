@@ -9,7 +9,7 @@ def get_overloaded_class(backend_class):
     return _overloaded_types[backend_class]
 
 
-def create_overloaded_object(obj):
+def create_overloaded_object(obj, suppress_warning=False):
     """Creates an OverloadedType instance corresponding `obj`.
 
     If an OverloadedType corresponding to `obj` has not been registered
@@ -17,6 +17,9 @@ def create_overloaded_object(obj):
 
     Args:
         obj (object): The object to create an overloaded instance from.
+        suppress_warning (bool, optional): When set to True,
+            suppresses warning message when a suitable overloaded class is not found.
+            Default False.
 
     Returns:
         OverloadedType
@@ -30,8 +33,9 @@ def create_overloaded_object(obj):
         overloaded_type = _overloaded_types[obj_type]
         return overloaded_type._ad_init_object(obj)
     else:
-        import warnings
-        warnings.warn("Could not find overloaded class of type '{}'.".format(obj_type))
+        if not suppress_warning:
+            import warnings
+            warnings.warn("Could not find overloaded class of type '{}'.".format(obj_type))
         return obj
 
 
