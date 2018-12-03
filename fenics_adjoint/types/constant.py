@@ -83,10 +83,10 @@ class Constant(OverloadedType, backend.Constant):
     def _ad_dim(self):
         return numpy.prod(self.values().shape)
 
-    def _imul(self, other):
+    def _ad_imul(self, other):
         self.assign(self._constant_from_values(self.values() * other))
 
-    def _iadd(self, other):
+    def _ad_iadd(self, other):
         self.assign(self._constant_from_values(self.values() + other.values()))
 
     def _reduce(self, r, r0):
@@ -109,6 +109,9 @@ class Constant(OverloadedType, backend.Constant):
         for i in range(len(npdata)):
             npdatacopy[i] = f(npdata[i], npdatay[i])
         self.assign(self._constant_from_values(npdatacopy))
+
+    def __deepcopy__(self, memodict={}):
+        return self._constant_from_values()
 
     def _constant_from_values(self, values=None):
         """Returns a new Constant with self.values() while preserving self.ufl_shape.

@@ -2,6 +2,7 @@
 that can be used with different optimisation algorithms."""
 
 import numpy
+import copy
 
 
 class Constraint(object):
@@ -67,7 +68,9 @@ class InequalityConstraint(Constraint):
     for 0 <= i < n, where m is the parameter.
     """
 
+
 numpify = lambda x: numpy.array(x) if isinstance(x, list) else x
+
 
 class MergedConstraints(Constraint):
     def __init__(self, constraints):
@@ -83,26 +86,20 @@ class MergedConstraints(Constraint):
         [c.jacobian_action(m, dm, result[i]) for (i, c) in enumerate(self.constraints)]
 
     def jacobian_adjoint_action(self, m, dp, result):
-
-        if hasattr(result.vector(), "zero"):
-            result.vector().zero()
-        else:
-            result.vector().assign(0)
-
-        tmp = result.__class__.copy(result, deepcopy=True)
+        result._ad_imul(0.0)
+        tmp = copy.deepcopy(result)
 
         for (i, c) in enumerate(self.constraints):
             c.jacobian_adjoint_action(m, dp[i], tmp)
-            result.vector().axpy(1, tmp.vector())
+            result._ad_iadd(tmp)
 
     def hessian_action(self, m, dm, dp, result):
-
-        result.vector().zero()
-        tmp = result.__class__.copy(result, deepcopy=True)
+        result._ad_imul(0.0)
+        tmp = copy.deepcopy(result)
 
         for (i, c) in enumerate(self.constraints):
             c.hessian_action(m, dm, dp[i], tmp)
-            result.vector().axpy(1, tmp.vector())
+            result._ad_iadd(tmp)
 
     def __iter__(self):
         return iter(self.constraints)
@@ -123,6 +120,7 @@ class MergedConstraints(Constraint):
     def _get_constraint_dim(self):
         ''' Returns the number of constraint components '''
         return sum([c._get_constraint_dim() for c in self.constraints])
+
 
 def canonicalise(constraints):
     if constraints is None:

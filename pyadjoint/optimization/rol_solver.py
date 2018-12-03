@@ -41,11 +41,11 @@ try:
 
         def plus(self, yy):
             for (x, y) in zip(self.dat, yy.dat):
-                x._iadd(y)
+                x._ad_iadd(y)
 
         def scale(self, alpha):
             for x in self.dat:
-                x._imul(alpha)
+                x._ad_imul(alpha)
 
         def riesz_map(self, derivs):
             dat = []

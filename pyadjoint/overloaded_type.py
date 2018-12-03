@@ -186,6 +186,21 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
+    def _ad_imul(self, other):
+        """In-place multiplies `self` with `other`.
+
+        This method should be overridden if the default behaviour is not compatible with this OverloadedType.
+
+        Args:
+            other (object): The object to multiply `self` with.
+                Should at the very least accept `float` objects.
+
+        Returns:
+            None
+
+        """
+        self *= other
+
     def _ad_add(self, other):
         """This method must be overridden.
 
@@ -203,6 +218,21 @@ class OverloadedType(object):
 
         """
         raise NotImplementedError
+
+    def _ad_iadd(self, other):
+        """In-place adds `other` to `self`.
+
+        This method should be overridden if the default behaviour is not compatible with this OverloadedType.
+
+        Args:
+            other (object): The object to multiply `self` with.
+                Should at the very least accept objects of the same type as `self`.
+
+        Returns:
+            None
+
+        """
+        self += other
 
     def _ad_dot(self, other):
         """This method must be overridden.

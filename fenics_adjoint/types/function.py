@@ -188,11 +188,11 @@ class Function(FloatingType, backend.Function):
     def _ad_dim(self):
         return self.function_space().dim()
 
-    def _imul(self, other):
+    def _ad_imul(self, other):
         vec = self.vector()
         vec *= other
 
-    def _iadd(self, other):
+    def _ad_iadd(self, other):
         vec = self.vector()
         # FIXME: PETSc complains when we add the same vector to itself.
         # So we make a copy.
@@ -220,6 +220,9 @@ class Function(FloatingType, backend.Function):
             npdata[i] = f(npdata[i], npdatay[i])
         vec.set_local(npdata)
         vec.apply("insert")
+
+    def __deepcopy__(self, memodict={}):
+        return self.copy(deepcopy=True)
 
 
 def _extract_functions_from_lincom(lincom, functions=None):
