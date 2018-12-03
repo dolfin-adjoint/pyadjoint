@@ -20,7 +20,22 @@ def solve(*args, **kwargs):
     To disable the annotation, just pass :py:data:`annotate=False` to this routine, and it acts exactly like the
     Dolfin solve call. This is useful in cases where the solve is known to be irrelevant or diagnostic
     for the purposes of the adjoint computation (such as projecting fields to other function spaces
-    for the purposes of visualisation)."""
+    for the purposes of visualisation).
+
+    The overloaded solve takes optional callback functions to extract adjoint solutions.
+    All of the callback functions follow the same signature, taking a single argument of type Function.
+
+    Keyword Args:
+        adj_cb (function, optional): callback function supplying the adjoint solution in the interior.
+            The boundary values are zero.
+        adj_bdy_cb (function, optional): callback function supplying the adjoint solution on the boundary.
+            The interior values are not guaranteed to be zero.
+        adj2_cb (function, optional): callback function supplying the second-order adjoint solution in the interior.
+            The boundary values are zero.
+        adj2_bdy_cb (function, optional): callback function supplying the second-order adjoint solution on the boundary.
+            The interior values are not guaranteed to be zero.
+
+    """
 
     annotate = annotate_tape(kwargs)
 

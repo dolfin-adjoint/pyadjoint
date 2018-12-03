@@ -14,16 +14,12 @@ def overload_function(func, block_class):
     Args:
         func (function): The target function for which to create an overloaded version.
         block_class (type): The Block-subclass that corresponds to `func`.
-        suppress_conversion_warning (bool): If True,
-            any failed conversion of the function output to overloaded type will be silenced.
-            Otherwise a warning is shown.
-            Default is False.
 
     Returns:
         function: An overloaded version of `func`
 
     """
-    def overloaded_function(*args, **kwargs):
+    def _overloaded_function(*args, **kwargs):
         annotate = annotate_tape(kwargs)
         if annotate:
             b_kwargs = block_class.pop_kwargs(kwargs)
@@ -45,7 +41,7 @@ def overload_function(func, block_class):
             tape.add_block(block)
 
         return func_output.delist(r)
-    return overloaded_function
+    return _overloaded_function
 
 
 def overloaded_function(block_class):
@@ -53,10 +49,6 @@ def overloaded_function(block_class):
 
     Args:
         block_class (type): The Block-subclass that corresponds to the function being decorated.
-        suppress_conversion_warning (bool): If True,
-            any failed conversion of the function output to overloaded type will be silenced.
-            Otherwise a warning is shown.
-            Default is False.
 
     """
     def decorator(func):

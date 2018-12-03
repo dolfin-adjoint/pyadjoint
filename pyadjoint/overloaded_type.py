@@ -286,13 +286,16 @@ class OverloadedType(object):
                 The type will most likely be an OverloadedType or similar.
             src (numpy.ndarray): The numpy array to use as a source for the assignment.
                 `src` should have the same underlying dimensions as `dst`.
-            offset:
+            offset (int): Start reading `dst` from `offset`.
 
         Returns:
-            obj: The `dst` object. If `dst` is mutable it is preferred to be the same
-                instance as supplied to the function call. Otherwise a new instance
-                must be initialized and returned with the correct `src` values.
-            int: The new offset.
+            tuple:
+
+                obj: The `dst` object. If `dst` is mutable it is preferred to be the same
+                    instance as supplied to the function call. Otherwise a new instance
+                    must be initialized and returned with the correct `src` values.
+
+                int: The new offset.
 
         """
         raise NotImplementedError
@@ -303,7 +306,7 @@ class OverloadedType(object):
 
         The method should implement a routine for converting `m` into a
         list type. `m` should be an instance of the same type as the class
-        this is method is implemented in. Although maybe the backend version
+        this method is implemented in. Although maybe the backend version
         of this class, meaning it is not necessarily an OverloadedType.
 
         Args:

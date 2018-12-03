@@ -16,11 +16,22 @@ Overloaded functions
 .. autofunction:: assemble_system
 .. autofunction:: solve
 .. autofunction:: project
+.. autofunction:: interpolate
 
 ******************
 Overloaded objects
 ******************
 
+.. autoclass:: KrylovSolver
+
+    .. automethod:: solve
+.. autoclass:: LUSolver
+
+    .. automethod:: solve
+
+.. autoclass:: NewtonSolver
+
+    .. automethod:: solve
 .. autoclass:: NonlinearVariationalSolver
 
    .. automethod:: solve
@@ -31,9 +42,14 @@ Overloaded objects
    .. automethod:: solve
 
 .. autoclass:: LinearVariationalProblem
-.. autoclass:: Function
 
-   .. automethod:: assign
+****************
+Overloaded types
+****************
+
 .. autoclass:: Constant
 .. autoclass:: DirichletBC
 .. autoclass:: Expression
+.. autoclass:: Function
+
+    .. automethod:: assign

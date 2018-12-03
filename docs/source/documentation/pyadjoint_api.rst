@@ -8,6 +8,77 @@ See also the :doc:`dolfin-adjoint API reference <api>`.
 
 .. automodule:: pyadjoint
 
+************
+Core classes
+************
+
+.. autoclass:: Tape
+
+    .. automethod:: add_block
+    .. automethod:: visualise
+
+.. autoclass:: Block
+
+    .. automethod:: pop_kwargs
+    .. automethod:: add_dependency
+    .. automethod:: add_output
+    .. automethod:: prepare_evaluate_adj
+    .. automethod:: evaluate_adj_component
+    .. automethod:: prepare_evaluate_tlm
+    .. automethod:: evaluate_tlm_component
+    .. automethod:: prepare_evaluate_hessian
+    .. automethod:: evaluate_hessian_component
+    .. automethod:: prepare_recompute_component
+    .. automethod:: recompute_component
+
+.. autoclass:: pyadjoint.block_variable.BlockVariable
+
+.. autoclass:: OverloadedType
+
+    .. automethod:: _ad_init_object
+    .. automethod:: _ad_convert_type
+    .. automethod:: _ad_create_checkpoint
+    .. automethod:: _ad_restore_at_checkpoint
+    .. automethod:: adj_update_value
+    .. automethod:: _ad_mul
+    .. automethod:: _ad_imul
+    .. automethod:: _ad_add
+    .. automethod:: _ad_iadd
+    .. automethod:: _ad_dot
+    .. automethod:: _ad_assign_numpy
+    .. automethod:: _ad_to_list
+    .. automethod:: _ad_copy
+    .. automethod:: _ad_dim
+
+**********************
+Core utility functions
+**********************
+
+.. autofunction:: get_working_tape
+.. autofunction:: set_working_tape
+.. autofunction:: pyadjoint.tape.no_annotations
+.. autoclass:: stop_annotating
+.. autofunction:: annotate_tape
+.. autofunction:: pyadjoint.overloaded_type.create_overloaded_object
+.. autofunction:: pyadjoint.overloaded_type.register_overloaded_type
+
+**************
+User interface
+**************
+
+.. autoclass:: Control
+.. autofunction:: compute_gradient
+.. autofunction:: compute_hessian
+.. autoclass:: pyadjoint.placeholder.Placeholder
+.. autoclass:: ReducedFunctional
+
+    .. automethod:: __call__
+    .. automethod:: derivative
+    .. automethod:: hessian
+    .. automethod:: optimize_tape
+
+.. autoclass:: pyadjoint.reduced_functional_numpy.ReducedFunctionalNumPy
+.. autofunction:: taylor_test
 
 
 ******************
@@ -15,39 +86,3 @@ Overloaded objects
 ******************
 
 .. autoclass:: AdjFloat
-.. autoclass:: OverloadedType
-
-
-**********
-Annotation
-**********
-
-.. autoclass:: Block
-
-   .. automethod:: __init__
-
-.. autoclass:: Tape
-
-   .. automethod:: visualise
-
-****************
-Driver functions
-****************
-
-.. autofunction:: compute_gradient
-
-
-***********************************
-:py:data:`ReducedFunctional` object
-***********************************
-
-.. autoclass:: ReducedFunctional
-
-   .. automethod:: __call__
-   .. automethod:: derivative
-
-************
-Verification
-************
-
-.. autofunction:: taylor_test

@@ -1,6 +1,7 @@
 from .tape import get_working_tape, stop_annotating
 from .enlisting import Enlist
 
+
 def compute_gradient(J, m, options=None, tape=None):
     """
     Compute the gradient of J with respect to the initialisation value of m, 
