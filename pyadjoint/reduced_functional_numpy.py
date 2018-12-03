@@ -56,16 +56,17 @@ class ReducedFunctionalNumPy(ReducedFunctional):
 
     @no_annotations
     def derivative(self, m_array=None, forget=True, project=False):
-        ''' An implementation of the reduced functional derivative evaluation
+        """ An implementation of the reduced functional derivative evaluation
             that accepts the controls as an array of scalars. If no control values are given,
             the result is derivative at the lastest forward run.
-        '''
+        """
 
         # In the case that the control values have changed since the last forward run,
         # we first need to rerun the forward model with the new controls to have the
         # correct forward solutions
-        if m_array is not None:
-            self.__call__(m_array)
+        # TODO: No good way to check. Is it ok to always assume `m_array` is the same as used last in __call__?
+        #if m_array is not None:
+        #    self.__call__(m_array)
         dJdm = self.rf.derivative()
         dJdm = Enlist(dJdm)
 
@@ -79,11 +80,11 @@ class ReducedFunctionalNumPy(ReducedFunctional):
 
     @no_annotations
     def hessian(self, m_array, m_dot_array):
-        ''' An implementation of the reduced functional hessian action evaluation
+        """ An implementation of the reduced functional hessian action evaluation
             that accepts the controls as an array of scalars. If m_array is None,
-            the Hessian action at the latest forward run is returned. '''
-        # TODO: Consider if we really need to run derivative here.
-        self.derivative()
+            the Hessian action at the latest forward run is returned. """
+        # TODO: Consider if we need to run derivative here.
+        # self.derivative()
         m_copies = [control.copy_data() for control in self.controls]
         Hm = self.rf.hessian(self.set_local(m_copies, m_dot_array))
         Hm = Enlist(Hm)
@@ -109,94 +110,6 @@ class ReducedFunctionalNumPy(ReducedFunctional):
     def set_controls(self, array):
         m = [p.data() for p in self.controls]
         return self.set_local(m, array)
-
-    def pyopt_problem(self, constraints=None, bounds=None, name="Problem", ignore_model_errors=False):
-        '''Return a pyopt problem class that can be used with the PyOpt package,
-        http://www.pyopt.org/
-        '''
-        import pyOpt
-        from .optimization import constraints
-
-        constraints = optimization.constraints.canonicalise(constraints)
-
-        def obj(x):
-            ''' Evaluates the functional for the given controls values. '''
-
-            fail = False
-            if not ignore_model_errors:
-                j = self(x)
-            else:
-                try:
-                    j = self(x)
-                except:
-                    fail = True
-
-            if constraints is not None:
-                # Not sure how to do this in parallel, FIXME
-                g = np.concatenate(constraints.function(x))
-            else:
-                g = [0]  # SNOPT fails if no constraints are given, hence add a dummy constraint
-
-            return j, g, fail
-
-        def grad(x, f, g):
-            ''' Evaluates the gradient for the control values.
-            f is the associated functional value and g are the values
-            of the constraints. '''
-
-            fail = False
-            if not ignore_model_errors:
-                dj = self.derivative(x, forget=False)
-            else:
-                try:
-                    dj = self.derivative(x, forget=False)
-                except:
-                    fail = True
-
-            if constraints is not None:
-                gJac = np.concatenate([gather(c.jacobian(x)) for c in constraints])
-            else:
-                gJac = np.zeros(len(x))  # SNOPT fails if no constraints are given, hence add a dummy constraint
-
-            info("j = %f\t\t|dJ| = %f" % (f[0], np.linalg.norm(dj)))
-            return np.array([dj]), gJac, fail
-
-        # Instantiate the optimization problem
-        opt_prob = pyOpt.Optimization(name, obj)
-        opt_prob.addObj('J')
-
-        # Compute bounds
-        m = self.get_controls()
-        n = len(m)
-
-        if bounds is not None:
-            bounds_arr = [None, None]
-            for i in range(2):
-                if isinstance(bounds[i], float) or isinstance(bounds[i], int):
-                    bounds_arr[i] = np.ones(n) * bounds[i]
-                else:
-                    bounds_arr[i] = np.array(bounds[i])
-            lb, ub = bounds_arr
-
-        else:
-            mx = np.finfo(np.double).max
-            ub = mx * np.ones(n)
-
-            mn = np.finfo(np.double).min
-            lb = mn * np.ones(n)
-
-        # Add controls
-        opt_prob.addVarGroup("variables", n, type='c', value=m, lower=lb, upper=ub)
-
-        # Add constraints
-        if constraints is not None:
-            for i, c in enumerate(constraints):
-                if isinstance(c, optimization.constraints.EqualityConstraint):
-                    opt_prob.addConGroup(str(i) + 'th constraint', c._get_constraint_dim(), type='e', equal=0.0)
-                elif isinstance(c, optimization.constraints.InequalityConstraint):
-                    opt_prob.addConGroup(str(i) + 'th constraint', c._get_constraint_dim(), type='i', lower=0.0, upper=np.inf)
-
-        return opt_prob, grad
 
 
 def set_local(coeffs, m_array):
