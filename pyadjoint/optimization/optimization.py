@@ -7,7 +7,7 @@ from ..tape import no_annotations
 
 
 def serialise_bounds(rf_np, bounds):
-    ''' Converts bounds to an array of (min, max) tuples and serialises it in a parallel environment. '''
+    """ Converts bounds to an array of (min, max) tuples and serialises it in a parallel environment. """
 
     if len(np.array(bounds).shape) == 1:
         bounds = np.array([[b] for b in bounds])
@@ -134,7 +134,7 @@ def minimize_scipy_generic(rf_np, method, bounds = None, **kwargs):
     return m
 
 def minimize_custom(rf_np, bounds=None, **kwargs):
-    ''' Interface to the user-provided minimisation method '''
+    """ Interface to the user-provided minimisation method """
 
     try:
         algo = kwargs["algorithm"]
@@ -176,7 +176,7 @@ optimization_algorithms_dict = {'L-BFGS-B': ('The L-BFGS-B implementation in sci
 
 
 def print_optimization_methods():
-    ''' Prints the available optimization methods '''
+    """ Prints the available optimization methods """
 
     print('Available optimization methods:')
     for function_name, (description, func) in six.iteritems(optimization_algorithms_dict):
@@ -233,7 +233,7 @@ def minimize(rf, method='L-BFGS-B', scale=1.0, **kwargs):
 
 
 def maximize(rf, method='L-BFGS-B', scale=1.0, **kwargs):
-    ''' Solves the maximisation problem with PDE constraint:
+    """ Solves the maximisation problem with PDE constraint:
 
            max_m func(u, m)
              s.t.
@@ -251,7 +251,7 @@ def maximize(rf, method='L-BFGS-B', scale=1.0, **kwargs):
         * 'bounds' is an optional keyword parameter to support control constraints: bounds = (lb, ub). lb and ub must be of the same type than the parameters m.
 
         Additional arguments specific for the optimization methods can be added to the minimize functions (e.g. iprint = 2). These arguments will be passed to the underlying optimization method. For detailed information about which arguments are supported for each optimization method, please refer to the documentaton of the optimization algorithm.
-        '''
+        """
     return minimize(rf, method, scale=-scale, **kwargs)
 
 minimise = minimize

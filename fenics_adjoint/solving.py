@@ -12,14 +12,14 @@ import numpy
 # TODO: Clean up: some inaccurate comments. Reused code. Confusing naming with dFdm when denoting the control as c.
 
 def solve(*args, **kwargs):
-    '''This solve routine wraps the real Dolfin solve call. Its purpose is to annotate the model,
+    """This solve routine wraps the real Dolfin solve call. Its purpose is to annotate the model,
     recording what solves occur and what forms are involved, so that the adjoint and tangent linear models may be
     constructed automatically by pyadjoint.
 
     To disable the annotation, just pass :py:data:`annotate=False` to this routine, and it acts exactly like the
     Dolfin solve call. This is useful in cases where the solve is known to be irrelevant or diagnostic
     for the purposes of the adjoint computation (such as projecting fields to other function spaces
-    for the purposes of visualisation).'''
+    for the purposes of visualisation)."""
 
     annotate = annotate_tape(kwargs)
 

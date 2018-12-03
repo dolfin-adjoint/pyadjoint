@@ -4,8 +4,8 @@ from .solving import SolveBlock
 
 
 class NonlinearVariationalProblem(backend.NonlinearVariationalProblem):
-    '''This object is overloaded so that solves using this class are automatically annotated,
-    so that pyadjoint can automatically derive the adjoint and tangent linear models.'''
+    """This object is overloaded so that solves using this class are automatically annotated,
+    so that pyadjoint can automatically derive the adjoint and tangent linear models."""
     @no_annotations
     def __init__(self, F, u, bcs=None, J=None, *args, **kwargs):
         super(NonlinearVariationalProblem, self).__init__(F, u, bcs, J,
@@ -19,8 +19,8 @@ class NonlinearVariationalProblem(backend.NonlinearVariationalProblem):
 
 
 class NonlinearVariationalSolver(backend.NonlinearVariationalSolver):
-    '''This object is overloaded so that solves using this class are automatically annotated,
-    so that pyadjoint can automatically derive the adjoint and tangent linear models.'''
+    """This object is overloaded so that solves using this class are automatically annotated,
+    so that pyadjoint can automatically derive the adjoint and tangent linear models."""
     @no_annotations
     def __init__(self, problem, *args, **kwargs):
         super(NonlinearVariationalSolver, self).__init__(problem, *args, **kwargs)
@@ -29,10 +29,10 @@ class NonlinearVariationalSolver(backend.NonlinearVariationalSolver):
         self._ad_kwargs = kwargs
 
     def solve(self, **kwargs):
-        '''To disable the annotation, just pass :py:data:`annotate=False` to this routine, and it acts exactly like the
+        """To disable the annotation, just pass :py:data:`annotate=False` to this routine, and it acts exactly like the
         Dolfin solve call. This is useful in cases where the solve is known to be irrelevant or diagnostic
         for the purposes of the adjoint computation (such as projecting fields to other function spaces
-        for the purposes of visualisation).'''
+        for the purposes of visualisation)."""
 
         annotate = annotate_tape(kwargs)
         if annotate:
@@ -58,8 +58,8 @@ class NonlinearVariationalSolver(backend.NonlinearVariationalSolver):
 
 
 class LinearVariationalProblem(backend.LinearVariationalProblem):
-    '''This object is overloaded so that solves using this class are automatically annotated,
-    so that pyadjoint can automatically derive the adjoint and tangent linear models.'''
+    """This object is overloaded so that solves using this class are automatically annotated,
+    so that pyadjoint can automatically derive the adjoint and tangent linear models."""
     @no_annotations
     def __init__(self, a, L, u, bcs=None, *args, **kwargs):
         super(LinearVariationalProblem, self).__init__(a, L, u, bcs,
@@ -73,8 +73,8 @@ class LinearVariationalProblem(backend.LinearVariationalProblem):
 
 
 class LinearVariationalSolver(backend.LinearVariationalSolver):
-    '''This object is overloaded so that solves using this class are automatically annotated,
-    so that pyadjoint can automatically derive the adjoint and tangent linear models.'''
+    """This object is overloaded so that solves using this class are automatically annotated,
+    so that pyadjoint can automatically derive the adjoint and tangent linear models."""
     @no_annotations
     def __init__(self, problem, *args, **kwargs):
         super(LinearVariationalSolver, self).__init__(problem, *args, **kwargs)
@@ -83,10 +83,10 @@ class LinearVariationalSolver(backend.LinearVariationalSolver):
         self._ad_kwargs = kwargs
 
     def solve(self, **kwargs):
-        '''To disable the annotation, just pass :py:data:`annotate=False` to this routine, and it acts exactly like the
+        """To disable the annotation, just pass :py:data:`annotate=False` to this routine, and it acts exactly like the
         Dolfin solve call. This is useful in cases where the solve is known to be irrelevant or diagnostic
         for the purposes of the adjoint computation (such as projecting fields to other function spaces
-        for the purposes of visualisation).'''
+        for the purposes of visualisation)."""
 
         annotate = annotate_tape(kwargs)
         if annotate:

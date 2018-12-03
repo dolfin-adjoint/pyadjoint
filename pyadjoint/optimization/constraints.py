@@ -108,17 +108,17 @@ class MergedConstraints(Constraint):
         return [numpify(c.output_workspace()) for c in self.constraints]
 
     def equality_constraints(self):
-        ''' Filters out the equality constraints '''
+        """ Filters out the equality constraints """
         constraints = [c for c in self.constraints if isinstance(c, EqualityConstraint)]
         return MergedConstraints(constraints)
 
     def inequality_constraints(self):
-        ''' Filters out the inequality constraints '''
+        """ Filters out the inequality constraints """
         constraints = [c for c in self.constraints if isinstance(c, InequalityConstraint)]
         return MergedConstraints(constraints)
 
     def _get_constraint_dim(self):
-        ''' Returns the number of constraint components '''
+        """ Returns the number of constraint components """
         return sum([c._get_constraint_dim() for c in self.constraints])
 
 

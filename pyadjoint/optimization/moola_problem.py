@@ -34,7 +34,7 @@ def MoolaOptimizationProblem(rf, memoize=1):
 
         @no_annotations
         def __call__(self, x):
-            ''' Evaluates the functional for the given control value. '''
+            """ Evaluates the functional for the given control value. """
             if memoize > 0:
                 hashx = hash(x)
 
@@ -58,7 +58,7 @@ def MoolaOptimizationProblem(rf, memoize=1):
 
         @no_annotations
         def derivative(self, x):
-            ''' Evaluates the gradient for the control values. '''
+            """ Evaluates the gradient for the control values. """
 
             if memoize > 0:
                 hashx = hash(x)
@@ -92,7 +92,7 @@ def MoolaOptimizationProblem(rf, memoize=1):
 
         @no_annotations
         def hessian(self, x):
-            ''' Evaluates the gradient for the control values. '''
+            """ Evaluates the gradient for the control values. """
 
             self(x)
 
