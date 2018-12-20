@@ -12,3 +12,7 @@ import numpy
 from pyadjoint.overloaded_type import register_overloaded_type
 from pyadjoint.adjfloat import AdjFloat
 register_overloaded_type(AdjFloat, numpy.float64)
+
+# Shape AD specific imports
+from .mesh import (Mesh, UnitSquareMesh,UnitIntervalMesh, IntervalMesh,
+                   UnitCubeMesh, _BoundaryMesh)
