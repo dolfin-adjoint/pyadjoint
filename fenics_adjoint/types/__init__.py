@@ -15,4 +15,4 @@ register_overloaded_type(AdjFloat, numpy.float64)
 
 # Shape AD specific imports
 from .mesh import (Mesh, UnitSquareMesh,UnitIntervalMesh, IntervalMesh,
-                   UnitCubeMesh, _BoundaryMesh)
+                   UnitCubeMesh, BoundaryMeshType)

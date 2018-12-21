@@ -82,7 +82,6 @@ class Block(object):
 
     @no_annotations
     def evaluate_adj(self, markings=False):
-        print("WHAT", self)
         outputs = self.get_outputs()
         adj_inputs = []
         has_input = False
@@ -99,19 +98,16 @@ class Block(object):
         relevant_dependencies = [(i, bv) for i, bv in enumerate(deps) if bv.marked_in_path or not markings]
 
         if len(relevant_dependencies) <= 0:
-            print("JEG FANT INGENTING!", self)
             return
 
         prepared = self.prepare_evaluate_adj(inputs, adj_inputs, relevant_dependencies)
 
-        print("Going in deep", self)
         for idx, dep in relevant_dependencies:
             adj_output = self.evaluate_adj_component(inputs,
                                                      adj_inputs,
                                                      dep,
                                                      idx,
                                                      prepared)
-            print("HEEEH", adj_output, self)
             if adj_output is not None:
                 dep.add_adj_output(adj_output)
 
