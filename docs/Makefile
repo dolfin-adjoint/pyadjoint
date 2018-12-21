@@ -28,6 +28,7 @@ examples:
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/stokes-topology/stokes-topology.py $(EXAMPLES_OUT)/stokes-topology/stokes-topology.rst
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/mpec/mpec.py $(EXAMPLES_OUT)/mpec/mpec.rst
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/klein/klein.py $(EXAMPLES_OUT)/klein/klein.rst
+	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/stokes-shape-opt/stokes_problem.py $(EXAMPLES_OUT)/stokes-shape-opt/stokes_problem.rst
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/time-distributed-control/time-distributed-control.py $(EXAMPLES_OUT)/time-distributed-control/time-distributed-control.rst
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/time-dependent-wave/time-dependent-wave.py $(EXAMPLES_OUT)/time-dependent-wave/time-dependent-wave.rst
 
