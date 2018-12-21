@@ -51,36 +51,27 @@ def test_h1_smoothing():
     # mesh vectorfunctionspace
     dJdm = Jhat.derivative()
     print("Gradient vector length vs deform length")
-    
     print(len(dJdm.vector().get_local()), len(deform.vector().get_local()))
-    #Hm = compute_hessian(J, Control(s), s1).vector().inner(s1.vector())
-    dJdm = Jhat.derivative().vector().inner(s1.vector())
-    
-    r0 = taylor_test(Jhat, s, s1, dJdm=0)
-    r1 = taylor_test(Jhat, s, s1, dJdm=dJdm)
-    assert(r0 > 0.95)
-    assert(r1 > 1.95)
-    #    r2 = taylor_test(Jhat, s, s1, dJdm=dJdm, Hm=Hm)
-   
-    # Compute 0th, 1st and  2nd taylor residuals
-    # rates=taylor_to_dict(Jhat, s, s1)
-    # print("----H1-mesh smoothing----")
-    # print("FD residuals")
-    # print(rates["FD"]["Residual"])
-    # print("Derivative residuals")
-    # print(rates["dJdm"]["Residual"])
-    # print("Hessian rate")
-    # print(rates["Hm"]["Residual"])
 
-    # print("FD rates")
-    # print(rates["FD"]["Rate"])
-    # assert(min(rates["FD"]["Rate"])>0.95)
-    # print("Derivative rates")
-    # print(rates["dJdm"]["Rate"])
-    # assert(min(rates["dJdm"]["Rate"])>1.95)
-    # print("Hessian rate")
-    # print(rates["Hm"]["Rate"])
-    # assert(min(rates["Hm"]["Rate"])>2.95)
+    # Compute 0th, 1st and  2nd taylor residuals
+    rates=taylor_to_dict(Jhat, s, s1)
+    print("----H1-mesh smoothing----")
+    print("FD residuals")
+    print(rates["FD"]["Residual"])
+    print("Derivative residuals")
+    print(rates["dJdm"]["Residual"])
+    print("Hessian rate")
+    print(rates["Hm"]["Residual"])
+
+    print("FD rates")
+    print(rates["FD"]["Rate"])
+    assert(min(rates["FD"]["Rate"])>0.95)
+    print("Derivative rates")
+    print(rates["dJdm"]["Rate"])
+    assert(min(rates["dJdm"]["Rate"])>1.95)
+    print("Hessian rate")
+    print(rates["Hm"]["Rate"])
+    assert(min(rates["Hm"]["Rate"])>2.95)
 
 
 def test_strong_boundary_enforcement():
@@ -139,38 +130,27 @@ def test_strong_boundary_enforcement():
     dJdm = Jhat.derivative()
     print("Gradient vector length vs deform length")
     print(len(dJdm.vector().get_local()), len(s_full.vector().get_local()))
-
-
-    #Hm = compute_hessian(J, Control(s), s1).vector().inner(s1.vector())
-    dJdm = Jhat.derivative().vector().inner(s1.vector())        
-    r0 = taylor_test(Jhat, s, s1, dJdm=0)
-    r1 = taylor_test(Jhat, s, s1, dJdm=dJdm)
-    assert(r0 > 0.95)
-    assert(r1 > 1.95)
-    #r2 = taylor_test(Jhat, s, s1, dJdm=dJdm, Hm=Hm)
-    #print(r0,r1,r2)
-
     
     # Compute 0th, 1st and  2nd taylor residuals
-    # rates=taylor_to_dict(Jhat, s, s1)
-    # print("---- Dirichlet Boundary movement -----")
-    # print("FD residuals")
-    # print(rates["FD"]["Residual"])
-    # print("Derivative residuals")
-    # print(rates["dJdm"]["Residual"])
-    # print("Hessian rate")
-    # print(rates["Hm"]["Residual"])
+    rates=taylor_to_dict(Jhat, s, s1)
+    print("---- Dirichlet Boundary movement -----")
+    print("FD residuals")
+    print(rates["FD"]["Residual"])
+    print("Derivative residuals")
+    print(rates["dJdm"]["Residual"])
+    print("Hessian rate")
+    print(rates["Hm"]["Residual"])
 
     
-    # print("FD rates")
-    # print(rates["FD"]["Rate"])
-    # assert(min(rates["FD"]["Rate"])>0.95)
-    # print("Derivative rates")
-    # print(rates["dJdm"]["Rate"])
-    # assert(min(rates["dJdm"]["Rate"])>1.95)
-    # print("Hessian rate")
-    # print(rates["Hm"]["Rate"])
-    # assert(min(rates["Hm"]["Rate"])>2.95)
+    print("FD rates")
+    print(rates["FD"]["Rate"])
+    assert(min(rates["FD"]["Rate"])>0.95)
+    print("Derivative rates")
+    print(rates["dJdm"]["Rate"])
+    assert(min(rates["dJdm"]["Rate"])>1.95)
+    print("Hessian rate")
+    print(rates["Hm"]["Rate"])
+    assert(min(rates["Hm"]["Rate"])>2.95)
 
 if __name__ == "__main__":
     test_h1_smoothing()
