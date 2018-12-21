@@ -453,8 +453,10 @@ class SolveBlock(Block):
 
             hessian_output -= compat.assemble_adjoint_value(d2Fdm2)
 
-        hessian_output -= compat.assemble_adjoint_value(dFdm_adj2)\
-                          + compat.assemble_adjoint_value(d2Fdudm)
+        if not d2Fdudm.empty():
+            # FIXME: This can be empty in the multimesh case, ask sebastian
+            hessian_output -= compat.assemble_adjoint_value(d2Fdudm)
+        hessian_output -= compat.assemble_adjoint_value(dFdm_adj2)
 
         if isinstance(c, backend.Expression):
             return [(hessian_output, W)]
