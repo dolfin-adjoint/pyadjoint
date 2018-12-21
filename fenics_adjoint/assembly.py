@@ -170,7 +170,7 @@ class AssembleBlock(Block):
             dform = backend.derivative(form, X)
         else:
             dform = backend.derivative(form, c1_rep, dc)
-        hessian_outputs = compat.assemble_adjoint_value(hessian_input*dform)
+        hessian_outputs = hessian_input*compat.assemble_adjoint_value(dform)
 
         for other_idx, bv in relevant_dependencies:
             c2_rep = bv.saved_output
