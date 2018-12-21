@@ -424,7 +424,7 @@ class SolveBlock(Block):
         # TODO: Old comment claims this might break on split. Confirm if true or not.
         d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, fwd_block_variable.saved_output, tlm_output))
 
-        hessian_output_form = 0
+        hessian_output = 0
 
         # We need to add terms from every other dependency
         # i.e. the terms d^2F/dm_1dm_2
@@ -451,10 +451,11 @@ class SolveBlock(Block):
             if d2Fdm2.empty():
                 continue
 
-            hessian_output_form -= d2Fdm2
+            hessian_output -= compat.assemble_adjoint_value(d2Fdm2)
 
-        hessian_output_form -= dFdm_adj2 - d2Fdudm
-        hessian_output = compat.assemble_adjoint_value(hessian_output_form)
+        hessian_output -= compat.assemble_adjoint_value(dFdm_adj2)\
+                          + compat.assemble_adjoint_value(d2Fdudm)
+
         if isinstance(c, backend.Expression):
             return [(hessian_output, W)]
         else:
