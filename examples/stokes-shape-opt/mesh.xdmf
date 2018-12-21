@@ -1,0 +1,12 @@
+<Xdmf Version="3.0">
+  <Domain>
+    <Grid Name="Grid">
+      <Geometry GeometryType="XY">
+        <DataItem DataType="Float" Dimensions="836 2" Format="HDF" Precision="8">mesh.h5:/data0</DataItem>
+      </Geometry>
+      <Topology NumberOfElements="1560" TopologyType="Triangle">
+        <DataItem DataType="Int" Dimensions="1560 3" Format="HDF" Precision="8">mesh.h5:/data1</DataItem>
+      </Topology>
+    </Grid>
+  </Domain>
+</Xdmf>
