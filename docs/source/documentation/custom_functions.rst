@@ -71,80 +71,27 @@ overload.
    from fenics import *
    from fenics_adjoint import *
 
-   from pyadjoint import Block, annotate_tape, stop_annotating
-   from fenics_adjoint.types import create_overloaded_object
+   from pyadjoint import Block
 
    from normalise import normalise
 
-------------------------
-The overloading function
-------------------------
-
 Since we are overloading :py:data:`normalise(func)` we need to change it's name
-to keep acces to it:
+to keep access to it:
 
 .. code-block:: python
 
    backend_normalise = normalise
 
-Now we are ready to write the overloaded function:
-
-.. code-block:: python
-
-   def normalise(func, **kwargs):
-    annotate = annotate_tape(kwargs)
-
-    if annotate:
-        tape = get_working_tape()
-        block = NormaliseBlock(func)
-        tape.add_block(block)
-
-    with stop_annotating():
-        output = backend_normalise(func, **kwargs)
-
-    output = create_overloaded_object(output)
-
-    if annotate:
-        block.add_output(output.create_block_variable())
-
-    return output
-
-So what is going on here:
-
-- We check whether or not we should be annotating. If the user passes
-
-  .. code-block:: python
-
-     annotate_tape = False
-
-  as a keyword argument we should treat the function call exactly as if we were just
-  using the non-overloaded version of  :py:data:`normalise(func)`.
-
-- If we are annotating we get the current tape, make a block, which
-  are the building blocks of the tape and then add the new block to the tape.
-  :py:data:`NormaliseBlock(func)` is the constructor of the class
-  :py:class:`NormaliseBlock(Block)`, which we will implement and which contains the
-  information about how pyadjoint should handle our function.
-
-- We compute the normalisation with our non-overloaded function, and then make sure
-  that the output is an overloaded object that can be properly handled by pyadjoint.
-
-- If we are annotating we add the output to our block.
-
-- And finally we return the output.
-
-This is quite general, the only things that specifically refers to normalisation are
-:py:data:`backend_normalise(func)` and :py:data:`NormaliseBlock(func)`, and the
-overloading function will look very similar to this in most cases.
-
 ---------------
 The Block class
 ---------------
 
-The class :py:class:`NormaliseBlock(Block)` is a subclass of
-:py:class:`Block <pyadjoint.Block>` from the pyadjoint module. In addition to
-writing a constructor we have to override the methods :py:meth:`evaluate_adj` and
-:py:meth:`recompute`, we will also add a :py:meth:`__str__` method.
+The pyadjoint tape consists of instances of :py:class:`Block <pyadjoint.Block>` subclasses.
+These subclasses implement methods that can compute partial derivatives of their respective function.
+Thus, to properly overload :py:data:`normalise` we must implement a :py:class:`Block <pyadjoint.Block>` subclass,
+which we call :py:class:`NormaliseBlock`.
+In addition to writing a constructor we have to override the methods :py:meth:`evaluate_adj_component` and
+:py:meth:`recompute_component`, we will also add a :py:meth:`__str__` method.
 In our example the constructor may look like this
 
 .. code-block:: python
@@ -170,25 +117,23 @@ on :doc:`debugging <debugging>`.
    def __str__(self):
        return "NormaliseBlock"
 
-We need a :py:meth:`recompute <pyadjoint.Block.recompute>` method that can
-recompute the block.
+We need a :py:meth:`recompute <pyadjoint.Block.recompute_component>` method that can
+recompute the function with new inputs.
 
 .. code-block:: python
 
-   def recompute(self):
-       dependencies = self.get_dependencies()
-       func = dependencies[0].saved_output
-       output = backend_normalise(func, **self.kwargs)
-       self.get_outputs()[0].checkpoint = output
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        return backend_normalise(inputs[0])
 
-We get the inputs from the dependencies, calculate the function and save it to the ouput.
+We get a list of new inputs which is of length 1 because we only have one input variable.
+Or more precisely, we only added one dependency in the constructor.
 
 -----------
 The adjoint
 -----------
 
 
-The method :py:meth:`evaluate_adj` should evaluate the adjoint gradient of the block.
+The method :py:meth:`evaluate_adj_component` should evaluate the one component of the vector-Jacobian product.
 In the :doc:`mathematical background <maths/index>` we discussed the tangent linear model
 and the adjoint on the level of the whole model. Here we consider more concretely
 how dolfin-adjoint treats each block. pyadjoint treats a forward model as a series of equation solves.
@@ -213,13 +158,13 @@ If we consider instead the adjoint model we will find the transpose of :math:`\f
 
 .. math::
 
-   \frac{\mathrm{d}J}{\mathrm{d}u_0}^* = \frac{\partial u_1}{\partial u_0}^*\frac{\partial u_n}{\partial u_{n-1}}^*\ldots\frac{\partial J}{\partial u_n}^*.
+   \frac{\mathrm{d}J}{\mathrm{d}u_0}^* = \frac{\partial u_1}{\partial u_0}^*\frac{\partial u_2}{\partial u_{1}}^*\ldots\frac{\partial J}{\partial u_n}^*.
 
 Calculating from the right we find that for each link
 
 .. math::
 
-   y_i = \frac{\partial u_i}{\partial u_{i+1}}^*y_{i+1},
+   y_i = \frac{\partial u_i}{\partial u_{i-1}}^*y_{i+1},
 
 where
 
@@ -231,7 +176,7 @@ and
 
 .. math::
 
-   y_0 = \frac{\mathrm{d} J}{\mathrm{d} u_0}^*
+   y_1 = \frac{\mathrm{d} J}{\mathrm{d} u_0}^*
 
 Each block only needs to find the transpose of its own gradient!
 This is implemented in :py:meth:`evaluate_adj`.
@@ -246,46 +191,69 @@ Mathematically our normalisation block may be represented in index notation as
 
    f(x_i) = \frac{x_i}{||x||}.
 
-The gradient matrix is
+The Jacobian matrix consists of the entries
 
 .. math::
 
    \frac{\partial f(x_i)}{\partial x_j} = \frac{1}{||x||} \delta_{ij} - \frac{x_i x_j}{||x||^3}
 
-:py:meth:`evaluate_adj` takes a vector as input and returns that vector
-multiplied with the transpose of the gradient:
+:py:meth:`evaluate_adj` takes a vector as input and returns the transpose of the Jacobian matrix
+ multiplied with that vector:
 
 .. math:: \nabla f^* \cdot y = \sum_j \frac{\partial f(x_j)}{\partial x_i} y_j =
           \sum_{j} \frac{1}{||x||} \delta_{ij} y_j -
           \frac{x_i x_j}{||x||^3} y_j = \frac{y_i}{||x||} - \frac{x_i}{||x||^3} \sum_j x_j y_j
 
+:py:meth:`evaluate_adj_component` works as :py:meth:`evaluate_adj`,
+but computes only the component that corresponds to a single dependency (input).
+In other words, given an index :math:`i` :py:meth:`evaluate_adj_component` computes
+the component :math:`\left(\nabla f^* \cdot y\right)_i`.
+
+By default, :py:meth:`evaluate_adj` calls :py:meth:`evaluate_adj_component` for each of the relevant components.
+
 Now let us look at the implementation:
 
 .. code-block:: python
 
-   def evaluate_adj(self):
-       adj_input = self.get_outputs()[0].adj_value
-       dependency = self.get_dependencies()[0]
-       x = dependency.saved_output.vector()
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        adj_input = adj_inputs[0]
+        x = inputs[idx].vector()
+        inv_xnorm = 1.0 / x.norm('l2')
+        return inv_xnorm * adj_input - inv_xnorm ** 3 * x.inner(adj_input) * x
 
+:py:meth:`evaluate_adj_component` takes 5 arguments:
 
-:py:data:`adj_input` is the vector :math:`y` above. As we are going *backwards* through the forward model
-it is the output of :py:meth:`evaluate_adj` for the *output* of our normalisation
-block. Then we get the value of the input to our block and save it as a vector.
-Next, we should compute the value:
+- :py:data:`inputs` is a list of the inputs where we compute the derivative, i.e :math:`x` in the above derivations.
+  This list has the same length as the list of dependencies.
+- :py:data:`adj_inputs` is a list of the adjoint inputs, i.e :math:`y_{i+1}` above with this method representing the computation of :math:`y_i`.
+  This list has the same length as the list of outputs.
+- :py:data:`block_variable` is the block variable of the dependency (input) that we differentiate with respect to.
+- :py:data:`idx` is the index of the dependency, that we differentiate with respect to, in the list of dependencies.
+  Given a function output :math:`z = f(x, y)`, where the dependency list is :py:data:`[x, y]`, then :math:`(\partial z/\partial x)^*`
+  for :py:data:`idx == 0` and :math:`(\partial z/\partial y)^*` for :py:data:`idx == 1`.
+- :py:data:`prepared` can be anything. It is the return value of :py:meth:`prepare_evaluate_adj`,
+  which is run before :py:meth:`evaluate_adj_component` is called for each relevant dependency
+  and the default return value is :py:data:`None`.
+  If your implementation would benefit from doing some computations independent of the relevant dependencies,
+  you should consider implementing :py:meth:`prepare_evaluate_adj`.
+  For example, for :py:meth:`solve` the adjoint equation is solved in :py:meth:`prepare_evaluate_adj`,
+  and the adjoint solution is provided in the :py:data:`prepared` parameter.
+
+For more in-depth documentation on Blocks in pyadjoint, see
+
+------------------------
+The overloading function
+------------------------
+
+Now we are ready to define our overloaded function.
+For simple functions, where the function return value is the output,
+pyadjoint offers a convenience function for overloading.
+For this example, we utilize this convenience function:
 
 .. code-block:: python
 
-       inv_xnorm = 1.0/x.norm('l2')
-       adj_output = inv_xnorm*adj_input - inv_xnorm**3*x.inner(adj_input)*x
-
-       dependency.add_adj_output(adj_output)
-
-Finally we save :py:data:`adj_output` so that it may be propagated up the chain
-
-.. code-block:: python
-
-       dependency.add_adj_output(adj_output)
+    from pyadjoint.overloaded_function import overload_function
+    normalise = overload_function(normalise, NormaliseBlock)
 
 |more| `download the overloaded module`_
 
