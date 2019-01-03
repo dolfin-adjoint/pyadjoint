@@ -22,12 +22,16 @@ Core classes
     .. automethod:: pop_kwargs
     .. automethod:: add_dependency
     .. automethod:: add_output
+    .. automethod:: evaluate_adj
     .. automethod:: prepare_evaluate_adj
     .. automethod:: evaluate_adj_component
+    .. automethod:: evaluate_tlm
     .. automethod:: prepare_evaluate_tlm
     .. automethod:: evaluate_tlm_component
+    .. automethod:: evaluate_hessian
     .. automethod:: prepare_evaluate_hessian
     .. automethod:: evaluate_hessian_component
+    .. automethod:: recompute
     .. automethod:: prepare_recompute_component
     .. automethod:: recompute_component
 

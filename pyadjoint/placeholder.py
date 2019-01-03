@@ -10,12 +10,15 @@ class Placeholder(BlockVariable):
 
     The placeholders are useful when you require earlier values in the computational graph
     to be values computed later in the computational graph from the previous recomputation.
+    This can be the case for the initial guess for iterative solvers.
+    If the recomputations are expected to only slightly change the solution,
+    then using the previously found solution as initial guess can significantly speed up the recomputation.
 
     Usage:
-        u = OverloadedType()
-        p = Placeholder(u)
-        v = annotated_operator(u)
-        p.set_value(v)
+        >>> u = OverloadedType()
+        >>> p = Placeholder(u)
+        >>> v = annotated_operator(u)
+        >>> p.set_value(v)
 
         Each recomputation will now use the previously computed v as input
         to annotated_operator.

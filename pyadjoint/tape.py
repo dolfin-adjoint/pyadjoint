@@ -4,8 +4,8 @@ import re
 import os
 import threading
 from contextlib import contextmanager
+from functools import wraps
 
-# TOOD: Save/checkpoint functions always. Not just on assign.
 
 _working_tape = None
 _stop_annotating = 0
@@ -41,6 +41,7 @@ class stop_annotating(object):
 
 def no_annotations(function):
     """Decorator to turn off annotation for the decorated function."""
+    @wraps(function)
     def wrapper(*args, **kwargs):
         with stop_annotating():
             return function(*args, **kwargs)
