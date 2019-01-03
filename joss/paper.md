@@ -8,13 +8,13 @@ tags:
 - partial differential equations
 authors:
 - name: Sebastian K. Mitusch
-  orcid:
+  orcid: 0000-0002-8888-6568
   affiliation: 1
 - name: Simon W. Funke
   orcid: 0000-0003-4709-8415
   affiliation: 1
 - name: Jørgen S. Dokken
-  orcid:
+  orcid: 0000-0001-6489-8858
   affiliation: 1
 affiliations:
  - name: Simula Research Laboratory
