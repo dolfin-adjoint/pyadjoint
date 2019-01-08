@@ -10,7 +10,9 @@ pyadjoint is a generic algorithmic differentiation framework.
 The aim of this page is to introduce the reader to how pyadjoint works and how it can be used.
 It can be useful to also have a look at the :doc:`pyadjoint API <pyadjoint_api>`.
 We stress that this is not an algorithmic differentiation tutorial.
-For an introduction to algorithmic differentiation see for example ...
+For an introduction to algorithmic differentiation see for example `the book by Naumann`_
+
+.. _the book by Naumann: http://dx.doi.org/10.1137/1.9781611972078
 
 -------------
 The core idea

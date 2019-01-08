@@ -41,6 +41,8 @@ The :ref:`dolfin-adjoint manual <dolfin-adjoint-manual>` describes
 how to use dolfin-adjoint and the main features of dolfin-adjoint, and
 includes introductory examples. For more use cases, see the
 :ref:`examples <dolfin-adjoint-examples>`.
+For technical details about the framework used by dolfin-adjoint,
+see the :ref:`pyadjoint documentation <pyadjoint-docs>`.
 
 .. raw:: html
 
