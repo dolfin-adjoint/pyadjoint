@@ -3,10 +3,12 @@ import importlib
 import numpy.random
 from pyadjoint import set_working_tape, Tape
 
+
 @pytest.fixture(autouse=True)
 def skip_by_missing_module(request):
-    if request.node.get_marker('skipif_module_is_missing'):
-        to_import = request.node.get_marker('skipif_module_is_missing').args[0]
+    marker = request.node.get_closest_marker("skipif_module_is_missing")
+    if marker:
+        to_import = marker.args[0]
         try:
             importlib.import_module(to_import)
         except ImportError:
