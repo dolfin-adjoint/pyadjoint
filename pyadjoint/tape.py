@@ -147,6 +147,10 @@ class Tape(object):
         for i in range(len(self._blocks)-1, -1, -1):
             self._blocks[i].evaluate_hessian(markings=markings)
 
+    def recompute(self):
+        for i in range(len(self._blocks)):
+            self._blocks[i].recompute()
+
     def reset_variables(self, types=None):
         for i in range(len(self._blocks)-1, -1, -1):
             self._blocks[i].reset_variables(types)

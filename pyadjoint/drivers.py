@@ -2,7 +2,7 @@ from .tape import get_working_tape, stop_annotating
 from .enlisting import Enlist
 
 
-def compute_gradient(J, m, options=None, tape=None):
+def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
     """
     Compute the gradient of J with respect to the initialisation value of m, 
     that is the value of m at its creation.
@@ -20,8 +20,12 @@ def compute_gradient(J, m, options=None, tape=None):
     options = {} if options is None else options
     tape = get_working_tape() if tape is None else tape
     tape.reset_variables()
-    J.adj_value = 1.0
+    adj_value = Enlist(adj_value)
+    J = Enlist(J)
     m = Enlist(m)
+
+    for i in range(len(adj_value)):
+        J[i].adj_value = adj_value[i]
 
     with stop_annotating():
         with tape.marked_nodes(m):

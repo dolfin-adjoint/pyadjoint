@@ -126,11 +126,9 @@ class ReducedFunctional(object):
             self.controls[i].update(value)
 
         self.tape.reset_blocks()
-        blocks = self.tape.get_blocks()
         with self.marked_controls():
             with stop_annotating():
-                for i in range(len(blocks)):
-                    blocks[i].recompute()
+                self.tape.recompute()
 
         func_value = self.functional.block_variable.checkpoint
 
