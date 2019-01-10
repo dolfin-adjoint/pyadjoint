@@ -11,6 +11,7 @@ if backend.__name__ != "firedrake":
     from .newton_solver import NewtonSolver
     from .lu_solver import LUSolver
     from .krylov_solver import KrylovSolver
+    from .petsc_krylov_solver import PETScKrylovSolver
 from .variational_solver import (NonlinearVariationalProblem, NonlinearVariationalSolver,
                                  LinearVariationalProblem, LinearVariationalSolver)
 from pyadjoint import (Tape, set_working_tape, get_working_tape,
