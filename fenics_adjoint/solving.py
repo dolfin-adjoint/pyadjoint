@@ -470,8 +470,7 @@ class SolveBlock(Block):
         return bcs
 
     def prepare_recompute_component(self, inputs, relevant_outputs):
-        lhs, rhs, func, bcs = self._replace_recompute_form()
-        return lhs, rhs, func, bcs
+        return self._replace_recompute_form()
 
     def _replace_form(self, form, func=None):
         replace_map = {}
