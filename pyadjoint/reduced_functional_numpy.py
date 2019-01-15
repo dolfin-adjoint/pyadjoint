@@ -123,5 +123,7 @@ def set_local(coeffs, m_array):
 def gather(m):
     if isinstance(m, list):
         return list(map(gather, m))
-    else:
+    elif hasattr(m, "_ad_to_list"):
         return m._ad_to_list(m)
+    else:
+        return m  # Assume it is gathered already
