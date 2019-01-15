@@ -150,7 +150,7 @@ class AssembleBlock(Block):
             return None
 
         dform = backend.derivative(form, c1_rep, dc)
-        hessian_outputs = hessian_input*dform
+        hessian_outputs = backend.Constant(hessian_input)*dform
 
         for other_idx, bv in relevant_dependencies:
             c2_rep = bv.saved_output
