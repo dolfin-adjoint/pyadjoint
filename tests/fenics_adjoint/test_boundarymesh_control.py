@@ -22,7 +22,7 @@ def test_h1_smoothing():
     l = inner(s_full, v)*ds
     deform = Function(V, name="Volume Deformation")
     solve(a==l, deform)
-    
+
     # Deform volume mesh
     ALE.move(mesh, deform)
     

@@ -4,7 +4,8 @@ from .solving import solve
 from .projection import project
 from .interpolation import interpolate
 from .ufl_constraints import UFLEqualityConstraint, UFLInequalityConstraint
-from .shapead_transformations import transfer_from_boundary
+from .shapead_transformations import (transfer_from_boundary,
+                                      transfer_to_boundary)
 from .types import (Function, Constant, DirichletBC,
                     Mesh, UnitSquareMesh, UnitIntervalMesh, IntervalMesh,
                     UnitCubeMesh)
