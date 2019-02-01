@@ -184,7 +184,7 @@ class AssembleBlock(Block):
                 ddform = backend.derivative(dform, X, tlm_input)
             else:
                 ddform = backend.derivative(dform, c2_rep, tlm_input)
-            hessian_outputs += compat.assemble_adjoint_value(adj_input*ddform)
+            hessian_outputs += adj_input*compat.assemble_adjoint_value(ddform)
 
         if isinstance(c1, backend.Expression):
             return [(hessian_outputs, W)]
