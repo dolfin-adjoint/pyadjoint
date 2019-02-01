@@ -149,7 +149,8 @@ class SurfaceTransferBlock(Block):
             return
         W = self.get_outputs()[0].output.function_space()
         b_mesh = self.get_dependencies()[1].output
-        adj_value = backend.Function(W, adj_input)
+        adj_value = backend.Function(W)
+        adj_value.vector()[:] = adj_input
         adj_output = vector_to_boundary_mesh(adj_value, b_mesh)
         self.get_dependencies()[0].add_adj_output(adj_output.vector())
 
@@ -169,7 +170,8 @@ class SurfaceTransferBlock(Block):
             return
         W = self.get_outputs()[0].output.function_space()
         mesh = self.get_dependencies()[1].output
-        hessian_value = backend.Function(W, hessian_input)
+        hessian_value = backend.Function(W)
+        hessian_value.vector()[:] = hessian_input
         hessian_output = vector_to_boundary_mesh(hessian_value, mesh)
         self.get_dependencies()[0].add_hessian_output(hessian_output.vector())
 
