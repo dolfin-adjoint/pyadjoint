@@ -4,6 +4,8 @@ set_log_level(LogLevel.ERROR)
 
 def test_h1_smoothing():
     # Creating mesh and boundary mesh
+    tape = get_working_tape()
+    tape.clear_tape()
     mesh = UnitSquareMesh(10,10)
     b_mesh = BoundaryMesh(mesh, "exterior")
 
@@ -11,14 +13,14 @@ def test_h1_smoothing():
     V_b = VectorFunctionSpace(b_mesh, "CG", 1)
     s = Function(V_b, name="Design")
 
-
     # Interpolate values from BoundaryMesh to the full function space
     V = VectorFunctionSpace(mesh, "CG", 1)
     s_full = transfer_from_boundary(s, mesh)
-    s_full.rename("Volume extension", "")
+    s_full.rename("Volume Extension", "")
+
     # Solve deformation equation with the boundary values as input
     u, v = TrialFunction(V), TestFunction(V)
-    a = inner(grad(u),grad(v))*dx + inner(u,v)*dx
+    a = inner(grad(u),grad(v))*dx + 0.1*inner(u,v)*dx
     l = inner(s_full, v)*ds
     deform = Function(V, name="Volume Deformation")
     solve(a==l, deform)
@@ -40,8 +42,6 @@ def test_h1_smoothing():
     # Define Functional
     J = assemble(inner(grad(u_out),grad(u_out))*dx(domain=mesh))
     Jhat = ReducedFunctional(J, Control(s))
-    tape = get_working_tape()
-    tape.visualise()
     
     # Define the perturbation direction
     s1 = interpolate(Expression(("A*(x[0]-0.5)", "A*(x[1]-0.5)"),
@@ -51,7 +51,7 @@ def test_h1_smoothing():
     # mesh vectorfunctionspace
     dJdm = Jhat.derivative()
     print("Gradient vector length vs deform length")
-    print(len(dJdm.vector().get_local()), len(deform.vector().get_local()))
+    print(len(dJdm.vector().get_local()), len(s_full.vector().get_local()))
 
     # Compute 0th, 1st and  2nd taylor residuals
     rates=taylor_to_dict(Jhat, s, s1)
@@ -85,15 +85,11 @@ def test_strong_boundary_enforcement():
     V_b = VectorFunctionSpace(b_mesh, "CG", 1)
     s = Function(V_b, name="Design")
 
-    # Creating the control vector space
-    V_b = VectorFunctionSpace(b_mesh, "CG", 1)
-    s = Function(V_b, name="Design")
-
     # Interpolate values from BoundaryMesh to the full function space
     V = VectorFunctionSpace(mesh, "CG", 1)
     s_full = transfer_from_boundary(s, mesh)
     s_full.rename("Volume Extension", "")
-    
+
     # Solve deformation equation with the boundary values as input
     u, v = TrialFunction(V), TestFunction(V)
     a = inner(grad(u),grad(v))*dx + inner(u,v)*dx
@@ -103,7 +99,7 @@ def test_strong_boundary_enforcement():
 
     # Deform volume mesh
     ALE.move(mesh, deform)
-    
+
     # Solve Poisson problem
     Vs = FunctionSpace(mesh,"CG", 1)
     us, vs = TrialFunction(Vs), TestFunction(Vs)
@@ -125,12 +121,13 @@ def test_strong_boundary_enforcement():
     # Define the perturbation direction
     s1 = interpolate(Expression(("A*(x[0]-0.5)", "A*(x[1]-0.5)"),
                                 A=10,degree=3),V_b)
+
     # Compute the derivative and compare length of derivative with the full
     # mesh vectorfunctionspace
     dJdm = Jhat.derivative()
     print("Gradient vector length vs deform length")
     print(len(dJdm.vector().get_local()), len(s_full.vector().get_local()))
-    
+
     # Compute 0th, 1st and  2nd taylor residuals
     rates=taylor_to_dict(Jhat, s, s1)
     print("---- Dirichlet Boundary movement -----")
@@ -141,7 +138,6 @@ def test_strong_boundary_enforcement():
     print("Hessian rate")
     print(rates["Hm"]["Residual"])
 
-    
     print("FD rates")
     print(rates["FD"]["Rate"])
     assert(min(rates["FD"]["Rate"])>0.95)
@@ -151,6 +147,7 @@ def test_strong_boundary_enforcement():
     print("Hessian rate")
     print(rates["Hm"]["Rate"])
     assert(min(rates["Hm"]["Rate"])>2.95)
+
 
 if __name__ == "__main__":
     test_h1_smoothing()
