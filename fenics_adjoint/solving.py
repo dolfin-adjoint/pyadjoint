@@ -308,7 +308,7 @@ class SolveBlock(Block):
 
         if isinstance(dFdm, float):
             v = dFdu.arguments()[0]
-            dFdm = backend.inner(backend.Constant(numpy.zeros(v.ufl_shape)), v) * backend.dx
+            dFdm = backend.assemble(backend.inner(backend.Constant(numpy.zeros(v.ufl_shape)), v) * backend.dx)
 
         dudm = backend.Function(V)
         return self._assemble_and_solve_tlm_eq(backend.assemble(dFdu), dFdm, dudm, bcs)
