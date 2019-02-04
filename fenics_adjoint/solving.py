@@ -303,17 +303,18 @@ class SolveBlock(Block):
             if c == self.func and not self.linear:
                 continue
 
-            dFdm += backend.derivative(-F_form, c_rep, tlm_value)
+            dFdm += backend.assemble(backend.derivative(-F_form, c_rep,
+                                                        tlm_value))
 
         if isinstance(dFdm, float):
             v = dFdu.arguments()[0]
             dFdm = backend.inner(backend.Constant(numpy.zeros(v.ufl_shape)), v) * backend.dx
 
         dudm = backend.Function(V)
-        return self._assemble_and_solve_tlm_eq(dFdu, dFdm, dudm, bcs)
+        return self._assemble_and_solve_tlm_eq(backend.assemble(dFdu), dFdm, dudm, bcs)
 
     def _assemble_and_solve_tlm_eq(self, dFdu, dFdm, dudm, bcs):
-        return self._forward_solve(dFdu, dFdm, dudm, bcs)
+        return self._assembled_solve(dFdu, dFdm, dudm, bcs)
 
     def _assemble_soa_eq_rhs(self, dFdu_form, adj_sol, hessian_input, d2Fdu2):
         # Start piecing together the rhs of the soa equation
@@ -516,6 +517,11 @@ class SolveBlock(Block):
 
     def _forward_solve(self, lhs, rhs, func, bcs, **kwargs):
         backend.solve(lhs == rhs, func, bcs, **kwargs)
+        return func
+
+    def _assembled_solve(self, lhs, rhs, func, bcs, **kwargs):
+        [bc.apply(lhs, rhs) for bc in bcs]
+        backend.solve(lhs, func.vector(), rhs, **kwargs)
         return func
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
