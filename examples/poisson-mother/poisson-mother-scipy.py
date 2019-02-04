@@ -1,4 +1,4 @@
-""" Solves a optimal control problem constrained by the Poisson equation:
+r""" Solves a optimal control problem constrained by the Poisson equation:
 
     min_(u, m) \int_\Omega 1/2 || u - d ||^2 + 1/2 || f ||^2
 
@@ -12,6 +12,9 @@
 
 from dolfin import *
 from dolfin_adjoint import *
+
+import os
+
 
 set_log_level(LogLevel.ERROR)
 
@@ -33,18 +36,18 @@ u = Function(V, name='State')
 v = TestFunction(V)
 
 # Define and solve the Poisson equation to generate the dolfin-adjoint annotation
-F = (inner(grad(u), grad(v)) - f*v)*dx
+F = (inner(grad(u), grad(v)) - f * v) * dx
 bc = DirichletBC(V, 0.0, "on_boundary")
 solve(F == 0, u, bc)
 
 # Define functional of interest and the reduced functional
 x = SpatialCoordinate(mesh)
-w = Expression("sin(pi*x[0])*sin(pi*x[1])", degree=3) 
-d = 1/(2*pi**2)
+w = Expression("sin(pi*x[0])*sin(pi*x[1])", degree=3)
+d = 1 / (2 * pi ** 2)
 d = Expression("d*w", d=d, w=w, degree=3)
 
 alpha = Constant(1e-6)
-J = assemble((0.5*inner(u-d, u-d))*dx + alpha/2*f**2*dx)
+J = assemble((0.5 * inner(u - d, u - d)) * dx + alpha / 2 * f ** 2 * dx)
 control = Control(f)
 rf = ReducedFunctional(J, control)
 f_opt = minimize(rf, bounds=(0.0, 0.8), tol=1e-10,
@@ -65,12 +68,13 @@ print("Error in control: %e." % control_error)
 # Write solutions to XDMFFile, can be visualized with paraview
 # First time step is approximated solution, second timestep is analytic
 # solution
-import os; os.system("rm output/*_scipy.*")
+
+os.system("rm output/*_scipy.*")
 out_f = XDMFFile("output/f_scipy.xdmf")
 out_f.write_checkpoint(f_opt, "f", 0.0, XDMFFile.Encoding.HDF5, True)
 out_f.write_checkpoint(interpolate(f_analytic, W), "f",
-                        1.0, XDMFFile.Encoding.HDF5, True)
+                       1.0, XDMFFile.Encoding.HDF5, True)
 out_u = XDMFFile("output/u_scipy.xdmf")
 out_u.write_checkpoint(u, "u", 0.0, XDMFFile.Encoding.HDF5, True)
 out_u.write_checkpoint(interpolate(u_analytic, V), "u",
-                        1.0, XDMFFile.Encoding.HDF5, True)
+                       1.0, XDMFFile.Encoding.HDF5, True)

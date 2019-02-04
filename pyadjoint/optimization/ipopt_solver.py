@@ -1,11 +1,13 @@
 from __future__ import print_function
-from .optimization_solver import OptimizationSolver
-from .optimization_problem import MaximizationProblem
-from ..reduced_functional_numpy import ReducedFunctionalNumPy
-from . import constraints
 
-from ..reduced_functional_numpy import gather
 import numpy
+
+from . import constraints
+from .optimization_problem import MaximizationProblem
+from .optimization_solver import OptimizationSolver
+from ..reduced_functional_numpy import ReducedFunctionalNumPy
+from ..reduced_functional_numpy import gather
+
 
 class IPOPTSolver(OptimizationSolver):
     """Use the pyipopt bindings to IPOPT to solve the given optimization problem.
@@ -13,12 +15,6 @@ class IPOPTSolver(OptimizationSolver):
     The pyipopt Problem instance is accessible as solver.pyipopt_problem."""
 
     def __init__(self, problem, parameters=None):
-        try:
-            import pyipopt
-        except ImportError:
-            print("You need to install pyipopt. It is recommended to install IPOPT with HSL support!")
-            raise
-
         OptimizationSolver.__init__(self, problem, parameters)
 
         self.__build_pyipopt_problem()
@@ -27,7 +23,11 @@ class IPOPTSolver(OptimizationSolver):
     def __build_pyipopt_problem(self):
         """Build the pyipopt problem from the OptimizationProblem instance."""
 
-        import pyipopt
+        try:
+            import pyipopt
+        except ImportError:
+            print("You need to install pyipopt. It is recommended to install IPOPT with HSL support!")
+            raise
         from functools import partial
 
         self.rfn = ReducedFunctionalNumPy(self.problem.reduced_functional)
@@ -41,20 +41,20 @@ class IPOPTSolver(OptimizationSolver):
         J = self.rfn.__call__
         dJ = partial(self.rfn.derivative, forget=False)
 
-        nlp = pyipopt.create(len(ub),           # length of control vector
-                             lb,                # lower bounds on control vector
-                             ub,                # upper bounds on control vector
-                             nconstraints,      # number of constraints
-                             clb,               # lower bounds on constraints,
-                             cub,               # upper bounds on constraints,
-                             constraints_nnz,   # number of nonzeros in the constraint Jacobian
-                             0,                 # number of nonzeros in the Hessian
-                             J,                 # to evaluate the functional
-                             dJ,                # to evaluate the gradient
-                             fun_g,             # to evaluate the constraints
-                             jac_g)             # to evaluate the constraint Jacobian
+        nlp = pyipopt.create(len(ub),  # length of control vector
+                             lb,  # lower bounds on control vector
+                             ub,  # upper bounds on control vector
+                             nconstraints,  # number of constraints
+                             clb,  # lower bounds on constraints,
+                             cub,  # upper bounds on constraints,
+                             constraints_nnz,  # number of nonzeros in the constraint Jacobian
+                             0,  # number of nonzeros in the Hessian
+                             J,  # to evaluate the functional
+                             dJ,  # to evaluate the gradient
+                             fun_g,  # to evaluate the constraints
+                             jac_g)  # to evaluate the constraint Jacobian
 
-        pyipopt.set_loglevel(1)                 # turn off annoying pyipopt logging
+        pyipopt.set_loglevel(1)  # turn off annoying pyipopt logging
 
         """
         if rank(self.problem.reduced_functional.mpi_comm()) > 0:
@@ -74,7 +74,7 @@ class IPOPTSolver(OptimizationSolver):
         self.pyipopt_problem = nlp
 
     def __get_bounds(self):
-        """Convert the bounds into the format accepted by pyipopt (two numpy arrays,
+        r"""Convert the bounds into the format accepted by pyipopt (two numpy arrays,
         one for the lower bound and one for the upper).
 
         FIXME: Do we really have to pass (-\infty, +\infty) when there are no bounds?"""
@@ -83,14 +83,14 @@ class IPOPTSolver(OptimizationSolver):
 
         if bounds is not None:
             lb_list = []
-            ub_list = [] # a list of numpy arrays, one for each control
+            ub_list = []  # a list of numpy arrays, one for each control
 
             for (bound, control) in zip(bounds, self.rfn.controls):
                 general_lb, general_ub = bound  # could be float, Constant, or Function
 
                 if isinstance(general_lb, (float, int)):
                     len_control = len(self.rfn.get_global(control))
-                    lb = numpy.array([float(general_lb)]*len_control)
+                    lb = numpy.array([float(general_lb)] * len_control)
                 else:
                     lb = self.rfn.get_global(general_lb)
 
@@ -98,7 +98,7 @@ class IPOPTSolver(OptimizationSolver):
 
                 if isinstance(general_ub, (float, int)):
                     len_control = len(self.rfn.get_global(control))
-                    ub = numpy.array([float(general_ub)]*len_control)
+                    ub = numpy.array([float(general_ub)] * len_control)
                 else:
                     ub = self.rfn.get_global(general_ub)
 
@@ -111,10 +111,10 @@ class IPOPTSolver(OptimizationSolver):
             # Unfortunately you really need to specify bounds, I think?!
             ncontrols = len(self.rfn.get_controls())
             max_float = numpy.finfo(numpy.double).max
-            ub = numpy.array([max_float]*ncontrols)
+            ub = numpy.array([max_float] * ncontrols)
 
             min_float = numpy.finfo(numpy.double).min
-            lb = numpy.array([min_float]*ncontrols)
+            lb = numpy.array([min_float] * ncontrols)
 
         return (lb, ub)
 
@@ -184,6 +184,7 @@ class IPOPTSolver(OptimizationSolver):
                     return [0] * c._get_constraint_dim()
                 elif isinstance(c, constraints.InequalityConstraint):
                     return [numpy.inf] * c._get_constraint_dim()
+
             cub = numpy.array(sum([constraint_ub(c) for c in constraint], []))
 
             return (nconstraints, fun_g, jac_g, clb, cub)

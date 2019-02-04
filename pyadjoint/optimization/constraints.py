@@ -1,8 +1,9 @@
 """This module offers a standard interface for control constraints,
 that can be used with different optimisation algorithms."""
 
-import numpy
 import copy
+
+import numpy
 
 
 class Constraint(object):
@@ -16,9 +17,10 @@ class Constraint(object):
         raise NotImplementedError("Constraint.function must be supplied")
 
     def jacobian(self, m):
-        """Returns the full Jacobian matrix as a list of vector-like objects representing the gradient of the constraint function with respect to the parameter m.
+        """Returns the full Jacobian matrix as a list of vector-like objects representing the gradient of
+        the constraint function with respect to the parameter m.
 
-           The objects returned must be of the same type as m's data."""
+        The objects returned must be of the same type as m's data."""
 
         raise NotImplementedError("Constraint.jacobian not implemented")
 

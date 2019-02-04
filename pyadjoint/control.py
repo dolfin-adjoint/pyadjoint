@@ -92,5 +92,3 @@ class Control(object):
 
     def unmark_as_control(self):
         self.block_variable.is_control = False
-
-

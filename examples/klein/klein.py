@@ -77,8 +77,9 @@
 # :py:mod:`dolfin_adjoint` modules.
 
 from dolfin import *
-from dolfin_adjoint import *
 from matplotlib.pyplot import show
+
+from dolfin_adjoint import *
 
 # Next we load a triangulation of the Klein bottle as a mesh file.
 mesh = Mesh()
@@ -122,7 +123,8 @@ nu = 1.0
 # :math:`v \in V`:
 
 # .. math::
-#            \frac{1}{\textrm{step}} \int_\Omega \left( u - u_{\textrm{old}} \right) v \textrm{d} \Omega + \nu \int_\Omega \nabla u \cdot \nabla v \textrm{d}\Omega = 0
+#            \frac{1}{\textrm{step}} \int_\Omega \left( u - u_{\textrm{old}} \right) v \textrm{d} \Omega
+#            + \nu \int_\Omega \nabla u \cdot \nabla v \textrm{d}\Omega = 0
 #
 
 # or in code:
@@ -133,7 +135,7 @@ t = 0.0
 step = 0.1
 
 # Define the variational formulation of the problem
-F = u*v*dx - u_old*v*dx + step*nu*inner(grad(v), grad(u))*dx
+F = u * v * dx - u_old * v * dx + step * nu * inner(grad(v), grad(u)) * dx
 
 # The next step is to solve the time-dependent forward problem.
 
@@ -163,7 +165,7 @@ while t <= T:
 # At this point, we can compute the objective functional :math:`J` and compute
 # the sensitivity with respect to the initial condition :math:`g`:
 
-J = assemble(inner(u, u)*dx)
+J = assemble(inner(u, u) * dx)
 m = Control(g)
 
 adj_timer = Timer("Adjoint run")

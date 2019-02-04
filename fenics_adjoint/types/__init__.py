@@ -1,3 +1,5 @@
+# flake8: noqa
+
 import backend
 from pyadjoint.adjfloat import AdjFloat
 from .constant import Constant

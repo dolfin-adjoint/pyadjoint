@@ -26,4 +26,4 @@ setup(name='dolfin_adjoint',
                    'firedrake_adjoint': 'firedrake_adjoint', 'dolfin_adjoint': 'dolfin_adjoint'},
       install_requires=['scipy'],
       extras_require=extras,
-)
+      )

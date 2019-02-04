@@ -1,25 +1,33 @@
 import backend
-from . import compat
+import ufl
+
 from pyadjoint.adjfloat import AdjFloat
-from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, no_annotations
 from pyadjoint.block import Block
 from pyadjoint.overloaded_type import (OverloadedType, FloatingType,
-                                       create_overloaded_object, register_overloaded_type,
+                                       create_overloaded_object,
+                                       register_overloaded_type,
                                        get_overloaded_class)
+from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, \
+    no_annotations
+from . import compat
 from .compat import gather
-import ufl
 
 
 @register_overloaded_type
 class Function(FloatingType, backend.Function):
     def __init__(self, *args, **kwargs):
         super(Function, self).__init__(*args,
-                                       block_class=kwargs.pop("block_class", None),
-                                       _ad_floating_active=kwargs.pop("_ad_floating_active", False),
+                                       block_class=kwargs.pop("block_class",
+                                                              None),
+                                       _ad_floating_active=kwargs.pop(
+                                           "_ad_floating_active", False),
                                        _ad_args=kwargs.pop("_ad_args", None),
-                                       output_block_class=kwargs.pop("output_block_class", None),
-                                       _ad_output_args=kwargs.pop("_ad_output_args", None),
-                                       _ad_outputs=kwargs.pop("_ad_outputs", None),
+                                       output_block_class=kwargs.pop(
+                                           "output_block_class", None),
+                                       _ad_output_args=kwargs.pop(
+                                           "_ad_output_args", None),
+                                       _ad_outputs=kwargs.pop("_ad_outputs",
+                                                              None),
                                        annotate=kwargs.pop("annotate", True),
                                        **kwargs)
         backend.Function.__init__(self, *args, **kwargs)
@@ -111,7 +119,8 @@ class Function(FloatingType, backend.Function):
             u = backend.TrialFunction(self.function_space())
             v = backend.TestFunction(self.function_space())
             M = backend.assemble(
-                backend.inner(u, v) * backend.dx + backend.inner(backend.grad(u), backend.grad(v)) * backend.dx)
+                backend.inner(u, v) * backend.dx + backend.inner(
+                    backend.grad(u), backend.grad(v)) * backend.dx)
             if not isinstance(value, backend.GenericVector):
                 value = value.vector()
             backend.solve(M, ret.vector(), value)
@@ -119,7 +128,8 @@ class Function(FloatingType, backend.Function):
         elif callable(riesz_representation):
             return riesz_representation(value)
         else:
-            raise NotImplementedError("Unknown Riesz representation %s" % riesz_representation)
+            raise NotImplementedError(
+                "Unknown Riesz representation %s" % riesz_representation)
 
     def _ad_create_checkpoint(self):
         if self.block is None:
@@ -128,7 +138,8 @@ class Function(FloatingType, backend.Function):
             return self.copy(deepcopy=True)
 
         dep = self.block.get_dependencies()[0]
-        return backend.Function.sub(dep.saved_output, self.block.idx, deepcopy=True)
+        return backend.Function.sub(dep.saved_output, self.block.idx,
+                                    deepcopy=True)
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
@@ -140,13 +151,13 @@ class Function(FloatingType, backend.Function):
     @no_annotations
     def _ad_mul(self, other):
         r = get_overloaded_class(backend.Function)(self.function_space())
-        backend.Function.assign(r, self*other)
+        backend.Function.assign(r, self * other)
         return r
 
     @no_annotations
     def _ad_add(self, other):
         r = get_overloaded_class(backend.Function)(self.function_space())
-        backend.Function.assign(r, self+other)
+        backend.Function.assign(r, self + other)
         return r
 
     def _ad_dot(self, other, options=None):
@@ -157,9 +168,13 @@ class Function(FloatingType, backend.Function):
         elif riesz_representation == "L2":
             return backend.assemble(backend.inner(self, other) * backend.dx)
         elif riesz_representation == "H1":
-            return backend.assemble((backend.inner(self, other) + backend.inner(backend.grad(self), backend.grad(other))) * backend.dx)
+            return backend.assemble(
+                (backend.inner(self, other) + backend.inner(backend.grad(self),
+                                                            backend.grad(
+                                                                other))) * backend.dx)
         else:
-            raise NotImplementedError("Unknown Riesz representation %s" % riesz_representation)
+            raise NotImplementedError(
+                "Unknown Riesz representation %s" % riesz_representation)
 
     @staticmethod
     def _ad_assign_numpy(dst, src, offset):
@@ -265,20 +280,24 @@ class AssignBlock(Block):
         expr = ufl.replace(self.expr, replace_map)
         return expr, adj_input_func
 
-    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx,
+                               prepared=None):
         if not self.lincom:
             if isinstance(block_variable.output, (AdjFloat, backend.Constant)):
                 return adj_inputs[0].sum()
             else:
-                adj_output = backend.Function(block_variable.output.function_space())
+                adj_output = backend.Function(
+                    block_variable.output.function_space())
                 adj_output.assign(prepared)
                 return adj_output.vector()
         else:
             # Linear combination
             expr, adj_input_func = prepared
-            adj_output = backend.Function(block_variable.output.function_space())
+            adj_output = backend.Function(
+                block_variable.output.function_space())
             diff_expr = ufl.algorithms.expand_derivatives(
-                ufl.derivative(expr, block_variable.saved_output, adj_input_func)
+                ufl.derivative(expr, block_variable.saved_output,
+                               adj_input_func)
             )
             adj_output.assign(diff_expr)
             return adj_output.vector()
@@ -296,7 +315,8 @@ class AssignBlock(Block):
 
         return expr
 
-    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx,
+                               prepared=None):
         if not self.lincom:
             return tlm_inputs[0]
 
@@ -306,14 +326,18 @@ class AssignBlock(Block):
         backend.Function.assign(tlm_output, expr)
         return tlm_output
 
-    def prepare_evaluate_hessian(self, inputs, hessian_inputs, adj_inputs, relevant_dependencies):
-        return self.prepare_evaluate_adj(inputs, hessian_inputs, relevant_dependencies)
+    def prepare_evaluate_hessian(self, inputs, hessian_inputs, adj_inputs,
+                                 relevant_dependencies):
+        return self.prepare_evaluate_adj(inputs, hessian_inputs,
+                                         relevant_dependencies)
 
-    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs,
+                                   block_variable, idx,
                                    relevant_dependencies, prepared=None):
         # Current implementation assumes lincom in hessian,
         # otherwise we need second-order derivatives here.
-        return self.evaluate_adj_component(inputs, hessian_inputs, block_variable, idx, prepared)
+        return self.evaluate_adj_component(inputs, hessian_inputs,
+                                           block_variable, idx, prepared)
 
     def prepare_recompute_component(self, inputs, relevant_outputs):
         if not self.lincom:
@@ -338,13 +362,16 @@ class SplitBlock(Block):
         self.add_dependency(func.block_variable)
         self.idx = idx
 
-    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx,
+                               prepared=None):
         return adj_inputs[0]
 
-    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx,
+                               prepared=None):
         return backend.Function.sub(tlm_inputs[0], self.idx, deepcopy=True)
 
-    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs,
+                                   block_variable, idx,
                                    relevant_dependencies, prepared=None):
         return hessian_inputs[0]
 
@@ -359,7 +386,8 @@ class MergeBlock(Block):
         self.add_dependency(func.block_variable)
         self.idx = idx
 
-    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx,
+                               prepared=None):
         return adj_inputs[0]
 
     def evaluate_tlm(self):
@@ -373,7 +401,8 @@ class MergeBlock(Block):
             backend.assign(f.sub(self.idx), tlm_input)
         )
 
-    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs,
+                                   block_variable, idx,
                                    relevant_dependencies, prepared=None):
         return hessian_inputs[0]
 
@@ -381,4 +410,3 @@ class MergeBlock(Block):
         dep = self.get_dependencies()[0].checkpoint
         output = self.get_outputs()[0].checkpoint
         backend.assign(backend.Function.sub(output, self.idx), dep)
-

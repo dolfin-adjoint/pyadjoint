@@ -1,6 +1,6 @@
 import backend
 import ufl
-from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape, no_annotations
+from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
 from pyadjoint.block import Block
 from pyadjoint.overloaded_type import create_overloaded_object
 from .types import compat
@@ -150,7 +150,7 @@ class AssembleBlock(Block):
             return None
 
         dform = backend.derivative(form, c1_rep, dc)
-        hessian_outputs = backend.Constant(hessian_input)*dform
+        hessian_outputs = backend.Constant(hessian_input) * dform
 
         for other_idx, bv in relevant_dependencies:
             c2_rep = bv.saved_output
@@ -160,7 +160,7 @@ class AssembleBlock(Block):
                 continue
 
             ddform = backend.derivative(dform, c2_rep, tlm_input)
-            hessian_outputs += adj_input*ddform
+            hessian_outputs += adj_input * ddform
 
         hessian_output = compat.assemble_adjoint_value(hessian_outputs)
         if isinstance(c1, backend.Expression):

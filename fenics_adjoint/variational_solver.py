@@ -6,6 +6,7 @@ from .solving import SolveBlock
 class NonlinearVariationalProblem(backend.NonlinearVariationalProblem):
     """This object is overloaded so that solves using this class are automatically annotated,
     so that pyadjoint can automatically derive the adjoint and tangent linear models."""
+
     @no_annotations
     def __init__(self, F, u, bcs=None, J=None, *args, **kwargs):
         super(NonlinearVariationalProblem, self).__init__(F, u, bcs, J,
@@ -21,6 +22,7 @@ class NonlinearVariationalProblem(backend.NonlinearVariationalProblem):
 class NonlinearVariationalSolver(backend.NonlinearVariationalSolver):
     """This object is overloaded so that solves using this class are automatically annotated,
     so that pyadjoint can automatically derive the adjoint and tangent linear models."""
+
     @no_annotations
     def __init__(self, problem, *args, **kwargs):
         super(NonlinearVariationalSolver, self).__init__(problem, *args, **kwargs)
@@ -61,6 +63,7 @@ class NonlinearVariationalSolver(backend.NonlinearVariationalSolver):
 class LinearVariationalProblem(backend.LinearVariationalProblem):
     """This object is overloaded so that solves using this class are automatically annotated,
     so that pyadjoint can automatically derive the adjoint and tangent linear models."""
+
     @no_annotations
     def __init__(self, a, L, u, bcs=None, *args, **kwargs):
         super(LinearVariationalProblem, self).__init__(a, L, u, bcs,
@@ -76,6 +79,7 @@ class LinearVariationalProblem(backend.LinearVariationalProblem):
 class LinearVariationalSolver(backend.LinearVariationalSolver):
     """This object is overloaded so that solves using this class are automatically annotated,
     so that pyadjoint can automatically derive the adjoint and tangent linear models."""
+
     @no_annotations
     def __init__(self, problem, *args, **kwargs):
         super(LinearVariationalSolver, self).__init__(problem, *args, **kwargs)
@@ -96,11 +100,11 @@ class LinearVariationalSolver(backend.LinearVariationalSolver):
             sb_kwargs = SolveBlock.pop_kwargs(kwargs)
             sb_kwargs.update(kwargs)
             block = LinearVariationalSolveBlock(problem._ad_a == problem._ad_L,
-                               problem._ad_u,
-                               problem._ad_bcs,
-                               *self._ad_args,
-                               solver_params=self.parameters,
-                               **sb_kwargs)
+                                                problem._ad_u,
+                                                problem._ad_bcs,
+                                                *self._ad_args,
+                                                solver_params=self.parameters,
+                                                **sb_kwargs)
             tape.add_block(block)
 
         with stop_annotating():
@@ -144,4 +148,3 @@ class LinearVariationalSolveBlock(SolveBlock):
         solver.parameters.update(self.lin_solver_params)
         solver.solve()
         return func
-

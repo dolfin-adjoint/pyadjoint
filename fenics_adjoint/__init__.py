@@ -13,6 +13,8 @@ importing the :py:mod:`dolfin` module. dolfin-adjoint relies on *overloading* ma
 the key functions of dolfin to achieve its degree of automation.
 """
 
+# flake8: noqa
+
 import pyadjoint
 __version__ = pyadjoint.__version__
 __author__ = 'Sebastian Kenji Mitusch'
@@ -22,13 +24,32 @@ __maintainer__ = 'Sebastian Kenji Mitusch'
 __email__ = 'sebastkm@math.uio.no'
 
 import sys
-if not 'backend' in sys.modules:
+if 'backend' not in sys.modules:
     import fenics
     sys.modules['backend'] = fenics
 backend = sys.modules['backend']
 
+from .assembly import assemble, assemble_system
+from .solving import solve
+from .projection import project
+from .interpolation import interpolate
+from .types import Function, Constant, DirichletBC
+from .ufl_constraints import UFLEqualityConstraint, UFLInequalityConstraint
 if backend.__name__ != "firedrake":
-    from .types import genericmatrix
-    from .types import genericvector
+    from .types import Expression, UserExpression, CompiledExpression, genericmatrix, genericvector, io
+    from .newton_solver import NewtonSolver
+    from .lu_solver import LUSolver
+    from .krylov_solver import KrylovSolver
+from .variational_solver import (NonlinearVariationalProblem, NonlinearVariationalSolver,
+                                 LinearVariationalProblem, LinearVariationalSolver)
+from pyadjoint import (Tape, set_working_tape, get_working_tape,
+                       pause_annotation, continue_annotation,
+                       ReducedFunctional,
+                       taylor_test,
+                       compute_gradient, compute_hessian,
+                       AdjFloat, Control, minimize, MinimizationProblem,
+                       IPOPTSolver, ROLSolver, InequalityConstraint, EqualityConstraint,
+                       MoolaOptimizationProblem, print_optimization_methods)
 
-from .ui import *
+
+set_working_tape(Tape())

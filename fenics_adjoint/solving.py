@@ -1,11 +1,13 @@
 import backend
+import numpy
 import ufl
-from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
+
 from pyadjoint.block import Block
+from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
 from .types import Function
 from .types import compat
 from .types.function_space import extract_subfunction
-import numpy
+
 
 # Type dependencies
 
@@ -32,8 +34,8 @@ def solve(*args, **kwargs):
             The interior values are not guaranteed to be zero.
         adj2_cb (function, optional): callback function supplying the second-order adjoint solution in the interior.
             The boundary values are zero.
-        adj2_bdy_cb (function, optional): callback function supplying the second-order adjoint solution on the boundary.
-            The interior values are not guaranteed to be zero.
+        adj2_bdy_cb (function, optional): callback function supplying the second-order adjoint solution on
+            the boundary. The interior values are not guaranteed to be zero.
 
     """
 
@@ -60,7 +62,6 @@ def solve(*args, **kwargs):
 
 
 class SolveBlock(Block):
-
     pop_kwargs_keys = ["adj_cb", "adj_bdy_cb", "adj2_cb", "adj2_bdy_cb"]
 
     def __init__(self, *args, **kwargs):
@@ -88,7 +89,7 @@ class SolveBlock(Block):
                 self.kwargs["Jp"] = backend.adjoint(self.kwargs["Jp"])
 
             if "M" in self.kwargs:
-                raise NotImplemented("Annotation of adaptive solves not implemented.")
+                raise NotImplementedError("Annotation of adaptive solves not implemented.")
 
             # Some arguments need passing to assemble:
             self.assemble_kwargs = {}
@@ -292,7 +293,7 @@ class SolveBlock(Block):
 
         if isinstance(dFdm, float):
             v = dFdu.arguments()[0]
-            dFdm = backend.inner(backend.Constant(numpy.zeros(v.ufl_shape)), v)*backend.dx
+            dFdm = backend.inner(backend.Constant(numpy.zeros(v.ufl_shape)), v) * backend.dx
 
         dudm = backend.Function(V)
         return self._assemble_and_solve_tlm_eq(dFdu, dFdm, dudm, bcs)
@@ -336,7 +337,6 @@ class SolveBlock(Block):
     def prepare_evaluate_hessian(self, inputs, hessian_inputs, adj_inputs, relevant_dependencies):
         # First fetch all relevant values
         fwd_block_variable = self.get_outputs()[0]
-        adj_input = adj_inputs[0]
         hessian_input = hessian_inputs[0]
         tlm_output = fwd_block_variable.tlm_value
 
@@ -399,7 +399,8 @@ class SolveBlock(Block):
         dc = backend.TrialFunction(W)
         dFdm = backend.derivative(F_form, c_rep, dc)
         # TODO: Old comment claims this might break on split. Confirm if true or not.
-        d2Fdudm = ufl.algorithms.expand_derivatives(backend.derivative(dFdm, fwd_block_variable.saved_output, tlm_output))
+        d2Fdudm = ufl.algorithms.expand_derivatives(
+            backend.derivative(dFdm, fwd_block_variable.saved_output, tlm_output))
 
         hessian_output_form = 0
 

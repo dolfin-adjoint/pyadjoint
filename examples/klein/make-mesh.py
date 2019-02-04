@@ -5,11 +5,12 @@ Parametric description taken from
 http://paulbourke.net/geometry/klein/
 """
 
-from dolfin import *
 import numpy
+from dolfin import *
 
 n = 256
-mesh = RectangleMesh(Point(0, 0), Point(4*pi, 2*pi), n, n)
+mesh = RectangleMesh(Point(0, 0), Point(4 * pi, 2 * pi), n, n)
+
 
 # First step: "wrap" the boundaries (right-to-left, top-to-bottom)
 # so that when we transform to the Klein bottle, the edges "join up"
@@ -20,19 +21,21 @@ class LeftRightPeriodicBoundary(SubDomain):
 
     # Map right boundary (H) to left boundary (G)
     def map(self, x, y):
-        y[0] = x[0] - 4*pi
+        y[0] = x[0] - 4 * pi
         y[1] = x[1]
+
 
 class TopBottomPeriodicBoundary(SubDomain):
     def inside(self, x, on_boundary):
-        #print "inside(%s)? %s" % (x, bool(abs(x[1] + pi) < DOLFIN_EPS and on_boundary))
+        # print "inside(%s)? %s" % (x, bool(abs(x[1] + pi) < DOLFIN_EPS and on_boundary))
         return bool(abs(x[1]) < DOLFIN_EPS and on_boundary)
 
     # Map right boundary (H) to left boundary (G)
     def map(self, x, y):
         y[0] = x[0]
-        y[1] = x[1] - 2*pi
-        #print "map(%s): %s" % (x, y)
+        y[1] = x[1] - 2 * pi
+        # print "map(%s): %s" % (x, y)
+
 
 def wrap_mesh(mesh, pbs):
     print("Wrapping input mesh: # vertices == ", mesh.num_vertices())
@@ -94,10 +97,13 @@ def wrap_mesh(mesh, pbs):
     print("Wrapped output mesh: # vertices == ", wrapped_mesh.num_vertices())
     return wrapped_mesh
 
+
 wrapped_mesh = wrap_mesh(mesh, [LeftRightPeriodicBoundary(), TopBottomPeriodicBoundary()])
 
 # Map parametric coordinates (u, v) to (x, y, z)
-a = 2.0 ; n = 2; m = 1
+a = 2.0
+n = 2
+m = 1
 
 code = r'''
 #include <pybind11/pybind11.h>
@@ -142,6 +148,7 @@ V = VectorFunctionSpace(mesh, "Lagrange", 1, dim=3)
 
 KleinMap = CompiledExpression(compile_cpp_code(code).KleinMap(), element=V.ufl_element())
 
+
 def transform_mesh(mesh, coord_map):
     if isinstance(coord_map, function.expression.BaseExpression):
         single_map = coord_map
@@ -168,7 +175,7 @@ def transform_mesh(mesh, coord_map):
     editor.close()
     return new_mesh
 
+
 new_mesh = transform_mesh(wrapped_mesh, KleinMap)
 outfile = XDMFFile(MPI.comm_world, 'klein.xdmf')
 outfile.write(new_mesh)
-

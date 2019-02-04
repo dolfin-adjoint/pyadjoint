@@ -4,8 +4,10 @@ from fenics_adjoint import *
 mesh = UnitIntervalMesh(30)
 V = FunctionSpace(mesh, "CG", 2)
 
+
 def Dt(u, u_, timestep):
     return (u - u_) / timestep
+
 
 pr = project(Expression("sin(2*pi*x[0])", degree=1), V)
 u_ = Function(V)
@@ -28,7 +30,7 @@ while (t <= end):
     solve(F == 0, u, bc)
     u_.assign(u)
     t += float(timestep)
-    J += timestep*assemble(u_*u_*dx)
+    J += timestep * assemble(u_ * u_ * dx)
 
 h = Function(V)
 h.vector()[:] = 1
