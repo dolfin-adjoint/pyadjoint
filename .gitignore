@@ -2,6 +2,7 @@
 .cache/*
 *.swp
 docs/_build/*
+docs/build/*
 *.egg-info
 *.py~
 

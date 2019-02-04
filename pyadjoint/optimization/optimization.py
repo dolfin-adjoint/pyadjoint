@@ -2,7 +2,7 @@ import numpy as np
 import six
 
 from ..reduced_functional import ReducedFunctional
-from ..reduced_functional_numpy import ReducedFunctionalNumPy
+from ..reduced_functional_numpy import ReducedFunctionalNumPy, gather
 from ..tape import no_annotations
 
 
@@ -29,6 +29,7 @@ def serialise_bounds(rf_np, bounds):
 
     # Transpose and return the array to get the form [ [lower_bound1, upper_bound1], [lower_bound2, upper_bound2], ... ]
     return np.array(bounds_arr).T
+
 
 def minimize_scipy_generic(rf_np, method, bounds = None, **kwargs):
     """Interface to the generic minimize method in scipy
@@ -133,6 +134,7 @@ def minimize_scipy_generic(rf_np, method, bounds = None, **kwargs):
     m = [p.data() for p in rf_np.controls]
     return m
 
+
 def minimize_custom(rf_np, bounds=None, **kwargs):
     """ Interface to the user-provided minimisation method """
 
@@ -159,6 +161,7 @@ def minimize_custom(rf_np, bounds=None, **kwargs):
         raise e("Failed to update the optimised control values. Are you sure your custom optimisation algorithm returns an array containing the optimised values?")
     m = [p.data() for p in rf_np.controls]
     return m
+
 
 optimization_algorithms_dict = {'L-BFGS-B': ('The L-BFGS-B implementation in scipy.', minimize_scipy_generic),
                                 'SLSQP': ('The SLSQP implementation in scipy.', minimize_scipy_generic),
@@ -253,6 +256,7 @@ def maximize(rf, method='L-BFGS-B', scale=1.0, **kwargs):
         Additional arguments specific for the optimization methods can be added to the minimize functions (e.g. iprint = 2). These arguments will be passed to the underlying optimization method. For detailed information about which arguments are supported for each optimization method, please refer to the documentaton of the optimization algorithm.
         """
     return minimize(rf, method, scale=-scale, **kwargs)
+
 
 minimise = minimize
 maximise = maximize

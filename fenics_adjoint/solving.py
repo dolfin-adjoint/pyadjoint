@@ -1,8 +1,8 @@
 import backend
 import ufl
-from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape, no_annotations
+from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
 from pyadjoint.block import Block
-from .types import Function, DirichletBC
+from .types import Function
 from .types import compat
 from .types.function_space import extract_subfunction
 import numpy
@@ -10,6 +10,7 @@ import numpy
 # Type dependencies
 
 # TODO: Clean up: some inaccurate comments. Reused code. Confusing naming with dFdm when denoting the control as c.
+
 
 def solve(*args, **kwargs):
     """This solve routine wraps the real Dolfin solve call. Its purpose is to annotate the model,
@@ -19,7 +20,22 @@ def solve(*args, **kwargs):
     To disable the annotation, just pass :py:data:`annotate=False` to this routine, and it acts exactly like the
     Dolfin solve call. This is useful in cases where the solve is known to be irrelevant or diagnostic
     for the purposes of the adjoint computation (such as projecting fields to other function spaces
-    for the purposes of visualisation)."""
+    for the purposes of visualisation).
+
+    The overloaded solve takes optional callback functions to extract adjoint solutions.
+    All of the callback functions follow the same signature, taking a single argument of type Function.
+
+    Keyword Args:
+        adj_cb (function, optional): callback function supplying the adjoint solution in the interior.
+            The boundary values are zero.
+        adj_bdy_cb (function, optional): callback function supplying the adjoint solution on the boundary.
+            The interior values are not guaranteed to be zero.
+        adj2_cb (function, optional): callback function supplying the second-order adjoint solution in the interior.
+            The boundary values are zero.
+        adj2_bdy_cb (function, optional): callback function supplying the second-order adjoint solution on the boundary.
+            The interior values are not guaranteed to be zero.
+
+    """
 
     annotate = annotate_tape(kwargs)
 
@@ -44,6 +60,9 @@ def solve(*args, **kwargs):
 
 
 class SolveBlock(Block):
+
+    pop_kwargs_keys = ["adj_cb", "adj_bdy_cb", "adj2_cb", "adj2_bdy_cb"]
+
     def __init__(self, *args, **kwargs):
         super(SolveBlock, self).__init__()
         self.adj_cb = kwargs.pop("adj_cb", None)
@@ -57,16 +76,6 @@ class SolveBlock(Block):
         self.function_space = self.func.function_space()
         mesh = self.lhs.ufl_domain().ufl_cargo()
         self.add_dependency(mesh.block_variable)
-
-    @staticmethod
-    def pop_kwargs(kwargs):
-        """Takes in a dictionary of keyword arguments,
-        and pops the ones used by SolveBlock"""
-        keys = ["adj_cb", "adj_bdy_cb", "adj2_cb", "adj2_bdy_cb"]
-        d = {}
-        for k in keys:
-            d[k] = kwargs.pop(k, None)
-        return d
 
     def __str__(self):
         return "{} = {}".format(str(self.lhs), str(self.rhs))
@@ -488,8 +497,7 @@ class SolveBlock(Block):
         return bcs
 
     def prepare_recompute_component(self, inputs, relevant_outputs):
-        lhs, rhs, func, bcs = self._replace_recompute_form()
-        return lhs, rhs, func, bcs
+        return self._replace_recompute_form()
 
     def _replace_form(self, form, func=None):
         replace_map = {}

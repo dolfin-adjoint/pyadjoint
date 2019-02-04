@@ -1,4 +1,6 @@
 from .tape import no_annotations
+from .enlisting import Enlist
+from .overloaded_type import create_overloaded_object
 
 
 class Block(object):
@@ -12,11 +14,23 @@ class Block(object):
 
     """
     __slots__ = ['_dependencies', '_outputs', 'block_helper']
+    pop_kwargs_keys = []
 
     def __init__(self):
         self._dependencies = []
         self._outputs = []
         self.block_helper = None
+
+    @classmethod
+    def pop_kwargs(cls, kwargs):
+        """Takes in a dictionary of keyword arguments,
+        and pops the ones used by the Block-subclass `cls`
+        """
+        keys = cls.pop_kwargs_keys
+        d = {}
+        for k in keys:
+            d[k] = kwargs.pop(k, None)
+        return d
 
     def reset(self):
         if self.block_helper is not None:
@@ -82,6 +96,16 @@ class Block(object):
 
     @no_annotations
     def evaluate_adj(self, markings=False):
+        """Computes the adjoint action and stores the result in the `adj_value` attribute of the dependencies.
+
+        This method will by default call the `evaluate_adj_component` method for each dependency.
+
+        Args:
+            markings (bool): If True, then each block_variable will have set `marked_in_path` attribute indicating
+                whether their adjoint components are relevant for computing the final target adjoint values.
+                Default is False.
+
+        """
         outputs = self.get_outputs()
         adj_inputs = []
         has_input = False
@@ -129,14 +153,39 @@ class Block(object):
         return None
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        """This method must be overriden.
+        """This method should be overridden.
         
-        The method should implement a routine for evaluating the adjoint of the block.
+        The method should implement a routine for evaluating the adjoint of the block that corresponds to
+        one dependency.
+        If one considers the adjoint action a vector right multiplied with the Jacobian matrix,
+        then this method should return one entry in the resulting product, where the entry
+        returned is decided by the argument `idx`.
+
+        Args:
+            inputs (list): A list of the saved input values, determined by the dependencies list.
+            adj_inputs (list): A list of the adjoint input values, determined by the outputs list.
+            block_variable (BlockVariable): The block variable of the dependency corresponding to index `idx`.
+            idx (int): The index of the component to compute.
+            prepared (object): Anything returned by the prepare_evaluate_adj method. Default is None.
+
+        Returns:
+            An object of a type consistent with the adj_value type of `block_variable`: The resulting product.
 
         """
         raise NotImplementedError(type(self))
 
+    @no_annotations
     def evaluate_tlm(self, markings=False):
+        """Computes the tangent linear action and stores the result in the `tlm_value` attribute of the outputs.
+
+        This method will by default call the `evaluate_tlm_component` method for each output.
+
+        Args:
+            markings (bool): If True, then each block_variable will have set `marked_in_path` attribute indicating
+                whether their tlm components are relevant for computing the final target tlm values.
+                Default is False.
+
+        """
         deps = self.get_dependencies()
         tlm_inputs = []
         has_input = False
@@ -184,9 +233,23 @@ class Block(object):
         return None
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
-        """This method must be overridden.
+        """This method should be overridden.
         
-        The method should implement a routine for computing the tangent linear model of the block.
+        The method should implement a routine for computing the tangent linear model of the block that corresponds to
+        one output.
+        If one considers the tangent linear action as a Jacobian matrix multiplied with a vector,
+        then this method should return one entry in the resulting product, where the entry returned
+        is decided by the argument `idx`.
+
+        Args:
+            inputs (list): A list of the saved input values, determined by the dependencies list.
+            tlm_inputs (list): A list of the tlm input values, determined by the dependencies list.
+            block_variable (BlockVariable): The block variable of the output corresponding to index `idx`.
+            idx (int): The index of the component to compute.
+            prepared (object): Anything returned by the prepare_evaluate_tlm method. Default is None.
+
+        Returns:
+            An object of the same type as `block_variable.saved_output`: The resulting product.
         
         """
         raise NotImplementedError("evaluate_tlm_component is not implemented for Block-type: {}".format(type(self)))
@@ -256,6 +319,17 @@ class Block(object):
         raise NotImplementedError(type(self))
 
     def recompute(self, markings=False):
+        """Recomputes the overloaded function with new inputs
+            and stores the results in the `checkpoint` attribute of the outputs.
+
+        This method will by default call the `recompute_component` method for each output.
+
+        Args:
+            markings (bool): If True, then each block_variable will have set `marked_in_path` attribute indicating
+                whether their checkpoints need to be recomputed for recomputing the final target function value.
+                Default is False.
+
+        """
         outputs = self.get_outputs()
         for out in outputs:
             if out.is_control:
@@ -296,14 +370,22 @@ class Block(object):
         return None
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        """This method must be overriden.
+        """This method must be overridden.
 
-        The method should implement a routine for recomputing the block in the forward model.
+        The method should implement a routine for recomputing one output of the block in the forward computations.
+        The output to recompute is determined by the `idx` argument, which corresponds to the index
+        of the output in the outputs list.
+        If the block only has a single output, then `idx` will always be 0.
 
-        Currently the designed way of doing the recomputing is to use the saved outputs/checkpoints in the
-        BlockVariable dependencies, and write to the saved output/checkpoint of the BlockOuput outputs. Thus the
-        recomputes are always working with the checkpoints. However I welcome suggestions of other ways to implement
-        the recompute.
+        Args:
+            inputs (list): A list of the saved input values, determined by the dependencies list.
+            block_variable (BlockVariable): The block variable of the output corresponding to index `idx`.
+            idx (int): The index of the output to compute.
+            prepared (object): Anything returned by the prepare_recompute_component method. Default is None.
+
+        Returns:
+            An object of the same type as `block_variable.checkpoint` which is determined by
+            `OverloadedType._ad_create_checkpoint` (often the same as `block_variable.saved_output`): The new output.
 
         """
         raise NotImplementedError
