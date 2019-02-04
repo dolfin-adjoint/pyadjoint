@@ -1,12 +1,12 @@
 import logging
-from .tape import stop_annotating
+
 from .enlisting import Enlist
-from .drivers import compute_hessian
+from .tape import stop_annotating
 
 
 def taylor_test(J, m, h, dJdm=None, Hm=0):
     """Run a taylor test on the functional J around point m in direction h.
-    
+
     Given a functional J, a point in control space m, and a direction in
     control space h, the function computes the taylor remainders and
     returns the convergence rate.
@@ -29,25 +29,28 @@ def taylor_test(J, m, h, dJdm=None, Hm=0):
         ms = Enlist(m)
 
         if len(hs) != len(ms):
-            raise ValueError("%d perturbations are given but only %d expansion points are provided"%(len(hs), len(ms)))
+            raise ValueError(
+                "%d perturbations are given but only %d expansion points are provided" % (len(hs), len(ms)))
 
         Jm = J(m)
         if dJdm is None:
             ds = Enlist(J.derivative())
             if len(ds) != len(ms):
-                raise ValueError("The derivative of J depends on %d variables but only %d expansion points are given"%(len(ds), len(ms)))
-            dJdm = sum(hi._ad_dot(di) for hi,di in zip(hs,ds))
+                raise ValueError(
+                    "The derivative of J depends on %d variables but only %d expansion points are given" % (
+                        len(ds), len(ms)))
+            dJdm = sum(hi._ad_dot(di) for hi, di in zip(hs, ds))
 
         def perturbe(eps):
-            ret = [mi._ad_add(hi._ad_mul(eps)) for mi,hi in zip(ms,hs)]
+            ret = [mi._ad_add(hi._ad_mul(eps)) for mi, hi in zip(ms, hs)]
             return ms.delist(ret)
 
         print("Running Taylor test")
         residuals = []
-        epsilons = [0.01/2**i for i in range(4)]
+        epsilons = [0.01 / 2 ** i for i in range(4)]
         for eps in epsilons:
             Jp = J(perturbe(eps))
-            res = abs(Jp - Jm - eps*dJdm - 0.5*eps**2*Hm)
+            res = abs(Jp - Jm - eps * dJdm - 0.5 * eps ** 2 * Hm)
             residuals.append(res)
 
         if min(residuals) < 1E-15:
@@ -60,7 +63,8 @@ def convergence_rates(E_values, eps_values, show=True):
     from numpy import log
     r = []
     for i in range(1, len(eps_values)):
-        r.append(log(E_values[i]/E_values[i-1])/log(eps_values[i]/eps_values[i-1]))
+        r.append(log(E_values[i] / E_values[i - 1]) /
+                 log(eps_values[i] / eps_values[i - 1]))
     if show:
         print("Computed convergence rates: {}".format(r))
     return r
@@ -92,7 +96,8 @@ def taylor_to_dict(J, m, h):
         ms = Enlist(m)
 
         if len(hs) != len(ms):
-            raise ValueError("%d perturbations are given but only %d expansion points are provided"%(len(hs), len(ms)))
+            raise ValueError("{0:d} perturbations are given but only {1:d} expansion points are provided"
+                             .format(len(hs), len(ms)))
 
         Jm = J(m)
         print("Computing derivative")
@@ -100,38 +105,39 @@ def taylor_to_dict(J, m, h):
             mi.tlm_value = hi.tlm_value
         ds = Enlist(J.derivative())
         if len(ds) != len(ms):
-            raise ValueError("The derivative of J depends on %d variables but only %d expansion points are given"%(len(ds), len(ms)))
-        dJdm = sum(hi._ad_dot(di) for hi,di in zip(hs,ds))
+            raise ValueError("The derivative of J depends on {0:d} variables"
+                             .format(len(ds))
+                             + "but only {0:d} expansion points are given".
+                             format(len(ms)))
+        dJdm = sum(hi._ad_dot(di) for hi, di in zip(hs, ds))
 
         print("Computing Hessian")
 
         Hm = J.hessian(hs)
         Hmh = 0
-        if isinstance(Hm,list):
+        if isinstance(Hm, list):
             for (i, Hmi) in enumerate(Hm):
                 Hmh += Hmi.vector().inner(hs[i].vector())
         else:
             Hmh = Hm.vector().inner(hs[0].vector())
-        def perturbe(eps):
-            ret = [mi._ad_add(hi._ad_mul(eps)) for mi,hi in zip(ms,hs)]
-            return ms.delist(ret)
 
+        def perturbe(eps):
+            ret = [mi._ad_add(hi._ad_mul(eps)) for mi, hi in zip(ms, hs)]
+            return ms.delist(ret)
 
         print("Running Taylor test")
         error_dict = {"eps": None, "FD": {"Residual": [], "Rate": None},
                       "dJdm": {"Residual": [], "Rate": None},
-                      "Hm":{"Residual": [], "Rate": None}}
+                      "Hm": {"Residual": [], "Rate": None}}
 
-        epsilons = [0.01/2**i for i in range(4)]
+        epsilons = [0.01 / 2**i for i in range(4)]
         error_dict["eps"] = epsilons
         for eps in epsilons:
             Jp = J(perturbe(eps))
             error_dict["FD"]["Residual"].append(abs(Jp - Jm))
-            error_dict["dJdm"]["Residual"].append(abs(Jp - Jm - eps*dJdm))
-            error_dict["Hm"]["Residual"].append(abs(Jp -Jm - eps*dJdm - 0.5*eps**2*Hmh))
+            error_dict["dJdm"]["Residual"].append(abs(Jp - Jm - eps * dJdm))
+            error_dict["Hm"]["Residual"].append(abs(Jp - Jm - eps * dJdm - 0.5 * eps**2 * Hmh))
 
-
-        # print("Computed residuals: {}".format(residuals))
         for key in error_dict.keys():
             if key != "eps":
                 error_dict[key]["Rate"] = convergence_rates(error_dict[key]

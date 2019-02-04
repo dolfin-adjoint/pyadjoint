@@ -16,7 +16,6 @@ if backend.__name__ == "firedrake":
 
     backend.functionspaceimpl.WithGeometry._ad_parent_space = property(lambda self: self.parent)
 
-
     def extract_subfunction(u, V):
         """If V is a subspace of the function-space of u, return the component of u that is in that subspace."""
         if V.index is not None:
@@ -110,7 +109,7 @@ if backend.__name__ == "firedrake":
         return value.dat.data
 
     def assemble_adjoint_value(*args, **kwargs):
-        """A wrapper around Firedrake's assemble that returns a Vector 
+        """A wrapper around Firedrake's assemble that returns a Vector
         instead of a Function when assembling a 1-form."""
         result = backend.assemble(*args, **kwargs)
         if isinstance(result, backend.Function):
@@ -131,6 +130,7 @@ else:
     ExpressionType = backend.function.expression.BaseExpression
 
     backend_fs_sub = backend.FunctionSpace.sub
+
     def _fs_sub(self, i):
         V = backend_fs_sub(self, i)
         V._ad_parent_space = self
@@ -138,6 +138,7 @@ else:
     backend.FunctionSpace.sub = _fs_sub
 
     backend_fs_collapse = backend.FunctionSpace.collapse
+
     def _fs_collapse(self, collapsed_dofs=False):
         """Overloaded FunctionSpace.collapse to limit the amount of MPI communicator created.
         """
@@ -178,8 +179,8 @@ else:
             return bc
         try:
             # FIXME: Not perfect handling of Initialization, wait for development in dolfin.DirihcletBC
-            bc =  backend.DirichletBC(backend.FunctionSpace(bc.function_space()),
-                                      value, *bc.domain_args)
+            bc = backend.DirichletBC(backend.FunctionSpace(bc.function_space()),
+                                     value, *bc.domain_args)
         except AttributeError:
             bc = backend.DirichletBC(backend.FunctionSpace(bc.function_space()),
                                      value,
@@ -193,7 +194,7 @@ else:
         :arg vector: The vector data.
         """
         if isinstance(vector, backend.cpp.la.PETScVector)\
-           or  isinstance(vector, backend.cpp.la.Vector):
+           or isinstance(vector, backend.cpp.la.Vector):
             pass
         elif not isinstance(vector, backend.Vector):
             # If vector is a fenics_adjoint.Function, which does not inherit

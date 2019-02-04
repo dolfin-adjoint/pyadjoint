@@ -1,6 +1,6 @@
 import backend
 import ufl
-from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape, no_annotations
+from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
 from pyadjoint.block import Block
 from pyadjoint.overloaded_type import create_overloaded_object
 from .types import compat
@@ -111,7 +111,7 @@ class AssembleBlock(Block):
         elif isinstance(c, backend.Constant):
             mesh = compat.extract_mesh_from_form(self.form)
             dc = backend.TestFunction(c._ad_function_space(mesh))
-            
+
         dform = backend.derivative(form, c_rep, dc)
         output = compat.assemble_adjoint_value(dform)
         return adj_input * output
@@ -170,7 +170,7 @@ class AssembleBlock(Block):
             dform = backend.derivative(form, X)
         else:
             dform = backend.derivative(form, c1_rep, dc)
-        hessian_outputs = hessian_input*compat.assemble_adjoint_value(dform)
+        hessian_outputs = hessian_input * compat.assemble_adjoint_value(dform)
 
         for other_idx, bv in relevant_dependencies:
             c2_rep = bv.saved_output
@@ -184,7 +184,7 @@ class AssembleBlock(Block):
                 ddform = backend.derivative(dform, X, tlm_input)
             else:
                 ddform = backend.derivative(dform, c2_rep, tlm_input)
-            hessian_outputs += adj_input*compat.assemble_adjoint_value(ddform)
+            hessian_outputs += adj_input * compat.assemble_adjoint_value(ddform)
 
         if isinstance(c1, backend.Expression):
             return [(hessian_outputs, W)]

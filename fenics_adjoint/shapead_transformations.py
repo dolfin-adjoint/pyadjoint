@@ -4,19 +4,21 @@ from pyadjoint.overloaded_type import create_overloaded_object
 from pyadjoint.block import Block
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape, no_annotations
 
+
 def SyncSum(vec):
     """ Returns sum of vec over all mpi processes.
 
     Each vec vector must have the same dimension for each MPI process """
 
     comm = backend.MPI.comm_world
-    NormalsAllProcs = numpy.zeros(comm.Get_size()*len(vec), dtype=vec.dtype)
+    NormalsAllProcs = numpy.zeros(comm.Get_size() * len(vec), dtype=vec.dtype)
     comm.Allgather(vec, NormalsAllProcs)
 
     out = numpy.zeros(len(vec))
     for j in range(comm.Get_size()):
-        out += NormalsAllProcs[len(vec)*j:len(vec)*(j+1)]
+        out += NormalsAllProcs[len(vec) * j:len(vec) * (j + 1)]
     return out
+
 
 def mesh_to_boundary(v, b_mesh):
     """
@@ -54,6 +56,7 @@ def mesh_to_boundary(v, b_mesh):
     surface_function.vector().apply('')
     return surface_function
 
+
 def boundary_to_mesh(f, mesh):
     """ Take a CG1 function f defined on a surface mesh and return a
     volume vector with same values on boundary but zero in volume
@@ -63,29 +66,27 @@ def boundary_to_mesh(f, mesh):
     SpaceB = backend.FunctionSpace(b_mesh, "CG", 1)
 
     F = backend.Function(SpaceV)
-    LocValues = numpy.zeros(F.vector().local_size())
     GValues = numpy.zeros(F.vector().size())
 
-
-    map = b_mesh.entity_map(0) # Vertex map from boundary mesh to parent mesh
+    map = b_mesh.entity_map(0)  # Vertex map from boundary mesh to parent mesh
     d2v = backend.dof_to_vertex_map(SpaceB)
     v2d = backend.vertex_to_dof_map(SpaceV)
 
     dof = SpaceV.dofmap()
     imin, imax = dof.ownership_range()
 
-
     for i in range(f.vector().local_size()):
-        GVertID = backend.Vertex(b_mesh, d2v[i]).index() # Local Vertex ID for given dof on boundary mesh
-        PVertID = map[GVertID] # Local Vertex ID of parent mesh
-        PDof = v2d[PVertID] # Dof on parent mesh
-        value = f.vector()[i] # Value on local processor
+        GVertID = backend.Vertex(b_mesh, d2v[i]).index()  # Local Vertex ID for given dof on boundary mesh
+        PVertID = map[GVertID]  # Local Vertex ID of parent mesh
+        PDof = v2d[PVertID]  # Dof on parent mesh
+        value = f.vector()[i]  # Value on local processor
         GValues[dof.local_to_global_index(PDof)] = value
     GValues = SyncSum(GValues)
 
     F.vector().set_local(GValues[imin:imax])
     F.vector().apply("")
     return F
+
 
 def vector_boundary_to_mesh(boundary_func, mesh):
     """
@@ -105,6 +106,7 @@ def vector_boundary_to_mesh(boundary_func, mesh):
     scalar_to_vec.assign(v_out, v_vol)
     return v_out
 
+
 def vector_to_boundary_mesh(func, b_mesh):
     v_split = func.split(deepcopy=True)
     v_b = []
@@ -116,6 +118,7 @@ def vector_to_boundary_mesh(func, b_mesh):
                                                   v in v_b])
     scalar_to_vec.assign(vb_out, v_b)
     return vb_out
+
 
 def transfer_from_boundary(*args, **kwargs):
     """
@@ -174,7 +177,6 @@ class SurfaceTransferBlock(Block):
         hessian_value.vector()[:] = hessian_input
         hessian_output = vector_to_boundary_mesh(hessian_value, mesh)
         self.get_dependencies()[0].add_hessian_output(hessian_output.vector())
-
 
     @no_annotations
     def recompute(self):
@@ -240,7 +242,6 @@ class VolumeTransferBlock(Block):
         hessian_value = backend.Function(W, hessian_input)
         hessian_output = vector_boundary_to_mesh(hessian_value, mesh)
         self.get_dependencies()[0].add_hessian_output(hessian_output.vector())
-
 
     @no_annotations
     def recompute(self):

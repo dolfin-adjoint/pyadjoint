@@ -1,8 +1,8 @@
 import backend
+
 from pyadjoint.tape import annotate_tape, get_working_tape
-from .types import compat
 from .solving import SolveBlock
-import numpy
+from .types import compat
 
 
 class KrylovSolver(backend.KrylovSolver):
@@ -132,7 +132,8 @@ class KrylovSolveBlock(SolveBlock):
             solver = backend.KrylovSolver(self.method, self.preconditioner)
 
             if self.assemble_system:
-                rhs_bcs_form = backend.inner(backend.Function(self.function_space), dFdu_form.arguments()[0])*backend.dx
+                rhs_bcs_form = backend.inner(backend.Function(self.function_space),
+                                             dFdu_form.arguments()[0]) * backend.dx
                 A, _ = backend.assemble_system(dFdu_form, rhs_bcs_form, bcs)
 
                 if self.pc_operator is not None:

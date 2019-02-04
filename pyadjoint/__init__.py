@@ -1,3 +1,5 @@
+# flake8: noqa
+
 __version__ = '2018.2.0.dev0'
 __author__  = 'Sebastian Kenji Mitusch'
 __credits__ = []

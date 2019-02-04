@@ -1,5 +1,5 @@
 import backend
-from pyadjoint.tape import get_working_tape, no_annotations
+from pyadjoint.tape import get_working_tape
 from pyadjoint.overloaded_type import OverloadedType, create_overloaded_object, register_overloaded_type
 from .compat import constant_function_firedrake_compat
 from pyadjoint.block import Block
@@ -64,7 +64,7 @@ class Constant(OverloadedType, backend.Constant):
         return self._constant_from_values(self.values() + other.values())
 
     def _ad_dot(self, other, options=None):
-        return sum(self.values()*other.values())
+        return sum(self.values() * other.values())
 
     @staticmethod
     def _ad_assign_numpy(dst, src, offset):
@@ -149,4 +149,3 @@ class AssignBlock(Block):
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
         return Constant._constant_from_values(block_variable.output, inputs[0])
-

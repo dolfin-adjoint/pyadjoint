@@ -1,15 +1,14 @@
 from __future__ import print_function
 
-from ..enlisting import Enlist
 from ..tape import no_annotations
 
 # TODO: There might be a better way to handle this.
 try:
     import moola
+
     _moola_installed = True
 except ImportError:
     _moola_installed = False
-
 
 __all__ = ["MoolaOptimizationProblem"]
 

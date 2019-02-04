@@ -1,4 +1,3 @@
-import backend
 from pyadjoint.tape import (get_working_tape, annotate_tape,
                             no_annotations)
 from pyadjoint.block import Block
@@ -9,7 +8,7 @@ def BoundaryMesh(*args, **kwargs):
     annotate = annotate_tape(kwargs)
     output = BoundaryMeshType(*args, **kwargs)
     if annotate:
-        block = BoundaryMeshBlock(*args,**kwargs)
+        block = BoundaryMeshBlock(*args, **kwargs)
         tape = get_working_tape()
         tape.add_block(block)
         block.add_output(output.block_variable)

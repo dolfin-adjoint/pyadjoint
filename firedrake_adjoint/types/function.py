@@ -1,8 +1,9 @@
 import backend
+
 import fenics_adjoint.types.function as function
-from pyadjoint.tape import annotate_tape, stop_annotating, get_working_tape
 from fenics_adjoint.projection import ProjectBlock
 from pyadjoint.overloaded_type import create_overloaded_object, register_overloaded_type
+from pyadjoint.tape import annotate_tape, stop_annotating, get_working_tape
 
 
 class Function(function.Function):
@@ -25,7 +26,7 @@ class Function(function.Function):
         return output
 
     def split(self):
-        """Extract any sub :class:`Function`\s defined on the component spaces
+        r"""Extract any sub :class:`Function`\s defined on the component spaces
         of this this :class:`Function`'s :class:`.FunctionSpace`."""
         # TODO: This should produce some kind of annotation.
         if self._split is None:
@@ -33,5 +34,6 @@ class Function(function.Function):
                                 for i, (fs, dat) in
                                 enumerate(zip(self.function_space(), self.dat)))
         return self._split
+
 
 register_overloaded_type(Function, backend.Function)
