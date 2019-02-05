@@ -282,6 +282,7 @@ class SolveBlock(Block):
 
         bcs = []
         dFdm = 0.
+        dFdm_shape = 0.
         for block_variable in self.get_dependencies():
             tlm_value = block_variable.tlm_value
             c = block_variable.output
@@ -303,13 +304,17 @@ class SolveBlock(Block):
             if c == self.func and not self.linear:
                 continue
 
-            dFdm += backend.assemble(backend.derivative(-F_form, c_rep,
-                                                        tlm_value))
+            if isinstance(c, backend.Mesh):
+                dFdm_shape += backend.assemble(
+                    backend.derivative(-F_form, c_rep, tlm_value))
+            else:
+                dFdm += backend.derivative(-F_form, c_rep, tlm_value)
 
         if isinstance(dFdm, float):
             v = dFdu.arguments()[0]
-            dFdm = backend.assemble(backend.inner(backend.Constant(numpy.zeros(v.ufl_shape)), v) * backend.dx)
+            dFdm = backend.inner(backend.Constant(numpy.zeros(v.ufl_shape)), v) * backend.dx
 
+        dFdm = backend.assemble(dFdm) + dFdm_shape
         dudm = backend.Function(V)
         return self._assemble_and_solve_tlm_eq(backend.assemble(dFdu), dFdm, dudm, bcs)
 

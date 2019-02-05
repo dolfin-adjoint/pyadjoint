@@ -13,9 +13,7 @@ def HDF5File_read(self, *args, **kwargs):
         func = args[0]
         if isinstance(func, backend.Mesh):
             func.org_mesh_coords = func.coordinates().copy()
-        elif not isinstance(func, OverloadedType):
-            pass
-        else:
+        if isinstance(func, OverloadedType):
             func.create_block_variable()
     return output
 
@@ -34,7 +32,7 @@ def XDMFFile_read(self, *args, **kwargs):
         func = args[0]
         if isinstance(func, backend.Mesh):
             func.org_mesh_coords = func.coordinates().copy()
-        elif isinstance(func, OverloadedType):
+        if isinstance(func, OverloadedType):
             func.create_block_variable()
     return output
 

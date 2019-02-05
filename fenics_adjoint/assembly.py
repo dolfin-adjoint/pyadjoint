@@ -122,6 +122,7 @@ class AssembleBlock(Block):
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
         form = prepared
         dform = 0.
+        dform_shape = 0.
         for bv in self.get_dependencies():
             c_rep = bv.saved_output
             tlm_value = bv.tlm_value
@@ -130,14 +131,13 @@ class AssembleBlock(Block):
                 continue
             if isinstance(c_rep, backend.Mesh):
                 X = backend.SpatialCoordinate(c_rep)
-                dform += compat.assemble_adjoint_value(backend.
-                                                       derivative(form, X,
-                                                                  tlm_value))
+                dform_shape += compat.assemble_adjoint_value(
+                    backend.derivative(form, X, tlm_value))
             else:
-                dform += compat.assemble_adjoint_value(backend.
-                                                       derivative(form, c_rep,
-                                                                  tlm_value))
-        return dform
+                dform += backend.derivative(form, c_rep, tlm_value)
+        if not isinstance(dform, float):
+            dform = compat.assemble_adjoint_value(dform)
+        return dform + dform_shape
 
     def prepare_evaluate_hessian(self, inputs, hessian_inputs, adj_inputs, relevant_dependencies):
         return self.prepare_evaluate_adj(inputs, adj_inputs, relevant_dependencies)

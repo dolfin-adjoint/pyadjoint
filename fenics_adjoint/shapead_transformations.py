@@ -107,7 +107,7 @@ def vector_boundary_to_mesh(boundary_func, mesh):
     return v_out
 
 
-def vector_to_boundary_mesh(func, b_mesh):
+def vector_mesh_to_boundary(func, b_mesh):
     v_split = func.split(deepcopy=True)
     v_b = []
     for v in v_split:
@@ -154,7 +154,7 @@ class SurfaceTransferBlock(Block):
         b_mesh = self.get_dependencies()[1].output
         adj_value = backend.Function(W)
         adj_value.vector()[:] = adj_input
-        adj_output = vector_to_boundary_mesh(adj_value, b_mesh)
+        adj_output = vector_mesh_to_boundary(adj_value, b_mesh)
         self.get_dependencies()[0].add_adj_output(adj_output.vector())
 
     @no_annotations
@@ -175,7 +175,7 @@ class SurfaceTransferBlock(Block):
         mesh = self.get_dependencies()[1].output
         hessian_value = backend.Function(W)
         hessian_value.vector()[:] = hessian_input
-        hessian_output = vector_to_boundary_mesh(hessian_value, mesh)
+        hessian_output = vector_mesh_to_boundary(hessian_value, mesh)
         self.get_dependencies()[0].add_hessian_output(hessian_output.vector())
 
     @no_annotations
@@ -194,7 +194,7 @@ def transfer_to_boundary(*args, **kwargs):
     """
     annotate = annotate_tape(kwargs)
     with stop_annotating():
-        output = vector_to_boundary_mesh(*args)
+        output = vector_mesh_to_boundary(*args)
     output = create_overloaded_object(output)
 
     if annotate:
@@ -229,7 +229,7 @@ class VolumeTransferBlock(Block):
         if tlm_input is None:
             return
         W = self.get_outputs()[0].output.function_space()
-        output = vector_to_boundary_mesh(tlm_input, W.mesh())
+        output = vector_mesh_to_boundary(tlm_input, W.mesh())
         self.get_outputs()[0].add_tlm_output(output)
 
     @no_annotations
@@ -248,5 +248,5 @@ class VolumeTransferBlock(Block):
         deps = self.get_dependencies()
         W = self.get_outputs()[0].output.function_space()
         deps[0].saved_output.set_allow_extrapolation(True)
-        output = vector_to_boundary_mesh(deps[0].saved_output, W.mesh())
+        output = vector_mesh_to_boundary(deps[0].saved_output, W.mesh())
         self.get_outputs()[0].checkpoint = output

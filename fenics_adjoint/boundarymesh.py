@@ -3,7 +3,7 @@ from pyadjoint.tape import (get_working_tape, annotate_tape,
                             no_annotations)
 from pyadjoint.block import Block
 from .types import BoundaryMeshType
-from .shapead_transformations import vector_boundary_to_mesh, vector_to_boundary_mesh
+from .shapead_transformations import vector_boundary_to_mesh, vector_mesh_to_boundary
 
 
 def BoundaryMesh(*args, **kwargs):
@@ -40,7 +40,7 @@ class BoundaryMeshBlock(Block):
         if tlm_input is None:
             return
 
-        tlm_output = vector_to_boundary_mesh(tlm_input, self.get_outputs()[0].saved_output)
+        tlm_output = vector_mesh_to_boundary(tlm_input, self.get_outputs()[0].saved_output)
         self.get_outputs()[0].add_tlm_output(tlm_output)
 
     @no_annotations
