@@ -149,6 +149,35 @@ def test_strong_boundary_enforcement():
     assert(min(rates["Hm"]["Rate"])>2.95)
 
 
+def test_bmesh_block_operations():
+    # Creating mesh and boundary mesh
+    tape = get_working_tape()
+    tape.clear_tape()
+    mesh = UnitSquareMesh(10, 10)
+    V = VectorFunctionSpace(mesh, "CG", 1)
+    s2 = interpolate(Expression(("x[0]", "x[1]"), degree=2),  V)
+    ALE.move(mesh, s2)
+    b_mesh = BoundaryMesh(mesh, "exterior")
+
+    X = SpatialCoordinate(b_mesh)
+    s_b = as_vector((X[0], X[1]))
+
+    J = assemble(inner(s_b, s_b)*dx)
+
+    Jhat = ReducedFunctional(J, Control(s2))
+
+    # Define the perturbation direction
+    s1 = interpolate(Expression(("A*(x[0]-0.5)", "A*(x[1]-0.5)"),
+                                A=10, degree=3), V)
+
+    # Compute 0th, 1st and  2nd taylor residuals
+    rates = taylor_to_dict(Jhat, s2, s1)
+    assert (min(rates["FD"]["Rate"]) > 0.95)
+    assert (min(rates["dJdm"]["Rate"]) > 1.95)
+    assert (min(rates["Hm"]["Rate"]) > 2.95)
+
+
 if __name__ == "__main__":
     test_h1_smoothing()
     test_strong_boundary_enforcement()
+    test_bmesh_block_operations()

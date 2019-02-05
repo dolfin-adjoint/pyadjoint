@@ -1,7 +1,9 @@
+import backend
 from pyadjoint.tape import (get_working_tape, annotate_tape,
                             no_annotations)
 from pyadjoint.block import Block
 from .types import BoundaryMeshType
+from .shapead_transformations import vector_boundary_to_mesh, vector_to_boundary_mesh
 
 
 def BoundaryMesh(*args, **kwargs):
@@ -27,14 +29,19 @@ class BoundaryMeshBlock(Block):
         if adj_value is None:
             return
 
-        self.get_dependencies()[0].add_adj_output(adj_value)
+        f = backend.Function(backend.VectorFunctionSpace(self.get_outputs()[0].saved_output, "CG", 1))
+        f.vector()[:] = adj_value
+        adj_value = vector_boundary_to_mesh(f, self.get_dependencies()[0].saved_output)
+        self.get_dependencies()[0].add_adj_output(adj_value.vector())
 
     @no_annotations
     def evaluate_tlm(self, markings=False):
         tlm_input = self.get_dependencies()[0].tlm_value
         if tlm_input is None:
             return
-        self.get_outputs()[0].add_tlm_output(tlm_input)
+
+        tlm_output = vector_to_boundary_mesh(tlm_input, self.get_outputs()[0].saved_output)
+        self.get_outputs()[0].add_tlm_output(tlm_output)
 
     @no_annotations
     def evaluate_hessian(self, markings=False):
@@ -42,7 +49,10 @@ class BoundaryMeshBlock(Block):
         if hessian_input is None:
             return
 
-        self.get_dependencies()[1].add_hessian_output(hessian_input)
+        f = backend.Function(backend.VectorFunctionSpace(self.get_outputs()[0].saved_output, "CG", 1))
+        f.vector()[:] = hessian_input
+        hessian_value = vector_boundary_to_mesh(f, self.get_dependencies()[0].saved_output)
+        self.get_dependencies()[0].add_hessian_output(hessian_value.vector())
 
     @no_annotations
     def recompute(self):
