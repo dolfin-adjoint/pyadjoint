@@ -19,13 +19,13 @@ def single_mesh(res=0.025):
     """
 
     geometry = Geometry()
-    c = geometry.add_point((c_x,c_x,0))    
+    c = geometry.add_point((c_x,c_y,0))
 
     # Elliptic obstacle
-    p1 = geometry.add_point((c_x-r_x, c_x,0))
-    p2 = geometry.add_point((c_x, c_x+r_x,0))
-    p3 = geometry.add_point((c_x+r_x, c_x,0))
-    p4 = geometry.add_point((c_x, c_x-r_x,0))
+    p1 = geometry.add_point((c_x-r_x, c_y,0))
+    p2 = geometry.add_point((c_x, c_y+r_x,0))
+    p3 = geometry.add_point((c_x+r_x, c_y,0))
+    p4 = geometry.add_point((c_x, c_y-r_x,0))
     arc_1 = geometry.add_ellipse_arc(p1, c, p2, p2)
     arc_2 = geometry.add_ellipse_arc(p2, c, p3, p3)
     arc_3 = geometry.add_ellipse_arc(p3, c, p4, p4)
@@ -42,7 +42,7 @@ def single_mesh(res=0.025):
     geometry.add_physical_line([rectangle.line_loop.lines[1]], label=outflow)
     geometry.add_physical_line(obstacle_list, label=obstacle)
     field = geometry.add_boundary_layer(edges_list=obstacle_loop.lines,
-                                        hfar=res, hwall_n=res/2, thickness=2*res)
+                                        hfar=res, hwall_n=res/8, thickness=res/2)
     geometry.add_background_field([field])
 
     (points, cells, point_data,

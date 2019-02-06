@@ -20,12 +20,16 @@
 # This problem is to find the shape of the obstacle :math:`\Gamma`, which minimizes the dissipated power in the fluid
 #
 # .. math::
-#       \min_{\sigma,u,s} \int_{\Omega(s)} \sum_{i,j=1}^2 \left(
+#       \min_{h,u,s} \int_{\Omega(s)} \sum_{i,j=1}^2 \left(
 #       \frac{\partial u_i}{\partial x_j}\right)^2~\mathrm{d} x
-#        +\left(\vert\Omega_0\vert - \int_{\Omega(s)}1\mathrm{d} x \right)^2,
+#        +\alpha\Big(\mathrm{Vol}(\Omega(s))-\mathrm{Vol}(\Omega_0)\Big)^2
+#       + \beta\sum_{j=1}^2 \Big(\mathrm{Bc}_j(\Omega(s))
+#       -\mathrm{Bc}_j(\Omega_0)\Big)^2,
 #
-# where :math:`\vert\Omega_0\vert` is the initial volume.
-# In :math:`J`, u is a velocity field subject to the Stokes equations:
+# where :math:`\mathrm{Vol}(\Omega)` is the volume and
+# :math:`\mathrm{Bc}_j(\Omega)` is the :math:`j`-th component of the barycenter
+# of the obstacle.
+# The state variable :math:`u` is a velocity field subject to the Stokes equations:
 #
 # .. math::
 #       -\Delta u + \nabla p &= 0 \qquad \mathrm{in} \ \Omega(s), \\
@@ -39,31 +43,47 @@
 # and :math:`\Lambda_3` the outlet of the channel.
 #
 # We define the change of the fluid domain from its unperturbed state
-# :math:`\Omega_0`, as :math:`\Omega(s)=\{x+s(\sigma)\vert x\in \Omega_0 \}`,
-# , and :math:`s` is a weighted
-# :math:`H^1(\Omega)`-smoothing solving.
+# :math:`\Omega_0`, as :math:`\Omega(s)=\{x+s(h)\vert x\in \Omega_0 \}`,
+# , and :math:`s` is solving a linear elasticity problem :cite:`schulz2016computational` with
+# a variable Lamé parameter :math:`\mu`.
 #
 # .. math::
-#       -\alpha\Delta s + s &= 0 \qquad \text{in} \ \Omega_0,\\
+#       \mathrm{div}(\sigma) &= 0 \qquad \text{in } \Omega_0 \\
 #       s&=0 \qquad \text{on} \ \Lambda_1\cup\Lambda_2\cup\Lambda_3,\\
-#       \frac{\partial s}{\partial n} &= \sigma \qquad \text{on} \ \Gamma.\\
+#       \frac{\partial s}{\partial n} &= h \qquad \text{on} \ \Gamma.\\
 #    :label: deformation 
 #    
+# where
 #
+# .. math::
+#       \sigma &:= \lambda_{elas} \mathrm{Tr}(\epsilon)I + 2\mu_{elas}\epsilon \\
+#       \epsilon &:=\frac{1}{2}(\nabla s + \nabla s^T)
+#
+# is the stress and strain tensors, respectively. As in :cite:`schulz2016computational`, we set :math:`\lambda_{elas}=0`, and let :math:`\mu_{elas}` solve
+#
+# .. math::
+#       \Delta \mu_{elas} = 0& \qquad \text{in } \Omega \\
+#       \mu_{elas} = 0 &\qquad \text{on} \ \Lambda_1\cup\Lambda_2\cup\Lambda_3\\
+#       \mu_{elas} = 500& \qquad \text{on} \ \Gamma
+#
+# As opposed to :cite:`schulz2016computational`, we do not use the the linear
+# elasticity equation as a Riesz-representation of the shape derivative.
+# We instead use the stresses :math:`h` in :eq:`deformation` as the design
+# parameters for the problem.
 #
 # Implementation
 # **************
 #
-# First, the :py:mod:`dolfin`and :py:mod:`dolfin_adjoint` modules are imported:
+# First, the :py:mod:`dolfin` and :py:mod:`dolfin_adjoint` modules are imported:
 
 from dolfin import *
 from dolfin_adjoint import *
+set_log_level(LogLevel.ERROR)
 
+# Next, we load the facet marker values used in the mesh, as well as some
+# geometrical quantities mesh-generator file.
 
-# Next, we load the facet marker values used in the mesh from the
-# mesh-generator file.
-
-from create_mesh import inflow, outflow, walls, obstacle
+from create_mesh import inflow, outflow, walls, obstacle, c_x, c_y, L, H
 
 # The initial (unperturbed) mesh and corresponding facet function from their respective
 # xdmf-files.
@@ -76,40 +96,72 @@ with XDMFFile("mf.xdmf") as infile:
     infile.read(mvc, "name_to_read")
     mf = cpp.mesh.MeshFunctionSizet(mesh, mvc)
 
-# We compute the initial volume of the computational domain
+# We compute the initial volume of the obstacle 
 
-Omega0 = assemble(Constant(1)*dx(domain=mesh))
+Vol0 = L*H - assemble(Constant(1)*dx(domain=mesh))
 
-# We create a Boundary-mesh and function space for our control :math:`\sigma`
+# We create a Boundary-mesh and function space for our control :math:`h`
 
 b_mesh = BoundaryMesh(mesh, "exterior")
 S_b = VectorFunctionSpace(b_mesh, "CG", 1)
-sigma = Function(S_b, name="Design")
+h = Function(S_b, name="Design")
 
 # We create a corresponding function space on :math:`\Omega`, and
 # transfer the corresponding boundary values to the function
-# :math:`\sigma_V`. This call is needed to be able to represent
-# :math:`\sigma` in the variational form of :math:`s`.
+# :math:`h_V`. This call is needed to be able to represent
+# :math:`h` in the variational form of :math:`s`.
 
 S = VectorFunctionSpace(mesh, "CG", 1)
 s = Function(S, name="Mesh perturbation field")
-sigma_V = transfer_from_boundary(sigma, mesh)
-sigma_V.rename("Volume extension of sigma", "")
+h_V = transfer_from_boundary(h, mesh)
+h_V.rename("Volume extension of h", "")
 
 # We can now transfer our mesh according to :eq:`deformation`.
 
-u, v = TrialFunction(S), TestFunction(S)
-alpha = 0.1
-fixed = Constant((0,0))
-a = alpha*inner(grad(u),grad(v))*dx + inner(u,v)*dx
-dGamma = Measure("ds", domain=mesh,
-                    subdomain_data=mf, subdomain_id=obstacle)
-bc_inlet = DirichletBC(S, fixed, mf, inflow)
-bc_outlet = DirichletBC(S, fixed, mf, outflow)
-bc_walls = DirichletBC(S, fixed, mf, walls)
-bc_deform = [bc_inlet, bc_outlet, bc_walls]
-l = inner(sigma_V, v)*dGamma
-solve(a==l, s, bcs=bc_deform)
+def mesh_deformation(h):
+    # Compute variable :math:`\mu`
+    V = FunctionSpace(mesh, "CG", 1)
+    u, v = TrialFunction(V), TestFunction(V)
+
+    a = -inner(grad(u),grad(v))*dx
+    l = Constant(0)*v*dx
+
+    mu_min=Constant(1, name="mu_min")
+    mu_max=Constant(500, name="mu_max")
+    bcs = []
+    for marker in [inflow, outflow, walls]:
+        bcs.append(DirichletBC(V, mu_min, mf, marker))
+    bcs.append(DirichletBC(V, mu_max, mf, obstacle))
+
+    mu = Function(V, name="mesh deformation mu")
+    solve(a==l, mu, bcs=bcs)
+
+    # Compute the mesh deformation
+    S = VectorFunctionSpace(mesh, "CG", 1)
+    u, v = TrialFunction(S), TestFunction(S)
+    dObstacle = Measure("ds", subdomain_data=mf, subdomain_id=obstacle)
+    
+    def epsilon(u):
+        return sym(grad(u))
+    def sigma(u,mu=500, lmb=0):
+        return 2*mu*epsilon(u) + lmb*tr(epsilon(u))*Identity(2)
+
+    a = inner(sigma(u,mu=mu), grad(v))*dx
+    L = inner(h, v)*dObstacle
+
+    zero = Constant([0]*mesh.geometric_dimension())
+    bcs = []
+    for marker in [inflow, outflow, walls]:
+        bcs.append(DirichletBC(S, zero, mf, marker))     
+
+    s = Function(S, name="mesh deformation")
+    solve(a==L, s, bcs=bcs)
+    return s
+
+# We compute the mesh deformation with the volume extension of the control
+# variable :math:`h` and move the domain.
+
+s = mesh_deformation(h_V)
 ALE.move(mesh, s)
 
 # The next step is to set up :eq:`state`. We start by defining the
@@ -136,57 +188,64 @@ bc_obstacle = DirichletBC(VQ.sub(0),noslip , mf, obstacle)
 bc_walls = DirichletBC(VQ.sub(0), noslip, mf, walls)
 bcs = [bc_inlet, bc_obstacle, bc_walls]
 
+# We solve the mixed equations and split the solution into the velocity-field
+# :math:`u` and pressure-field :math:`p`.
+
 w = Function(VQ, name="Mixed State Solution")
 solve(a==l, w, bcs=bcs)
 u, p = w.split()
 
+# We compute the dissipated energy in the fluid volume,
+# :math:`\int_{\Omega(s)} \sum_{i,j=1}^2 \left(\frac{\partial u_i}{\partial x_j}\right)^2~\mathrm{d} x`
+
 J = assemble(inner(grad(u), grad(u))*dx)
-J += (Omega0 - assemble(Constant(1)*dx(domain=mesh)))**2
 
-Jhat = ReducedFunctional(J, Control(sigma))
+# Then, we add a weak enforcement of the volume contraint,
+# :math:`\alpha\big(\mathrm{Vol}(\Omega(s))-\mathrm{Vol}(\Omega_0)\big)^2`.
 
-# The computational tape can be visualized with the following commands
+alpha = 1e4
+Vol = assemble(Constant(1)*dx(domain=mesh))
+J += alpha*((L*H-Vol)-Vol0)**2
 
-tape = get_working_tape()
-tape.visualise()
+# Similarly, we add a weak enforcement of the barycenter contraint,
+# :math:`\beta\big(\mathrm{Bc}_j(\Omega(s))-\mathrm{Bc}_j(\Omega_0)\big)^2`.
 
-# We perform a Taylor-test to verify the shape gradient
+Bc1 = (L**2*H/2-assemble(x*dx(domain=mesh)))/(L*H-Vol)
+Bc2 = (L*H**2/2-assemble(y*dx(domain=mesh)))/(L*H-Vol)
+beta = 1e4
+J+= beta*((Bc1-c_x)**2+(Bc2-c_y)**2)
 
-perturbation = interpolate(Expression(("A*sin(x[0])", "A*x[1]"),
-                                      A=2,degree=2), S_b)
-s_0 = Function(S_b) # Initial point in taylor-test
-results = taylor_to_dict(Jhat, s_0, perturbation)
+# We define the reduced functional, where :math:`h` is the design parameter# and use scipy to minimize the objective.
 
-# We check that we obtain the expected convergence rates for the
-# Finite Difference, with gradient information and with Hessian information
-print("Finite Difference residuals")
-print(" ".join("{:.2e}".format(res) for res in results["FD"]["Residual"]))
-print("Residuals with gradient info")
-print(" ".join("{:.2e}".format(res) for res in results["dJdm"]["Residual"]))
-print("Residuals with hessian info")
-print(" ".join("{:.2e}".format(res) for res in results["Hm"]["Residual"]))
-print("*"*15)
-print("Finite difference convergence rates")
-print(" ".join("{:2.3f}".format(res) for res in results["FD"]["Rate"]))
-print("Convergence rate with gradient info")
-print(" ".join("{:2.3f}".format(res) for res in results["dJdm"]["Rate"]))
-print("Convergence rate with hessian info")
-print(" ".join("{:2.3f}".format(res) for res in results["Hm"]["Rate"]))
+Jhat = ReducedFunctional(J, Control(h))
+s_opt = minimize(Jhat,tol=1e-6, options={"gtol": 1e-6, "maxiter": 50})
+
+# We evaluate the functional with the optimal solution and plot
+# the initial and final mesh
+
+import matplotlib.pyplot as plt
+Jhat(h)
+initial, _ = plot(mesh, color="b", linewidth=0.25, label="Initial mesh")
+Jhat(s_opt)
+optimal, _ = plot(mesh, color="r", linewidth=0.25, label="Optimal mesh")
+plt.legend(handles=[initial, optimal])
+plt.axis("off")
+plt.savefig("meshes.png", dpi=800, bbox_inches="tight", pad_inches=0)
+
+# .. figure:: meshes.png
+#   :scale: 25
+
+
+# In addition, we perform a Taylor-test to verify the shape gradient and
+# Hessian. We compute the convergence rates and check that they correspond
+# to the expected values.
+
+perturbation = interpolate(Expression(("-A*x[0]", "A*x[1]"),
+                                      A=5000,degree=2), S_b)
+results = taylor_to_dict(Jhat, Function(S_b), perturbation)
 assert(min(results["FD"]["Rate"])>0.9)
 assert(min(results["dJdm"]["Rate"])>1.95)
 assert(min(results["Hm"]["Rate"])>2.95)
-
-
-# We visualize the maximum displacement in the taylor test
-unperturbed, _ = plot(mesh, color="k", label="unperturbed", linewidth=0.5)
-perturbation.vector()[:]*=0.01 # Taylor test scales internally
-Jhat(perturbation)
-perturbed, _ = plot(mesh, color="r", label="perturbed",linewidth=0.5)
-import matplotlib.pyplot as plt
-plt.axis("off")
-plt.legend(handles=[unperturbed, perturbed])
-plt.savefig("mesh.png",dpi=250,bbox_inches="tight",
-            pad_inches=0)
 
 # .. bibliography:: /documentation/stokes-shape-opt/stokes-shape-opt.bib
 #    :cited:
