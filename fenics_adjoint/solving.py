@@ -75,8 +75,9 @@ class SolveBlock(Block):
         self._init_solver_parameters(*args, **kwargs)
         self._init_dependencies(*args, **kwargs)
         self.function_space = self.func.function_space()
-        mesh = self.lhs.ufl_domain().ufl_cargo()
-        self.add_dependency(mesh.block_variable)
+        if backend.__name__ != "firedrake":
+            mesh = self.lhs.ufl_domain().ufl_cargo()
+            self.add_dependency(mesh.block_variable)
 
     def __str__(self):
         return "{} = {}".format(str(self.lhs), str(self.rhs))
@@ -243,7 +244,7 @@ class SolveBlock(Block):
         elif isinstance(c, backend.DirichletBC):
             tmp_bc = compat.create_bc(c, value=extract_subfunction(adj_sol_bdy, c.function_space()))
             return [tmp_bc]
-        elif isinstance(c, backend.Mesh):
+        elif isinstance(c, compat.MeshType):
             # Using CoordianteDerivative requires us to do action before
             # differentiating, might change in the future.
             F_form_tmp = backend.action(F_form, adj_sol)
@@ -294,7 +295,7 @@ class SolveBlock(Block):
                 else:
                     bcs.append(tlm_value)
                 continue
-            elif isinstance(c, backend.Mesh):
+            elif isinstance(c, compat.MeshType):
                 X = backend.SpatialCoordinate(c)
                 c_rep = X
 
@@ -304,7 +305,7 @@ class SolveBlock(Block):
             if c == self.func and not self.linear:
                 continue
 
-            if isinstance(c, backend.Mesh):
+            if isinstance(c, compat.MeshType):
                 dFdm_shape += backend.assemble(
                     backend.derivative(-F_form, c_rep, tlm_value))
             else:
@@ -334,7 +335,7 @@ class SolveBlock(Block):
             if (c == self.func and not self.linear) or tlm_input is None:
                 continue
 
-            if isinstance(c, backend.Mesh):
+            if isinstance(c, compat.MeshType):
                 X = backend.SpatialCoordinate(c)
                 dFdu_adj = backend.action(dFdu_form, adj_sol)
                 d2Fdudm = ufl.algorithms.expand_derivatives(
@@ -420,22 +421,23 @@ class SolveBlock(Block):
         elif isinstance(c, backend.Expression):
             mesh = F_form.ufl_domain().ufl_cargo()
             W = c._ad_function_space(mesh)
-        elif isinstance(c, backend.Mesh):
+        elif isinstance(c, compat.MeshType):
             X = backend.SpatialCoordinate(c)
             element = X.ufl_domain().ufl_coordinate_element()
             W = backend.FunctionSpace(c, element)
         else:
             W = c.function_space()
 
-        dc = backend.TrialFunction(W)
+        dc = backend.TestFunction(W)
         form_adj = backend.action(F_form, adj_sol)
         form_adj2 = backend.action(F_form, adj_sol2)
-        if isinstance(c, backend.Mesh):
+        if isinstance(c, compat.MeshType):
             dFdm_adj = backend.derivative(form_adj, X, dc)
             dFdm_adj2 = backend.derivative(form_adj2, X, dc)
         else:
             dFdm_adj = backend.derivative(form_adj, c_rep, dc)
             dFdm_adj2 = backend.derivative(form_adj2, c_rep, dc)
+
         # TODO: Old comment claims this might break on split. Confirm if true or not.
         d2Fdudm = ufl.algorithms.expand_derivatives(
             backend.derivative(dFdm_adj, fwd_block_variable.saved_output,
@@ -460,7 +462,7 @@ class SolveBlock(Block):
                 continue
 
             # TODO: If tlm_input is a Sum, this crashes in some instances?
-            if isinstance(c2_rep, backend.Mesh):
+            if isinstance(c2_rep, compat.MeshType):
                 X = backend.SpatialCoordinate(c2_rep)
                 d2Fdm2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, X, tlm_input))
             else:

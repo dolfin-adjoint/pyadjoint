@@ -12,6 +12,15 @@ if backend.__name__ == "firedrake":
 
     FunctionSpace = backend.FunctionSpace
 
+    MeshType = backend.mesh.MeshGeometry
+
+    # FIXME: See issue #1372 in Firedrake
+    backend.Vector.__radd__ = lambda self, other: backend.Vector.__add__(self, other)
+    def __rsub__(self, other):
+        self *= -1.0
+        return self.__add__(other)
+    backend.Vector.__rsub__ = __rsub__
+
     backend.functionspaceimpl.FunctionSpace._ad_parent_space = property(lambda self: self.parent)
 
     backend.functionspaceimpl.WithGeometry._ad_parent_space = property(lambda self: self.parent)
@@ -128,6 +137,8 @@ else:
     FunctionType = backend.cpp.function.Function
     FunctionSpaceType = backend.cpp.function.FunctionSpace
     ExpressionType = backend.function.expression.BaseExpression
+
+    MeshType = backend.Mesh
 
     backend_fs_sub = backend.FunctionSpace.sub
 

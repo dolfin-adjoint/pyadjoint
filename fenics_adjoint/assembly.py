@@ -65,8 +65,9 @@ class AssembleBlock(Block):
     def __init__(self, form):
         super(AssembleBlock, self).__init__()
         self.form = form
-        mesh = self.form.ufl_domain().ufl_cargo()
-        self.add_dependency(mesh.block_variable)
+        if backend.__name__ != "firedrake":
+            mesh = self.form.ufl_domain().ufl_cargo()
+            self.add_dependency(mesh.block_variable)
         for c in self.form.coefficients():
             self.add_dependency(c.block_variable, no_duplicates=True)
 
@@ -100,7 +101,7 @@ class AssembleBlock(Block):
             dform = backend.derivative(form, c_rep, dc)
             output = compat.assemble_adjoint_value(dform)
             return [[adj_input * output, V]]
-        elif isinstance(c, backend.Mesh):
+        elif isinstance(c, compat.MeshType):
             X = backend.SpatialCoordinate(c_rep)
             dform = backend.derivative(form, X)
             output = compat.assemble_adjoint_value(dform)
@@ -129,7 +130,7 @@ class AssembleBlock(Block):
 
             if tlm_value is None:
                 continue
-            if isinstance(c_rep, backend.Mesh):
+            if isinstance(c_rep, compat.MeshType):
                 X = backend.SpatialCoordinate(c_rep)
                 dform_shape += compat.assemble_adjoint_value(
                     backend.derivative(form, X, tlm_value))
@@ -160,12 +161,12 @@ class AssembleBlock(Block):
         elif isinstance(c1, backend.Constant):
             mesh = compat.extract_mesh_from_form(form)
             dc = backend.TestFunction(c1._ad_function_space(mesh))
-        elif isinstance(c1, backend.Mesh):
+        elif isinstance(c1, compat.MeshType):
             pass
         else:
             return None
 
-        if isinstance(c1, backend.Mesh):
+        if isinstance(c1, compat.MeshType):
             X = backend.SpatialCoordinate(c1)
             dform = backend.derivative(form, X)
         else:
@@ -179,7 +180,7 @@ class AssembleBlock(Block):
             if tlm_input is None:
                 continue
 
-            if isinstance(c2_rep, backend.Mesh):
+            if isinstance(c2_rep, compat.MeshType):
                 X = backend.SpatialCoordinate(c2_rep)
                 ddform = backend.derivative(dform, X, tlm_input)
             else:

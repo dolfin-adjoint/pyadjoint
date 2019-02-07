@@ -34,10 +34,6 @@ from .solving import solve
 from .projection import project
 from .interpolation import interpolate
 from .refine import refine
-from .types import (Function, Constant, DirichletBC,
-                    Mesh, UnitSquareMesh, UnitIntervalMesh, IntervalMesh,
-                    UnitCubeMesh)
-from .boundarymesh import BoundaryMesh
 from .ufl_constraints import UFLEqualityConstraint, UFLInequalityConstraint
 from .shapead_transformations import (transfer_from_boundary,
                                       transfer_to_boundary)
@@ -46,6 +42,11 @@ if backend.__name__ != "firedrake":
     from .newton_solver import NewtonSolver
     from .lu_solver import LUSolver
     from .krylov_solver import KrylovSolver
+    from .types import (Function, Constant, DirichletBC,
+                    Mesh, UnitSquareMesh, UnitIntervalMesh, IntervalMesh,
+                    UnitCubeMesh)
+    from .boundarymesh import BoundaryMesh
+
 from .variational_solver import (NonlinearVariationalProblem, NonlinearVariationalSolver,
                                  LinearVariationalProblem, LinearVariationalSolver)
 from pyadjoint import (Tape, set_working_tape, get_working_tape,
