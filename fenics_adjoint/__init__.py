@@ -33,6 +33,7 @@ from .assembly import assemble, assemble_system
 from .solving import solve
 from .projection import project
 from .interpolation import interpolate
+from .refine import refine
 from .types import (Function, Constant, DirichletBC,
                     Mesh, UnitSquareMesh, UnitIntervalMesh, IntervalMesh,
                     UnitCubeMesh)

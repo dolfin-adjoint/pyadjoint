@@ -17,31 +17,6 @@
 # Problem definition
 # ******************
 #
-# This problem is to find the shape of the obstacle :math:`\Gamma`, which minimizes the dissipated power in the fluid
-#
-# .. math::
-#       \min_{h,u,s} \int_{\Omega(s)} \sum_{i,j=1}^2 \left(
-#       \frac{\partial u_i}{\partial x_j}\right)^2~\mathrm{d} x
-#        +\alpha\Big(\mathrm{Vol}(\Omega(s))-\mathrm{Vol}(\Omega_0)\Big)^2
-#       + \beta\sum_{j=1}^2 \Big(\mathrm{Bc}_j(\Omega(s))
-#       -\mathrm{Bc}_j(\Omega_0)\Big)^2,
-#
-# where :math:`\mathrm{Vol}(\Omega)` is the volume and
-# :math:`\mathrm{Bc}_j(\Omega)` is the :math:`j`-th component of the barycenter
-# of the obstacle.
-# The state variable :math:`u` is a velocity field subject to the Stokes equations:
-#
-# .. math::
-#       -\Delta u + \nabla p &= 0 \qquad \mathrm{in} \ \Omega(s), \\
-#       \mathrm{div}(u) &= 0 \qquad \mathrm{in} \ \Omega(s), \\
-#       u &= 0 \qquad \mathrm{on} \ \Gamma(s)\cup\Lambda_1,\\
-#       u &= g \qquad \mathrm{on} \ \Lambda_2, \\
-#       \frac{\partial u }{\partial n} + pn &= 0 \qquad \mathrm{on} \ \Lambda_3,
-#    :label: state
-#
-# where :math:`\Lambda_1` are the walls, :math:`\Lambda_2` the inlet
-# and :math:`\Lambda_3` the outlet of the channel.
-#
 # We define the change of the fluid domain from its unperturbed state
 # :math:`\Omega_0`, as :math:`\Omega(s)=\{x+s(h)\vert x\in \Omega_0 \}`,
 # , and :math:`s` is solving a linear elasticity problem :cite:`schulz2016computational` with
@@ -71,6 +46,32 @@
 # We instead use the stresses :math:`h` in :eq:`deformation` as the design
 # parameters for the problem.
 #
+# This problem is to find the shape of the obstacle :math:`\Gamma`, which minimizes the dissipated power in the fluid
+#
+# .. math::
+#       \min_{h,u,s} \int_{\Omega(s)} \sum_{i,j=1}^2 \left(
+#       \frac{\partial u_i}{\partial x_j}\right)^2~\mathrm{d} x
+#        +\alpha\Big(\mathrm{Vol}(\Omega(s))-\mathrm{Vol}(\Omega_0)\Big)^2
+#       + \beta\sum_{j=1}^2 \Big(\mathrm{Bc}_j(\Omega(s))
+#       -\mathrm{Bc}_j(\Omega_0)\Big)^2,
+#
+# where :math:`\mathrm{Vol}(\Omega)` is the volume and
+# :math:`\mathrm{Bc}_j(\Omega)` is the :math:`j`-th component of the barycenter
+# of the obstacle.
+# The state variable :math:`u` is a velocity field subject to the Stokes equations:
+#
+# .. math::
+#       -\Delta u + \nabla p &= 0 \qquad \mathrm{in} \ \Omega(s), \\
+#       \mathrm{div}(u) &= 0 \qquad \mathrm{in} \ \Omega(s), \\
+#       u &= 0 \qquad \mathrm{on} \ \Gamma(s)\cup\Lambda_1,\\
+#       u &= g \qquad \mathrm{on} \ \Lambda_2, \\
+#       \frac{\partial u }{\partial n} + pn &= 0 \qquad \mathrm{on} \ \Lambda_3,
+#    :label: state
+#
+# where :math:`\Lambda_1` are the walls, :math:`\Lambda_2` the inlet
+# and :math:`\Lambda_3` the outlet of the channel.
+#
+#
 # Implementation
 # **************
 #
@@ -98,13 +99,16 @@ with XDMFFile("mf.xdmf") as infile:
 
 # We compute the initial volume of the obstacle 
 
-Vol0 = L*H - assemble(Constant(1)*dx(domain=mesh))
+one = Constant(1)
+Vol0 = L*H - assemble(one*dx(domain=mesh))
 
 # We create a Boundary-mesh and function space for our control :math:`h`
 
 b_mesh = BoundaryMesh(mesh, "exterior")
 S_b = VectorFunctionSpace(b_mesh, "CG", 1)
 h = Function(S_b, name="Design")
+
+zero = Constant([0]*mesh.geometric_dimension())
 
 # We create a corresponding function space on :math:`\Omega`, and
 # transfer the corresponding boundary values to the function
@@ -149,7 +153,6 @@ def mesh_deformation(h):
     a = inner(sigma(u,mu=mu), grad(v))*dx
     L = inner(h, v)*dObstacle
 
-    zero = Constant([0]*mesh.geometric_dimension())
     bcs = []
     for marker in [inflow, outflow, walls]:
         bcs.append(DirichletBC(S, zero, mf, marker))     
@@ -176,16 +179,15 @@ VQ = FunctionSpace(mesh, V2*S1)
 (u, p) = TrialFunctions(VQ)
 (v, q) = TestFunctions(VQ)
 a = inner(grad(u), grad(v))*dx - div(u)*q*dx - div(v)*p*dx
-l = inner(Constant((0,0)), v)*dx
+l = inner(zero, v)*dx
 
 # The Dirichlet boundary conditions on :math:`\Gamma` is defined as follows
 
 (x,y) = SpatialCoordinate(mesh)
 g = Expression(("sin(pi*x[1])","0"),degree=2)
-noslip = Constant((0,0))
 bc_inlet = DirichletBC(VQ.sub(0), g, mf, inflow)
-bc_obstacle = DirichletBC(VQ.sub(0),noslip , mf, obstacle)
-bc_walls = DirichletBC(VQ.sub(0), noslip, mf, walls)
+bc_obstacle = DirichletBC(VQ.sub(0), zero , mf, obstacle)
+bc_walls = DirichletBC(VQ.sub(0), zero, mf, walls)
 bcs = [bc_inlet, bc_obstacle, bc_walls]
 
 # We solve the mixed equations and split the solution into the velocity-field
@@ -204,16 +206,16 @@ J = assemble(inner(grad(u), grad(u))*dx)
 # :math:`\alpha\big(\mathrm{Vol}(\Omega(s))-\mathrm{Vol}(\Omega_0)\big)^2`.
 
 alpha = 1e4
-Vol = assemble(Constant(1)*dx(domain=mesh))
-J += alpha*((L*H-Vol)-Vol0)**2
+Vol = assemble(one*dx(domain=mesh))
+J += alpha*((L*H - Vol) - Vol0)**2
 
 # Similarly, we add a weak enforcement of the barycenter contraint,
 # :math:`\beta\big(\mathrm{Bc}_j(\Omega(s))-\mathrm{Bc}_j(\Omega_0)\big)^2`.
 
-Bc1 = (L**2*H/2-assemble(x*dx(domain=mesh)))/(L*H-Vol)
-Bc2 = (L*H**2/2-assemble(y*dx(domain=mesh)))/(L*H-Vol)
+Bc1 = (L**2*H/2 - assemble(x*dx(domain=mesh))) / (L*H - Vol)
+Bc2 = (L*H**2/2 - assemble(y*dx(domain=mesh))) / (L*H - Vol)
 beta = 1e4
-J+= beta*((Bc1-c_x)**2+(Bc2-c_y)**2)
+J+= beta*((Bc1 - c_x)**2 + (Bc2 - c_y)**2)
 
 # We define the reduced functional, where :math:`h` is the design parameter# and use scipy to minimize the objective.
 
