@@ -16,8 +16,9 @@ if backend.__name__ == "firedrake":
 
     # FIXME: See issue #1372 in Firedrake
     backend.Vector.__radd__ = lambda self, other: backend.Vector.__add__(self, other)
+
     def __rsub__(self, other):
-        return -1.0*self + other
+        return -1.0 * self + other
     backend.Vector.__rsub__ = __rsub__
 
     backend.functionspaceimpl.FunctionSpace._ad_parent_space = property(lambda self: self.parent)
