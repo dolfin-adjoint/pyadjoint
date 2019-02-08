@@ -3,7 +3,7 @@ pytest.importorskip("fenics")
 from os import path
 import subprocess
 
-@pytest.mark.xfail(reason="Seems backend.derivative(form, c, dc) does not accept dc to be Sum instance? Projecting tlm_input makes this work with Hessian")
+# @pytest.mark.xfail(reason="Seems backend.derivative(form, c, dc) does not accept dc to be Sum instance? Projecting tlm_input makes this work with Hessian")
 def test(request):
     test_file = path.split(path.dirname(str(request.fspath)))[1] + ".py"
     test_dir = path.split(str(request.fspath))[0]

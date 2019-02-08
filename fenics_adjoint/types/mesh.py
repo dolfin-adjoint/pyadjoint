@@ -105,6 +105,40 @@ class IntervalMesh(OverloadedType, backend.IntervalMesh):
         return self
 
 
+@register_overloaded_type
+class BoxMesh(OverloadedType, backend.BoxMesh):
+    def __init__(self, *args, **kwargs):
+
+        # Calling constructer
+        super(BoxMesh, self).__init__(*args, **kwargs)
+        backend.BoxMesh.__init__(self, *args, **kwargs)
+        self.org_mesh_coords = self.coordinates().copy()
+
+    def _ad_create_checkpoint(self):
+        return self.coordinates().copy()
+
+    def _ad_restore_at_checkpoint(self, checkpoint):
+        self.coordinates()[:] = checkpoint
+        return self
+
+
+@register_overloaded_type
+class RectangleMesh(OverloadedType, backend.RectangleMesh):
+    def __init__(self, *args, **kwargs):
+
+        # Calling constructer
+        super(RectangleMesh, self).__init__(*args, **kwargs)
+        backend.RectangleMesh.__init__(self, *args, **kwargs)
+        self.org_mesh_coords = self.coordinates().copy()
+
+    def _ad_create_checkpoint(self):
+        return self.coordinates().copy()
+
+    def _ad_restore_at_checkpoint(self, checkpoint):
+        self.coordinates()[:] = checkpoint
+        return self
+
+
 __backend_ALE_move = backend.ALE.move
 
 

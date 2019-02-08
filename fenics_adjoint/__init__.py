@@ -43,8 +43,8 @@ if backend.__name__ != "firedrake":
     from .lu_solver import LUSolver
     from .krylov_solver import KrylovSolver
     from .types import (Function, Constant, DirichletBC,
-                    Mesh, UnitSquareMesh, UnitIntervalMesh, IntervalMesh,
-                    UnitCubeMesh)
+                        Mesh, UnitSquareMesh, UnitIntervalMesh, IntervalMesh,
+                        UnitCubeMesh, BoxMesh, RectangleMesh)
     from .boundarymesh import BoundaryMesh
 
 from .variational_solver import (NonlinearVariationalProblem, NonlinearVariationalSolver,

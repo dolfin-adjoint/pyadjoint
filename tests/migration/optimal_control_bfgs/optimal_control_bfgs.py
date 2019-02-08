@@ -1,6 +1,7 @@
 """ Solves the optimal control problem for the heat equation """
 from fenics import *
 from fenics_adjoint import *
+from ufl.log import info_red, info_green
 
 # Setup
 mesh = Mesh("mesh.xml")
@@ -28,7 +29,7 @@ lb = interpolate(Constant(-1), V) # Test 2 different ways of imposing bounds
 m_opt = minimize(rf, method="L-BFGS-B",
                  tol=2e-08, bounds=(lb, ub), options={"disp": True, "maxiter": 5})
 
-assert min(m_opt.vector().array()) > lb((0, 0)) - 0.05
+assert min(m_opt.vector().get_local()) > lb((0, 0)) - 0.05
 info_red("Skipping bound check in L-BFGS-B test")
 # Skipping this test for now until I have figured out what is going wrong
 #assert max(m_opt.vector().array()) < ub + 0.05
