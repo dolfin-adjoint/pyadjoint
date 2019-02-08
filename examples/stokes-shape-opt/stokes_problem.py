@@ -14,8 +14,17 @@
 # where the optimal geometry was found to be a rugby shaped ball with
 # a 90 degree front and back wedge.
 #
-# Problem definition
+# We start with a circular obstacle in a duct, with an inlet on the left
+# hand side, outlet on the right hand side, and no-slip walls on the top and
+# the bottom.
+#
+# .. figure:: initial.png
+#   :scale: 15
+#   :align: center
+#
+# Shape optimization 
 # ******************
+#
 #
 # We define the change of the fluid domain from its unperturbed state
 # :math:`\Omega_0`, as :math:`\Omega(s)=\{x+s(h)\vert x\in \Omega_0 \}`,
@@ -34,7 +43,7 @@
 #       \sigma &:= \lambda_{elas} \mathrm{Tr}(\epsilon)I + 2\mu_{elas}\epsilon \\
 #       \epsilon &:=\frac{1}{2}(\nabla s + \nabla s^T)
 #
-# is the stress and strain tensors, respectively. As in :cite:`schulz2016computational`, we set :math:`\lambda_{elas}=0`, and let :math:`\mu_{elas}` solve
+# is the stress and strain tensors, respectively. We set :math:`\lambda_{elas}=0`, and let :math:`\mu_{elas}` solve
 #
 # .. math::
 #       \Delta \mu_{elas} = 0& \qquad \text{in } \Omega \\
@@ -45,6 +54,9 @@
 # elasticity equation as a Riesz-representation of the shape derivative.
 # We instead use the stresses :math:`h` in :eq:`deformation` as the design
 # parameters for the problem.
+#
+# Problem definition
+# ******************
 #
 # This problem is to find the shape of the obstacle :math:`\Gamma`, which minimizes the dissipated power in the fluid
 #
@@ -197,6 +209,19 @@ w = Function(VQ, name="Mixed State Solution")
 solve(a==l, w, bcs=bcs)
 u, p = w.split()
 
+# Plotting the initial velocity and pressure
+
+import matplotlib.pyplot as plt
+plt.figure()
+plt.subplot(1,2,1)
+plot(mesh, color="k", linewidth=0.2, zorder=0)
+plot(u, zorder=1, scale=20)
+plt.axis("off")
+plt.subplot(1,2,2)
+plot(p, zorder=1)
+plt.axis("off")
+plt.savefig("intial.png", dpi=800, bbox_inches="tight", pad_inches=0)
+
 # We compute the dissipated energy in the fluid volume,
 # :math:`\int_{\Omega(s)} \sum_{i,j=1}^2 \left(\frac{\partial u_i}{\partial x_j}\right)^2~\mathrm{d} x`
 
@@ -225,7 +250,6 @@ s_opt = minimize(Jhat,tol=1e-6, options={"gtol": 1e-6, "maxiter": 50})
 # We evaluate the functional with the optimal solution and plot
 # the initial and final mesh
 
-import matplotlib.pyplot as plt
 Jhat(h)
 initial, _ = plot(mesh, color="b", linewidth=0.25, label="Initial mesh")
 Jhat(s_opt)
@@ -235,8 +259,8 @@ plt.axis("off")
 plt.savefig("meshes.png", dpi=800, bbox_inches="tight", pad_inches=0)
 
 # .. figure:: meshes.png
-#   :scale: 25
-
+#   :scale: 15
+#   :align: center
 
 # In addition, we perform a Taylor-test to verify the shape gradient and
 # Hessian. We compute the convergence rates and check that they correspond
