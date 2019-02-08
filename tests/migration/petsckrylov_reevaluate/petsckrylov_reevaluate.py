@@ -32,7 +32,7 @@ if __name__ == "__main__":
     sol.solve(p.vector(), rhs)
 
 
-    J = Functional(p*dx)
+    J = assemble(p*dx)
     m = Control(Ks)
     Jr = ReducedFunctional(J, m)
 
@@ -40,7 +40,6 @@ if __name__ == "__main__":
     val1 = Jr(Ks)
     Ks.vector()[:] += 1
     val2 = Jr(Ks)
-
     assert abs(val1 - val2) > 1e-10
 
     # Perform Taylor test
