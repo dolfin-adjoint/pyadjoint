@@ -1,7 +1,8 @@
 import backend
 from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, no_annotations
 from pyadjoint.block import Block
-from pyadjoint.overloaded_type import OverloadedType, register_overloaded_type
+from pyadjoint.overloaded_type import OverloadedType, FloatingType, register_overloaded_type
+from ..shapead_transformations import vector_boundary_to_mesh, vector_mesh_to_boundary
 
 
 @register_overloaded_type
@@ -25,10 +26,15 @@ class Mesh(OverloadedType, backend.Mesh):
 
 
 @register_overloaded_type
-class BoundaryMeshType(OverloadedType, backend.BoundaryMesh):
+class BoundaryMesh(FloatingType, backend.BoundaryMesh):
     def __init__(self, *args, **kwargs):
         # Calling constructer
-        super(BoundaryMeshType, self).__init__(*args, **kwargs)
+        super(BoundaryMesh, self).__init__(*args,
+                                           block_class=BoundaryMeshBlock,
+                                           _ad_args=args,
+                                           _ad_floating_active=True,
+                                           annotate=kwargs.pop("annotate", True),
+                                           **kwargs)
         backend.BoundaryMesh.__init__(self, *args, **kwargs)
 
     def _ad_create_checkpoint(self):
@@ -203,3 +209,49 @@ class ALEMoveBlock(Block):
         backend.ALE.move(mesh, vector, annotate=False)
 
         self.get_outputs()[0].checkpoint = mesh._ad_create_checkpoint()
+
+
+class BoundaryMeshBlock(Block):
+    def __init__(self, mesh, mesh_type, **kwargs):
+        super(BoundaryMeshBlock, self).__init__(**kwargs)
+        self.add_dependency(mesh.block_variable)
+        self.mesh_type = mesh_type
+
+    @no_annotations
+    def evaluate_adj(self, markings=False):
+        adj_value = self.get_outputs()[0].adj_value
+        if adj_value is None:
+            return
+
+        f = backend.Function(backend.VectorFunctionSpace(self.get_outputs()[0].saved_output, "CG", 1))
+        f.vector()[:] = adj_value
+        adj_value = vector_boundary_to_mesh(f, self.get_dependencies()[0].saved_output)
+        self.get_dependencies()[0].add_adj_output(adj_value.vector())
+
+    @no_annotations
+    def evaluate_tlm(self, markings=False):
+        tlm_input = self.get_dependencies()[0].tlm_value
+        if tlm_input is None:
+            return
+
+        tlm_output = vector_mesh_to_boundary(tlm_input, self.get_outputs()[0].saved_output)
+        self.get_outputs()[0].add_tlm_output(tlm_output)
+
+    @no_annotations
+    def evaluate_hessian(self, markings=False):
+        hessian_input = self.get_outputs()[0].hessian_value
+        if hessian_input is None:
+            return
+
+        f = backend.Function(backend.VectorFunctionSpace(self.get_outputs()[0].saved_output, "CG", 1))
+        f.vector()[:] = hessian_input
+        hessian_value = vector_boundary_to_mesh(f, self.get_dependencies()[0].saved_output)
+        self.get_dependencies()[0].add_hessian_output(hessian_value.vector())
+
+    @no_annotations
+    def recompute(self):
+        mesh = self.get_dependencies()[0].saved_output
+
+        b_mesh = BoundaryMesh(mesh, self.mesh_type, annotate=False)
+
+        self.get_outputs()[0].checkpoint = b_mesh._ad_create_checkpoint()

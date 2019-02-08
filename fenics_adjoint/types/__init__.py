@@ -9,7 +9,7 @@ if backend.__name__ != "firedrake":
     from .expression import Expression, UserExpression, CompiledExpression
     # Shape AD specific imports, not implemented yet
     from .mesh import (Mesh, UnitSquareMesh,UnitIntervalMesh, IntervalMesh,
-                       UnitCubeMesh, BoundaryMeshType, BoxMesh, RectangleMesh)
+                       UnitCubeMesh, BoundaryMesh, BoxMesh, RectangleMesh)
 
 from .function import Function
 

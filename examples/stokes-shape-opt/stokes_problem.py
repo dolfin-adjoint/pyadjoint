@@ -249,7 +249,7 @@ s_opt = minimize(Jhat,tol=1e-6, options={"gtol": 1e-6, "maxiter": 50})
 
 # We evaluate the functional with the optimal solution and plot
 # the initial and final mesh
-
+plt.figure()
 Jhat(h)
 initial, _ = plot(mesh, color="b", linewidth=0.25, label="Initial mesh")
 Jhat(s_opt)
