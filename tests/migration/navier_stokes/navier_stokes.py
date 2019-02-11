@@ -100,7 +100,8 @@ def main(ic):
 
     prec = "amg" if has_krylov_solver_preconditioner("amg") else "default"
 
-    begin("Projecting initial velocity")
+    # Begin and end added to python layer in PR 510 in dolfin
+    #begin("Projecting initial velocity")
     phi = Function(Q, name = "ScalarPotential")
     b = assemble(-div(u0) * q * dx)
     [bc.apply(A2, b) for bc in bcp]
@@ -109,7 +110,7 @@ def main(ic):
     [bc.apply(A3, b) for bc in bcu]
     solve(A3, u0.vector(), b, "gmres", "default")
     del(phi, b)
-    end()
+    # end()
 
     # Time-stepping
     t = dt
@@ -119,25 +120,25 @@ def main(ic):
         p_in.t = t
 
         # Compute tentative velocity step
-        begin("Computing tentative velocity")
+        # begin("Computing tentative velocity")
         b1 = assemble(L1)
         [bc.apply(A1, b1) for bc in bcu]
         solve(A1, u1.vector(), b1, "gmres", "default")
-        end()
+        # end()
 
         # Pressure correction
-        begin("Computing pressure correction")
+        # begin("Computing pressure correction")
         b2 = assemble(L2)
         [bc.apply(A2, b2) for bc in bcp]
         solve(A2, p1.vector(), b2, "gmres", prec)
-        end()
+        # end()
 
         # Velocity correction
-        begin("Computing velocity correction")
+        # begin("Computing velocity correction")
         b3 = assemble(L3)
         [bc.apply(A3, b3) for bc in bcu]
         solve(A3, u1.vector(), b3, "gmres", "default")
-        end()
+        # end()
 
         # Move to next time step
         u0.assign(u1)

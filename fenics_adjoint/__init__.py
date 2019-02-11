@@ -33,19 +33,25 @@ from .assembly import assemble, assemble_system
 from .solving import solve
 from .projection import project
 from .interpolation import interpolate
-from .types import Function, Constant, DirichletBC
+from .refine import refine
 from .ufl_constraints import UFLEqualityConstraint, UFLInequalityConstraint
+from .shapead_transformations import (transfer_from_boundary,
+                                      transfer_to_boundary)
 if backend.__name__ != "firedrake":
     from .types import Expression, UserExpression, CompiledExpression, genericmatrix, genericvector, io
     from .newton_solver import NewtonSolver
     from .lu_solver import LUSolver
     from .krylov_solver import KrylovSolver
+    from .types import (Function, Constant, DirichletBC,
+                        Mesh, UnitSquareMesh, UnitIntervalMesh, IntervalMesh,
+                        UnitCubeMesh, BoxMesh, RectangleMesh, BoundaryMesh)
+
 from .variational_solver import (NonlinearVariationalProblem, NonlinearVariationalSolver,
                                  LinearVariationalProblem, LinearVariationalSolver)
 from pyadjoint import (Tape, set_working_tape, get_working_tape,
                        pause_annotation, continue_annotation,
                        ReducedFunctional,
-                       taylor_test,
+                       taylor_test, taylor_to_dict,
                        compute_gradient, compute_hessian,
                        AdjFloat, Control, minimize, MinimizationProblem,
                        IPOPTSolver, ROLSolver, InequalityConstraint, EqualityConstraint,

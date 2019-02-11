@@ -48,6 +48,8 @@ jobs:
       - run:
           name: Run tests
           command: |
+            cp tests/fenics_adjoint/*.xdmf .
+            cp tests/fenics_adjoint/*.h5 .
             python3 -m pytest -v tests/fenics_adjoint/
 
       - run:

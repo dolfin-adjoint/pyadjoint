@@ -12,6 +12,8 @@ pipelines:
             - pip3 install -r requirements.txt
             - cd $BITBUCKET_CLONE_DIR
             - pip3 install --no-cache-dir --upgrade --prefix=$FENICS_PREFIX .
+            - cp tests/fenics_adjoint/*.xdmf .
+            - cp tests/fenics_adjoint/*.h5 .
             - python3 -m pytest -v tests/fenics_adjoint/
 
 definitions:

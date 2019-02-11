@@ -1,4 +1,5 @@
 from dolfin import *
+from dolfin_adjoint import *
 from math import exp, sqrt, pi
 
 import sw_lib
@@ -30,7 +31,6 @@ class InitialConditions(UserExpression):
         values[2]=params['eta0']*cos(pi*X[0]/3000)
     def value_shape(self):
         return (3,)
-
 
 mesh = RectangleMesh(MPI.comm_world, Point(0, 0), Point(basin_x, basin_y), nx, ny)
 mesh.order()
