@@ -418,7 +418,7 @@ class SolveBlock(Block):
         if isinstance(c_rep, backend.Constant):
             mesh = compat.extract_mesh_from_form(F_form)
             W = c._ad_function_space(mesh)
-        elif isinstance(c, backend.Expression):
+        elif isinstance(c, compat.ExpressionType):
             mesh = F_form.ufl_domain().ufl_cargo()
             W = c._ad_function_space(mesh)
         elif isinstance(c, compat.MeshType):
@@ -477,7 +477,7 @@ class SolveBlock(Block):
             hessian_output -= compat.assemble_adjoint_value(d2Fdudm)
         hessian_output -= compat.assemble_adjoint_value(dFdm_adj2)
 
-        if isinstance(c, backend.Expression):
+        if isinstance(c, compat.ExpressionType):
             return [(hessian_output, W)]
         else:
             return hessian_output

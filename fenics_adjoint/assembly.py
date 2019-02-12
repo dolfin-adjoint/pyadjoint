@@ -154,7 +154,7 @@ class AssembleBlock(Block):
 
         if isinstance(c1, backend.Function):
             dc = backend.TestFunction(c1.function_space())
-        elif isinstance(c1, backend.Expression):
+        elif isinstance(c1, compat.ExpressionType):
             mesh = form.ufl_domain().ufl_cargo()
             W = c1._ad_function_space(mesh)
             dc = backend.TestFunction(W)
@@ -187,7 +187,7 @@ class AssembleBlock(Block):
                 ddform = backend.derivative(dform, c2_rep, tlm_input)
             hessian_outputs += adj_input * compat.assemble_adjoint_value(ddform)
 
-        if isinstance(c1, backend.Expression):
+        if isinstance(c1, compat.ExpressionType):
             return [(hessian_outputs, W)]
         else:
             return hessian_outputs
