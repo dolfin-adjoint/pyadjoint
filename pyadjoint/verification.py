@@ -88,7 +88,18 @@ def taylor_to_dict(J, m, h):
             the control.
 
     Returns:
-        float: The smallest computed convergence rate of the tested perturbations.
+        dict: The perturbation sizes, residuals and rates of the tests.
+
+            eps (list): List of all perturbation sizes used, eps[i]*h.
+            FD (dict): Results from 0th order taylor test (finite difference).
+                Residual (list): The computed residuals.
+                Rate (list): The computed convergence rates based on eps and residuals. Expected to be 1.0.
+            dJdm (dict): Results from the 1st order taylor test.
+                Residual (list): The computed residuals.
+                Rate (list): The computed convergence rates based on eps and residuals. Expected to be 2.0.
+            Hm (dict): Results from the 2nd order taylor test.
+                Residual (list): The computed residuals.
+                Rate (list): The computed convergence rates based on eps and residuals. Expected to be 3.0.
 
     """
     with stop_annotating():
@@ -113,13 +124,8 @@ def taylor_to_dict(J, m, h):
 
         print("Computing Hessian")
 
-        Hm = J.hessian(hs)
-        Hmh = 0
-        if isinstance(Hm, list):
-            for (i, Hmi) in enumerate(Hm):
-                Hmh += Hmi.vector().inner(hs[i].vector())
-        else:
-            Hmh = Hm.vector().inner(hs[0].vector())
+        Hm = Enlist(J.hessian(hs))
+        Hmh = sum(hi._ad_dot(hmi) for hi, hmi in zip(hs, Hm))
 
         def perturbe(eps):
             ret = [mi._ad_add(hi._ad_mul(eps)) for mi, hi in zip(ms, hs)]
