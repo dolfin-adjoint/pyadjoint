@@ -21,5 +21,6 @@ from pyadjoint import (Tape, set_working_tape, get_working_tape,
                        AdjFloat, Control, minimize, MinimizationProblem,
                        IPOPTSolver, ROLSolver, InequalityConstraint, EqualityConstraint,
                        MoolaOptimizationProblem, print_optimization_methods)
+from pyadjoint.reduced_function import ReducedFunction
 
 set_working_tape(Tape())
