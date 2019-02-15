@@ -65,7 +65,7 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         # we first need to rerun the forward model with the new controls to have the
         # correct forward solutions
         # TODO: No good way to check. Is it ok to always assume `m_array` is the same as used last in __call__?
-        #if m_array is not None:
+        # if m_array is not None:
         #    self.__call__(m_array)
         dJdm = self.rf.derivative()
         dJdm = Enlist(dJdm)
@@ -123,5 +123,7 @@ def set_local(coeffs, m_array):
 def gather(m):
     if isinstance(m, list):
         return list(map(gather, m))
-    else:
+    elif hasattr(m, "_ad_to_list"):
         return m._ad_to_list(m)
+    else:
+        return m  # Assume it is gathered already

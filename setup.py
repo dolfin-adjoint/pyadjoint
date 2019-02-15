@@ -6,6 +6,7 @@ extras = {
     'test': ['pytest'],
     'doc': ['sphinx', 'sphinxcontrib-bibtex'],
     'visualisation': ['tensorflow'],
+    'meshing': ['pygmsh', 'meshio'],
 }
 # 'all' includes all of the above
 extras['all'] = list(chain(*extras.values()))
@@ -26,4 +27,4 @@ setup(name='dolfin_adjoint',
                    'firedrake_adjoint': 'firedrake_adjoint', 'dolfin_adjoint': 'dolfin_adjoint'},
       install_requires=['scipy'],
       extras_require=extras,
-)
+      )

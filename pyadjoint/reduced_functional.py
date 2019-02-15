@@ -1,8 +1,7 @@
-from .tape import get_working_tape, stop_annotating, Tape, no_annotations
-from .drivers import compute_gradient, compute_hessian 
-from .overloaded_type import OverloadedType
-from .control import Control
+from .drivers import compute_gradient, compute_hessian
 from .enlisting import Enlist
+from .tape import get_working_tape, stop_annotating, no_annotations
+
 
 class ReducedFunctional(object):
     """Class representing the reduced functional.
@@ -20,6 +19,7 @@ class ReducedFunctional(object):
             instance instead of a list.
 
     """
+
     def __init__(self, functional, controls, tape=None,
                  eval_cb_pre=lambda *args: None,
                  eval_cb_post=lambda *args: None,
@@ -43,7 +43,7 @@ class ReducedFunctional(object):
         Using the adjoint method, the derivative of the functional with
         respect to the control, around the last supplied value of the control,
         is computed and returned.
-        
+
         Args:
             options (dict): A dictionary of options. To find a list of available options
                 have a look at the specific control type.
@@ -79,7 +79,7 @@ class ReducedFunctional(object):
 
         Args:
             m_dot ([OverloadedType]): The direction in which to compute the
-                action of the Hessian. 
+                action of the Hessian.
             options (dict): A dictionary of options. To find a list of
                 available options have a look at the specific control type.
 
@@ -92,7 +92,7 @@ class ReducedFunctional(object):
         self.hessian_cb_pre(self.controls.delist(values))
 
         r = compute_hessian(self.functional, self.controls, m_dot, options=options, tape=self.tape)
-        
+
         # Call callback
         self.hessian_cb_post(self.functional.block_variable.checkpoint,
                              self.controls.delist(r),

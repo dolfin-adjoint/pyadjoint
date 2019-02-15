@@ -31,7 +31,7 @@ if __name__ == "__main__":
     sol.set_operator(A)
     sol.solve(p.vector(), rhs)
 
-    J = Functional(p*dx)
+    J = assemble(p*dx)
     m = Control(Ks)
     Jr = ReducedFunctional(J, m)
 
@@ -42,5 +42,11 @@ if __name__ == "__main__":
 
     assert abs(val1 - val2) > 1e-10
 
+    r = Function(W)
+    from numpy.random import rand
+    r.vector()[:] = rand(W.dim())
+
     # Perform Taylor test
-    Jr.taylor_test(Ks)
+    results = taylor_to_dict(Jr, Ks, r)
+    print(results)
+

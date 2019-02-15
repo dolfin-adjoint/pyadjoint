@@ -1,8 +1,9 @@
 import backend
-from pyadjoint.tape import get_working_tape, no_annotations
+from pyadjoint.tape import get_working_tape
 from pyadjoint.overloaded_type import OverloadedType, create_overloaded_object, register_overloaded_type
 from .compat import constant_function_firedrake_compat
 from pyadjoint.block import Block
+from pyadjoint.reduced_functional_numpy import gather
 
 import numpy
 
@@ -41,6 +42,7 @@ class Constant(OverloadedType, backend.Constant):
         if value is None:
             # TODO: Should the default be 0 constant here or return just None?
             return Constant(numpy.zeros(self.ufl_shape))
+        value = gather(value)
         value = constant_function_firedrake_compat(value)
         return self._constant_from_values(value)
 
@@ -62,7 +64,7 @@ class Constant(OverloadedType, backend.Constant):
         return self._constant_from_values(self.values() + other.values())
 
     def _ad_dot(self, other, options=None):
-        return sum(self.values()*other.values())
+        return sum(self.values() * other.values())
 
     @staticmethod
     def _ad_assign_numpy(dst, src, offset):
@@ -147,4 +149,3 @@ class AssignBlock(Block):
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
         return Constant._constant_from_values(block_variable.output, inputs[0])
-

@@ -1,6 +1,13 @@
 Change log
 ==========
 
+dolfin-adjoint 2018.2.0.dev0 [2019-02-04]
+-----------------------------------------
+
+- Support for FEniCS 2018.2.0.dev0
+- Added function `taylor_to_dict`, which automatically computes shape derivatives and hessians without user input
+- Added support for shape optimization. Supports "naive" shape optimization, computing shape derivatives with the ufl function `CoordinateDerivative`, as well as more advanced optimization, where only the boundary mesh nodes are the design variables. Demo can be found in `examples/stokes-shape-ad`.
+
 dolfin-adjoint 2018.1.0 [2018-10-05]
 ------------------------------------
 

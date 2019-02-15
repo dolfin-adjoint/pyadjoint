@@ -1,10 +1,9 @@
 from __future__ import print_function
-from .optimization_solver import OptimizationSolver
-from . import constraints
-from ..enlisting import Enlist
-from ..tape import no_annotations
-from ..overloaded_type import OverloadedType
 
+from .optimization_solver import OptimizationSolver
+from ..enlisting import Enlist
+from ..overloaded_type import OverloadedType
+from ..tape import no_annotations
 
 try:
     import ROL
@@ -31,7 +30,6 @@ try:
         def update(self, x, flag, iteration):
             self.val = self.rf(x.dat)
             # pass
-
 
     class ROLVector(ROL.Vector):
         def __init__(self, dat, inner_product="L2"):
@@ -62,7 +60,7 @@ try:
             return res
 
         def norm(self):
-            return self.dot(self)**0.5
+            return self.dot(self) ** 0.5
 
         def clone(self):
             dat = []
@@ -109,11 +107,11 @@ try:
             self.con.hessian_action(x.dat, u.dat[0], v.dat, ahuv.dat[0])
             ahuv.dat = ahuv.riesz_map(ahuv.dat)
 
-
     class ROLSolver(OptimizationSolver):
         """
         Use ROL to solve the given optimisation problem.
         """
+
         def __init__(self, problem, parameters, inner_product="L2"):
             """
             Create a new ROLSolver.
@@ -187,7 +185,6 @@ try:
 
             return eqres, ineqres
 
-
         @no_annotations
         def solve(self):
             """
@@ -196,11 +193,11 @@ try:
             """
 
             bnd = self.bounds
-            econs=self.constraints[0][0]
-            emuls=self.constraints[0][1]
-            icons=self.constraints[1][0]
-            imuls=self.constraints[1][1]
-            if len(icons)>0:
+            econs = self.constraints[0][0]
+            emuls = self.constraints[0][1]
+            icons = self.constraints[1][0]
+            imuls = self.constraints[1][1]
+            if len(icons) > 0:
                 zeros = [i.clone() for i in imuls]
                 ibnds = [ROL.Bounds(z, isLower=True) for z in zeros]
             else:
@@ -233,4 +230,3 @@ except ImportError:
     class ROLSolver(object):
         def __init__(self, *args, **kwargs):
             raise ImportError("Could not import pyrol. Please install roltrilinos ROL using pip.")
-

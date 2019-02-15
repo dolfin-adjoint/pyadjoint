@@ -17,6 +17,7 @@ for all s
 """
 
 from fenics import *
+from fenics_adjoint import *
 
 from numpy.random import rand
 
@@ -103,8 +104,6 @@ def main(ic, annotate=False):
     return T_
 
 if __name__ == "__main__":
-
-    from fenics_adjoint import *
 
     # Run model
     T0_expr = "0.5*(1.0 - x[1]*x[1]) + 0.01*cos(pi*x[0]/l)*sin(pi*x[1]/h)"

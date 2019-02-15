@@ -79,4 +79,3 @@ class BlockVariable(object):
         if self.is_control:
             return
         self._checkpoint = value
-

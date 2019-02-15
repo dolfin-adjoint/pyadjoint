@@ -10,10 +10,11 @@ def adjoint_genericmatrix_mul(self, other):
             out.form = backend.action(self.form, other.form)
         elif hasattr(other, 'function'):
             if hasattr(other, 'function_factor'):
-                out.form = backend.action(other.function_factor*self.form, other.function)
+                out.form = backend.action(other.function_factor * self.form, other.function)
             else:
                 out.form = backend.action(self.form, other.function)
 
     return out
+
 
 backend.cpp.la.GenericMatrix.__mul__ = adjoint_genericmatrix_mul

@@ -2,7 +2,6 @@ import backend
 from pyadjoint.tape import annotate_tape, get_working_tape
 from .types import compat
 from .solving import SolveBlock
-import numpy
 
 
 class LUSolver(backend.LUSolver):
@@ -92,7 +91,8 @@ class LUSolveBlock(SolveBlock):
         solver = self.block_helper.adjoint_solver
         if solver is None:
             if self.assemble_system:
-                rhs_bcs_form = backend.inner(backend.Function(self.function_space), dFdu_form.arguments()[0])*backend.dx
+                rhs_bcs_form = backend.inner(backend.Function(self.function_space),
+                                             dFdu_form.arguments()[0]) * backend.dx
                 A, _ = backend.assemble_system(dFdu_form, rhs_bcs_form, bcs)
             else:
                 A = compat.assemble_adjoint_value(dFdu_form)
@@ -114,7 +114,7 @@ class LUSolveBlock(SolveBlock):
 
     def _forward_solve(self, lhs, rhs, func, bcs, **kwargs):
         solver = self.block_helper.forward_solver
-        if solver is None :
+        if solver is None:
             if self.assemble_system:
                 A, _ = backend.assemble_system(lhs, rhs, bcs)
             else:

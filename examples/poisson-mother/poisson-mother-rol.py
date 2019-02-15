@@ -1,7 +1,9 @@
 from __future__ import print_function
-from fenics import *
-from fenics_adjoint import *
+
 import numpy
+from fenics import *
+
+from fenics_adjoint import *
 
 set_log_level(LogLevel.ERROR)
 
@@ -41,18 +43,17 @@ f = interpolate(Expression("x[0]+x[1]", degree=1), W)
 u = Function(V, name='State')
 v = TestFunction(V)
 
-F = (inner(grad(u), grad(v)) - f*v)*dx
+F = (inner(grad(u), grad(v)) - f * v) * dx
 bc = DirichletBC(V, 0.0, "on_boundary")
 solve(F == 0, u, bc)
 
-
 x = SpatialCoordinate(mesh)
 w = Expression("sin(pi*x[0])*sin(pi*x[1])", degree=3)
-d = 1/(2*pi**2)
+d = 1 / (2 * pi ** 2)
 d = Expression("d*w", d=d, w=w, degree=3)
 
 alpha = Constant(1e-3)
-J = assemble((0.5*inner(u-d, u-d))*dx + alpha/2*f**2*dx)
+J = assemble((0.5 * inner(u - d, u - d)) * dx + alpha / 2 * f ** 2 * dx)
 control = Control(f)
 
 rf = ReducedFunctional(J, control)

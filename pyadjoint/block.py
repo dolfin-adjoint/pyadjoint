@@ -1,14 +1,12 @@
 from .tape import no_annotations
-from .enlisting import Enlist
-from .overloaded_type import create_overloaded_object
 
 
 class Block(object):
     """Base class for all Tape Block types.
-    
+
     Each instance of a Block type represents an elementary operation in the
     forward model.
-    
+
     Abstract methods
         :func:`evaluate_adj`
 
@@ -38,7 +36,7 @@ class Block(object):
 
     def add_dependency(self, dep, no_duplicates=False):
         """Adds object to the block dependencies.
-        
+
         Will also save the output if it has not been saved before. Which should only happen if the
         BlockVariable was not created by a Block (but by the user).
 
@@ -154,7 +152,7 @@ class Block(object):
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         """This method should be overridden.
-        
+
         The method should implement a routine for evaluating the adjoint of the block that corresponds to
         one dependency.
         If one considers the adjoint action a vector right multiplied with the Jacobian matrix,
@@ -234,7 +232,7 @@ class Block(object):
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
         """This method should be overridden.
-        
+
         The method should implement a routine for computing the tangent linear model of the block that corresponds to
         one output.
         If one considers the tangent linear action as a Jacobian matrix multiplied with a vector,
@@ -250,7 +248,7 @@ class Block(object):
 
         Returns:
             An object of the same type as `block_variable.saved_output`: The resulting product.
-        
+
         """
         raise NotImplementedError("evaluate_tlm_component is not implemented for Block-type: {}".format(type(self)))
 

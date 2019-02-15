@@ -1,4 +1,6 @@
-__version__ = '2018.1.0'
+# flake8: noqa
+
+__version__ = '2018.2.0.dev0'
 __author__  = 'Sebastian Kenji Mitusch'
 __credits__ = []
 __license__ = 'LGPL-3'
@@ -12,7 +14,7 @@ from .tape import (Tape,
 from .adjfloat import AdjFloat
 from .reduced_functional import ReducedFunctional
 from .drivers import compute_gradient, compute_hessian
-from .verification import taylor_test
+from .verification import taylor_test, taylor_to_dict
 from .overloaded_type import OverloadedType
 from .control import Control
 from .optimization.optimization import minimize, print_optimization_methods
