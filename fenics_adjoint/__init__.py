@@ -45,7 +45,8 @@ if backend.__name__ != "firedrake":
     from .petsc_krylov_solver import PETScKrylovSolver
     from .types import (Function, Constant, DirichletBC,
                         Mesh, UnitSquareMesh, UnitIntervalMesh, IntervalMesh,
-                        UnitCubeMesh, BoxMesh, RectangleMesh, BoundaryMesh)
+                        UnitCubeMesh, BoxMesh, RectangleMesh, BoundaryMesh,
+                        SubMesh)
 
 from .variational_solver import (NonlinearVariationalProblem, NonlinearVariationalSolver,
                                  LinearVariationalProblem, LinearVariationalSolver)

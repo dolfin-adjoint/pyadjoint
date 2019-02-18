@@ -145,6 +145,22 @@ class RectangleMesh(OverloadedType, backend.RectangleMesh):
         return self
 
 
+@register_overloaded_type
+class SubMesh(OverloadedType, backend.SubMesh):
+    def __init__(self, *args, **kwargs):
+        # Calling constructer
+        super(SubMesh, self).__init__(*args, **kwargs)
+        backend.SubMesh.__init__(self, *args, **kwargs)
+        self.org_mesh_coords = self.coordinates().copy()
+
+    def _ad_create_checkpoint(self):
+        return self.coordinates().copy()
+
+    def _ad_restore_at_checkpoint(self, checkpoint):
+        self.coordinates()[:] = checkpoint
+        return self
+
+
 __backend_ALE_move = backend.ALE.move
 
 
