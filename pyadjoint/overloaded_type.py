@@ -1,6 +1,5 @@
-from .tape import get_working_tape, annotate_tape
 from .block_variable import BlockVariable
-
+from .tape import get_working_tape, annotate_tape
 
 _overloaded_types = {}
 
@@ -76,6 +75,7 @@ class OverloadedType(object):
         :func:`adj_update_value`
 
     """
+
     def __init__(self, *args, **kwargs):
         self.original_block_variable = self.create_block_variable()
 
@@ -136,7 +136,7 @@ class OverloadedType(object):
 
     def _ad_create_checkpoint(self):
         """This method must be overridden.
-        
+
         Should implement a way to create a checkpoint for the overloaded object.
         The checkpoint should be returned and possible to restore from in the
         corresponding _ad_restore_at_checkpoint method.

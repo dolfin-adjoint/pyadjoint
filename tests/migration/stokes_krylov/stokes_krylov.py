@@ -19,6 +19,7 @@ for all s
 import sys
 
 from dolfin import *
+from dolfin_adjoint import *
 
 def stokes(W, nu, f):
     (u, p) = TrialFunctions(W)
@@ -67,9 +68,10 @@ def main(ic, annotate=False):
     temp_bcs = temperature_boundary_conditions(X)
 
     # Temperature variables
-    T_ = ic.copy(deepcopy=True, name="T_", annotate=annotate)
-    T = ic.copy(deepcopy=True, name="T", annotate=annotate)
-
+    T_ = ic.copy(deepcopy=True, annotate=annotate)
+    T_.rename("", "T_")
+    T = ic.copy(deepcopy=True, annotate=annotate)
+    T.rename("", "T")
     # Flow variable(s)
     w = Function(W)
     (u, p) = split(w)
@@ -92,11 +94,12 @@ def main(ic, annotate=False):
     [bc.apply(A_flow) for bc in flow_bcs]
     ksp_flow = KrylovSolver("gmres", "none")
     ksp_flow.set_operator(A_flow)
-    ksp_flow.parameters.relative_tolerance = 1.0e-9
+    #ksp_flow.parameters.relative_tolerance = 1.0e-9
 
     # Time loop
     t = 0.0
     end = 1.0
+    J = 0
     while (t <= end):
 
         b_flow = assemble(flow_eq[1])
@@ -104,30 +107,28 @@ def main(ic, annotate=False):
         ksp_flow.solve(w.vector(), b_flow, annotate=annotate)
 
         solve(temp_eq[0] == temp_eq[1], T, temp_bcs, annotate=annotate)
+        if t == 0:
+            J += 0.5*assemble(T*T*dx)
         T_.assign(T, annotate=annotate)
         #plot(T)
 
         t += timestep
-
-    return T_
+    J += 0.5*assemble(T*T*dx)
+    return J, T
 
 if __name__ == "__main__":
-
-    from dolfin_adjoint import *
 
     # Run model
     T0_expr = "0.5*(1.0 - x[1]*x[1]) + 0.01*cos(pi*x[0]/l)*sin(pi*x[1]/h)"
     T0 = Expression(T0_expr, l=1.0, h=1.0, degree=1)
-    ic = interpolate(T0, X, name="InitialCondition")
-    T = main(ic, annotate=True)
+    ic = interpolate(T0, X)
+    ic.rename("", "InitialCondition")
+    J, T = main(ic, annotate=True)
 
-    J = Functional(T*T*dx*dt[FINISH_TIME])
-    Jic = assemble(T*T*dx)
-    dJdic = compute_gradient(J, Control(T), forget=False)
-
-    def Jhat(ic):
-        T = main(ic, annotate=False)
-        return assemble(T*T*dx)
-
-    minconv = taylor_test(Jhat, Control(T), Jic, dJdic, seed=0.5e-1)
-    assert minconv > 1.85
+    Jhat = ReducedFunctional(J, Control(ic))
+    from numpy.random import rand
+    p = Function(T.function_space())
+    p.vector()[:] = 250*rand(T.function_space().dim())
+    results = taylor_to_dict(Jhat, ic, p)
+    print(results)
+    assert min(results["dJdm"]["Rate"]) > 1.85

@@ -35,8 +35,7 @@ For instance when considering Dirichlet boundary conditions that are not explici
 
 We present a new implementation of dolfin-adjoint that overcomes these limitations.
 The core of our implementation is a generic, operator-overloading based, algorithmic differentiation tool for Python called pyadjoint.
-To apply pyadjoint to a Python module, one implements a pyadjoint.
-Block subclass for each module function which can recompute the function with new inputs and compute the function’s derivatives.
+To apply pyadjoint to a Python module, one implements a *pyadjoint.Block* subclass for each module function which can recompute the function with new inputs and compute the function’s derivatives.
 During runtime, pyadjoint builds a graph of Block instances, and applies the chain rule to automatically compute gradients and Hessian actions.
 Further, pyadjoint includes gradient verification tools and an optimisation framework that interfaces external packages such as scipy, ipopt, moola and ROL.
 

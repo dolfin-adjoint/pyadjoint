@@ -4,13 +4,11 @@ import ufl
 from . import compat
 from .constant import Constant
 from .function import Function
-from .function_space import extract_subfunction
 
-from pyadjoint.tape import get_working_tape, annotate_tape, no_annotations, stop_annotating
+from pyadjoint.tape import no_annotations
 from pyadjoint.overloaded_type import OverloadedType, FloatingType
 from pyadjoint.block import Block
 
-import numpy
 
 # TODO: Might need/want some way of creating a new DirichletBCBlock if DirichletBC is assigned
 #       new boundary values/function.
@@ -62,20 +60,20 @@ def _extract_subindices(V):
     assert V.num_sub_spaces() > 0
     r = []
     for i in range(V.num_sub_spaces()):
-        l = [i]
-        _build_subindices(l, r, V.sub(i))
-        l.pop()
+        indices_sequence = [i]
+        _build_subindices(indices_sequence, r, V.sub(i))
+        indices_sequence.pop()
     return r
 
 
-def _build_subindices(l, r, V):
+def _build_subindices(indices_sequence, r, V):
     if V.num_sub_spaces() <= 0:
-        r.append(tuple(l))
+        r.append(tuple(indices_sequence))
     else:
         for i in range(V.num_sub_spaces()):
-            l.append(i)
-            _build_subindices(l, r, V)
-            l.pop()
+            indices_sequence.append(i)
+            _build_subindices(indices_sequence, r, V)
+            indices_sequence.pop()
 
 
 class DirichletBCBlock(Block):

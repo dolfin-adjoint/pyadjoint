@@ -1,14 +1,17 @@
-from ..reduced_functional import ReducedFunctional
-from .constraints import Constraint, canonicalise
 import collections
+
+from .constraints import Constraint, canonicalise
 from ..overloaded_type import OverloadedType
+from ..reduced_functional import ReducedFunctional
 
 __all__ = ['MinimizationProblem', 'MaximizationProblem']
+
 
 class OptimizationProblem(object):
     """A class that encapsulates all the information required to formulate a
     reduced optimisation problem. Don't instantiate this: instantiate
     a MinimizationProblem or a MaximizationProblem."""
+
     def __init__(self, reduced_functional, bounds=None, constraints=None):
 
         bounds = self.enlist(bounds)
@@ -50,9 +53,9 @@ class OptimizationProblem(object):
                     if not (isinstance(b, (int, float, type(None), klass))):
                         raise TypeError("This pair (lb, ub) should be None, a float, or a %s." % klass)
 
-        if not ((constraints is None) or
-                (isinstance(constraints, Constraint)) or
-                (isinstance(constraints, list))):
+        if not ((constraints is None)
+                or (isinstance(constraints, Constraint))
+                or (isinstance(constraints, list))):
             raise TypeError("constraints should be None or a Constraint or a list of Constraints")
 
     def enlist(self, bounds):
@@ -68,7 +71,7 @@ class OptimizationProblem(object):
         if len(bounds) != 2:
             should_i_make_a_damn_list = False
 
-        if len(bounds) == 2: # support 'bounds=(lb, ub)' as well as 'bounds=[(lb, ub)]'
+        if len(bounds) == 2:  # support 'bounds=(lb, ub)' as well as 'bounds=[(lb, ub)]'
             for bound in bounds:
                 if isinstance(bound, collections.Iterable) and not isinstance(bound, OverloadedType):
                     should_i_make_a_damn_list = False
@@ -78,10 +81,12 @@ class OptimizationProblem(object):
         else:
             return bounds
 
+
 class MinimizationProblem(OptimizationProblem):
     """A class that encapsulates all the information required to formulate a
     reduced minimization problem."""
     pass
+
 
 class MaximizationProblem(OptimizationProblem):
     """A class that encapsulates all the information required to formulate a

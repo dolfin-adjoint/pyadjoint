@@ -1,6 +1,6 @@
-from .tape import get_working_tape, annotate_tape
 from .block import Block
 from .overloaded_type import OverloadedType, register_overloaded_type
+from .tape import get_working_tape, annotate_tape
 
 
 def annotate_operator(operator):
@@ -105,17 +105,17 @@ class AdjFloat(OverloadedType, float):
         return checkpoint
 
     def _ad_mul(self, other):
-        return self*other
+        return self * other
 
     def _ad_add(self, other):
-        return self+other
+        return self + other
 
     def _ad_dot(self, other):
         return float.__mul__(self, other)
 
     @staticmethod
     def _ad_assign_numpy(dst, src, offset):
-        dst = float(src[offset:offset+1])
+        dst = float(src[offset:offset + 1])
         offset += 1
         return dst, offset
 
@@ -128,7 +128,6 @@ class AdjFloat(OverloadedType, float):
 
 
 class FloatOperatorBlock(Block):
-
     # the float operator annotated in this Block
     operator = None
 
@@ -147,7 +146,6 @@ class FloatOperatorBlock(Block):
 
 
 class PowBlock(FloatOperatorBlock):
-
     operator = staticmethod(float.__pow__)
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
@@ -211,7 +209,7 @@ class PowBlock(FloatOperatorBlock):
         from numpy import log
         if exponent.tlm_value is not None:
             second_order = float.__mul__(float.__mul__(float.__mul__(adj_input, float.__pow__(log(base_value), 2)),
-                                         float.__pow__(base_value, exponent_value)), base.tlm_value)
+                                                       float.__pow__(base_value, exponent_value)), base.tlm_value)
             exponent.add_hessian_output(second_order)
 
         first_order = float.__mul__(float.__mul__(hessian_input, log(base_value)),
@@ -229,7 +227,6 @@ class PowBlock(FloatOperatorBlock):
 
 
 class AddBlock(FloatOperatorBlock):
-
     operator = staticmethod(float.__add__)
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
@@ -252,7 +249,6 @@ class AddBlock(FloatOperatorBlock):
 
 
 class SubBlock(FloatOperatorBlock):
-
     operator = staticmethod(float.__sub__)
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
@@ -278,8 +274,8 @@ class SubBlock(FloatOperatorBlock):
         self.terms[0].add_hessian_output(hessian_input)
         self.terms[1].add_hessian_output(float.__neg__(hessian_input))
 
-class MulBlock(FloatOperatorBlock):
 
+class MulBlock(FloatOperatorBlock):
     operator = staticmethod(float.__mul__)
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
@@ -310,7 +306,6 @@ class MulBlock(FloatOperatorBlock):
 
 
 class DivBlock(FloatOperatorBlock):
-
     operator = staticmethod(float.__truediv__)
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
@@ -392,7 +387,6 @@ class DivBlock(FloatOperatorBlock):
 
 
 class NegBlock(FloatOperatorBlock):
-
     operator = staticmethod(float.__neg__)
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):

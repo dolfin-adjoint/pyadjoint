@@ -1,10 +1,10 @@
-from .tape import get_working_tape, stop_annotating
 from .enlisting import Enlist
+from .tape import get_working_tape, stop_annotating
 
 
 def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
     """
-    Compute the gradient of J with respect to the initialisation value of m, 
+    Compute the gradient of J with respect to the initialisation value of m,
     that is the value of m at its creation.
 
     Args:
@@ -15,7 +15,8 @@ def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
         tape: The tape to use. Default is the current tape.
 
     Returns:
-        OverloadedType: The derivative with respect to the control. Should be an instance of the same type as the control.
+        OverloadedType: The derivative with respect to the control. Should be an instance of the same type as
+            the control.
     """
     options = {} if options is None else options
     tape = get_working_tape() if tape is None else tape
@@ -48,7 +49,8 @@ def compute_hessian(J, m, m_dot, options=None, tape=None):
         tape: The tape to use. Default is the current tape.
 
     Returns:
-        OverloadedType: The second derivative with respect to the control in direction m_dot. Should be an instance of the same type as the control.
+        OverloadedType: The second derivative with respect to the control in direction m_dot. Should be an instance of
+            the same type as the control.
     """
     tape = get_working_tape() if tape is None else tape
     options = {} if options is None else options

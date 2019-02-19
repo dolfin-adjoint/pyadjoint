@@ -1,16 +1,55 @@
 import backend
-import ufl
-from six import add_metaclass
 
-from pyadjoint.overloaded_type import OverloadedType, FloatingType
-from pyadjoint.tape import get_working_tape, annotate_tape
-from pyadjoint.block import Block
 from pyadjoint.adjfloat import AdjFloat
-from . import Constant
+from pyadjoint.block import Block
+from pyadjoint.overloaded_type import OverloadedType, FloatingType
+from pyadjoint.tape import annotate_tape
 
-
-_REMEMBERED_EXPRESSION_ATTRIBUTES = ["block_variable", "block", "block_class", "annotate_tape","user_defined_derivatives","ad_ignored_attributes", "_ad_attributes_dict"]
-_IGNORED_EXPRESSION_ATTRIBUTES = ['_ad_init_object', '_cppcode', '_parameters', '_user_parameters', 'degree', '_cpp_object', '_ad_dim', '__init_subclass__', '_ufl_required_properties_', '__radd__', '__rsub__', 'ufl_evaluate', 'rename', 'geometric_dimension', 'ufl_enable_profiling', '_ufl_profiling__del__', 'adj_update_value', '_ad_outputs', '__getnewargs__', '_ufl_is_index_free_', '_ufl_num_typecodes_', '_ufl_is_restriction_', '_repr_png_', '__getitem__', '_ufl_noslots_', '_ufl_num_ops_', '__subclasshook__', '__pos__', '__sub__', 'ufl_domain', '__getattribute__', '_repr', '__weakref__', '_ufl_is_scalar_', '__delattr__', '__sizeof__', 'evaluate', '_ufl_err_str_', '__module__', 'get_generic_function', '__rdiv__', '_ufl_is_shaping_', '__init__', 'update', 'tlm_value', '_ad_restore_at_checkpoint', '_ad_mul', '__format__', '__swig_destroy__', '_ad_annotate_block', '_ad_will_add_as_output', '_ufl_language_operators_', '_ufl_shape', '_ad_add', 'get_property', '__ne__', 'block_class', 'user_parameters', '__call__', '__reduce_ex__', '__xor__', 'id', '_ad_attributes_dict', 'ufl_shape', '__str__', 'annotate_tape', 'value_dimension', '__bool__', 'output_block_class', '_count', '__round__', '__abs__', '_ad_output_kwargs', 'restrict', '_globalcount', '_ad_to_list', '__iter__', '__disown__', '_ufl_compute_hash_', '_ad_dot', '_ufl_function_space', 'ufl_disable_profiling', '_ad_function_space', 'eval_cell', '_ad_annotate_output_block', 'ufl_free_indices', '_ufl_profiling__init__', '__add__', '_ufl_is_differential_', 'create_block_variable', '_ad_assign_numpy', '__ge__', '_value_shape', '_ad_output_args', '__dict__', '_ufl_handler_name_', '__reduce__', 'dx', 'value_shape', 'eval', 'stop_floating', '_ufl_required_methods_', 'is_cellwise_constant', '__pow__', 'this', '__doc__', 'str', '_ad_initialized', 'user_defined_derivatives', 'thisown', '_ufl_is_abstract_', '__len__', '__slots__', '__class__', '_ufl_is_terminal_', '__rpow__', '__lt__', '__div__', '__del__', '__unicode__', '_ufl_obj_init_counts_', 'value_size', '_ad_kwargs', '__repr__', '_ufl_obj_del_counts_', '_ufl_evaluate_scalar_', '__neg__', 'ufl_domains', 'count', 'cppcode', '__eq__', '_ad_convert_type', 'ad_ignored_attributes', 'set_property', 'label', '_repr_latex_', 'name', '__le__', '__nonzero__', '_ad_copy', '_ad_floating_active', 'output_block', '_ufl_is_evaluation_', 'original_block_variable', '__truediv__', 'adj_value', '__float__', '__hash__', '_ufl_typecode_', '_ufl_all_classes_', '_ufl_is_terminal_modifier_', 'T', 'compute_vertex_values', 'ufl_index_dimensions', '__floordiv__', '__dir__', 'value_rank', 'set_generic_function', 'ufl_function_space', '_ufl_terminal_modifiers_', '__new__', '_ad_create_checkpoint', '_ad_args', '_ufl_signature_data_', '_ad_will_add_as_dependency', 'block', 'block_variable', '_hash', '_ufl_is_literal_', '_function_space', '_ufl_coerce_', 'ufl_element', 'parameters', '__setattr__', '_ufl_class_', '_ufl_is_in_reference_frame_', '_ufl_expr_reconstruct_', '_ufl_all_handler_names_', '_ufl_regular__init__', '__rmul__', '__rtruediv__', '__gt__', '_ufl_regular__del__', 'ufl_operands', '__mul__']
+_REMEMBERED_EXPRESSION_ATTRIBUTES = ["block_variable", "block", "block_class", "annotate_tape",
+                                     "user_defined_derivatives", "ad_ignored_attributes", "_ad_attributes_dict"]
+_IGNORED_EXPRESSION_ATTRIBUTES = ['_ad_init_object', '_cppcode', '_parameters', '_user_parameters', 'degree',
+                                  '_cpp_object', '_ad_dim', '__init_subclass__', '_ufl_required_properties_',
+                                  '__radd__', '__rsub__', 'ufl_evaluate', 'rename', 'geometric_dimension',
+                                  'ufl_enable_profiling', '_ufl_profiling__del__', 'adj_update_value', '_ad_outputs',
+                                  '__getnewargs__', '_ufl_is_index_free_', '_ufl_num_typecodes_',
+                                  '_ufl_is_restriction_', '_repr_png_', '__getitem__', '_ufl_noslots_',
+                                  '_ufl_num_ops_',
+                                  '__subclasshook__', '__pos__', '__sub__', 'ufl_domain', '__getattribute__', '_repr',
+                                  '__weakref__', '_ufl_is_scalar_', '__delattr__', '__sizeof__', 'evaluate',
+                                  '_ufl_err_str_', '__module__', 'get_generic_function', '__rdiv__',
+                                  '_ufl_is_shaping_',
+                                  '__init__', 'update', 'tlm_value', '_ad_restore_at_checkpoint', '_ad_mul',
+                                  '__format__', '__swig_destroy__', '_ad_annotate_block', '_ad_will_add_as_output',
+                                  '_ufl_language_operators_', '_ufl_shape', '_ad_add', 'get_property', '__ne__',
+                                  'block_class', 'user_parameters', '__call__', '__reduce_ex__', '__xor__', 'id',
+                                  '_ad_attributes_dict', 'ufl_shape', '__str__', 'annotate_tape', 'value_dimension',
+                                  '__bool__', 'output_block_class', '_count', '__round__', '__abs__',
+                                  '_ad_output_kwargs', 'restrict', '_globalcount', '_ad_to_list', '__iter__',
+                                  '__disown__', '_ufl_compute_hash_', '_ad_dot', '_ufl_function_space',
+                                  'ufl_disable_profiling', '_ad_function_space', 'eval_cell',
+                                  '_ad_annotate_output_block', 'ufl_free_indices', '_ufl_profiling__init__', '__add__',
+                                  '_ufl_is_differential_', 'create_block_variable', '_ad_assign_numpy', '__ge__',
+                                  '_value_shape', '_ad_output_args', '__dict__', '_ufl_handler_name_', '__reduce__',
+                                  'dx', 'value_shape', 'eval', 'stop_floating', '_ufl_required_methods_',
+                                  'is_cellwise_constant', '__pow__', 'this', '__doc__', 'str', '_ad_initialized',
+                                  'user_defined_derivatives', 'thisown', '_ufl_is_abstract_', '__len__', '__slots__',
+                                  '__class__', '_ufl_is_terminal_', '__rpow__', '__lt__', '__div__', '__del__',
+                                  '__unicode__', '_ufl_obj_init_counts_', 'value_size', '_ad_kwargs', '__repr__',
+                                  '_ufl_obj_del_counts_', '_ufl_evaluate_scalar_', '__neg__', 'ufl_domains', 'count',
+                                  'cppcode', '__eq__', '_ad_convert_type', 'ad_ignored_attributes', 'set_property',
+                                  'label', '_repr_latex_', 'name', '__le__', '__nonzero__', '_ad_copy',
+                                  '_ad_floating_active', 'output_block', '_ufl_is_evaluation_',
+                                  'original_block_variable', '__truediv__', 'adj_value', '__float__', '__hash__',
+                                  '_ufl_typecode_', '_ufl_all_classes_', '_ufl_is_terminal_modifier_', 'T',
+                                  'compute_vertex_values', 'ufl_index_dimensions', '__floordiv__', '__dir__',
+                                  'value_rank', 'set_generic_function', 'ufl_function_space',
+                                  '_ufl_terminal_modifiers_', '__new__', '_ad_create_checkpoint', '_ad_args',
+                                  '_ufl_signature_data_', '_ad_will_add_as_dependency', 'block', 'block_variable',
+                                  '_hash', '_ufl_is_literal_', '_function_space', '_ufl_coerce_', 'ufl_element',
+                                  'parameters', '__setattr__', '_ufl_class_', '_ufl_is_in_reference_frame_',
+                                  '_ufl_expr_reconstruct_', '_ufl_all_handler_names_', '_ufl_regular__init__',
+                                  '__rmul__', '__rtruediv__', '__gt__', '_ufl_regular__del__', 'ufl_operands',
+                                  '__mul__']
 
 
 class BaseExpression(FloatingType):

@@ -1,11 +1,9 @@
 # Type dependencies
-from . import block
-import re
 import os
+import re
 import threading
 from contextlib import contextmanager
 from functools import wraps
-
 
 _working_tape = None
 _stop_annotating = 0
@@ -41,10 +39,12 @@ class stop_annotating(object):
 
 def no_annotations(function):
     """Decorator to turn off annotation for the decorated function."""
+
     @wraps(function)
     def wrapper(*args, **kwargs):
         with stop_annotating():
             return function(*args, **kwargs)
+
     return wrapper
 
 
@@ -124,7 +124,7 @@ class Tape(object):
         self._blocks.append(block)
 
         # len() is computed in constant time, so this should be fine.
-        return len(self._blocks)-1
+        return len(self._blocks) - 1
 
     def get_blocks(self):
         """Returns a list of the blocks on the tape.
@@ -136,7 +136,7 @@ class Tape(object):
         return self._blocks
 
     def evaluate_adj(self, last_block=0, markings=False):
-        for i in range(len(self._blocks)-1, last_block-1, -1):
+        for i in range(len(self._blocks) - 1, last_block - 1, -1):
             self._blocks[i].evaluate_adj(markings=markings)
 
     def evaluate_tlm(self):
@@ -144,7 +144,7 @@ class Tape(object):
             self._blocks[i].evaluate_tlm()
 
     def evaluate_hessian(self, markings=False):
-        for i in range(len(self._blocks)-1, -1, -1):
+        for i in range(len(self._blocks) - 1, -1, -1):
             self._blocks[i].evaluate_hessian(markings=markings)
 
     def recompute(self):
@@ -152,15 +152,15 @@ class Tape(object):
             self._blocks[i].recompute()
 
     def reset_variables(self, types=None):
-        for i in range(len(self._blocks)-1, -1, -1):
+        for i in range(len(self._blocks) - 1, -1, -1):
             self._blocks[i].reset_variables(types)
 
     def reset_hessian_values(self):
-        for i in range(len(self._blocks)-1, -1, -1):
+        for i in range(len(self._blocks) - 1, -1, -1):
             self._blocks[i].reset_variables(types=("hessian"))
 
     def reset_tlm_values(self):
-        for i in range(len(self._blocks)-1, -1, -1):
+        for i in range(len(self._blocks) - 1, -1, -1):
             self._blocks[i].reset_variables(types=("tlm"))
 
     def copy(self):
@@ -253,29 +253,29 @@ class Tape(object):
         return self._valid_tf_scope_name(name)
 
     def _tf_register_blocks(self, name=None):
-        l = []
-        l.append(name)
+        lst = list()
+        lst.append(name)
         for block in self.get_blocks():
             if block in self._tf_added_blocks:
                 continue
             self._tf_added_blocks.append(block)
-            l.append(block)
-        self._tf_registered_blocks.append(l)
+            lst.append(block)
+        self._tf_registered_blocks.append(lst)
 
     def _tf_rebuild_registered_blocks(self):
         """Remove blocks that no longer exist on the tape from registered blocks."""
         new_registered_blocks = []
         new_added_blocks = []
         for scope in self._tf_registered_blocks:
-            l = [scope[0]]
+            lst = [scope[0]]
             for i in range(1, len(scope)):
                 block = scope[i]
                 if block in self.get_blocks():
-                    l.append(block)
+                    lst.append(block)
                     new_added_blocks.append(block)
 
-            if len(l) > 1:
-                new_registered_blocks.append(l)
+            if len(lst) > 1:
+                new_registered_blocks.append(lst)
         self._tf_registered_blocks = new_registered_blocks
         self._tf_added_blocks = new_added_blocks
 
@@ -348,8 +348,8 @@ class Tape(object):
             writer.close()
 
         if not launch_tensorboard or not open_in_browser:
-            print("Run the command line:\n" \
-                  "--> tensorboard --logdir={}\n" \
+            print("Run the command line:\n"
+                  "--> tensorboard --logdir={}\n"
                   "Then open http://localhost:6006/ in your web browser.".format(logdir))
 
         if launch_tensorboard:

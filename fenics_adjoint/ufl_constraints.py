@@ -4,6 +4,8 @@ import ufl.algorithms
 import numpy
 
 import fenics_adjoint.types as fenics_types
+from pyadjoint.optimization.constraints import Constraint, EqualityConstraint, InequalityConstraint
+
 if backend.__name__ in ["dolfin", "fenics"]:
     import fenics_adjoint.types as backend_types
 elif backend.__name__ == "firedrake":
@@ -11,7 +13,6 @@ elif backend.__name__ == "firedrake":
 else:
     raise NotImplementedError("Unknown backend")
 
-from pyadjoint.optimization.constraints import Constraint, EqualityConstraint, InequalityConstraint
 
 def as_vec(x):
     if backend.__name__ in ["dolfin", "fenics"]:
@@ -33,12 +34,14 @@ def as_vec(x):
     else:
         raise NotImplementedError("Unknown backend")
 
+
 class UFLConstraint(Constraint):
     """
     Easily implement scalar constraints using UFL.
 
     The form must be a 0-form that depends on a Function control.
     """
+
     def __init__(self, form, control):
 
         if not isinstance(control.control, backend.Function):
@@ -111,7 +114,7 @@ class UFLConstraint(Constraint):
             m = m[0]
         self.update_control(m)
 
-        asm = backend.assemble(dp*ufl.replace(self.dform, {self.trial: self.test}))
+        asm = backend.assemble(dp * ufl.replace(self.dform, {self.trial: self.test}))
         if isinstance(result, backend.Function):
             if backend.__name__ in ["dolfin", "fenics"]:
                 result.vector().zero()
@@ -129,7 +132,7 @@ class UFLConstraint(Constraint):
             m = m[0]
         self.update_control(m)
 
-        H = dm*ufl.replace(self.hess, {self.trial: dp})
+        H = dm * ufl.replace(self.hess, {self.trial: dp})
         if isinstance(result, backend.Function):
             if backend.__name__ in ["dolfin", "fenics"]:
                 if self.zero_hess:
@@ -154,8 +157,10 @@ class UFLConstraint(Constraint):
         """Returns the number of constraint components."""
         return 1
 
+
 class UFLEqualityConstraint(UFLConstraint, EqualityConstraint):
     pass
+
 
 class UFLInequalityConstraint(UFLConstraint, InequalityConstraint):
     pass

@@ -19,7 +19,7 @@ subject to the Stokes equations with velocity Dirichlet conditions
 
 .. math::
       \alpha(\rho) u - \mu \nabla^2 u + \nabla p &= f \qquad \mathrm{in} \ \Omega        \\
-                                 \mathrm{div}(u) &= 0 \qquad \mathrm{on} \ \Omega        \\
+                                 \mathrm{div}(u) &= 0 \qquad \mathrm{in} \ \Omega        \\
                                                u &= b \qquad \mathrm{on} \ \delta \Omega \\
 
 and to the control constraints on available fluid volume

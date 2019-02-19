@@ -23,3 +23,9 @@ Optimization examples
    time-distributed-control/time-distributed-control
    time-dependent-wave/time-dependent-wave
    mpec/mpec
+
+Shape optimization examples
+---------------------------
+
+.. toctree::
+   stokes-shape-opt/stokes_problem

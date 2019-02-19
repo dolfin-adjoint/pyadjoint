@@ -34,8 +34,9 @@ def test_assign_vector_valued():
     element = VectorElement("CG", mesh.ufl_cell(), degree=1, dim=2)
     V = FunctionSpace(mesh, element)
 
-    f = interpolate(fd.Expression(("x[0]*x[1]", "x[0]+x[1]"), degree=1), V)
-    g = interpolate(fd.Expression(("sin(x[1])+x[0]", "cos(x[0])*x[1]"), degree=1), V)
+    x = SpatialCoordinate(mesh)
+    f = interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V)
+    g = interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V)
     u = Function(V)
 
     u.assign(f - 0.5*g)
@@ -53,8 +54,9 @@ def test_assign_tlm():
     element = VectorElement("CG", mesh.ufl_cell(), degree=1, dim=2)
     V = FunctionSpace(mesh, element)
 
-    f = interpolate(fd.Expression(("x[0]*x[1]", "x[0]+x[1]"), degree=1), V)
-    g = interpolate(fd.Expression(("sin(x[1])+x[0]", "cos(x[0])*x[1]"), degree=1), V)
+    x = SpatialCoordinate(mesh)
+    f = interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V)
+    g = interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V)
     u = Function(V)
 
     u.assign(f - 0.5*g)
@@ -77,8 +79,9 @@ def test_assign_hessian():
     element = VectorElement("CG", mesh.ufl_cell(), degree=1, dim=2)
     V = FunctionSpace(mesh, element)
 
-    f = interpolate(fd.Expression(("x[0]*x[1]", "x[0]+x[1]"), degree=1), V)
-    g = interpolate(fd.Expression(("sin(x[1])+x[0]", "cos(x[0])*x[1]"), degree=1), V)
+    x = SpatialCoordinate(mesh)
+    f = interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V)
+    g = interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V)
     u = Function(V)
 
     u.assign(f - 0.5*g)
@@ -98,8 +101,9 @@ def test_assign_nonlincom():
     mesh = IntervalMesh(10, 0, 1)
     V = FunctionSpace(mesh, "CG", 1)
 
-    f = interpolate(fd.Expression("x[0]", degree=1), V)
-    g = interpolate(fd.Expression("sin(x[0])", degree=1), V)
+    x = SpatialCoordinate(mesh)
+    f = interpolate(x[0], V)
+    g = interpolate(sin(x[0]), V)
     u = Function(V)
 
     u.assign(f*g)
@@ -116,8 +120,9 @@ def test_assign_nonlin_changing():
     mesh = IntervalMesh(10, 0, 1)
     V = FunctionSpace(mesh, "CG", 1)
 
-    f = interpolate(fd.Expression("x[0]", degree=1), V)
-    g = interpolate(fd.Expression("sin(x[0])", degree=1), V)
+    x = SpatialCoordinate(mesh)
+    f = interpolate(x[0], V)
+    g = interpolate(sin(x[0]), V)
     control = Control(g)
 
     test = TestFunction(V)
