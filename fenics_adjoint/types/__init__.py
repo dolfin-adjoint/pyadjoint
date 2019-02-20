@@ -11,7 +11,7 @@ if backend.__name__ != "firedrake":
     from .mesh import (Mesh, UnitSquareMesh,UnitIntervalMesh, IntervalMesh,
                        UnitCubeMesh, BoundaryMesh, BoxMesh, RectangleMesh,
                        SubMesh)
-
+    from .as_backend_type import as_backend_type, VectorSpaceBasis
 from .function import Function
 
 # Use pyadjoint AdjFloat for numpy.float64.
