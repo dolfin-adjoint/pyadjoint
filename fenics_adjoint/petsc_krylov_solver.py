@@ -2,7 +2,7 @@ import backend
 
 from pyadjoint.tape import annotate_tape, get_working_tape
 from .solving import SolveBlock
-from .types import compat
+from .types import compat, as_backend_type
 
 
 class PETScKrylovSolver(backend.PETScKrylovSolver):
@@ -33,14 +33,22 @@ class PETScKrylovSolver(backend.PETScKrylovSolver):
         self.preconditioner = preconditioner
         self.solver_parameters = {}
         self.block_helper = PETScKrylovSolveBlockHelper()
+        self.null_space = None
+        if hasattr(self.operator, "null_space"):
+            self.null_space = self.operator.null_space
 
     def set_operator(self, arg0):
         self.operator = arg0
+        if hasattr(self.operator, "null_space"):
+            self.null_space = self.operator.null_space
         self.block_helper = PETScKrylovSolveBlockHelper()
         return backend.PETScKrylovSolver.set_operator(self, arg0)
 
     def set_operators(self, arg0, arg1):
         self.operator = arg0
+        if hasattr(self.operator, "null_space"):
+            self.null_space = self.operator.null_space
+
         self.pc_operator = arg1
         self.block_helper = PETScKrylovSolveBlockHelper()
         return backend.PETScKrylovSolver.set_operators(self, arg0, arg1)
@@ -75,6 +83,7 @@ class PETScKrylovSolver(backend.PETScKrylovSolver):
                                           krylov_method=self.method,
                                           krylov_preconditioner=self.preconditioner,
                                           ksp_options_prefix=ksp_options_prefix,
+                                          null_space=self.null_space,
                                           **sb_kwargs)
             tape.add_block(block)
 
@@ -106,6 +115,7 @@ class PETScKrylovSolveBlock(SolveBlock):
         self.method = kwargs.pop("krylov_method")
         self.preconditioner = kwargs.pop("krylov_preconditioner")
         self.ksp_options_prefix = kwargs.pop("ksp_options_prefix")
+        self.null_space = kwargs.pop("null_space")
 
         if self.nonzero_initial_guess:
             # Here we store a variable that isn't necessarily a dependency.
@@ -141,6 +151,9 @@ class PETScKrylovSolveBlock(SolveBlock):
                                              dFdu_form.arguments()[0]) * backend.dx
                 A, _ = backend.assemble_system(dFdu_form, rhs_bcs_form, bcs)
 
+                if self.null_space is not None:
+                    as_backend_type(A).set_nullspace(self.null_space)
+
                 if self.pc_operator is not None:
                     P = self._replace_form(self.pc_operator)
                     P, _ = backend.assemble_system(P, rhs_bcs_form, bcs)
@@ -150,6 +163,9 @@ class PETScKrylovSolveBlock(SolveBlock):
             else:
                 A = compat.assemble_adjoint_value(dFdu_form)
                 [bc.apply(A) for bc in bcs]
+
+                if self.null_space is not None:
+                    as_backend_type(A).set_nullspace(self.null_space)
 
                 if self.pc_operator is not None:
                     P = self._replace_form(self.pc_operator)
@@ -163,6 +179,10 @@ class PETScKrylovSolveBlock(SolveBlock):
 
         solver.parameters.update(self.krylov_solver_parameters)
         [bc.apply(dJdu) for bc in bcs]
+
+        if self.null_space is not None:
+            if self.null_space.orthogonalized:
+                self.null_space.orthogonalize(dJdu)
 
         adj_sol = backend.Function(self.function_space)
         solver.solve(adj_sol.vector(), dJdu)
@@ -181,6 +201,9 @@ class PETScKrylovSolveBlock(SolveBlock):
 
             if self.assemble_system:
                 A, _ = backend.assemble_system(lhs, rhs, bcs)
+                if self.null_space is not None:
+                    as_backend_type(A).set_nullspace(self.null_space)
+
                 if self.pc_operator is not None:
                     P = self._replace_form(self.pc_operator)
                     P, _ = backend.assemble_system(P, rhs, bcs)
@@ -190,6 +213,9 @@ class PETScKrylovSolveBlock(SolveBlock):
             else:
                 A = compat.assemble_adjoint_value(lhs)
                 [bc.apply(A) for bc in bcs]
+                if self.null_space is not None:
+                    as_backend_type(A).set_nullspace(self.null_space)
+
                 if self.pc_operator is not None:
                     P = self._replace_form(self.pc_operator)
                     P = compat.assemble_adjoint_value(P)
@@ -206,6 +232,10 @@ class PETScKrylovSolveBlock(SolveBlock):
         else:
             b = compat.assemble_adjoint_value(rhs)
             [bc.apply(b) for bc in bcs]
+
+        if self.null_space is not None:
+            if self.null_space.orthogonalized:
+                self.null_space.orthogonalize(b)
 
         solver.parameters.update(self.krylov_solver_parameters)
         solver.solve(func.vector(), b)
