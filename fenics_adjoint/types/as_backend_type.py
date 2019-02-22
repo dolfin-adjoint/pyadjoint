@@ -18,7 +18,6 @@ def set_nullspace(self, null_space):
 
 
 backend.cpp.la.PETScMatrix.set_nullspace = set_nullspace
-__set_near_nullspace = backend.cpp.la.PETScMatrix.set_near_nullspace
 
 
 class VectorSpaceBasis(backend.VectorSpaceBasis):
