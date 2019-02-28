@@ -1,6 +1,10 @@
-from pygmsh import generate_mesh
-from pygmsh.built_in.geometry import Geometry
-import meshio
+try:
+    from pygmsh import generate_mesh
+    from pygmsh.built_in.geometry import Geometry
+    import meshio
+except ImportError:
+    print("meshio and or pygmsh not installed. To create new meshes, please install them via pip")
+    pass
 
 inflow = 1
 outflow = 2
