@@ -33,7 +33,7 @@ class PETScKrylovSolver(backend.PETScKrylovSolver):
         self.preconditioner = preconditioner
         self.solver_parameters = {}
         self.block_helper = PETScKrylovSolveBlockHelper()
-        self._ad_null_space = None
+        self._ad_nullspace = None
         if hasattr(self.operator, "_ad_nullspace"):
             self._ad_nullspace = self.operator._ad_nullspace
 
