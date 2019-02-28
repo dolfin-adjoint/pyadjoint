@@ -12,9 +12,9 @@ def as_backend_type(A):
 __set_nullspace = backend.cpp.la.PETScMatrix.set_nullspace
 
 
-def set_nullspace(self, null_space):
-    self._ad_original_ref.null_space = null_space
-    __set_nullspace(self, null_space)
+def set_nullspace(self, nullspace):
+    self._ad_original_ref._ad_nullspace = nullspace
+    __set_nullspace(self, nullspace)
 
 
 backend.cpp.la.PETScMatrix.set_nullspace = set_nullspace
@@ -23,8 +23,8 @@ backend.cpp.la.PETScMatrix.set_nullspace = set_nullspace
 class VectorSpaceBasis(backend.VectorSpaceBasis):
     def __init__(self, *args, **kwargs):
         super(VectorSpaceBasis, self).__init__(*args, **kwargs)
-        self.orthogonalized = False
+        self._ad_orthogonalized = False
 
     def orthogonalize(self, vector):
         backend.VectorSpaceBasis.orthogonalize(self, vector)
-        self.orthogonalized = True
+        self._ad_orthogonalized = True
