@@ -38,7 +38,8 @@ from .ufl_constraints import UFLEqualityConstraint, UFLInequalityConstraint
 from .shapead_transformations import (transfer_from_boundary,
                                       transfer_to_boundary)
 if backend.__name__ != "firedrake":
-    from .types import Expression, UserExpression, CompiledExpression, genericmatrix, genericvector, io
+    from .types import Expression, UserExpression, CompiledExpression, genericmatrix, genericvector, io, as_backend_type, VectorSpaceBasis
+
     from .newton_solver import NewtonSolver
     from .lu_solver import LUSolver
     from .krylov_solver import KrylovSolver
