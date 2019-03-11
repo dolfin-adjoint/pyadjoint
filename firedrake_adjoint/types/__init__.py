@@ -1,3 +1,4 @@
 from .function import Function
+from .mesh import UnitSquareMesh
 
-__all__ = ["Function"]
+__all__ = ["Function", "Mesh"]

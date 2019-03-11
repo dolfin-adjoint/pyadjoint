@@ -22,6 +22,7 @@ from fenics_adjoint.ufl_constraints import UFLInequalityConstraint, UFLEqualityC
 
 from firedrake_adjoint.types.expression import Expression
 from firedrake_adjoint.types.function import Function
+from firedrake_adjoint.types.mesh import UnitSquareMesh
 
 from pyadjoint.tape import (Tape, set_working_tape, get_working_tape,
                             pause_annotation, continue_annotation)
