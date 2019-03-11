@@ -68,7 +68,7 @@ jobs:
 
   test-firedrake:
     docker:
-      - image: dhamimperial/firedrake-pyadjoint-testing
+      - image: firedrakeproject/firedrake:latest
 
 
     working_directory: ~/repo
