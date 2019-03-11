@@ -4,7 +4,7 @@
 #
 version: 2
 jobs:
-  build:
+  test-fenics:
     docker:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
@@ -12,7 +12,7 @@ jobs:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
       # - image: quay.io/fenicsproject/stable:latest
-      
+
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
       # documented at https://circleci.com/docs/2.0/circleci-images/
@@ -33,7 +33,7 @@ jobs:
       - run:
           name: install dependencies
           command: |
-            pip3 install -r requirements.txt
+            pip3 install -e .[all]
 
       - save_cache:
           paths:
@@ -48,9 +48,8 @@ jobs:
       - run:
           name: Run tests
           command: |
-            cp tests/fenics_adjoint/*.xdmf .
-            cp tests/fenics_adjoint/*.h5 .
             python3 -m pytest -v tests/fenics_adjoint/
+            python3 -m pytest -v tests/pyadjoint/
 
       - run:
           name: Flake8 tests
@@ -66,5 +65,51 @@ jobs:
       - store_artifacts:
           path: test-reports
           destination: test-reports
-          
 
+  test-firedrake:
+    docker:
+      - image: dhamimperial/firedrake-pyadjoint-testing
+
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - v2-dependencies-{{ checksum "requirements.txt" }}
+            # fallback to using the latest cache if no exact match is found
+            - v2-dependencies-
+
+      - run:
+          name: install dependencies
+          command: |
+            source /home/firedrake/firedrake/bin/activate
+            pip3 install -e .[all]
+
+      - save_cache:
+          paths:
+            - ./venv
+          key: v2-dependencies-{{ checksum "requirements.txt" }}
+
+      # run tests!
+      - run:
+          name: Run tests
+          command: |
+            source /home/firedrake/firedrake/bin/activate
+            python3 -m pytest -v tests/firedrake_adjoint/
+            python3 -m pytest -v tests/pyadjoint/
+
+      - store_artifacts:
+          path: test-reports
+          destination: test-reports
+
+
+workflows:
+  version: 2
+  all:
+    jobs:
+      - test-fenics
+      - test-firedrake
