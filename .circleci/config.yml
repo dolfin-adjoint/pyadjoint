@@ -33,7 +33,7 @@ jobs:
       - run:
           name: install dependencies
           command: |
-            pip3 install -r requirements.txt
+            pip3 install -e .[all]
 
       - save_cache:
           paths:
@@ -76,11 +76,6 @@ jobs:
     steps:
       - checkout
 
-      - run:
-          name: firedrake activate
-          command: |
-            source /home/firedrake/firedrake/bin/activate
-
       # Download and cache dependencies
       - restore_cache:
           keys:
@@ -91,7 +86,8 @@ jobs:
       - run:
           name: install dependencies
           command: |
-            pip3 install -r requirements.txt
+            source /home/firedrake/firedrake/bin/activate
+            pip3 install -e .[all]
 
       - save_cache:
           paths:
@@ -102,6 +98,7 @@ jobs:
       - run:
           name: Run tests
           command: |
+            source /home/firedrake/firedrake/bin/activate
             python3 -m pytest -v tests/firedrake_adjoint/
             python3 -m pytest -v tests/pyadjoint/
 

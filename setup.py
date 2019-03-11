@@ -3,9 +3,9 @@ from setuptools import setup
 
 extras = {
     'moola': ['moola>=0.1.6'],
-    'test': ['pytest'],
+    'test': ['pytest>=3.10'],
     'doc': ['sphinx', 'sphinxcontrib-bibtex'],
-    'visualisation': ['tensorflow'],
+    'visualisation': ['tensorflow', 'protobuf==3.6.0'],
     'meshing': ['pygmsh', 'meshio'],
 }
 # 'all' includes all of the above
