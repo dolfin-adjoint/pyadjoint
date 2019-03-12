@@ -4,7 +4,7 @@ from pyadjoint.block import Block
 from pyadjoint.overloaded_type import (FloatingType, register_overloaded_type,
                                        create_overloaded_object)
 from pyadjoint.tape import (annotate_tape, get_working_tape, no_annotations, stop_annotating)
-
+from .function import Function
 
 @register_overloaded_type
 class MeshGeometry(FloatingType, backend.mesh.MeshGeometry):
@@ -12,8 +12,6 @@ class MeshGeometry(FloatingType, backend.mesh.MeshGeometry):
         super(MeshGeometry, self).__init__(*args, block_class=MeshBlock,
                                            **kwargs)
         backend.mesh.MeshGeometry.__init__(self, *args, **kwargs)
-        import pdb; pdb.set_trace()
-        self.coordinates
         self.org_mesh_coords = self.coordinates.copy(deepcopy=True)
 
     @classmethod
@@ -35,13 +33,17 @@ class MeshGeometry(FloatingType, backend.mesh.MeshGeometry):
     @backend.utils.cached_property
     def _coordinates_function(self):
         """The :class:`.Function` containing the coordinates of this mesh."""
-        import backend.functionspaceimpl as functionspaceimpl
-        import backend.function as function
         backend.mesh.MeshGeometry.init(self)
         coordinates_fs = self._coordinates.function_space()
-        V = functionspaceimpl.WithGeometry(coordinates_fs, self)
-        f = function.Function(V, val=self._coordinates)
-        return create_overloaded_object(f)
+        V = backend.functionspaceimpl.WithGeometry(coordinates_fs, self)
+        f = Function(V, val=self._coordinates
+                     ,
+                     block_class=MeshInputBlock,
+                     _ad_floating_active=True,
+                     _ad_args=[self],
+                     _ad_output_args=[self],
+                     output_block_class=MeshOutputBlock)
+        return f
 
 register_overloaded_type(MeshGeometry, backend.mesh.MeshGeometry)
 
@@ -55,6 +57,7 @@ def UnitSquareMesh(*args, **kwargs):
 
     with stop_annotating():
         output = backend.UnitSquareMesh(*args, **kwargs)
+    from IPython import embed; embed()
     output = create_overloaded_object(output)
 
     if annotate:
@@ -62,8 +65,37 @@ def UnitSquareMesh(*args, **kwargs):
         tape = get_working_tape()
         tape.add_block(block)
 
-        block.add_output(output.block_variable)
+        block.add_output(output.coordinates.block_variable)
     return output
+
+
+        
+class MeshInputBlock(Block):
+    def __init__(self, mesh):
+        super(MeshInputBlock, self).__init__()
+        self.add_dependency(mesh.block_variable)
+
+class MeshOutputBlock(Block):
+    def __init__(self, func, mesh):
+        super(MeshOutputBlock, self).__init__()
+        self._ad_mesh = mesh
+        self.add_dependency(func.block_variable)
+        
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable,
+                               prepared=None):
+        return adj_inputs[0]
+
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable,
+                               prepared=None):
+        return backend.Function.sub(tlm_inputs[0], self.idx, deepcopy=True)
+
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs,
+                                   block_variable,
+                                   relevant_dependencies, prepared=None):
+        return hessian_inputs[0]
+
+    def recompute_component(self, inputs, block_variable, prepared):
+        return self._ad_mesh
 
 
 class MeshBlock(Block):
@@ -99,6 +131,6 @@ class MeshBlock(Block):
         mesh = self.get_dependencies()[0].saved_output
         coordinates = self.get_dependencies()[1].saved_output
 
-        mesh.coordinates = coordinates
+        mesh.coordinates.assign(coordinates, annotate=False)
 
         self.get_outputs()[0].checkpoint = mesh._ad_create_checkpoint()
