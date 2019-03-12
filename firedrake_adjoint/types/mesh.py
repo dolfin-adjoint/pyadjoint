@@ -2,7 +2,7 @@ import backend
 from pyadjoint.block import Block
 from pyadjoint.overloaded_type import (OverloadedType, register_overloaded_type,
                                        create_overloaded_object)
-from pyadjoint.tape import (annotate_tape, get_working_tape, no_annotations, stop_annotating)
+from pyadjoint.tape import no_annotations, stop_annotating
 from .function import Function
 
 
@@ -65,13 +65,6 @@ class MeshInputBlock(Block):
         super(MeshInputBlock, self).__init__()
         self.add_dependency(mesh.block_variable)
 
-
-class MeshOutputBlock(Block):
-    def __init__(self, func, mesh):
-        super(MeshOutputBlock, self).__init__()
-        self._ad_mesh = mesh
-        self.add_dependency(func.block_variable)
-
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         return None
 
@@ -80,7 +73,30 @@ class MeshOutputBlock(Block):
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, idx, block_variable,
                                    relevant_dependencies, prepared=None):
-        return hessian_inputs[0]
+        return None
+
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        return self.mesh.coordinates
+
+
+class MeshOutputBlock(Block):
+    def __init__(self, func, mesh):
+        super(MeshOutputBlock, self).__init__()
+        self._ad_mesh = mesh
+        self.add_dependency(func.block_variable)
+
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        adj_value = self.get_outputs()[0].adj_value
+        if adj_value is None:
+            return
+        self.get_dependencies()[0].add_adj_output(adj_value)
+
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        return None
+
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, idx, block_variable,
+                                   relevant_dependencies, prepared=None):
+        return None
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
         return self._ad_mesh
