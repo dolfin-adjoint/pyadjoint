@@ -12,6 +12,8 @@ class MeshGeometry(FloatingType, backend.mesh.MeshGeometry):
         super(MeshGeometry, self).__init__(*args, block_class=MeshBlock,
                                            **kwargs)
         backend.mesh.MeshGeometry.__init__(self, *args, **kwargs)
+        import pdb; pdb.set_trace()
+        self.coordinates
         self.org_mesh_coords = self.coordinates.copy(deepcopy=True)
 
     @classmethod
@@ -29,6 +31,17 @@ class MeshGeometry(FloatingType, backend.mesh.MeshGeometry):
     def _ad_restore_at_checkpoint(self, checkpoint):
         self.obj.coordinates()[:] = checkpoint
         return self
+
+    @backend.utils.cached_property
+    def _coordinates_function(self):
+        """The :class:`.Function` containing the coordinates of this mesh."""
+        import backend.functionspaceimpl as functionspaceimpl
+        import backend.function as function
+        backend.mesh.MeshGeometry.init(self)
+        coordinates_fs = self._coordinates.function_space()
+        V = functionspaceimpl.WithGeometry(coordinates_fs, self)
+        f = function.Function(V, val=self._coordinates)
+        return create_overloaded_object(f)
 
 register_overloaded_type(MeshGeometry, backend.mesh.MeshGeometry)
 
