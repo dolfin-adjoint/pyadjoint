@@ -1,10 +1,10 @@
 import backend
-import ufl
 from pyadjoint.block import Block
 from pyadjoint.overloaded_type import (FloatingType, register_overloaded_type,
                                        create_overloaded_object)
 from pyadjoint.tape import (annotate_tape, get_working_tape, no_annotations, stop_annotating)
 from .function import Function
+
 
 @register_overloaded_type
 class MeshGeometry(FloatingType, backend.mesh.MeshGeometry):
@@ -22,7 +22,7 @@ class MeshGeometry(FloatingType, backend.mesh.MeshGeometry):
         r._callback = callback
         r.coordinates.ufl_element()
         return r
-        
+
     def _ad_create_checkpoint(self):
         return self.coordinates.copy()
 
@@ -36,8 +36,7 @@ class MeshGeometry(FloatingType, backend.mesh.MeshGeometry):
         backend.mesh.MeshGeometry.init(self)
         coordinates_fs = self._coordinates.function_space()
         V = backend.functionspaceimpl.WithGeometry(coordinates_fs, self)
-        f = Function(V, val=self._coordinates
-                     ,
+        f = Function(V, val=self._coordinates,
                      block_class=MeshInputBlock,
                      _ad_floating_active=True,
                      _ad_args=[self],
@@ -50,14 +49,13 @@ register_overloaded_type(MeshGeometry, backend.mesh.MeshGeometry)
 
 def UnitSquareMesh(*args, **kwargs):
     """ This routine wraps a UnitSquareMesh. The purpose is to record changes
-    in the computational mesh, so that one can compute the corresponding 
+    in the computational mesh, so that one can compute the corresponding
     shape derivatives.
     """
     annotate = annotate_tape(kwargs)
 
     with stop_annotating():
         output = backend.UnitSquareMesh(*args, **kwargs)
-    from IPython import embed; embed()
     output = create_overloaded_object(output)
 
     if annotate:
@@ -69,18 +67,18 @@ def UnitSquareMesh(*args, **kwargs):
     return output
 
 
-        
 class MeshInputBlock(Block):
     def __init__(self, mesh):
         super(MeshInputBlock, self).__init__()
         self.add_dependency(mesh.block_variable)
+
 
 class MeshOutputBlock(Block):
     def __init__(self, func, mesh):
         super(MeshOutputBlock, self).__init__()
         self._ad_mesh = mesh
         self.add_dependency(func.block_variable)
-        
+
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable,
                                prepared=None):
         return adj_inputs[0]
