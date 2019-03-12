@@ -77,7 +77,9 @@ class SolveBlock(Block):
         self.function_space = self.func.function_space()
         if backend.__name__ != "firedrake":
             mesh = self.lhs.ufl_domain().ufl_cargo()
-            self.add_dependency(mesh.block_variable)
+        else:
+            mesh = self.lhs.ufl_domain()
+        self.add_dependency(mesh.block_variable)
 
     def __str__(self):
         return "{} = {}".format(str(self.lhs), str(self.rhs))

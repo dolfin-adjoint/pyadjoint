@@ -67,7 +67,9 @@ class AssembleBlock(Block):
         self.form = form
         if backend.__name__ != "firedrake":
             mesh = self.form.ufl_domain().ufl_cargo()
-            self.add_dependency(mesh.block_variable)
+        else:
+            mesh = self.form.ufl_domain()
+        self.add_dependency(mesh.block_variable)
         for c in self.form.coefficients():
             self.add_dependency(c.block_variable, no_duplicates=True)
 
