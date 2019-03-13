@@ -45,6 +45,7 @@ class MeshGeometry(OverloadedType, backend.mesh.MeshGeometry):
                      output_block_class=MeshOutputBlock)
         return f
 
+
 register_overloaded_type(MeshGeometry, backend.mesh.MeshGeometry)
 
 
