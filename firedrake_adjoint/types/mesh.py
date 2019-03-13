@@ -76,13 +76,13 @@ class MeshInputBlock(Block):
         return None
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        return self.mesh.coordinates
+        mesh = self.get_dependencies()[0].saved_output
+        return mesh.coordinates
 
 
 class MeshOutputBlock(Block):
     def __init__(self, func, mesh):
         super(MeshOutputBlock, self).__init__()
-        self._ad_mesh = mesh
         self.add_dependency(func.block_variable)
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
@@ -99,4 +99,13 @@ class MeshOutputBlock(Block):
         return None
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        return self._ad_mesh
+        vector = self.get_dependencies()[0].saved_output
+        mesh = vector.function_space().mesh()
+        #from IPython import embed; embed()
+        backend.File("mesh0.pvd").write(mesh.coordinates)
+        mesh.coordinates.assign(vector, annotate=False)
+        backend.File("mesh1.pvd").write(mesh.coordinates)
+        exit(1)
+        self.get_outputs()[0].checkpoint = mesh._ad_create_checkpoint()
+        return None
+        #return mesh.coordinates
