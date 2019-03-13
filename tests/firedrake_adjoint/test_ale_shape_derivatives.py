@@ -119,18 +119,21 @@ def test_PDE_hessian(mesh, x):
     r0 = taylor_test(Jhat, s, h, dJdm=0)
     Jhat(s)
     assert(r0>0.95)
+
     r1 = taylor_test(Jhat, s, h)
+    Jhat(s)
     assert(r1>1.95)
-    # # First order taylor
-    # s.tlm_value = h
-    # tape = get_working_tape()
-    # tape.evaluate_tlm()
-    # r1 = taylor_test(Jhat, s, h, dJdm=J.block_variable.tlm_value)
-    # assert(r1>1.95)
-    # Jhat(s)
+
+    # First order taylor
+    s.tlm_value = h
+    tape = get_working_tape()
+    tape.evaluate_tlm()
+    r1 = taylor_test(Jhat, s, h, dJdm=J.block_variable.tlm_value)
+    assert(r1>1.95)
+    Jhat(s)
 
     # # Second order taylor
-    # dJdm = Jhat.derivative().vector().inner(h.vector())
-    # Hm = compute_hessian(J, c, h).vector().inner(h.vector())
-    # r2 = taylor_test(Jhat, s, h, dJdm=dJdm, Hm=Hm)
-    # assert(r2>2.95)
+    dJdm = Jhat.derivative().vector().inner(h.vector())
+    Hm = compute_hessian(J, c, h).vector().inner(h.vector())
+    r2 = taylor_test(Jhat, s, h, dJdm=dJdm, Hm=Hm)
+    assert(r2>2.95)

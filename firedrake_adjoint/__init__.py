@@ -22,7 +22,23 @@ from fenics_adjoint.ufl_constraints import UFLInequalityConstraint, UFLEqualityC
 
 from firedrake_adjoint.types.expression import Expression
 from firedrake_adjoint.types.function import Function
-from firedrake_adjoint.types.mesh import UnitSquareMesh
+from firedrake_adjoint.types.mesh import (UnitSquareMesh,
+                                          IntervalMesh, UnitIntervalMesh,
+                                          PeriodicIntervalMesh,
+                                          PeriodicUnitIntervalMesh,
+                                          OneElementThickMesh, UnitTriangleMesh,
+                                          RectangleMesh, SquareMesh,
+                                          PeriodicRectangleMesh,
+                                          PeriodicUnitSquareMesh,
+                                          CircleManifoldMesh, BoxMesh,
+                                          CubeMesh, UnitCubeMesh,
+                                          IcosahedralSphereMesh,
+                                          UnitIcosahedralSphereMesh,
+                                          OctahedralSphereMesh,
+                                          UnitOctahedralSphereMesh,
+                                          CubedSphereMesh, UnitCubedSphereMesh,
+                                          TorusMesh, CylinderMesh,
+                                          PartiallyPeriodicRectangleMesh)
 
 from pyadjoint.tape import (Tape, set_working_tape, get_working_tape,
                             pause_annotation, continue_annotation)

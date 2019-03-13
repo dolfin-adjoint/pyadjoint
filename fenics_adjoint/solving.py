@@ -308,7 +308,7 @@ class SolveBlock(Block):
                 continue
 
             if isinstance(c, compat.MeshType):
-                dFdm_shape += backend.assemble(
+                dFdm_shape += compat.assemble_adjoint_value(
                     backend.derivative(-F_form, c_rep, tlm_value))
             else:
                 dFdm += backend.derivative(-F_form, c_rep, tlm_value)
@@ -317,9 +317,9 @@ class SolveBlock(Block):
             v = dFdu.arguments()[0]
             dFdm = backend.inner(backend.Constant(numpy.zeros(v.ufl_shape)), v) * backend.dx
 
-        dFdm = backend.assemble(dFdm) + dFdm_shape
+        dFdm = compat.assemble_adjoint_value(dFdm) + dFdm_shape
         dudm = backend.Function(V)
-        return self._assemble_and_solve_tlm_eq(backend.assemble(dFdu), dFdm, dudm, bcs)
+        return self._assemble_and_solve_tlm_eq(compat.assemble_adjoint_value(dFdu), dFdm, dudm, bcs)
 
     def _assemble_and_solve_tlm_eq(self, dFdu, dFdm, dudm, bcs):
         return self._assembled_solve(dFdu, dFdm, dudm, bcs)
