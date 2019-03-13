@@ -23,7 +23,7 @@ class MeshGeometry(OverloadedType, backend.mesh.MeshGeometry):
         return r
 
     def _ad_create_checkpoint(self):
-        return self.coordinates.copy()
+        return self.coordinates.copy(deepcopy=True)
 
     @no_annotations
     def _ad_restore_at_checkpoint(self, checkpoint):
@@ -61,6 +61,10 @@ def UnitSquareMesh(*args, **kwargs):
 
 
 class MeshInputBlock(Block):
+    """
+    Block which links a MeshGeometry to its coordinates, which is a firedrake
+    function.
+    """
     def __init__(self, mesh):
         super(MeshInputBlock, self).__init__()
         self.add_dependency(mesh.block_variable)
@@ -81,6 +85,9 @@ class MeshInputBlock(Block):
 
 
 class MeshOutputBlock(Block):
+    """
+    Block which is called when the coordinates of a mesh is changed.
+    """
     def __init__(self, func, mesh):
         super(MeshOutputBlock, self).__init__()
         self.add_dependency(func.block_variable)
@@ -101,11 +108,6 @@ class MeshOutputBlock(Block):
     def recompute_component(self, inputs, block_variable, idx, prepared):
         vector = self.get_dependencies()[0].saved_output
         mesh = vector.function_space().mesh()
-        #from IPython import embed; embed()
-        backend.File("mesh0.pvd").write(mesh.coordinates)
         mesh.coordinates.assign(vector, annotate=False)
-        backend.File("mesh1.pvd").write(mesh.coordinates)
-        exit(1)
         self.get_outputs()[0].checkpoint = mesh._ad_create_checkpoint()
         return None
-        #return mesh.coordinates
