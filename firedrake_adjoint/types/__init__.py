@@ -1,22 +1,16 @@
+import firedrake
+import sys
+
 from .function import Function
-from .mesh import (UnitSquareMesh, IntervalMesh, UnitIntervalMesh,
-                   PeriodicIntervalMesh, PeriodicUnitIntervalMesh,
-                   OneElementThickMesh, UnitTriangleMesh,
-                   RectangleMesh, SquareMesh, PeriodicRectangleMesh,
-                   PeriodicUnitSquareMesh, CircleManifoldMesh, BoxMesh,
-                   CubeMesh, UnitCubeMesh, IcosahedralSphereMesh,
-                   UnitIcosahedralSphereMesh, OctahedralSphereMesh,
-                   UnitOctahedralSphereMesh, CubedSphereMesh,
-                   UnitCubedSphereMesh, TorusMesh,
-                   CylinderMesh, PartiallyPeriodicRectangleMesh)
+from .mesh import Mesh
+
+__all__ = ["Function", "Mesh"]
 
 
-__all__ = ["Function", "UnitSquareMesh", "IntervalMesh", "UnitIntervalMesh",
-           "PeriodicIntervalMesh", "PeriodicUnitIntervalMesh",
-           "OneElementThickMesh", "UnitTriangleMesh", "RectangleMesh",
-           "SquareMesh", "PeriodicRectangleMesh", "PeriodicUnitSquareMesh",
-           "CircleManifoldMesh", "BoxMesh", "CubeMesh", "UnitCubeMesh",
-           "IcosahedralSphereMesh", "UnitIcosahedralSphereMesh",
-           "OctahedralSphereMesh", "UnitOctahedralSphereMesh",
-           "CubedSphereMesh", "UnitCubedSphereMesh", "TorusMesh",
-           "CylinderMesh", "PartiallyPeriodicRectangleMesh"]
+thismod = sys.modules[__name__]
+meshes = __import__("types.mesh", level=1, globals={"__name__": __name__},
+                    fromlist=firedrake.utility_meshes.__all__)
+for name in firedrake.utility_meshes.__all__:
+    setattr(thismod, name, getattr(meshes, name))
+    __all__.append(name)
+print(__all__)

@@ -22,23 +22,6 @@ from fenics_adjoint.ufl_constraints import UFLInequalityConstraint, UFLEqualityC
 
 from firedrake_adjoint.types.expression import Expression
 from firedrake_adjoint.types.function import Function
-from firedrake_adjoint.types.mesh import (UnitSquareMesh,
-                                          IntervalMesh, UnitIntervalMesh,
-                                          PeriodicIntervalMesh,
-                                          PeriodicUnitIntervalMesh,
-                                          OneElementThickMesh, UnitTriangleMesh,
-                                          RectangleMesh, SquareMesh,
-                                          PeriodicRectangleMesh,
-                                          PeriodicUnitSquareMesh,
-                                          CircleManifoldMesh, BoxMesh,
-                                          CubeMesh, UnitCubeMesh,
-                                          IcosahedralSphereMesh,
-                                          UnitIcosahedralSphereMesh,
-                                          OctahedralSphereMesh,
-                                          UnitOctahedralSphereMesh,
-                                          CubedSphereMesh, UnitCubedSphereMesh,
-                                          TorusMesh, CylinderMesh,
-                                          PartiallyPeriodicRectangleMesh)
 
 from pyadjoint.tape import (Tape, set_working_tape, get_working_tape,
                             pause_annotation, continue_annotation)
@@ -48,5 +31,15 @@ from pyadjoint.drivers import compute_gradient, compute_hessian
 from pyadjoint.adjfloat import AdjFloat
 from pyadjoint.control import Control
 from pyadjoint import IPOPTSolver, ROLSolver, MinimizationProblem, InequalityConstraint, minimize
+
+import firedrake
+import sys
+thismod = sys.modules[__name__]
+meshes = __import__("firedrake_adjoint.types.mesh",
+                    fromlist=firedrake.utility_meshes.__all__)
+for name in firedrake.utility_meshes.__all__:
+    setattr(thismod, name, getattr(meshes, name))
+from firedrake_adjoint.types.mesh import Mesh
+
 
 set_working_tape(Tape())
