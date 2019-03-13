@@ -48,6 +48,7 @@ class NonlinearVariationalSolver(backend.NonlinearVariationalSolver):
                                                    *self._ad_args,
                                                    problem_J=problem._ad_J,
                                                    solver_params=self.parameters,
+                                                   solver_kwargs=self._ad_kwargs,
                                                    **sb_kwargs)
             tape.add_block(block)
 
@@ -104,6 +105,7 @@ class LinearVariationalSolver(backend.LinearVariationalSolver):
                                                 problem._ad_bcs,
                                                 *self._ad_args,
                                                 solver_params=self.parameters,
+                                                solver_kwargs=self._ad_kwargs,
                                                 **sb_kwargs)
             tape.add_block(block)
 
@@ -120,6 +122,9 @@ class NonlinearVariationalSolveBlock(SolveBlock):
     def __init__(self, *args, **kwargs):
         self.nonlin_problem_J = kwargs.pop("problem_J")
         self.nonlin_solver_params = kwargs.pop("solver_params").copy()
+        self.nonlin_solver_kwargs = kwargs.pop("solver_kwargs")
+
+        kwargs.update(self.nonlin_solver_kwargs)
         super(NonlinearVariationalSolveBlock, self).__init__(*args, **kwargs)
 
         if self.nonlin_problem_J is not None:
@@ -131,7 +136,7 @@ class NonlinearVariationalSolveBlock(SolveBlock):
         if J is not None:
             J = self._replace_form(J, func)
         problem = backend.NonlinearVariationalProblem(lhs, func, bcs, J=J)
-        solver = backend.NonlinearVariationalSolver(problem)
+        solver = backend.NonlinearVariationalSolver(problem, **self.nonlin_solver_kwargs)
         solver.parameters.update(self.nonlin_solver_params)
         solver.solve()
         return func
@@ -140,11 +145,14 @@ class NonlinearVariationalSolveBlock(SolveBlock):
 class LinearVariationalSolveBlock(SolveBlock):
     def __init__(self, *args, **kwargs):
         self.lin_solver_params = kwargs.pop("solver_params").copy()
+        self.lin_solver_kwargs = kwargs.pop("solver_kwargs")
+
+        kwargs.update(self.lin_solver_kwargs)
         super(LinearVariationalSolveBlock, self).__init__(*args, **kwargs)
 
     def _forward_solve(self, lhs, rhs, func, bcs, **kwargs):
         problem = backend.LinearVariationalProblem(lhs, rhs, func, bcs)
-        solver = backend.LinearVariationalSolver(problem)
+        solver = backend.LinearVariationalSolver(problem, **self.lin_solver_kwargs)
         solver.parameters.update(self.lin_solver_params)
         solver.solve()
         return func
