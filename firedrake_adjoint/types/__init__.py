@@ -13,4 +13,3 @@ meshes = __import__("types.mesh", level=1, globals={"__name__": __name__},
 for name in firedrake.utility_meshes.__all__:
     setattr(thismod, name, getattr(meshes, name))
     __all__.append(name)
-print(__all__)
