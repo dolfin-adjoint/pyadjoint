@@ -99,10 +99,18 @@ class MeshOutputBlock(Block):
         self.get_dependencies()[0].add_adj_output(adj_value)
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        tlm_input = self.get_dependencies()[0].tlm_value
+        if tlm_input is None:
+            return
+        self.get_outputs()[0].add_tlm_output(tlm_input)
         return None
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, idx, block_variable,
                                    relevant_dependencies, prepared=None):
+        hessian_input = self.get_outputs()[0].hessian_value
+        if hessian_input is None:
+            return
+        self.get_dependencies()[0].add_hessian_output(hessian_input)
         return None
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
