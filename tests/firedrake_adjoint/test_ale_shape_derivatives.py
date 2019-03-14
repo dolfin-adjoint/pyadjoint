@@ -4,17 +4,10 @@ from firedrake import *
 from firedrake_adjoint import *
 
 
-@pytest.fixture(scope='module')
-def mesh():
-    return UnitSquareMesh(6, 6)
-
-
-@pytest.fixture(scope='module')
-def x(mesh):
-    return SpatialCoordinate(mesh)
-
-
-def test_sin_weak_spatial(mesh, x):
+def test_sin_weak_spatial():
+    mesh = UnitOctahedralSphereMesh(2)
+    x = SpatialCoordinate(mesh)
+    mesh.init_cell_orientations(x)
     S = VectorFunctionSpace(mesh, "CG", 1)
     s = Function(S)
     mesh.coordinates.assign(mesh.coordinates + s)
@@ -29,15 +22,17 @@ def test_sin_weak_spatial(mesh, x):
     assert np.allclose(computed, actual, rtol=1e-14)
 
 
-def test_tlm_assemble(mesh, x):
+def test_tlm_assemble():
     tape = get_working_tape()
     tape.clear_tape()
+    mesh = UnitCubeMesh(4,4,4)
+    x = SpatialCoordinate(mesh)
     S =  VectorFunctionSpace(mesh, "CG", 1)
     h = Function(S)
     A = 10
-    h.interpolate(as_vector((A*cos(x[1]), A*x[1])))
+    h.interpolate(as_vector((A*cos(x[1]), A*x[1], x[2]*x[1])))
     f = Function(S)
-    f.interpolate(as_vector((A*sin(x[1]), A*cos(x[1]))))
+    f.interpolate(as_vector((A*sin(x[1]), A*cos(x[1]), sin(x[2]))))
     s = Function(S,name="deform")
     mesh.coordinates.assign(mesh.coordinates + s)
     J = assemble(sin(x[1])* dx(domain=mesh))
@@ -61,10 +56,14 @@ def test_tlm_assemble(mesh, x):
     assert(np.isclose(r1,r1_tlm, rtol=1e-14))
 
 
-def test_shape_hessian(mesh, x):
+def test_shape_hessian():
     tape = get_working_tape()
     tape.clear_tape()
     set_working_tape(tape)
+
+    mesh = UnitIcosahedralSphereMesh(3)
+    x = SpatialCoordinate(mesh)
+    mesh.init_cell_orientations(x)
     S = VectorFunctionSpace(mesh, "CG", 1)
     s = Function(S,name="deform")
 
@@ -73,11 +72,9 @@ def test_shape_hessian(mesh, x):
     c = Control(s)
     Jhat = ReducedFunctional(J, c)
 
-    f = Function(S, name="W")
     A = 10
-    f.interpolate(as_vector((A*sin(x[1]), A*cos(x[1]))))
     h = Function(S,name="V")
-    h.interpolate(as_vector((A*cos(x[1]), A*x[1])))
+    h.interpolate(as_vector((cos(x[2]), A*cos(x[1]), A*x[1])))
 
     # Second order taylor
     dJdm = Jhat.derivative().vector().inner(h.vector())
@@ -89,31 +86,93 @@ def test_shape_hessian(mesh, x):
     assert(np.isclose(assemble(dJdmm_exact), Hm))
 
 
-def test_PDE_hessian(mesh, x):
+def test_PDE_hessian_neumann():
     tape = get_working_tape()
-    tape = Tape()
+    tape.clear_tape()
     set_working_tape(tape)
+
+    mesh = UnitOctahedralSphereMesh(refinement_level=2)
+
+    x = SpatialCoordinate(mesh)
+    mesh.init_cell_orientations(x)
+
     S = VectorFunctionSpace(mesh, "CG", 1)
     s = Function(S,name="deform")
     mesh.coordinates.assign(mesh.coordinates + s)
-    f = x[0]*x[1]
+    f = x[0]*x[1]*x[2]
+    V = FunctionSpace(mesh, "CG", 1)
+    u, v = TrialFunction(V), TestFunction(V)
+    a = inner(grad(u), grad(v))*dx + u*v*dx
+    l = f*v*dx
+    u = Function(V)
+    solve(a==l, u, solver_parameters={'ksp_type':'preonly', 'pc_type':'lu',
+                                          "mat_type": "aij",
+                                          "pc_factor_mat_solver_type": "mumps"})
+    File("out.pvd").write(u)
+    print(u.vector().get_local())
+    J = assemble(u*dx(domain=mesh))
+    c = Control(s)
+    Jhat = ReducedFunctional(J, c)
+
+    A = 1e-1
+    h = Function(S,name="V")
+    h.interpolate(as_vector((A*x[2], A*cos(x[1]), A*x[0])))
+
+    # Finite difference
+    r0 = taylor_test(Jhat, s, h, dJdm=0)
+    Jhat(s)
+    assert(r0>0.95)
+
+    r1 = taylor_test(Jhat, s, h)
+    Jhat(s)
+    assert(r1>1.95)
+
+    # First order taylor
+    s.tlm_value = h
+    tape = get_working_tape()
+    tape.evaluate_tlm()
+    r1 = taylor_test(Jhat, s, h, dJdm=J.block_variable.tlm_value)
+    assert(r1>1.95)
+    Jhat(s)
+
+    # # Second order taylor
+    dJdm = Jhat.derivative().vector().inner(h.vector())
+    Hm = compute_hessian(J, c, h).vector().inner(h.vector())
+    r2 = taylor_test(Jhat, s, h, dJdm=dJdm, Hm=Hm)
+    assert(r2>2.95)
+
+
+def test_PDE_hessian_dirichlet():
+    tape = get_working_tape()
+    tape.clear_tape()
+    set_working_tape(tape)
+
+    mesh = UnitTetrahedronMesh()
+
+    x = SpatialCoordinate(mesh)
+
+    S = VectorFunctionSpace(mesh, "CG", 1)
+    s = Function(S,name="deform")
+    mesh.coordinates.assign(mesh.coordinates + s)
+    f = x[0]*x[1]*x[2]
     V = FunctionSpace(mesh, "CG", 1)
     u, v = TrialFunction(V), TestFunction(V)
     a = inner(grad(u), grad(v))*dx
     l = f*v*dx
     bc = DirichletBC(V, Constant(1), "on_boundary")
     u = Function(V)
-    solve(a==l, u, bcs=bc)
-
+    solve(a==l, u, bc, solver_parameters={'ksp_type':'preonly', 'pc_type':'lu',
+                                          "mat_type": "aij",
+                                          "pc_factor_mat_solver_type": "mumps"})
+    File("out.pvd").write(u)
+    print(u.vector().get_local())
     J = assemble(u*dx(domain=mesh))
     c = Control(s)
     Jhat = ReducedFunctional(J, c)
 
-    f = Function(S, name="W")
-    A = 10
-    f.interpolate(as_vector((A*sin(x[1]), A*cos(x[1]))))
+    A = 1e-1
     h = Function(S,name="V")
-    h.interpolate(as_vector((A*cos(x[1]), A*x[1])))
+    h.interpolate(as_vector((A*x[2], A*cos(x[1]), A*x[0])))
 
     # Finite difference
     r0 = taylor_test(Jhat, s, h, dJdm=0)
