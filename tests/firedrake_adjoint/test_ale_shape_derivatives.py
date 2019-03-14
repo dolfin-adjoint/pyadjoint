@@ -8,10 +8,10 @@ from firedrake_adjoint import *
 def mesh():
     return UnitSquareMesh(6, 6)
 
+
 @pytest.fixture(scope='module')
 def x(mesh):
     return SpatialCoordinate(mesh)
-
 
 
 def test_sin_weak_spatial(mesh, x):
@@ -29,7 +29,6 @@ def test_sin_weak_spatial(mesh, x):
     assert np.allclose(computed, actual, rtol=1e-14)
 
 
-
 def test_tlm_assemble(mesh, x):
     tape = get_working_tape()
     tape.clear_tape()
@@ -45,10 +44,12 @@ def test_tlm_assemble(mesh, x):
 
     c = Control(s)
     Jhat = ReducedFunctional(J, c)
+
     # Finite difference
     r0 = taylor_test(Jhat, s, h, dJdm=0)
     assert(r0 >0.95)
     Jhat(s)
+
     # Tangent linear model
     s.tlm_value = h
     tape = get_working_tape()
@@ -77,7 +78,6 @@ def test_shape_hessian(mesh, x):
     f.interpolate(as_vector((A*sin(x[1]), A*cos(x[1]))))
     h = Function(S,name="V")
     h.interpolate(as_vector((A*cos(x[1]), A*x[1])))
-
 
     # Second order taylor
     dJdm = Jhat.derivative().vector().inner(h.vector())
