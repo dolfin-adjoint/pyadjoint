@@ -9,6 +9,7 @@ from .function import Function
 
 __all__ = ["Mesh"] + backend.utility_meshes.__all__
 
+
 def _coordinates_function(self):
     """The :class:`.Function` containing the coordinates of this mesh."""
     print("Are you calling eddy?")
@@ -23,6 +24,8 @@ def _coordinates_function(self):
                  _ad_outputs=[self],
                  output_block_class=MeshOutputBlock)
     return f
+
+
 backend.mesh.MeshGeometry._coordinates_function = backend.utils.cached_property(_coordinates_function)
 
 
