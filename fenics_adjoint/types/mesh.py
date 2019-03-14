@@ -6,6 +6,12 @@ from pyadjoint.overloaded_type import OverloadedType, FloatingType, register_ove
 from ..shapead_transformations import vector_boundary_to_mesh, vector_mesh_to_boundary
 
 
+overloaded_meshes = ['IntervalMesh', 'UnitIntervalMesh', 'RectangleMesh',
+                     'UnitSquareMesh', 'UnitCubeMesh', 'BoxMesh']
+__all__ = overloaded_meshes.copy()
+__all__.extend(['Mesh', 'BoundaryMesh', 'SubMesh'])
+
+
 @register_overloaded_type
 class Mesh(OverloadedType, backend.Mesh):
     def __init__(self, *args, **kwargs):
@@ -66,12 +72,6 @@ def overloaded_mesh(mesh_class):
 
 thismod = sys.modules[__name__]
 mesh_module = backend.cpp.generation
-# FIXME: We do not support UnitDiscMesh, SphericalShellMesh and UnitTriangleMesh,
-# as the do not have an initializer, only a create function
-overloaded_meshes = ['IntervalMesh', 'UnitIntervalMesh', 'RectangleMesh',
-                     'UnitSquareMesh', 'UnitCubeMesh', 'BoxMesh']
-
-
 for name in overloaded_meshes:
     setattr(thismod, name, overloaded_mesh(getattr(backend, name)))
     mod = getattr(thismod, name)
@@ -79,6 +79,24 @@ for name in overloaded_meshes:
 
 SubMesh = overloaded_mesh(backend.SubMesh)
 SubMesh.__doc__ = backend.SubMesh.__doc__
+
+
+def overloaded_create(mesh_class):
+    __ad_create = mesh_class.create
+
+    def create(*args, **kwargs):
+        mesh = __ad_create(*args, **kwargs)
+        mesh.__class__ = Mesh
+        mesh.__init__()
+        return mesh
+    create.__doc__ = __ad_create.__doc__
+    return create
+
+
+custom_meshes = ["UnitDiscMesh", "SphericalShellMesh", "UnitTriangleMesh"]
+for name in custom_meshes:
+    mesh_type = getattr(backend, name)
+    mesh_type.create = overloaded_create(mesh_type)
 
 
 __backend_ALE_move = backend.ALE.move

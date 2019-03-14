@@ -38,22 +38,11 @@ from .ufl_constraints import UFLEqualityConstraint, UFLInequalityConstraint
 from .shapead_transformations import (transfer_from_boundary,
                                       transfer_to_boundary)
 if backend.__name__ != "firedrake":
-    from .types import Expression, UserExpression, CompiledExpression, genericmatrix, genericvector, io, as_backend_type, VectorSpaceBasis
-
     from .newton_solver import NewtonSolver
     from .lu_solver import LUSolver
     from .krylov_solver import KrylovSolver
     from .petsc_krylov_solver import PETScKrylovSolver
-    from .types import (Function, Constant, DirichletBC,
-                        Mesh, BoundaryMesh, SubMesh)
-    # FIXME: We do not support UnitDiscMesh, SphericalShellMesh
-    # and UnitTriangleMesh, as the do not have an initializer, only "def create"
-    overloaded_meshes = ['IntervalMesh', 'UnitIntervalMesh', 'RectangleMesh',
-                         'UnitSquareMesh', 'UnitCubeMesh', 'BoxMesh']
-    meshes = __import__("fenics_adjoint.types", fromlist=overloaded_meshes)
-    thismod = sys.modules[__name__]
-    for name in overloaded_meshes:
-        setattr(thismod, name, getattr(meshes, name))
+    from .types import *
 
 
 from .variational_solver import (NonlinearVariationalProblem, NonlinearVariationalSolver,
