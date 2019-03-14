@@ -59,14 +59,14 @@ class MeshInputBlock(Block):
         self.add_dependency(mesh.block_variable)
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        return None
+        return adj_inputs[0]
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
-        return None
+        return tlm_inputs[0]
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, idx, block_variable,
                                    relevant_dependencies, prepared=None):
-        return None
+        return hessian_inputs[0]
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
         mesh = self.get_dependencies()[0].saved_output
@@ -82,32 +82,20 @@ class MeshOutputBlock(Block):
         self.add_dependency(func.block_variable)
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        adj_value = self.get_outputs()[0].adj_value
-        if adj_value is None:
-            return
-        self.get_dependencies()[0].add_adj_output(adj_value)
+        return adj_inputs[0]
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
-        tlm_input = self.get_dependencies()[0].tlm_value
-        if tlm_input is None:
-            return
-        self.get_outputs()[0].add_tlm_output(tlm_input)
-        return None
+        return tlm_inputs[0]
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, idx, block_variable,
                                    relevant_dependencies, prepared=None):
-        hessian_input = self.get_outputs()[0].hessian_value
-        if hessian_input is None:
-            return
-        self.get_dependencies()[0].add_hessian_output(hessian_input)
-        return None
+        return hessian_inputs[0]
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
         vector = self.get_dependencies()[0].saved_output
         mesh = vector.function_space().mesh()
         mesh.coordinates.assign(vector, annotate=False)
-        self.get_outputs()[0].checkpoint = mesh._ad_create_checkpoint()
-        return None
+        return mesh._ad_create_checkpoint()
 
 
 thismod = sys.modules[__name__]
