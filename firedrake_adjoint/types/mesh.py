@@ -98,9 +98,6 @@ class MeshOutputBlock(Block):
         return mesh._ad_create_checkpoint()
 
 
-thismod = sys.modules[__name__]
-
-
 def overloaded_mesh(constructor):
     def inner(*args, **kwargs):
         "Creating an overloaded Mesh that will be used in shape optimization"
@@ -110,6 +107,7 @@ def overloaded_mesh(constructor):
     return inner
 
 
+thismod = sys.modules[__name__]
 for name in backend.utility_meshes.__all__:
     setattr(thismod, name, overloaded_mesh(getattr(backend, name)))
     mod = getattr(thismod, name)
