@@ -1,4 +1,5 @@
 import backend
+import sys
 from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, no_annotations
 from pyadjoint.block import Block
 from pyadjoint.overloaded_type import OverloadedType, FloatingType, register_overloaded_type
@@ -45,120 +46,39 @@ class BoundaryMesh(FloatingType, backend.BoundaryMesh):
         return self
 
 
-@register_overloaded_type
-class UnitSquareMesh(OverloadedType, backend.UnitSquareMesh):
-    def __init__(self, *args, **kwargs):
-        # Calling constructer
-        super(UnitSquareMesh, self).__init__(*args, **kwargs)
-        backend.UnitSquareMesh.__init__(self, *args, **kwargs)
-        self.org_mesh_coords = self.coordinates().copy()
+def overloaded_mesh(mesh_class):
+    @register_overloaded_type
+    class OverloadedMesh(OverloadedType, mesh_class):
+        def __init__(self, *args, **kwargs):
+            # Calling constructer
+            super(OverloadedMesh, self).__init__(*args, **kwargs)
+            mesh_class.__init__(self, *args, **kwargs)
+            self.org_mesh_coords = self.coordinates().copy()
 
-    def _ad_create_checkpoint(self):
-        return self.coordinates().copy()
+        def _ad_create_checkpoint(self):
+            return self.coordinates().copy()
 
-    def _ad_restore_at_checkpoint(self, checkpoint):
-        self.coordinates()[:] = checkpoint
-        return self
-
-
-@register_overloaded_type
-class UnitCubeMesh(OverloadedType, backend.UnitCubeMesh):
-    def __init__(self, *args, **kwargs):
-        # Calling constructer
-        super(UnitCubeMesh, self).__init__(*args, **kwargs)
-        backend.UnitCubeMesh.__init__(self, *args, **kwargs)
-        self.org_mesh_coords = self.coordinates().copy()
-
-    def _ad_create_checkpoint(self):
-        return self.coordinates().copy()
-
-    def _ad_restore_at_checkpoint(self, checkpoint):
-        self.coordinates()[:] = checkpoint
-        return self
+        def _ad_restore_at_checkpoint(self, checkpoint):
+            self.coordinates()[:] = checkpoint
+            return self
+    return OverloadedMesh
 
 
-@register_overloaded_type
-class UnitIntervalMesh(OverloadedType, backend.UnitIntervalMesh):
-    def __init__(self, *args, **kwargs):
-
-        # Calling constructer
-        super(UnitIntervalMesh, self).__init__(*args, **kwargs)
-        backend.UnitIntervalMesh.__init__(self, *args, **kwargs)
-        self.org_mesh_coords = self.coordinates().copy()
-
-    def _ad_create_checkpoint(self):
-        return self.coordinates().copy()
-
-    def _ad_restore_at_checkpoint(self, checkpoint):
-        self.coordinates()[:] = checkpoint
-        return self
+thismod = sys.modules[__name__]
+mesh_module = backend.cpp.generation
+# FIXME: We do not support UnitDiscMesh, SphericalShellMesh and UnitTriangleMesh,
+# as the do not have an initializer, only a create function
+overloaded_meshes = ['IntervalMesh', 'UnitIntervalMesh', 'RectangleMesh',
+                     'UnitSquareMesh', 'UnitCubeMesh', 'BoxMesh']
 
 
-@register_overloaded_type
-class IntervalMesh(OverloadedType, backend.IntervalMesh):
-    def __init__(self, *args, **kwargs):
+for name in overloaded_meshes:
+    setattr(thismod, name, overloaded_mesh(getattr(backend, name)))
+    mod = getattr(thismod, name)
+    mod.__doc__ = getattr(backend, name).init.__doc__
 
-        # Calling constructer
-        super(IntervalMesh, self).__init__(*args, **kwargs)
-        backend.IntervalMesh.__init__(self, *args, **kwargs)
-        self.org_mesh_coords = self.coordinates().copy()
-
-    def _ad_create_checkpoint(self):
-        return self.coordinates().copy()
-
-    def _ad_restore_at_checkpoint(self, checkpoint):
-        self.coordinates()[:] = checkpoint
-        return self
-
-
-@register_overloaded_type
-class BoxMesh(OverloadedType, backend.BoxMesh):
-    def __init__(self, *args, **kwargs):
-
-        # Calling constructer
-        super(BoxMesh, self).__init__(*args, **kwargs)
-        backend.BoxMesh.__init__(self, *args, **kwargs)
-        self.org_mesh_coords = self.coordinates().copy()
-
-    def _ad_create_checkpoint(self):
-        return self.coordinates().copy()
-
-    def _ad_restore_at_checkpoint(self, checkpoint):
-        self.coordinates()[:] = checkpoint
-        return self
-
-
-@register_overloaded_type
-class RectangleMesh(OverloadedType, backend.RectangleMesh):
-    def __init__(self, *args, **kwargs):
-
-        # Calling constructer
-        super(RectangleMesh, self).__init__(*args, **kwargs)
-        backend.RectangleMesh.__init__(self, *args, **kwargs)
-        self.org_mesh_coords = self.coordinates().copy()
-
-    def _ad_create_checkpoint(self):
-        return self.coordinates().copy()
-
-    def _ad_restore_at_checkpoint(self, checkpoint):
-        self.coordinates()[:] = checkpoint
-        return self
-
-
-@register_overloaded_type
-class SubMesh(OverloadedType, backend.SubMesh):
-    def __init__(self, *args, **kwargs):
-        # Calling constructer
-        super(SubMesh, self).__init__(*args, **kwargs)
-        backend.SubMesh.__init__(self, *args, **kwargs)
-        self.org_mesh_coords = self.coordinates().copy()
-
-    def _ad_create_checkpoint(self):
-        return self.coordinates().copy()
-
-    def _ad_restore_at_checkpoint(self, checkpoint):
-        self.coordinates()[:] = checkpoint
-        return self
+SubMesh = overloaded_mesh(backend.SubMesh)
+SubMesh.__doc__ = backend.SubMesh.__doc__
 
 
 __backend_ALE_move = backend.ALE.move
