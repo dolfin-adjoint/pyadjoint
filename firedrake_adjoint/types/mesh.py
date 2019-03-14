@@ -7,6 +7,9 @@ from pyadjoint.tape import no_annotations, stop_annotating
 from .function import Function
 
 
+__all__ = ["Mesh"] + backend.utility_meshes.__all__
+
+
 @register_overloaded_type
 class MeshGeometry(OverloadedType, backend.mesh.MeshGeometry):
     def __init__(self, *args, **kwargs):
@@ -20,7 +23,6 @@ class MeshGeometry(OverloadedType, backend.mesh.MeshGeometry):
         r = cls.__new__(cls, obj.coordinates.ufl_element())
         r._topology = obj._topology
         r._callback = callback
-        r.coordinates.ufl_element()
         return r
 
     def _ad_create_checkpoint(self):
@@ -45,9 +47,6 @@ class MeshGeometry(OverloadedType, backend.mesh.MeshGeometry):
                      _ad_outputs=[self],
                      output_block_class=MeshOutputBlock)
         return f
-
-
-register_overloaded_type(MeshGeometry, backend.mesh.MeshGeometry)
 
 
 class MeshInputBlock(Block):
@@ -129,4 +128,4 @@ for name in backend.utility_meshes.__all__:
     mod.__doc__ = getattr(backend, name).__doc__
 
 Mesh = overloaded_mesh(backend.Mesh)
-Mesh.__doc = backend.Mesh.__doc__
+Mesh.__doc__ = backend.Mesh.__doc__

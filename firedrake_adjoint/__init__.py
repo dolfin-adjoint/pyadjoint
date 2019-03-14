@@ -20,9 +20,6 @@ from fenics_adjoint.variational_solver import (NonlinearVariationalProblem, Nonl
 from fenics_adjoint.interpolation import interpolate
 from fenics_adjoint.ufl_constraints import UFLInequalityConstraint, UFLEqualityConstraint
 
-from firedrake_adjoint.types.expression import Expression
-from firedrake_adjoint.types.function import Function
-
 from pyadjoint.tape import (Tape, set_working_tape, get_working_tape,
                             pause_annotation, continue_annotation)
 from pyadjoint.reduced_functional import ReducedFunctional
@@ -32,14 +29,7 @@ from pyadjoint.adjfloat import AdjFloat
 from pyadjoint.control import Control
 from pyadjoint import IPOPTSolver, ROLSolver, MinimizationProblem, InequalityConstraint, minimize
 
-import firedrake
-import sys
-thismod = sys.modules[__name__]
-meshes = __import__("firedrake_adjoint.types.mesh",
-                    fromlist=firedrake.utility_meshes.__all__)
-for name in firedrake.utility_meshes.__all__:
-    setattr(thismod, name, getattr(meshes, name))
-from firedrake_adjoint.types.mesh import Mesh
+from firedrake_adjoint.types import *
 
 
 set_working_tape(Tape())
