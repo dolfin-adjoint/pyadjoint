@@ -129,8 +129,8 @@ backend.ALE.move = move
 class ALEMoveBlock(Block):
     def __init__(self, mesh, vector, **kwargs):
         super(ALEMoveBlock, self).__init__(**kwargs)
-        self.add_dependency(mesh.block_variable)
-        self.add_dependency(vector.block_variable)
+        self.add_dependency(mesh)
+        self.add_dependency(vector)
 
     @no_annotations
     def evaluate_adj(self, markings=False):
@@ -177,7 +177,7 @@ class ALEMoveBlock(Block):
 class BoundaryMeshBlock(Block):
     def __init__(self, mesh, mesh_type, **kwargs):
         super(BoundaryMeshBlock, self).__init__(**kwargs)
-        self.add_dependency(mesh.block_variable)
+        self.add_dependency(mesh)
         self.mesh_type = mesh_type
 
     @no_annotations
