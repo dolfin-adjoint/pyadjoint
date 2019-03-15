@@ -69,9 +69,9 @@ class AssembleBlock(Block):
             mesh = self.form.ufl_domain().ufl_cargo()
         else:
             mesh = self.form.ufl_domain()
-        self.add_dependency(mesh.block_variable)
+        self.add_dependency(mesh)
         for c in self.form.coefficients():
-            self.add_dependency(c.block_variable, no_duplicates=True)
+            self.add_dependency(c, no_duplicates=True)
 
     def __str__(self):
         return str(self.form)

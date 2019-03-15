@@ -138,8 +138,8 @@ class FloatOperatorBlock(Block):
         # duplicates taken out; for evaluation however order and position
         # of the terms is significant
         self.terms = [arg.block_variable for arg in args]
-        for term in self.terms:
-            self.add_dependency(term)
+        for dep in args:
+            self.add_dependency(dep)
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
         return self.operator(*(term.saved_output for term in self.terms))

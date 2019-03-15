@@ -129,7 +129,7 @@ class NonlinearVariationalSolveBlock(SolveBlock):
 
         if self.nonlin_problem_J is not None:
             for coeff in self.nonlin_problem_J.coefficients():
-                self.add_dependency(coeff.block_variable, no_duplicates=True)
+                self.add_dependency(coeff, no_duplicates=True)
 
     def _forward_solve(self, lhs, rhs, func, bcs, **kwargs):
         J = self.nonlin_problem_J

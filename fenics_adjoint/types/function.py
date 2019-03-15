@@ -257,12 +257,12 @@ class AssignBlock(Block):
         self.other = None
         self.lincom = False
         if isinstance(other, OverloadedType):
-            self.add_dependency(other.block_variable, no_duplicates=True)
+            self.add_dependency(other, no_duplicates=True)
         else:
             # Assume that this is a linear combination
             functions = _extract_functions_from_lincom(other)
             for f in functions:
-                self.add_dependency(f.block_variable, no_duplicates=True)
+                self.add_dependency(f, no_duplicates=True)
             self.expr = other
             self.lincom = True
 
@@ -359,7 +359,7 @@ class AssignBlock(Block):
 class SplitBlock(Block):
     def __init__(self, func, idx):
         super(SplitBlock, self).__init__()
-        self.add_dependency(func.block_variable)
+        self.add_dependency(func)
         self.idx = idx
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx,
@@ -383,7 +383,7 @@ class SplitBlock(Block):
 class MergeBlock(Block):
     def __init__(self, func, idx):
         super(MergeBlock, self).__init__()
-        self.add_dependency(func.block_variable)
+        self.add_dependency(func)
         self.idx = idx
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx,

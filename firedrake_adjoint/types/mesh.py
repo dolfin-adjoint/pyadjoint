@@ -56,7 +56,7 @@ class MeshInputBlock(Block):
     """
     def __init__(self, mesh):
         super(MeshInputBlock, self).__init__()
-        self.add_dependency(mesh.block_variable)
+        self.add_dependency(mesh)
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         return adj_inputs[0]
@@ -79,7 +79,7 @@ class MeshOutputBlock(Block):
     """
     def __init__(self, func, mesh):
         super(MeshOutputBlock, self).__init__()
-        self.add_dependency(func.block_variable)
+        self.add_dependency(func)
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         return adj_inputs[0]

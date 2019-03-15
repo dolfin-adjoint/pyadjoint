@@ -135,7 +135,7 @@ class Constant(OverloadedType, backend.Constant):
 class AssignBlock(Block):
     def __init__(self, func, other):
         super(AssignBlock, self).__init__()
-        self.add_dependency(other.block_variable)
+        self.add_dependency(other)
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         return adj_inputs[0]

@@ -79,7 +79,7 @@ class SolveBlock(Block):
             mesh = self.lhs.ufl_domain().ufl_cargo()
         else:
             mesh = self.lhs.ufl_domain()
-        self.add_dependency(mesh.block_variable)
+        self.add_dependency(mesh)
 
     def __str__(self):
         return "{} = {}".format(str(self.lhs), str(self.rhs))
@@ -144,15 +144,15 @@ class SolveBlock(Block):
             self.linear = True
             # Add dependence on coefficients on the right hand side.
             for c in self.rhs.coefficients():
-                self.add_dependency(c.block_variable, no_duplicates=True)
+                self.add_dependency(c, no_duplicates=True)
         else:
             self.linear = False
 
         for bc in self.bcs:
-            self.add_dependency(bc.block_variable, no_duplicates=True)
+            self.add_dependency(bc, no_duplicates=True)
 
         for c in self.lhs.coefficients():
-            self.add_dependency(c.block_variable, no_duplicates=True)
+            self.add_dependency(c, no_duplicates=True)
 
     def _create_F_form(self):
         # Process the equation forms, replacing values with checkpoints,
