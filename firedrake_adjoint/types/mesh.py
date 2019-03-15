@@ -12,7 +12,6 @@ __all__ = ["Mesh"] + backend.utility_meshes.__all__
 
 def _coordinates_function(self):
     """The :class:`.Function` containing the coordinates of this mesh."""
-    print("Are you calling eddy?")
     self.init()
     coordinates_fs = self._coordinates.function_space()
     V = backend.functionspaceimpl.WithGeometry(coordinates_fs, self)

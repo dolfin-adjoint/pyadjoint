@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 from firedrake import *
 from firedrake_adjoint import *
+from pyadjoint import taylor_to_dict
 
 
 def test_sin_weak_spatial():
@@ -59,7 +60,6 @@ def test_tlm_assemble():
 def test_shape_hessian():
     tape = get_working_tape()
     tape.clear_tape()
-    set_working_tape(tape)
 
     mesh = UnitIcosahedralSphereMesh(3)
     x = SpatialCoordinate(mesh)
@@ -89,7 +89,6 @@ def test_shape_hessian():
 def test_PDE_hessian_neumann():
     tape = get_working_tape()
     tape.clear_tape()
-    set_working_tape(tape)
 
     mesh = UnitOctahedralSphereMesh(refinement_level=2)
 
@@ -108,8 +107,6 @@ def test_PDE_hessian_neumann():
     solve(a==l, u, solver_parameters={'ksp_type':'preonly', 'pc_type':'lu',
                                           "mat_type": "aij",
                                           "pc_factor_mat_solver_type": "mumps"})
-    File("out.pvd").write(u)
-    print(u.vector().get_local())
     J = assemble(u*dx(domain=mesh))
     c = Control(s)
     Jhat = ReducedFunctional(J, c)
@@ -145,7 +142,6 @@ def test_PDE_hessian_neumann():
 def test_PDE_hessian_dirichlet():
     tape = get_working_tape()
     tape.clear_tape()
-    set_working_tape(tape)
 
     mesh = UnitTetrahedronMesh()
 
@@ -164,8 +160,7 @@ def test_PDE_hessian_dirichlet():
     solve(a==l, u, bc, solver_parameters={'ksp_type':'preonly', 'pc_type':'lu',
                                           "mat_type": "aij",
                                           "pc_factor_mat_solver_type": "mumps"})
-    File("out.pvd").write(u)
-    print(u.vector().get_local())
+
     J = assemble(u*dx(domain=mesh))
     c = Control(s)
     Jhat = ReducedFunctional(J, c)
@@ -196,3 +191,68 @@ def test_PDE_hessian_dirichlet():
     Hm = compute_hessian(J, c, h).vector().inner(h.vector())
     r2 = taylor_test(Jhat, s, h, dJdm=dJdm, Hm=Hm)
     assert(r2>2.95)
+
+
+def test_multiple_assignments():
+    tape = get_working_tape()
+    tape.clear_tape()
+
+    mesh = UnitSquareMesh(5, 5)
+    S = VectorFunctionSpace(mesh, "CG", 1)
+    s = Function(S)
+
+    mesh.coordinates.assign(mesh.coordinates + s)
+    mesh.coordinates.assign(mesh.coordinates + s)
+
+    V = FunctionSpace(mesh, "CG", 1)
+    u, v = TrialFunction(V), TestFunction(V)
+    x, y = SpatialCoordinate(mesh)
+    f = (x - 0.2) ** 2 + y ** 2 - 1
+    a = dot(grad(u), grad(v)) * dx + u * v * dx
+    l = f * v * dx
+
+    u = Function(V)
+    solve(a == l, u)
+    J = assemble(u * dx)
+
+    Jhat = ReducedFunctional(J, Control(s))
+    dJdm = Jhat.derivative()
+
+    pert = as_vector((x * y, sin(x)))
+    pert = interpolate(pert, S)
+    results = taylor_to_dict(Jhat, s, pert)
+
+    assert min(results["FD"]["Rate"]) > 0.9
+    assert min(results["dJdm"]["Rate"]) > 1.9
+    assert min(results["Hm"]["Rate"]) > 2.9
+
+    tape = get_working_tape()
+    tape.clear_tape()
+
+    mesh = UnitSquareMesh(5, 5)
+    S = VectorFunctionSpace(mesh, "CG", 1)
+    s = Function(S)
+    mesh.coordinates.assign(mesh.coordinates + 2*s)
+
+    V = FunctionSpace(mesh, "CG", 1)
+    u, v = TrialFunction(V), TestFunction(V)
+    x, y = SpatialCoordinate(mesh)
+    f = (x - 0.2) ** 2 + y ** 2 - 1
+    a = dot(grad(u), grad(v)) * dx + u * v * dx
+    l = f * v * dx
+
+    u = Function(V)
+    solve(a == l, u)
+    J = assemble(u * dx)
+
+    Jhat = ReducedFunctional(J, Control(s))
+    assert np.allclose(Jhat.derivative().vector().get_local(),
+                       dJdm.vector().get_local())
+
+    pert = as_vector((x * y, sin(x)))
+    pert = interpolate(pert, S)
+    results = taylor_to_dict(Jhat, s, pert)
+
+    assert min(results["FD"]["Rate"]) > 0.9
+    assert min(results["dJdm"]["Rate"]) > 1.9
+    assert min(results["Hm"]["Rate"]) > 2.9
