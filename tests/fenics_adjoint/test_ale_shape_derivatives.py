@@ -4,16 +4,10 @@ from dolfin import *
 from dolfin_adjoint import *
 from dolfin_utils.test import fixture
 
-@fixture
-def mesh():
-    return UnitSquareMesh(6, 6)
-
-@fixture
-def X(mesh):
-    return SpatialCoordinate(mesh)
 
 
-def test_sin_weak(mesh):
+def test_sin_weak():
+    mesh = UnitSquareMesh(6,6)
     f = Expression("sin(x[0])*x[1]*exp(x[0]/(x[1]+0.1))",
                    degree=3,domain=mesh)
     S = VectorFunctionSpace(mesh, "CG", 1)
@@ -31,7 +25,10 @@ def test_sin_weak(mesh):
     actual = assemble(dJV).get_local()
     assert np.allclose(computed, actual, rtol=1e-14)    
 
-def test_sin_weak_spatial(mesh, X):
+def test_sin_weak_spatial():
+    mesh = UnitDiscMesh.create(MPI.comm_world, 10, 1, 2)
+    X = SpatialCoordinate(mesh)
+
     S = VectorFunctionSpace(mesh, "CG", 1)
     s = Function(S)
     ALE.move(mesh, s)
@@ -47,15 +44,17 @@ def test_sin_weak_spatial(mesh, X):
 
 
 
-def test_tlm_assemble(mesh):
+def test_tlm_assemble():
+    mesh = UnitCubeMesh(4,4,4)
+    X = SpatialCoordinate(mesh)
+
     tape = get_working_tape()
     tape.clear_tape()
     set_working_tape(tape)
     S =  VectorFunctionSpace(mesh, "CG", 1)
     h = Function(S)
-    h.interpolate(Expression(("A*cos(x[1])", "A*x[1]"),degree=2,A=10))
-    f = Function(S)
-    f.interpolate(Expression(("A*sin(x[1])", "A*cos(x[1])"),degree=2,A=10))
+    h.interpolate(Expression(("A*cos(x[1])","A*x[2]", "A*x[1]"),degree=2,A=2.5))
+
     X = SpatialCoordinate(mesh)
     s = Function(S,name="deform")
     ALE.move(mesh, s)
@@ -80,10 +79,11 @@ def test_tlm_assemble(mesh):
     assert(np.isclose(r1,r1_tlm, rtol=1e-14))
 
 
-def test_shape_hessian(mesh):
+def test_shape_hessian():
+    mesh = UnitSquareMesh(6,6)
+    X = SpatialCoordinate(mesh)
     tape = get_working_tape()
     tape.clear_tape()
-    set_working_tape(tape)
     X = SpatialCoordinate(mesh)
     S = VectorFunctionSpace(mesh, "CG", 1)
     s = Function(S,name="deform")
@@ -109,10 +109,11 @@ def test_shape_hessian(mesh):
     assert(np.isclose(assemble(dJdmm_exact), Hm))
 
 
-def test_PDE_hessian(mesh):
+def test_PDE_hessian():
     tape = get_working_tape()
-    tape = Tape()
-    set_working_tape(tape)
+    tape.clear_tape()
+    mesh = UnitSquareMesh(6,6)
+
     X = SpatialCoordinate(mesh)
     S = VectorFunctionSpace(mesh, "CG", 1)
     s = Function(S,name="deform")
