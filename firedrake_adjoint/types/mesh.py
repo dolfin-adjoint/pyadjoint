@@ -10,6 +10,25 @@ from .function import Function
 __all__ = ["Mesh"] + backend.utility_meshes.__all__
 
 
+def _coordinates_function(self):
+    """The :class:`.Function` containing the coordinates of this mesh."""
+    print("Are you calling eddy?")
+    self.init()
+    coordinates_fs = self._coordinates.function_space()
+    V = backend.functionspaceimpl.WithGeometry(coordinates_fs, self)
+    f = Function(V, val=self._coordinates,
+                 block_class=MeshInputBlock,
+                 _ad_floating_active=True,
+                 _ad_args=[self],
+                 _ad_output_args=[self],
+                 _ad_outputs=[self],
+                 output_block_class=MeshOutputBlock)
+    return f
+
+
+backend.mesh.MeshGeometry._coordinates_function = backend.utils.cached_property(_coordinates_function)
+
+
 @register_overloaded_type
 class MeshGeometry(OverloadedType, backend.mesh.MeshGeometry):
     def __init__(self, *args, **kwargs):
@@ -17,13 +36,18 @@ class MeshGeometry(OverloadedType, backend.mesh.MeshGeometry):
                                            **kwargs)
         backend.mesh.MeshGeometry.__init__(self, *args, **kwargs)
 
+    def _ad_overloaded_init(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     @classmethod
     def _ad_init_object(cls, obj):
-        callback = obj._callback
-        r = cls.__new__(cls, obj.coordinates.ufl_element())
-        r._topology = obj._topology
-        r._callback = callback
-        return r
+        obj.__class__ = cls
+        obj._ad_overloaded_init()
+        # FIXME: This is not optimal. The problem is that Octahedral meshes initiates the coordinates
+        # as a function inside the constructor. To be able to overload it, we need to annotate on
+        # the fly.
+        obj.coordinates.annotate_tape = True
+        return obj
 
     def _ad_create_checkpoint(self):
         return self.coordinates.copy(deepcopy=True)
@@ -32,21 +56,6 @@ class MeshGeometry(OverloadedType, backend.mesh.MeshGeometry):
     def _ad_restore_at_checkpoint(self, checkpoint):
         self.coordinates.assign(checkpoint)
         return self
-
-    @backend.utils.cached_property
-    def _coordinates_function(self):
-        """The :class:`.Function` containing the coordinates of this mesh."""
-        self.init()
-        coordinates_fs = self._coordinates.function_space()
-        V = backend.functionspaceimpl.WithGeometry(coordinates_fs, self)
-        f = Function(V, val=self._coordinates,
-                     block_class=MeshInputBlock,
-                     _ad_floating_active=True,
-                     _ad_args=[self],
-                     _ad_output_args=[self],
-                     _ad_outputs=[self],
-                     output_block_class=MeshOutputBlock)
-        return f
 
 
 class MeshInputBlock(Block):
