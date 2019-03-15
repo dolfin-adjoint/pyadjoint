@@ -137,22 +137,31 @@ class ALEMoveBlock(Block):
         adj_value = self.get_outputs()[0].adj_value
         if adj_value is None:
             return
-
+        self.get_dependencies()[0].add_adj_output(adj_value.copy())
         self.get_dependencies()[1].add_adj_output(adj_value)
 
     @no_annotations
     def evaluate_tlm(self, markings=False):
-        tlm_input = self.get_dependencies()[1].tlm_value
-        if tlm_input is None:
-            return
-        self.get_outputs()[0].add_tlm_output(tlm_input)
+        tlm_output = None
+
+        for i in range(2):
+            tlm_input = self.get_dependencies()[i].tlm_value
+            if tlm_input is None:
+                continue
+            if tlm_output is None:
+                tlm_output = tlm_input.copy(deepcopy=True)
+            else:
+                tlm_output.vector()[:] += tlm_input.vector()
+
+        if tlm_output is not None:
+            self.get_outputs()[0].add_tlm_output(tlm_output)
 
     @no_annotations
     def evaluate_hessian(self, markings=False):
         hessian_input = self.get_outputs()[0].hessian_value
         if hessian_input is None:
             return
-
+        self.get_dependencies()[0].add_hessian_output(hessian_input.copy())
         self.get_dependencies()[1].add_hessian_output(hessian_input)
 
     @no_annotations
