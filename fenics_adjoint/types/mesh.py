@@ -18,6 +18,7 @@ class Mesh(OverloadedType, backend.Mesh):
         # Calling constructer
         super(Mesh, self).__init__(*args, **kwargs)
         backend.Mesh.__init__(self, *args, **kwargs)
+
         if not len(args) == 0:
             # If the mesh is not empty, save the original coordiantes
             self.org_mesh_coords = self.coordinates().copy()
@@ -88,6 +89,8 @@ def overloaded_create(mesh_class):
         mesh = __ad_create(*args, **kwargs)
         mesh.__class__ = Mesh
         mesh.__init__()
+        mesh.org_mesh_coords = mesh.coordinates().copy()
+
         return mesh
     create.__doc__ = __ad_create.__doc__
     return create
@@ -117,7 +120,6 @@ def move(mesh, vector, **kwargs):
 
     with stop_annotating():
         output = __backend_ALE_move(mesh, vector)
-
     if annotate:
         block.add_output(mesh.create_block_variable())
     return output
