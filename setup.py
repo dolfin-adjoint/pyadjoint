@@ -5,7 +5,8 @@ extras = {
     'moola': ['moola>=0.1.6'],
     'test': ['pytest>=3.10', 'flake8'],
     'doc': ['sphinx', 'sphinxcontrib-bibtex'],
-    'visualisation': ['tensorflow', 'protobuf==3.6.0', 'networkx'],
+    'visualisation': ['tensorflow', 'protobuf==3.6.0',
+                      'networkx', 'pygraphviz'],
     'meshing': ['pygmsh', 'meshio'],
 }
 # 'all' includes all of the above

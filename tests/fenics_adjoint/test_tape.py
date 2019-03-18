@@ -7,9 +7,9 @@ from fenics_adjoint import *
 def test_tape_visualisation(outname, dot):
     if dot:
         pytest.importorskip("networkx")
+        pytest.importorskip("pygraphviz")
     else:
         pytest.importorskip("tensorflow")
-    pytest.importorskip("tensorflow")
     mesh = IntervalMesh(10, 0, 1)
     V = FunctionSpace(mesh, "Lagrange", 1)
 
@@ -33,6 +33,8 @@ def test_tape_visualisation(outname, dot):
 def test_tape_time(outname, dot):
     if dot:
         pytest.importorskip("networkx")
+        pytest.importorskip("pygraphviz")
+
     else:
         pytest.importorskip("tensorflow")
     set_working_tape(Tape())
@@ -78,6 +80,8 @@ def test_tape_time(outname, dot):
 def test_tape_time_visualisation(outname, dot):
     if dot:
         pytest.importorskip("networkx")
+        pytest.importorskip("pygraphviz")
+
     else:
         pytest.importorskip("tensorflow")
     set_working_tape(Tape())
@@ -126,6 +130,8 @@ def test_tape_time_visualisation(outname, dot):
 def test_visualise_negative_float(outname, dot):
     if dot:
         pytest.importorskip("networkx")
+        pytest.importorskip("pygraphviz")
+
     else:
         pytest.importorskip("tensorflow")
     set_working_tape(Tape())
