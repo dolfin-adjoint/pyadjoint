@@ -221,8 +221,3 @@ def test_repeated_movement():
     assert(np.mean(results["FD"]["Rate"])>0.9)
     assert(np.mean(results["dJdm"]["Rate"])>1.9)
     assert(np.mean(results["Hm"]["Rate"])>0.9)
-
-
-def test_dynamic_domain():
-    mesh = UnitDiscMesh.create(MPI.comm_world, 10, 2, 1)
-    assert(False)
