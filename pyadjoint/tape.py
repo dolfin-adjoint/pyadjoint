@@ -325,14 +325,18 @@ class Tape(object):
         yield
         self._tf_register_blocks(name)
 
-    def visualise(self, logdir="log", launch_tensorboard=False, open_in_browser=False):
-        """Makes a visualisation of the tape as a graph using TensorFlow.
+    def visualise(self, output="log", launch_tensorboard=False, open_in_browser=False):
+        """Makes a visualisation of the tape as a graph using TensorFlow
+        or GraphViz. (Default: Tensorflow). If `output` endswith `.dot`,
+        Graphviz is used.
 
         Args:
-            logdir (str): Directory where event files for TensorBoard is stored. Default log.
+            output (str): Directory where event files for TensorBoard is stored. Default log.
             launch_tensorboard (bool): Launch TensorBoard in the background. Default False.
             open_in_browser (bool): Opens http://localhost:6006/ in a web browser. Default False.
         """
+        if output.endswith(".dot"):
+            return self.visualise_dot(output)
 
         import tensorflow as tf
         tf.reset_default_graph()
@@ -340,17 +344,17 @@ class Tape(object):
 
         # Write graph to file
         with tf.Session() as sess:
-            writer = tf.summary.FileWriter(logdir, sess.graph)
+            writer = tf.summary.FileWriter(output, sess.graph)
             writer.close()
 
         if not launch_tensorboard or not open_in_browser:
             print("Run the command line:\n"
                   "--> tensorboard --logdir={}\n"
-                  "Then open http://localhost:6006/ in your web browser.".format(logdir))
+                  "Then open http://localhost:6006/ in your web browser.".format(output))
 
         if launch_tensorboard:
             def launchTensorBoard():
-                os.system('tensorboard --logdir=' + logdir)
+                os.system('tensorboard --logdir=' + output)
 
             t = threading.Thread(target=launchTensorBoard, args=([]))
             t.start()
@@ -358,3 +362,21 @@ class Tape(object):
         if open_in_browser:
             import webbrowser
             webbrowser.open_new_tab("http://localhost:6006/")
+
+    def create_graph(self, backend="networkx"):
+        import networkx as nx
+        G = nx.DiGraph()
+        for i, block in enumerate(self._blocks):
+            block.create_graph(G, pos=i)
+        return G
+
+    def visualise_dot(self, filename):
+        """Makes a visualisation of the tape in dot format and you
+        can render it using Graphviz dot.
+
+        Args:
+            filename (str): File to save the visualisation. Default None.
+        """
+        G = self.create_graph()
+        from networkx.drawing.nx_agraph import write_dot
+        write_dot(G, filename)
