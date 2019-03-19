@@ -1,5 +1,5 @@
 from .block_variable import BlockVariable
-from .tape import get_working_tape, annotate_tape
+from .tape import get_working_tape
 
 _overloaded_types = {}
 
