@@ -42,10 +42,6 @@ class MeshGeometry(OverloadedType, backend.mesh.MeshGeometry):
     def _ad_init_object(cls, obj):
         obj.__class__ = cls
         obj._ad_overloaded_init()
-        # FIXME: This is not optimal. The problem is that Octahedral meshes initiates the coordinates
-        # as a function inside the constructor. To be able to overload it, we need to annotate on
-        # the fly.
-        obj.coordinates.annotate_tape = True
         return obj
 
     def _ad_create_checkpoint(self):

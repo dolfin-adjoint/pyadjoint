@@ -345,7 +345,6 @@ class FloatingType(OverloadedType):
         self._ad_args = kwargs.pop("_ad_args", [])
         self._ad_kwargs = kwargs.pop("_ad_kwargs", {})
         self._ad_floating_active = kwargs.pop("_ad_floating_active", False)
-        self.annotate_tape = annotate_tape(kwargs)
         self.block = None
 
         self.output_block = None
@@ -376,9 +375,6 @@ class FloatingType(OverloadedType):
         if self.block_class is None:
             return
 
-        if not self.annotate_tape:
-            return
-
         tape = get_working_tape()
         block = self.block_class(*self._ad_args, **self._ad_kwargs)
         self.block = block
@@ -387,9 +383,6 @@ class FloatingType(OverloadedType):
 
     def _ad_annotate_output_block(self):
         if self.output_block_class is None:
-            return
-
-        if not self.annotate_tape:
             return
 
         tape = get_working_tape()
