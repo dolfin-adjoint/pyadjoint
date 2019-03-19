@@ -11,7 +11,7 @@ seed(21)
 
 n = 30
 mesh = UnitIntervalMesh(n)
-V = FunctionSpace(mesh, "CG", 2)
+V = FunctionSpace(mesh, "CG", 1)
 
 def Dt(u, u_, timestep):
     return (u - u_)/timestep
@@ -51,10 +51,10 @@ if __name__ == "__main__":
 
 
     h = Function(V)
-    h.vector()[:] = rand(V.dim())
+    h.vector()[:] = 0.1*rand(V.dim())
 
     Jhat.derivative()
-    HJic = Jhat.hessian(h)._ad_dot(h)  # How does this work?
+    HJic = Jhat.hessian(h)._ad_dot(h)
 
     minconv = taylor_test(Jhat, ic, h, Hm=HJic)
     assert minconv > 2.7
