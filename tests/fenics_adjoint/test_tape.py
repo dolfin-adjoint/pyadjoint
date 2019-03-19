@@ -1,11 +1,15 @@
 import pytest
-pytest.importorskip("tensorflow")
 
 from fenics import *
 from fenics_adjoint import *
 
-def test_tape_visualisation():
-    pytest.importorskip("tensorflow")
+@pytest.mark.parametrize("outname,dot", [("tape", False), ("tape.dot", True)])
+def test_tape_visualisation(outname, dot):
+    if dot:
+        pytest.importorskip("networkx")
+        pytest.importorskip("pygraphviz")
+    else:
+        pytest.importorskip("tensorflow")
     mesh = IntervalMesh(10, 0, 1)
     V = FunctionSpace(mesh, "Lagrange", 1)
 
@@ -25,7 +29,14 @@ def test_tape_visualisation():
     tape = get_working_tape()
     tape.visualise()
 
-def test_tape_time():
+@pytest.mark.parametrize("outname,dot", [("tape", False), ("tape.dot", True)])
+def test_tape_time(outname, dot):
+    if dot:
+        pytest.importorskip("networkx")
+        pytest.importorskip("pygraphviz")
+
+    else:
+        pytest.importorskip("tensorflow")
     set_working_tape(Tape())
 
     mesh = IntervalMesh(10, 0, 1)
@@ -62,9 +73,17 @@ def test_tape_time():
         t += dt
 
     assemble(u_1**2*dx)
+    tape = get_working_tape()
+    tape.visualise(outname)
 
-def test_tape_time_visualisation():
-    pytest.importorskip("tensorflow")
+@pytest.mark.parametrize("outname,dot", [("tape", False), ("tape.dot", True)])
+def test_tape_time_visualisation(outname, dot):
+    if dot:
+        pytest.importorskip("networkx")
+        pytest.importorskip("pygraphviz")
+
+    else:
+        pytest.importorskip("tensorflow")
     set_working_tape(Tape())
 
     mesh = IntervalMesh(10, 0, 1)
@@ -107,7 +126,14 @@ def test_tape_time_visualisation():
     assemble(u_1**2*dx)
     tape.visualise()
 
-def test_visualise_negative_float():
+@pytest.mark.parametrize("outname,dot", [("tape", False), ("tape.dot", True)])
+def test_visualise_negative_float(outname, dot):
+    if dot:
+        pytest.importorskip("networkx")
+        pytest.importorskip("pygraphviz")
+
+    else:
+        pytest.importorskip("tensorflow")
     set_working_tape(Tape())
     a = AdjFloat(-1.0)
     b = AdjFloat(2.0)
