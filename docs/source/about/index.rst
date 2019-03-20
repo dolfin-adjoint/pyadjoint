@@ -91,9 +91,11 @@ Limitations
 To do all this, dolfin-adjoint requires some cooperation from the
 model developer:
 
-- Works only with the Python interface of DOLFIN.
+- Works only with the **Python** interface of FEniCS and Firedrake.
 - For the adjoint to be consistent, the discretisation must be differentiable.
-- All changes to object values (matrices, vectors, functions) must happen through the DOLFIN interface.
+- All changes to object values (matrices, vectors, functions) must happen
+  through the FEniCS/Firedrake interface, though custom operations can be 
+  recorded manually.
 
 
 How it works
