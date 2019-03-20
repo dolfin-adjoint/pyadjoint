@@ -8,7 +8,7 @@ About
 
 The dolfin-adjoint project automatically **derives the discrete
 adjoint and tangent linear models** from a forward model written in
-the Python interface to `FEniCS <http://fenicsproject.org>`__ and .
+the Python interface to `FEniCS <http://fenicsproject.org>`__ and 
 `Firedrake <http://firedrakeproject.org>`__.
 
 These adjoint and tangent linear models are key ingredients in many
