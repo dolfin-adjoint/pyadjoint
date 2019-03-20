@@ -34,6 +34,8 @@ News
 ====
 **20.03.2019**: Firedrake docker images with dolfin-adjoint preinstalled are :doc:`now available<download/index>`
 
+**18.02.2019**: New example demonstrating the shape-differentiation ability of dolfin-adjoint :doc:`now available<stokes-shape-opt/stokes_problem>`
+
 **05.10.2018**: dolfin-adjoint 2018.1 released (compatible with FEniCS 2018.1) `ChangeLog.rst`_.
 
 **08.01.2018**: dolfin-adjoint/pyadjoint 2017.2 released (compatible with FEniCS 2017.2) (this website)
