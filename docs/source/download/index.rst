@@ -22,15 +22,17 @@ platform. To get started, follow these 2 steps:
    Toolbox <https://www.docker.com/products/docker-toolbox>`_ (this is
    a simple one-click install) and Linux users should `follow these
    instructions <https://docs.docker.com/linux/step_one/>`_.
-#. Install the FEniCS Docker script::
 
-    curl -s https://get.fenicsproject.org | bash
-
-If running on Mac or Windows, make sure you run this and other
+If running on Mac or Windows, make sure you run the following 
 commands inside the Docker Quickstart Terminal.
 
 dolfin-adjoint with FEniCS:
 ---------------------------
+
+First the FEniCS Docker script::
+
+    curl -s https://get.fenicsproject.org | bash
+
 Once both Docker and the FEniCS Docker script have been installed, you can
 easily start a FEniCS session with dolfin-adjoint by running the following
 command::
@@ -70,11 +72,11 @@ dolfin-adjoint development version with Firedrake:
 --------------------------------------------------
 The development version of dolfin-adjoint and Firedrake is available with::
 
-    fenicsproject run quay.io/dolfinadjoint/pyadjoint-firedrake:latest
+    docker run -it -v `pwd`:/home/firedrake/shared quay.io/dolfinadjoint/pyadjoint-firedrake:latest
 
 To update the development container, run::
 
-    fenicsproject pull quay.io/dolfinadjoint/pyadjoint-firedrake:latest
+    docker pull quay.io/dolfinadjoint/pyadjoint-firedrake:latest
 
 
 PIP (all platforms)
