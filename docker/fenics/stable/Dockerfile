@@ -1,15 +1,15 @@
 # Builds a Docker image with dolfin-adjoint stable version built from
 # git sources. The image is at:
 #
-#    https://quay.io/repository/dolfinadjoint/dev-dolfin-adjoint
+#    https://quay.io/repository/dolfinadjoint/dolfin-adjoint
 #
 # Authors:
 # Simon W. Funke <simon@simula.no>
 # Jack S. Hale <jack.hale@uni.lu>
 
-FROM quay.io/fenicsproject/dev:latest
+FROM quay.io/fenicsproject/stable:latest
 MAINTAINER Simon W. Funke <simon@simula.no>
-ARG DOLFIN_ADJOINT_BRANCH="master"
+ARG DOLFIN_ADJOINT_BRANCH="2018.1.0"
 ARG MOOLA_BRANCH="master"
 
 USER fenics
@@ -20,6 +20,7 @@ COPY dolfin-adjoint.conf $FENICS_HOME/dolfin-adjoint.conf
 USER root
 RUN apt-get -qq update && \
     apt-get -y install libjsoncpp-dev && \
+    apt-get -y install python-dev graphviz libgraphviz-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 RUN /bin/bash -l -c "pip3 install git+git://github.com/funsim/moola.git@${MOOLA_BRANCH}"
