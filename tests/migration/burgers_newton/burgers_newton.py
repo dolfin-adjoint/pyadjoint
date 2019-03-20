@@ -19,7 +19,7 @@ def Dt(u, u_, timestep):
 def main(ic, annotate=False):
 
     u_ = ic.copy(deepcopy=True)
-    u = Function(V, name="VelocityNext")
+    u = Function(V)
     v = TestFunction(V)
 
     nu = Constant(0.0001)
@@ -42,19 +42,18 @@ def main(ic, annotate=False):
 
 if __name__ == "__main__":
 
-    ic = project(Expression("sin(2*pi*x[0])", degree=2),  V)
+    x = SpatialCoordinate(mesh)
+    ic = project(sin(2*pi*x[0]),  V)
     forward = main(ic, annotate=True)
 
     J = assemble(forward*forward*dx + ic*ic*dx)
 
     Jhat = ReducedFunctional(J, Control(ic))
 
-
     h = Function(V)
     h.vector()[:] = 0.1*rand(V.dim())
 
-    Jhat.derivative()
-    HJic = Jhat.hessian(h)._ad_dot(h)
-
-    minconv = taylor_test(Jhat, ic, h, Hm=HJic)
-    assert minconv > 2.7
+    minconv = taylor_to_dict(Jhat, ic, h)
+    assert(min(minconv["FD"]["Rate"]) > 0.9)
+    assert(min(minconv["dJdm"]["Rate"]) > 1.9)
+    assert(min(minconv["Hm"]["Rate"]) > 2.9)
