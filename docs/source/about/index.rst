@@ -24,7 +24,7 @@ implementation. In `his recent book`_, Naumann (2011) states that
  Scientific Computing**.
 
 **The dolfin-adjoint project aims to solve this problem** for the case
-where the model is implemented in the Python interface to DOLFIN.
+where the model is implemented in the Python interface to FEniCS/Firedrake.
 
 .. _his recent book: http://dx.doi.org/10.1137/1.9781611972078
 
