@@ -21,7 +21,8 @@ This problem is to minimise
 subject to the variational inequality
 
 .. math::
-      ( \nabla y, \nabla (v - y) )_\Omega &\ge (f + u, v - y)_\Omega \qquad \forall v \ge 0, v = 0 \ \mathrm{on}\ \delta \Omega, \\
+      ( \nabla y, \nabla (v - y) )_\Omega &\ge (f + u, v - y)_\Omega \qquad \forall v \ge 0, v
+      = 0 \ \mathrm{on}\ \delta \Omega, \\
       y &\ge 0, \\
       y &= 0 \quad \mathrm{on}\ \delta \Omega,
 
@@ -118,12 +119,16 @@ output comprehensible:
 ::
 
   from dolfin import *
-  from dolfin_adjoint import *
   from ufl.operators import Max
+  
+  from dolfin_adjoint import *
+  from pyadjoint.placeholder import Placeholder
+  
   set_log_level(LogLevel.ERROR)
   
   # Needed to have a nested conditional
   parameters["form_compiler"]["representation"] = "uflacs"
+  
   
 Next, we define the smooth approximation :math:`\max_{\epsilon}` of
 the maximum operator:
@@ -131,7 +136,8 @@ the maximum operator:
 ::
 
   def smoothmax(r, eps=1e-4):
-      return conditional(gt(r, eps), r - eps/2, conditional(lt(r, 0), 0, r**2 / (2*eps)))
+      return conditional(gt(r, eps), r - eps / 2, conditional(lt(r, 0), 0, r ** 2 / (2 * eps)))
+  
   
 Now, we are ready to mesh the domain and define the discrete function
 spaces.  For this example we use piecewise linear, continuous finite
@@ -157,11 +163,10 @@ we define a ``Placeholder`` before using it.
 ::
 
   alpha = Constant(1e-2)
-  from pyadjoint.placeholder import Placeholder
   Placeholder(alpha)
   # The source term
   f = interpolate(Expression("-std::abs(x[0]*x[1] - 0.5) + 0.25", degree=1), V)
-  F = inner(grad(y), grad(w))*dx - 1 / alpha * inner(smoothmax(-y), w)*dx - inner(f + u, w)*dx
+  F = inner(grad(y), grad(w)) * dx - 1 / alpha * inner(smoothmax(-y), w) * dx - inner(f + u, w) * dx
   bc = DirichletBC(V, 0.0, "on_boundary")
   solve(F == 0, y, bcs=bc)
   
@@ -178,7 +183,7 @@ functional <../maths/2-problem>` object:
 
   yd = f.copy(deepcopy=True)
   nu = 0.01
-  J = assemble(0.5*inner(y - yd, y - yd)*dx + nu/2*inner(u, u)*dx)
+  J = assemble(0.5 * inner(y - yd, y - yd) * dx + nu / 2 * inner(u, u) * dx)
   
   # Formulate the reduced problem
   m = Control(u)  # Create a parameter from u, as it is the variable we want to optimise
@@ -199,7 +204,7 @@ We begin by defining the loop and updating the :math:`\alpha` value.
 
   for i in range(4):
       # Update the penalisation value
-      alpha.assign(float(alpha)/2)
+      alpha.assign(float(alpha) / 2)
       print("Set alpha to %f." % float(alpha))
   
 We rely on a useful property of dolfin-adjoint here: if an object
@@ -250,10 +255,10 @@ statistics:
 
       ypvd << y_opt
       upvd << u_opt
-      feasibility = sqrt(assemble(inner((Max(Constant(0.0), -y_opt)), (Max(Constant(0.0), -y_opt)))*dx))
+      feasibility = sqrt(assemble(inner((Max(Constant(0.0), -y_opt)), (Max(Constant(0.0), -y_opt))) * dx))
       print("Feasibility: %s" % feasibility)
-      print("Norm of y: %s" % sqrt(assemble(inner(y_opt, y_opt)*dx)))
-      print("Norm of u_opt: %s" % sqrt(assemble(inner(u_opt, u_opt)*dx)))
+      print("Norm of y: %s" % sqrt(assemble(inner(y_opt, y_opt) * dx)))
+      print("Norm of u_opt: %s" % sqrt(assemble(inner(u_opt, u_opt) * dx)))
   
 The example code can be found in ``examples/mpec/`` in the
 ``dolfin-adjoint`` source tree, and executed as follows:

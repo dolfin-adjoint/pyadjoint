@@ -58,8 +58,8 @@ We start our implementation by importing the :py:mod:`dolfin` and
 ::
 
   from dolfin import *
+  
   from dolfin_adjoint import *
-  set_log_level(LogLevel.ERROR)
   
 Next we import the Python interface to Moola. Moola is a collection
 of optimisation solvers specifically designed for PDE-constrained
@@ -116,7 +116,7 @@ it.
 
 ::
 
-  F = (inner(grad(u), grad(v)) - f*v)*dx
+  F = (inner(grad(u), grad(v)) - f * v) * dx
   bc = DirichletBC(V, 0.0, "on_boundary")
   solve(F == 0, u, bc)
   
@@ -134,12 +134,12 @@ variable.
 ::
 
   x = SpatialCoordinate(mesh)
-  w = Expression("sin(pi*x[0])*sin(pi*x[1])", degree=3) 
-  d = 1/(2*pi**2)
-  d = Expression("d*w", d=d, w=w, degree=3) 
+  w = Expression("sin(pi*x[0])*sin(pi*x[1])", degree=3)
+  d = 1 / (2 * pi ** 2)
+  d = Expression("d*w", d=d, w=w, degree=3)
   
   alpha = Constant(1e-6)
-  J = assemble((0.5*inner(u-d, u-d))*dx + alpha/2*f**2*dx)
+  J = assemble((0.5 * inner(u - d, u - d)) * dx + alpha / 2 * f ** 2 * dx)
   control = Control(f)
   
 The next step is to formulate the so-called reduced optimisation

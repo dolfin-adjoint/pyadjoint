@@ -195,43 +195,43 @@ for i in range(4):
     alpha.assign(float(alpha) / 2)
     print("Set alpha to %f." % float(alpha))
 
-    # We rely on a useful property of dolfin-adjoint here: if an object
-    # has been used while being a Placeholder (here achieved by creating the
-    # :py:class:`Placeholder <pyadjoint.placeholder.Placeholder>` object
-    # above), dolfin-adjoint does not copy that object, but
-    # keeps a reference to it instead.  That means that assigning a new
-    # value to ``alpha`` has the effect that the optimisation routine will
-    # automatically use that new value.
-    #
-    # Next we solve the optimisation problem for the current ``alpha``.  We
-    # use the ``L-BFGS-B`` optimisation algorithm here :cite:`zhu1997b` and
-    # select a set of sensible stopping criteria:
+# We rely on a useful property of dolfin-adjoint here: if an object
+# has been used while being a Placeholder (here achieved by creating the
+# :py:class:`Placeholder <pyadjoint.placeholder.Placeholder>` object
+# above), dolfin-adjoint does not copy that object, but
+# keeps a reference to it instead.  That means that assigning a new
+# value to ``alpha`` has the effect that the optimisation routine will
+# automatically use that new value.
+#
+# Next we solve the optimisation problem for the current ``alpha``.  We
+# use the ``L-BFGS-B`` optimisation algorithm here :cite:`zhu1997b` and
+# select a set of sensible stopping criteria:
 
     u_opt = minimize(Jhat, method="L-BFGS-B", bounds=(0.01, 0.03), options={"gtol": 1e-12, "ftol": 1e-100})
 
-    # The following step is optional and implements a performance
-    # improvement. The idea is to use the optimised state solution as an
-    # initial guess for the Newton solver in the next optimisation round.
-    # It demonstrates how one can access and modify variables on the
-    # ``dolfin-adjoint`` tape.
-    #
-    # First, we extract the optimised state (the ``y`` function) from the
-    # tape. This is done with the ``Control.tape_value()``
-    # function. By default it returns the last known iteration of that
-    # function on the tape, which is exactly what we want here:
+# The following step is optional and implements a performance
+# improvement. The idea is to use the optimised state solution as an
+# initial guess for the Newton solver in the next optimisation round.
+# It demonstrates how one can access and modify variables on the
+# ``dolfin-adjoint`` tape.
+#
+# First, we extract the optimised state (the ``y`` function) from the
+# tape. This is done with the ``Control.tape_value()``
+# function. By default it returns the last known iteration of that
+# function on the tape, which is exactly what we want here:
 
     y_opt = Control(y).tape_value()
 
-    # The next line modifies the tape such that the initial guess for ``y``
-    # (to be used in the Newton solver in the forward problem) is set to
-    # ``y_opt``.  This is achieved with the
-    # :py:func:`Control.update
-    # <dolfin_adjoint.Control.update>` function and the initial guess control defined earlier:
+# The next line modifies the tape such that the initial guess for ``y``
+# (to be used in the Newton solver in the forward problem) is set to
+# ``y_opt``.  This is achieved with the
+# :py:func:`Control.update
+# <dolfin_adjoint.Control.update>` function and the initial guess control defined earlier:
 
     ic.update(y_opt)
 
-    # Finally, we store the optimal state and control to disk and print some
-    # statistics:
+# Finally, we store the optimal state and control to disk and print some
+# statistics:
 
     ypvd << y_opt
     upvd << u_opt

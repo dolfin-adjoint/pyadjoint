@@ -54,6 +54,7 @@
 #
 # We start our implementation by importing the :py:mod:`dolfin` and
 # :py:mod:`dolfin_adjoint` modules:
+
 from dolfin import *
 
 from dolfin_adjoint import *

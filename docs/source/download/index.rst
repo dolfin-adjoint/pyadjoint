@@ -29,8 +29,8 @@ platform. To get started, follow these 2 steps:
 If running on Mac or Windows, make sure you run this and other
 commands inside the Docker Quickstart Terminal.
 
-Stable version:
----------------
+dolfin-adjoint with FEniCS:
+---------------------------
 Once both Docker and the FEniCS Docker script have been installed, you can
 easily start a FEniCS session with dolfin-adjoint by running the following
 command::
@@ -51,8 +51,8 @@ To create a session that has access to the current folder from the host::
 
     docker run -ti -v $(pwd):/home/fenics/shared quay.io/dolfinadjoint/pyadjoint
 
-Development version:
---------------------
+dolfin-adjoint development version with FEniCS:
+-----------------------------------------------
 The development version of dolfin-adjoint and FEniCS is available with::
 
     fenicsproject run quay.io/dolfinadjoint/pyadjoint:latest
@@ -66,10 +66,15 @@ To see all the options run::
 
     fenicsproject help
 
-For more details and tips on how to work with FEniCS and Docker, see
-our `FEniCS Docker page
-<http://fenics-containers.readthedocs.org/en/latest/>`_.
+dolfin-adjoint development version with Firedrake:
+--------------------------------------------------
+The development version of dolfin-adjoint and Firedrake is available with::
 
+    fenicsproject run quay.io/dolfinadjoint/pyadjoint-firedrake:latest
+
+To update the development container, run::
+
+    fenicsproject pull quay.io/dolfinadjoint/pyadjoint-firedrake:latest
 
 
 PIP (all platforms)

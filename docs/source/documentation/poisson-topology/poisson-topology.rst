@@ -68,6 +68,7 @@ imported:
 ::
 
   from fenics import *
+  
   from fenics_adjoint import *
   
 Next we import the Python interface to IPOPT. If IPOPT is
@@ -79,7 +80,7 @@ optimisation algorithm.
 ::
 
   try:
-      import pyipopt
+      import pyipopt # noqa: F401
   except ImportError:
       print("""This example depends on IPOPT and pyipopt. \
     When compiling IPOPT, make sure to link against HSL, as it \
@@ -94,18 +95,19 @@ Penalisation (SIMP) rule.
 
 ::
 
-  V = Constant(0.4)      # volume bound on the control
-  p = Constant(5)        # power used in the solid isotropic material
-                         # with penalisation (SIMP) rule, to encourage the control
-                         # solution to attain either 0 or 1
-  eps = Constant(1.0e-3) # epsilon used in the solid isotropic material
-  alpha = Constant(1.0e-8) # regularisation coefficient in functional
+  V = Constant(0.4)  # volume bound on the control
+  p = Constant(5)  # power used in the solid isotropic material
+  # with penalisation (SIMP) rule, to encourage the control
+  # solution to attain either 0 or 1
+  eps = Constant(1.0e-3)  # epsilon used in the solid isotropic material
+  alpha = Constant(1.0e-8)  # regularisation coefficient in functional
   
   
   def k(a):
       """Solid isotropic material with penalisation (SIMP) conductivity
     rule, equation (11)."""
-      return eps + (1 - eps) * a**p
+      return eps + (1 - eps) * a ** p
+  
   
 Next we define the mesh (a unit square) and the function spaces to be
 used for the control :math:`a` and forward solution :math:`T`.
@@ -117,19 +119,23 @@ used for the control :math:`a` and forward solution :math:`T`.
   A = FunctionSpace(mesh, "CG", 1)  # function space for control
   P = FunctionSpace(mesh, "CG", 1)  # function space for solution
   
+  
 Next we define the forward boundary condition and source term.
 
 ::
 
   class WestNorth(SubDomain):
       """The top and left boundary of the unitsquare, used to enforce the Dirichlet boundary condition."""
+  
       def inside(self, x, on_boundary):
           return (x[0] == 0.0 or x[1] == 1.0) and on_boundary
+  
   
   # the Dirichlet BC; the Neumann BC will be implemented implicitly by
   # dropping the surface integral after integration by parts
   bc = [DirichletBC(P, 0.0, WestNorth())]
-  f = interpolate(Constant(1.0e-2), P) # the volume source term for the PDE
+  f = interpolate(Constant(1.0e-2), P)  # the volume source term for the PDE
+  
   
 Next we define a function that given a control :math:`a` solves the
 forward PDE for the temperature :math:`T`. (The advantage of
@@ -145,11 +151,12 @@ formulating it in this manner is that it makes it easy to conduct
       T = Function(P, name="Temperature")
       v = TestFunction(P)
   
-      F = inner(grad(v), k(a)*grad(T))*dx - f*v*dx
+      F = inner(grad(v), k(a) * grad(T)) * dx - f * v * dx
       solve(F == 0, T, bc, solver_parameters={"newton_solver": {"absolute_tolerance": 1.0e-7,
                                                                 "maximum_iterations": 20}})
   
       return T
+  
   
 Now we define the ``__main__`` section. We define the initial guess
 for the control and use it to solve the forward PDE. In order to
@@ -160,8 +167,8 @@ bound constraint are satisfied.
 ::
 
   if __name__ == "__main__":
-      a = interpolate(V, A) # initial guess.
-      T = forward(a)                        # solve the forward problem once.
+      a = interpolate(V, A)  # initial guess.
+      T = forward(a)  # solve the forward problem once.
   
 With the forward problem solved once, :py:mod:`dolfin_adjoint` has
 built a *tape* of the forward model; it will use this tape to drive
@@ -185,6 +192,8 @@ executed on every functional derivative calculation
 
       controls = File("output/control_iterations.pvd")
       a_viz = Function(A, name="ControlVisualisation")
+  
+  
       def eval_cb(j, a):
           a_viz.assign(a)
           controls << a_viz
@@ -194,7 +203,7 @@ term on the gradient of the material
 
 ::
 
-      J = assemble(f*T*dx + alpha * inner(grad(a), grad(a))*dx)
+      J = assemble(f * T * dx + alpha * inner(grad(a), grad(a)) * dx)
       m = Control(a)
       Jhat = ReducedFunctional(J, m, eval_cb_post=eval_cb)
   
@@ -229,8 +238,9 @@ the constraint.
 
       class VolumeConstraint(InequalityConstraint):
           """A class that enforces the volume constraint g(a) = V - a*dx >= 0."""
+  
           def __init__(self, V):
-              self.V  = float(V)
+              self.V = float(V)
   
 The derivative of the constraint g(x) is constant (it is the
 diagonal of the lumped mass matrix for the control function space),
@@ -239,7 +249,7 @@ calculating the integral each time without re-assembling.
 
 ::
 
-              self.smass  = assemble(TestFunction(A) * Constant(1) * dx)
+              self.smass = assemble(TestFunction(A) * Constant(1) * dx)
               self.tmpvec = Function(A)
   
           def function(self, m):
@@ -264,6 +274,7 @@ Compute the integral of the control over the domain
           def length(self):
               """Return the number of components in the constraint vector (here, one)."""
               return 1
+  
   
 Now that all the ingredients are in place, we can perform the
 optimisation.  The :py:class:`MinimizationProblem` class

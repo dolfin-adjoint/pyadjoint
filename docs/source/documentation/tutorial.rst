@@ -108,6 +108,7 @@ If we wish instead to take the gradient with respect to the diffusivity
 .. code-block:: python
 
     dJdnu = compute_gradient(J, Control(nu))
+
 If we want both gradients we can write
 
 .. code-block:: python
