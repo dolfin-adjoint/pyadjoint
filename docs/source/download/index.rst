@@ -94,6 +94,19 @@ Test your installation by running:
 
     python3 -c "import fenics_adjoint"
 
+
+Firedrake-adjoint with their Firedrake installation script
+===========================================================
+
+If you already have installed firedrake with their
+`installation script <https://www.firedrakeproject.org/download.html>`_,
+pyadjoint can be installed by simply running:
+
+.. code-block:: bash
+
+   firedrake-update --install pyadjoint
+
+
 Optional dependencies:
 ----------------------
 
