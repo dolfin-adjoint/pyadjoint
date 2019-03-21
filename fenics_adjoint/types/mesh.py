@@ -96,7 +96,7 @@ def overloaded_create(mesh_class):
     return create
 
 
-custom_meshes = ["UnitDiscMesh", "SphericalShellMesh", "UnitTriangleMesh"]
+custom_meshes = ["UnitDiscMesh", "SphericalShellMesh", "UnitTriangleMesh", "BoxMesh"]
 for name in custom_meshes:
     mesh_type = getattr(backend, name)
     mesh_type.create = overloaded_create(mesh_type)
