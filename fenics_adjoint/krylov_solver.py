@@ -115,7 +115,7 @@ class KrylovSolveBlock(SolveBlock):
         if self.pc_operator is not None:
             self.pc_operator = self.pc_operator.form
             for c in self.pc_operator.coefficients():
-                self.add_dependency(c.block_variable)
+                self.add_dependency(c)
 
     def _create_initial_guess(self):
         r = super(KrylovSolveBlock, self)._create_initial_guess()

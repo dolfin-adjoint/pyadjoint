@@ -41,14 +41,14 @@ class Block(object):
         BlockVariable was not created by a Block (but by the user).
 
         Args:
-            dep (BlockVariable): The object to be added.
+            dep (OverloadedType): The object to be added.
             no_duplicates (bool, optional): If True, the dependency is only added if it is not already in the list.
                 Default is False.
 
         """
-        if not no_duplicates or dep not in self._dependencies:
-            dep.will_add_as_dependency()
-            self._dependencies.append(dep)
+        if not no_duplicates or dep.block_variable not in self._dependencies:
+            dep._ad_will_add_as_dependency()
+            self._dependencies.append(dep.block_variable)
 
     def get_dependencies(self):
         """Returns the list of dependencies.

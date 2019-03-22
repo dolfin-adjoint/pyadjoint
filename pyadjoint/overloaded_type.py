@@ -1,5 +1,5 @@
 from .block_variable import BlockVariable
-from .tape import get_working_tape, annotate_tape
+from .tape import get_working_tape
 
 _overloaded_types = {}
 
@@ -258,11 +258,8 @@ class OverloadedType(object):
     def _ad_will_add_as_dependency(self):
         """Method called when the object is added as a Block dependency.
 
-        Returns:
-            bool: True if the saved checkpoint should be overwritten.
-
         """
-        return False
+        self.block_variable.save_output(overwrite=False)
 
     def _ad_will_add_as_output(self):
         """Method called when the object is added as a Block output.
@@ -348,7 +345,6 @@ class FloatingType(OverloadedType):
         self._ad_args = kwargs.pop("_ad_args", [])
         self._ad_kwargs = kwargs.pop("_ad_kwargs", {})
         self._ad_floating_active = kwargs.pop("_ad_floating_active", False)
-        self.annotate_tape = annotate_tape(kwargs)
         self.block = None
 
         self.output_block = None
@@ -367,7 +363,7 @@ class FloatingType(OverloadedType):
         if self._ad_floating_active:
             with FloatingType.stop_floating(self):
                 self._ad_annotate_block()
-        return True
+        self.block_variable.save_output(overwrite=True)
 
     def _ad_will_add_as_output(self):
         if self._ad_floating_active:
@@ -379,23 +375,14 @@ class FloatingType(OverloadedType):
         if self.block_class is None:
             return
 
-        if not self.annotate_tape:
-            return
-
         tape = get_working_tape()
         block = self.block_class(*self._ad_args, **self._ad_kwargs)
         self.block = block
         tape.add_block(block)
-        block.add_output(self.block_variable)
-
-        # Need to create a new block output for future use.
-        self.create_block_variable()
+        block.add_output(self.create_block_variable())
 
     def _ad_annotate_output_block(self):
         if self.output_block_class is None:
-            return
-
-        if not self.annotate_tape:
             return
 
         tape = get_working_tape()

@@ -77,7 +77,9 @@ class SolveBlock(Block):
         self.function_space = self.func.function_space()
         if backend.__name__ != "firedrake":
             mesh = self.lhs.ufl_domain().ufl_cargo()
-            self.add_dependency(mesh.block_variable)
+        else:
+            mesh = self.lhs.ufl_domain()
+        self.add_dependency(mesh)
 
     def __str__(self):
         return "{} = {}".format(str(self.lhs), str(self.rhs))
@@ -142,15 +144,15 @@ class SolveBlock(Block):
             self.linear = True
             # Add dependence on coefficients on the right hand side.
             for c in self.rhs.coefficients():
-                self.add_dependency(c.block_variable, no_duplicates=True)
+                self.add_dependency(c, no_duplicates=True)
         else:
             self.linear = False
 
         for bc in self.bcs:
-            self.add_dependency(bc.block_variable, no_duplicates=True)
+            self.add_dependency(bc, no_duplicates=True)
 
         for c in self.lhs.coefficients():
-            self.add_dependency(c.block_variable, no_duplicates=True)
+            self.add_dependency(c, no_duplicates=True)
 
     def _create_F_form(self):
         # Process the equation forms, replacing values with checkpoints,
@@ -306,7 +308,7 @@ class SolveBlock(Block):
                 continue
 
             if isinstance(c, compat.MeshType):
-                dFdm_shape += backend.assemble(
+                dFdm_shape += compat.assemble_adjoint_value(
                     backend.derivative(-F_form, c_rep, tlm_value))
             else:
                 dFdm += backend.derivative(-F_form, c_rep, tlm_value)
@@ -315,9 +317,9 @@ class SolveBlock(Block):
             v = dFdu.arguments()[0]
             dFdm = backend.inner(backend.Constant(numpy.zeros(v.ufl_shape)), v) * backend.dx
 
-        dFdm = backend.assemble(dFdm) + dFdm_shape
+        dFdm = compat.assemble_adjoint_value(dFdm) + dFdm_shape
         dudm = backend.Function(V)
-        return self._assemble_and_solve_tlm_eq(backend.assemble(dFdu), dFdm, dudm, bcs)
+        return self._assemble_and_solve_tlm_eq(compat.assemble_adjoint_value(dFdu), dFdm, dudm, bcs)
 
     def _assemble_and_solve_tlm_eq(self, dFdu, dFdm, dudm, bcs):
         return self._assembled_solve(dFdu, dFdm, dudm, bcs)
