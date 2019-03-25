@@ -27,8 +27,7 @@ def assign(self, *args, **kwargs):
         block = FunctionAssignerBlock(inputs, outputs)
         tape = get_working_tape()
         tape.add_block(block)
-
-    ret = __ad_functionassigner_assign(self, outputs, inputs, **kwargs)
+    ret = __ad_functionassigner_assign(self, outputs.delist(), inputs.delist(), **kwargs)
 
     if annotate_tape:
         for output in outputs:
