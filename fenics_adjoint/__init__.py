@@ -47,7 +47,7 @@ if backend.__name__ != "firedrake":
     from .types import (Function, Constant, DirichletBC,
                         Mesh, UnitSquareMesh, UnitIntervalMesh, IntervalMesh,
                         UnitCubeMesh, BoxMesh, RectangleMesh, BoundaryMesh,
-                        SubMesh)
+                        SubMesh, FunctionAssigner)
 
 from .variational_solver import (NonlinearVariationalProblem, NonlinearVariationalSolver,
                                  LinearVariationalProblem, LinearVariationalSolver)
