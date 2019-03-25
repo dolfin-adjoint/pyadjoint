@@ -9,11 +9,24 @@ __all__ = ["FunctionAssigner"]
 
 
 class FunctionAssigner(backend.FunctionAssigner):
+    adj_assigner = None
 
     def __init__(self, *args, **kwargs):
         super(FunctionAssigner, self).__init__(*args, **kwargs)
         self.input_spaces = Enlist(args[1])
         self.output_spaces = Enlist(args[0])
+        self.adj_fa(**kwargs)
+
+    def adj_fa(self, *args, **kwargs):
+        """
+        Adjoint Function assigner, assigning output to input variables
+        """
+        if self.adj_assigner is None:
+            assigner = backend.FunctionAssigner(self.input_spaces.delist(),
+                                                self.output_spaces.delist(), **kwargs)
+            self.adj_assigner = assigner
+        else:
+            return self.adj_assigner
 
     def assign(self, *args, **kwargs):
         annotate_tape = kwargs.pop("annotate_tape", True)
@@ -47,14 +60,34 @@ class FunctionAssignerBlock(Block):
         self.assigner = assigner
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        return adj_inputs[0]
+        adj_assigner = self.assigner.adj_assigner
+        inp_functions = []
+        for i in range(len(adj_inputs)):
+            f_in = backend.Function(self.assigner.output_spaces[i])
+            if adj_inputs[i] is not None:
+                f_in.vector()[:] = adj_inputs[i]
+            inp_functions.append(f_in)
+        out_functions = []
+        for j in range(len(self.assigner.input_spaces)):
+            f_out = backend.Function(self.assigner.input_spaces[j])
+            out_functions.append(f_out)
+        adj_assigner.assign(self.assigner.input_spaces.delist(out_functions),
+                            self.assigner.output_spaces.delist(inp_functions))
+        return out_functions[idx].vector()
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
-        return tlm_inputs[0]
+        out_functions = []
+        for output in self.get_outputs():
+            out_functions.append(backend.Function(output.output.function_space()))
+        backend.FunctionAssigner.assign(self.assigner,
+                                        self.assigner.output_spaces.delist(out_functions),
+                                        self.assigner.input_spaces.delist(tlm_inputs))
+        return out_functions[idx]
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
-        return hessian_inputs[0]
+        return self.evaluate_adj_component(inputs, hessian_inputs,
+                                           block_variable, idx, prepared)
 
     def prepare_recompute_component(self, inputs, relevant_outputs):
         out_functions = []
