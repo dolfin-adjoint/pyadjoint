@@ -2,6 +2,7 @@ from dolfin import *
 from dolfin_adjoint import *
 import numpy as np
 
+
 def test_function_assigner_poisson():
     mesh = UnitSquareMesh(15,15)
     CG1 = FiniteElement("CG", mesh.ufl_cell(), 1)
@@ -32,7 +33,7 @@ def test_function_assigner_poisson():
     rh = Function(R_space)
     fa = FunctionAssigner([V, R_space] , VR)
     fa.assign([uh, rh],ur)
-    J = assemble(uh*ds) + assemble(uh*uh**2*dx)# + assemble(inner(f,f)*dx)
+    J = assemble(uh*ds) + assemble(uh*uh**2*dx)
 
     Jhat = ReducedFunctional(J, Control(s_))
     dJ_fa = Jhat.derivative()
@@ -42,16 +43,16 @@ def test_function_assigner_poisson():
         A = 1
         pert = project(A*Expression(("x[0]","cos(pi*x[1])"),degree=3), S)
         results = taylor_to_dict(Jhat, s_, pert)
-        assert(min(results["FD"]["Rate"]) > 0.95)
-        assert(min(results["dJdm"]["Rate"]) > 1.95)
-        assert(min(results["Hm"]["Rate"]) > 2.95)
+        assert min(results["FD"]["Rate"]) > 0.95
+        assert min(results["dJdm"]["Rate"]) > 1.95
+        assert min(results["Hm"]["Rate"]) > 2.95
 
     tape = get_working_tape()
     tape.reset_tlm_values()
     s_.tlm_value = pert
     tape.evaluate_tlm()
     r1_tlm = taylor_test(Jhat, s_, pert, dJdm=J.block_variable.tlm_value)
-    assert(r1_tlm > 1.95)
+    assert r1_tlm > 1.95
     Jhat(s_)
     # Solve same problem with split
     uh, rh = ur.split()
@@ -59,6 +60,8 @@ def test_function_assigner_poisson():
 
     Jhat = ReducedFunctional(J, Control(s_))
     dJ_split = Jhat.derivative()
-    assert(np.allclose(dJ_fa.vector().get_local(), dJ_split.vector().get_local()))
+    assert np.allclose(dJ_fa.vector().get_local(), dJ_split.vector().get_local())
+
+
 if __name__ == "__main__":
-     test_function_assigner_poisson()
+    test_function_assigner_poisson()
