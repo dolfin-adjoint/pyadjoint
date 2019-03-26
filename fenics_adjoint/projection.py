@@ -21,6 +21,7 @@ def project(*args, **kwargs):
     if annotate:
         bcs = kwargs.pop("bcs", [])
         sb_kwargs = SolveBlock.pop_kwargs(kwargs)
+        sb_kwargs.update(kwargs)
         block = ProjectBlock(args[0], args[1], output, bcs, **sb_kwargs)
 
         tape = get_working_tape()

@@ -18,3 +18,13 @@ def adjoint_genericmatrix_mul(self, other):
 
 
 backend.cpp.la.GenericMatrix.__mul__ = adjoint_genericmatrix_mul
+
+backend_genericmatrix_ident_zeros = backend.cpp.la.GenericMatrix.ident_zeros
+
+
+def ident_zeros(self, tol=backend.DOLFIN_EPS):
+    backend_genericmatrix_ident_zeros(self, tol)
+    self.ident_zeros_tol = tol
+
+
+backend.cpp.la.GenericMatrix.ident_zeros = ident_zeros

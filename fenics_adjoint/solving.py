@@ -88,6 +88,12 @@ class SolveBlock(Block):
         if self.varform:
             self.kwargs = kwargs
             self.forward_kwargs = kwargs.copy()
+            if "solver_type" in self.kwargs:
+                s_t = self.kwargs.pop("solver_type")
+                self.kwargs["solver_parameters"] = {"linear_solver": s_t}
+                s_t = self.forward_kwargs.pop("solver_type")
+                self.forward_kwargs["solver_parameters"] = {"linear_solver": s_t}
+
             if "J" in self.kwargs:
                 self.kwargs["J"] = backend.adjoint(self.kwargs["J"])
             if "Jp" in self.kwargs:
@@ -101,6 +107,22 @@ class SolveBlock(Block):
             if "solver_parameters" in kwargs and "mat_type" in kwargs["solver_parameters"]:
                 self.assemble_kwargs["mat_type"] = kwargs["solver_parameters"]["mat_type"]
         else:
+            # Adding solver_type and preconditioners to assembled systems
+            if len(args) > 3:
+                # Have to manually add a lu to list of recognized solvers
+                lin_solvers = backend.linear_solver_methods()
+                lin_solvers.update({"lu": "default linear solver"})
+                if args[3] in lin_solvers:
+                    try:
+                        kwargs["solver_parameters"].update({"linear_solver":
+                                                            args[3]})
+                    except KeyError:
+                        kwargs["solver_parameters"] = {"linear_solver": args[3]}
+                self.forward_assembled_kwargs = args[3:]
+                if len(args) == 5 and args[4] in backend.krylov_solver_preconditioners():
+                    kwargs["solver_parameters"].update({"preconditioner":
+                                                        args[4]})
+
             self.kwargs = kwargs
             self.forward_kwargs = kwargs.copy()
             self.assemble_kwargs = {}
@@ -133,6 +155,8 @@ class SolveBlock(Block):
 
             self.lhs = A.form
             self.rhs = b.form
+            if hasattr(A, "ident_zeros_tol"):
+                self.ident_zeros_tol = A.ident_zeros_tol
             self.bcs = A.bcs if hasattr(A, "bcs") else []
             self.func = u.function
             self.assemble_system = A.assemble_system if hasattr(A, "assemble_system") else False
@@ -528,9 +552,9 @@ class SolveBlock(Block):
         backend.solve(lhs == rhs, func, bcs, **kwargs)
         return func
 
-    def _assembled_solve(self, lhs, rhs, func, bcs, **kwargs):
+    def _assembled_solve(self, lhs, rhs, func, bcs, *args):
         [bc.apply(lhs, rhs) for bc in bcs]
-        backend.solve(lhs, func.vector(), rhs, **kwargs)
+        backend.solve(lhs, func.vector(), rhs, *args)
         return func
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
@@ -538,5 +562,16 @@ class SolveBlock(Block):
         rhs = prepared[1]
         func = prepared[2]
         bcs = prepared[3]
-
-        return self._forward_solve(lhs, rhs, func, bcs, **self.forward_kwargs)
+        # FIXME: We should probably split pre-assembled systems into
+        # a separate block.
+        if hasattr(self, "ident_zeros_tol"):
+            # Check if we are dealing with as system where ident_zeros as been
+            # used. Then we have to assemble before solving the forward system
+            lhs = backend.assemble(lhs)
+            rhs = backend.assemble(rhs)
+            lhs.ident_zeros(self.ident_zeros_tol)
+            return self._assembled_solve(lhs, rhs, func, bcs,
+                                         *self.forward_assembled_kwargs)
+        else:
+            return self._forward_solve(lhs, rhs, func, bcs,
+                                       **self.forward_kwargs)
