@@ -1,7 +1,6 @@
 # flake8: noqa
 
 import backend
-import sys
 
 from .constant import Constant
 from .dirichletbc import DirichletBC

@@ -8,8 +8,7 @@ from ..shapead_transformations import vector_boundary_to_mesh, vector_mesh_to_bo
 
 overloaded_meshes = ['IntervalMesh', 'UnitIntervalMesh', 'RectangleMesh',
                      'UnitSquareMesh', 'UnitCubeMesh', 'BoxMesh']
-__all__ = overloaded_meshes.copy()
-__all__.extend(['Mesh', 'BoundaryMesh', 'SubMesh'])
+__all__ = ['Mesh', 'BoundaryMesh', 'SubMesh'] + overloaded_meshes
 
 
 @register_overloaded_type
@@ -72,7 +71,6 @@ def overloaded_mesh(mesh_class):
 
 
 thismod = sys.modules[__name__]
-mesh_module = backend.cpp.generation
 for name in overloaded_meshes:
     setattr(thismod, name, overloaded_mesh(getattr(backend, name)))
     mod = getattr(thismod, name)
