@@ -1,16 +1,16 @@
 # flake8: noqa
 
 import backend
-from pyadjoint.adjfloat import AdjFloat
+
 from .constant import Constant
 from .dirichletbc import DirichletBC
 if backend.__name__ != "firedrake":
     # Currently not implemented.
     from .expression import Expression, UserExpression, CompiledExpression
-    # Shape AD specific imports, not implemented yet
-    from .mesh import (Mesh, UnitSquareMesh,UnitIntervalMesh, IntervalMesh,
-                       UnitCubeMesh, BoundaryMesh, BoxMesh, RectangleMesh,
-                       SubMesh)
+
+    # Shape AD specific imports for dolfin
+    from .mesh import *
+
     from .as_backend_type import as_backend_type, VectorSpaceBasis
     from .function_assigner import *
 from .function import Function
