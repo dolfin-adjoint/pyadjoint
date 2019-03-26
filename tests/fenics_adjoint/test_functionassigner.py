@@ -35,7 +35,7 @@ def test_function_assigner_poisson():
     J = assemble(uh*ds) + assemble(uh*uh**2*dx)# + assemble(inner(f,f)*dx)
 
     Jhat = ReducedFunctional(J, Control(s_))
-    dJ1 = Jhat.derivative()
+    dJ_fa = Jhat.derivative()
 
     from pyadjoint.tape import stop_annotating
     with stop_annotating():
@@ -58,7 +58,7 @@ def test_function_assigner_poisson():
     J = assemble(uh*ds) + assemble(uh*uh**2*dx)
 
     Jhat = ReducedFunctional(J, Control(s_))
-    dJ2 = Jhat.derivative()
-    assert(np.allclose(dJ1.vector().get_local(), dJ2.vector().get_local()))
+    dJ_split = Jhat.derivative()
+    assert(np.allclose(dJ_fa.vector().get_local(), dJ_split.vector().get_local()))
 if __name__ == "__main__":
      test_function_assigner_poisson()
