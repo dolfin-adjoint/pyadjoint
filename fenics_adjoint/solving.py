@@ -236,6 +236,10 @@ class SolveBlock(Block):
         dJdu_copy = dJdu.copy()
         dFdu = compat.assemble_adjoint_value(dFdu_form, **self.assemble_kwargs)
 
+        # Use ident_zeros on adjoint problem, if it has been used on the forward problem
+        if hasattr(self, "ident_zeros_tol"):
+            dFdu.ident_zeros(self.ident_zeros_tol)
+
         # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
         for bc in self._homogenize_bcs():
             bc.apply(dFdu, dJdu)
