@@ -1,4 +1,5 @@
 from .tape import no_annotations
+from html import escape
 
 
 class Block(object):
@@ -393,7 +394,7 @@ class Block(object):
         for xpos, dep in enumerate(self.get_dependencies()):
             G.add_edge(id(dep), id(self))
             if "label" not in G.node[id(dep)]:
-                G.node[id(dep)]['label'] = str(dep)
+                G.node[id(dep)]['label'] = escape(str(dep))
                 G.node[id(dep)]['node_color'] = "r"
                 G.node[id(dep)]['position'] = (0.1 * xpos, -pos + 0.5)
 
@@ -401,12 +402,14 @@ class Block(object):
         for xpos, out in enumerate(self.get_outputs()):
             G.add_edge(id(self), id(out))
             if "label" not in G.node[id(out)]:
-                G.node[id(out)]['label'] = str(out)
+                G.node[id(out)]['label'] = escape(str(out))
                 G.node[id(out)]['node_color'] = "r"
                 G.node[id(out)]['position'] = (0.1 * xpos, -pos - 0.5)
 
         # Set properties for Block node
-        G.node[id(self)]['label'] = str(self)
+        G.node[id(self)]['label'] = escape(str(self))
         G.node[id(self)]['node_color'] = "b"
         G.node[id(self)]['position'] = (0, -pos)
         G.node[id(self)]['shape'] = "box"
+        G.node[id(self)]['style'] = "filled"
+        G.node[id(self)]['fillcolor'] = "lightgrey"
