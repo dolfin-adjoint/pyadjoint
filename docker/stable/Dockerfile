@@ -23,7 +23,8 @@ RUN apt-get -qq update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 RUN /bin/bash -l -c "pip3 install git+git://github.com/funsim/moola.git@${MOOLA_BRANCH}"
-RUN /bin/bash -l -c "pip3 install git+https://bitbucket.org/dolfin-adjoint/pyadjoint.git@${DOLFIN_ADJOINT_BRANCH}"
+RUN /bin/bash -l -c "git clone https://bitbucket.org/dolfin-adjoint/pyadjoint.git"
+RUN /bin/bash -l -c "cd pyadjoint && git checkout ${DOLFIN_ADJOINT_BRANCH} && pip3 install . && pip3 install -r requirements.txt"
 RUN /bin/bash -l -c "pip3 install --ignore-installed scipy"
 RUN /bin/bash -l -c "source $FENICS_HOME/dolfin-adjoint.conf && \
                      update_ipopt && \
