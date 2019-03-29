@@ -346,8 +346,7 @@ class SolveBlock(Block):
                     b -= compat.assemble_adjoint_value(d2Fdudm)
 
             elif not isinstance(c, backend.DirichletBC):
-                d2Fdudm = backend.derivative(dFdu_form, c_rep, tlm_input)
-                b_form += d2Fdudm
+                b_form += backend.derivative(dFdu_form, c_rep, tlm_input)
 
         b_form = ufl.algorithms.expand_derivatives(b_form)
         if len(b_form.integrals()) > 0:
@@ -357,6 +356,7 @@ class SolveBlock(Block):
 
     def _assemble_and_solve_soa_eq(self, dFdu_form, adj_sol, hessian_input, d2Fdu2):
         b = self._assemble_soa_eq_rhs(dFdu_form, adj_sol, hessian_input, d2Fdu2)
+        dFdu_form = backend.adjoint(dFdu_form)
         adj_sol2, adj_sol2_bdy = self._assemble_and_solve_adj_eq(dFdu_form, b)
         if self.adj2_cb is not None:
             self.adj2_cb(adj_sol2)
@@ -383,7 +383,6 @@ class SolveBlock(Block):
         d2Fdu2 = ufl.algorithms.expand_derivatives(
             backend.derivative(dFdu_form, fwd_block_variable.saved_output, tlm_output))
 
-        dFdu_form = backend.adjoint(dFdu_form)
         adj_sol = self.adj_sol
         if adj_sol is None:
             raise RuntimeError("Hessian computation was run before adjoint.")
