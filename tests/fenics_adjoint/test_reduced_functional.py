@@ -735,3 +735,22 @@ def test_eval_callback():
     assert calls_counter["eval_cb_pre_calls"] == 1
     assert calls_counter["derivative_cb_pre_calls"] == 1
 
+
+def test_scaling_negative():
+    mesh = UnitSquareMesh(10, 10)
+    V = FunctionSpace(mesh, "CG", 1)
+
+    X = SpatialCoordinate(mesh)
+    g = interpolate(Constant(2.0), V)
+    f = project(X[0]*sin(2*g*pi*X[1]), V)
+
+    J = assemble(f**4*dx)
+    Jhat = ReducedFunctional(J, Control(g), scale=-1.0)
+
+    h = Function(V)
+    h.vector()[:] = rand(V.dim())
+    r = taylor_to_dict(Jhat, g, h)
+
+    assert min(r["FD"]["Rate"]) > 0.9
+    assert min(r["dJdm"]["Rate"]) > 1.9
+    assert min(r["Hm"]["Rate"]) > 2.9

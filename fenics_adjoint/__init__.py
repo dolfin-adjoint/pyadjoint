@@ -52,7 +52,7 @@ from pyadjoint import (Tape, set_working_tape, get_working_tape,
                        ReducedFunctional,
                        taylor_test, taylor_to_dict,
                        compute_gradient, compute_hessian,
-                       AdjFloat, Control, minimize, MinimizationProblem,
+                       AdjFloat, Control, minimize, maximize, MinimizationProblem,
                        IPOPTSolver, ROLSolver, InequalityConstraint, EqualityConstraint,
                        MoolaOptimizationProblem, print_optimization_methods)
 
