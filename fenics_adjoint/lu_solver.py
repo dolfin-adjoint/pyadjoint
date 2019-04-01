@@ -1,7 +1,7 @@
 import backend
 from pyadjoint.tape import annotate_tape, get_working_tape
 from .types import compat
-from .solving import SolveBlock
+from .solving import SolveLinearSystemBlock
 
 
 class LUSolver(backend.LUSolver):
@@ -51,7 +51,7 @@ class LUSolver(backend.LUSolver):
             parameters = self.parameters.copy()
 
             tape = get_working_tape()
-            sb_kwargs = SolveBlock.pop_kwargs(kwargs)
+            sb_kwargs = LUSolveBlock.pop_kwargs(kwargs)
             block = LUSolveBlock(A, x, b,
                                  lu_solver_parameters=parameters,
                                  block_helper=block_helper,
@@ -77,16 +77,15 @@ class LUSolveBlockHelper(object):
         self.adjoint_solver = None
 
 
-class LUSolveBlock(SolveBlock):
-    def __init__(self, *args, **kwargs):
-        super(LUSolveBlock, self).__init__(*args, **kwargs)
+class LUSolveBlock(SolveLinearSystemBlock):
+    def __init__(self, A, u, b, *args, **kwargs):
+        super(LUSolveBlock, self).__init__(A, u, b, **kwargs)
         self.lu_solver_parameters = kwargs.pop("lu_solver_parameters")
         self.block_helper = kwargs.pop("block_helper")
         self.method = kwargs.pop("lu_solver_method")
 
-    def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu):
+    def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu, bcs, compute_bdy=True):
         dJdu_copy = dJdu.copy()
-        bcs = self._homogenize_bcs()
 
         solver = self.block_helper.adjoint_solver
         if solver is None:
@@ -107,8 +106,10 @@ class LUSolveBlock(SolveBlock):
         adj_sol = backend.Function(self.function_space)
         solver.solve(adj_sol.vector(), dJdu)
 
-        adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
-            backend.action(dFdu_form, adj_sol)))
+        adj_sol_bdy = None
+        if compute_bdy:
+            adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
+                backend.action(dFdu_form, adj_sol)))
 
         return adj_sol, adj_sol_bdy
 

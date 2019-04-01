@@ -4,6 +4,7 @@ import ufl
 
 from pyadjoint.block import Block
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
+from pyadjoint.enlisting import Enlist
 from .types import Function
 from .types import compat
 from .types.function_space import extract_subfunction
@@ -38,14 +39,17 @@ def solve(*args, **kwargs):
             the boundary. The interior values are not guaranteed to be zero.
 
     """
-
     annotate = annotate_tape(kwargs)
-
     if annotate:
         tape = get_working_tape()
-        sb_kwargs = SolveBlock.pop_kwargs(kwargs)
+
+        solve_block_type = SolveVarFormBlock
+        if not isinstance(args[0], ufl.equation.Equation):
+            solve_block_type = SolveLinearSystemBlock
+
+        sb_kwargs = solve_block_type.pop_kwargs(kwargs)
         sb_kwargs.update(kwargs)
-        block = SolveBlock(*args, **sb_kwargs)
+        block = solve_block_type(*args, **sb_kwargs)
         tape.add_block(block)
 
     with stop_annotating():
@@ -61,122 +65,65 @@ def solve(*args, **kwargs):
     return output
 
 
-class SolveBlock(Block):
-    pop_kwargs_keys = ["adj_cb", "adj_bdy_cb", "adj2_cb", "adj2_bdy_cb"]
+class GenericSolveBlock(Block):
+    pop_kwargs_keys = ["adj_cb", "adj_bdy_cb", "adj2_cb", "adj2_bdy_cb",
+                       "forward_args", "forward_kwargs", "adj_args", "adj_kwargs"]
 
-    def __init__(self, *args, **kwargs):
-        super(SolveBlock, self).__init__()
+    def __init__(self, lhs, rhs, func, bcs, *args, **kwargs):
+        super().__init__()
         self.adj_cb = kwargs.pop("adj_cb", None)
         self.adj_bdy_cb = kwargs.pop("adj_bdy_cb", None)
         self.adj2_cb = kwargs.pop("adj2_cb", None)
         self.adj2_bdy_cb = kwargs.pop("adj2_bdy_cb", None)
         self.adj_sol = None
-        self.varform = isinstance(args[0], ufl.equation.Equation)
-        self._init_solver_parameters(*args, **kwargs)
-        self._init_dependencies(*args, **kwargs)
+
+        self.forward_args = []
+        self.forward_kwargs = {}
+        self.adj_args = []
+        self.adj_kwargs = {}
+        self.assemble_kwargs = {}
+
+        # Equation LHS
+        self.lhs = lhs
+        # Equation RHS
+        self.rhs = rhs
+        # Solution function
+        self.func = func
         self.function_space = self.func.function_space()
-        if backend.__name__ != "firedrake":
-            mesh = self.lhs.ufl_domain().ufl_cargo()
-        else:
-            mesh = self.lhs.ufl_domain()
-        self.add_dependency(mesh)
-
-    def __str__(self):
-        return "{} = {}".format(str(self.lhs), str(self.rhs))
-
-    def _init_solver_parameters(self, *args, **kwargs):
-        if self.varform:
-            self.kwargs = kwargs
-            self.forward_kwargs = kwargs.copy()
-            if "solver_type" in self.kwargs:
-                s_t = self.kwargs.pop("solver_type")
-                self.kwargs["solver_parameters"] = {"linear_solver": s_t}
-                s_t = self.forward_kwargs.pop("solver_type")
-                self.forward_kwargs["solver_parameters"] = {"linear_solver": s_t}
-
-            if "J" in self.kwargs:
-                self.kwargs["J"] = backend.adjoint(self.kwargs["J"])
-            if "Jp" in self.kwargs:
-                self.kwargs["Jp"] = backend.adjoint(self.kwargs["Jp"])
-
-            if "M" in self.kwargs:
-                raise NotImplementedError("Annotation of adaptive solves not implemented.")
-
-            # Some arguments need passing to assemble:
-            self.assemble_kwargs = {}
-            if "solver_parameters" in kwargs and "mat_type" in kwargs["solver_parameters"]:
-                self.assemble_kwargs["mat_type"] = kwargs["solver_parameters"]["mat_type"]
-        else:
-            # Adding solver_type and preconditioners to assembled systems
-            if len(args) > 3:
-                # Have to manually add a lu to list of recognized solvers
-                lin_solvers = backend.linear_solver_methods()
-                lin_solvers.update({"lu": "default linear solver"})
-                if args[3] in lin_solvers:
-                    try:
-                        kwargs["solver_parameters"].update({"linear_solver":
-                                                            args[3]})
-                    except KeyError:
-                        kwargs["solver_parameters"] = {"linear_solver": args[3]}
-                self.forward_assembled_kwargs = args[3:]
-                if len(args) == 5 and args[4] in backend.krylov_solver_preconditioners():
-                    kwargs["solver_parameters"].update({"preconditioner":
-                                                        args[4]})
-
-            self.kwargs = kwargs
-            self.forward_kwargs = kwargs.copy()
-            self.assemble_kwargs = {}
-
-    def _init_dependencies(self, *args, **kwargs):
-        if self.varform:
-            eq = args[0]
-            self.lhs = eq.lhs
-            self.rhs = eq.rhs
-            self.func = args[1]
-
-            if len(args) > 2:
-                self.bcs = args[2]
-            elif "bcs" in kwargs:
-                self.bcs = self.kwargs.pop("bcs")
-                self.forward_kwargs.pop("bcs")
-            else:
-                self.bcs = []
-
-            if self.bcs is None:
-                self.bcs = []
-
-            self.assemble_system = False
-        else:
-            # Linear algebra problem.
-            # TODO: Consider checking if attributes exist.
-            A = args[0]
-            u = args[1]
-            b = args[2]
-
-            self.lhs = A.form
-            self.rhs = b.form
-            if hasattr(A, "ident_zeros_tol"):
-                self.ident_zeros_tol = A.ident_zeros_tol
-            self.bcs = A.bcs if hasattr(A, "bcs") else []
-            self.func = u.function
-            self.assemble_system = A.assemble_system if hasattr(A, "assemble_system") else False
-
-        if not isinstance(self.bcs, list):
-            self.bcs = [self.bcs]
+        # Boundary conditions
+        self.bcs = []
+        if bcs is not None:
+            self.bcs = Enlist(bcs)
 
         if isinstance(self.lhs, ufl.Form) and isinstance(self.rhs, ufl.Form):
             self.linear = True
-            # Add dependence on coefficients on the right hand side.
             for c in self.rhs.coefficients():
                 self.add_dependency(c, no_duplicates=True)
         else:
             self.linear = False
 
+        for c in self.lhs.coefficients():
+            self.add_dependency(c, no_duplicates=True)
+
         for bc in self.bcs:
             self.add_dependency(bc, no_duplicates=True)
 
-        for c in self.lhs.coefficients():
-            self.add_dependency(c, no_duplicates=True)
+        if backend.__name__ != "firedrake":
+            mesh = self.lhs.ufl_domain().ufl_cargo()
+        else:
+            mesh = self.lhs.ufl_domain()
+        self.add_dependency(mesh)
+        self._init_solver_parameters(args, kwargs)
+
+    def _init_solver_parameters(self, args, kwargs):
+        self.forward_args = kwargs.pop("forward_args", [])
+        self.forward_kwargs = kwargs.pop("forward_kwargs", {})
+        self.adj_args = kwargs.pop("adj_args", [])
+        self.adj_kwargs = kwargs.pop("adj_kwargs", {})
+        self.assemble_kwargs = {}
+
+    def __str__(self):
+        return "{} = {}".format(str(self.lhs), str(self.rhs))
 
     def _create_F_form(self):
         # Process the equation forms, replacing values with checkpoints,
@@ -192,6 +139,46 @@ class SolveBlock(Block):
         replace_map[tmp_u] = self.get_outputs()[0].saved_output
         return ufl.replace(F_form, replace_map)
 
+    def _homogenize_bcs(self):
+        bcs = []
+        for bc in self.bcs:
+            if isinstance(bc, backend.DirichletBC):
+                bc = compat.create_bc(bc, homogenize=True)
+            bcs.append(bc)
+        return bcs
+
+    def _create_initial_guess(self):
+        return backend.Function(self.function_space)
+
+    def _recover_bcs(self):
+        bcs = []
+        for block_variable in self.get_dependencies():
+            c = block_variable.output
+            c_rep = block_variable.saved_output
+
+            if isinstance(c, backend.DirichletBC):
+                bcs.append(c_rep)
+        return bcs
+
+    def _replace_map(self, form):
+        replace_coeffs = {}
+        for block_variable in self.get_dependencies():
+            coeff = block_variable.output
+            if coeff in form.coefficients():
+                replace_coeffs[coeff] = block_variable.saved_output
+        return replace_coeffs
+
+    def _replace_form(self, form, func=None):
+        """Replace the form coefficients with checkpointed values
+
+        func represents the initial guess if relevant.
+        """
+        replace_map = self._replace_map(form)
+        if func is not None and self.func in replace_map:
+            backend.Function.assign(func, replace_map[self.func])
+            replace_map[self.func] = func
+        return ufl.replace(form, replace_map)
+
     def prepare_evaluate_adj(self, inputs, adj_inputs, relevant_dependencies):
         fwd_block_variable = self.get_outputs()[0]
         u = fwd_block_variable.output
@@ -203,7 +190,8 @@ class SolveBlock(Block):
         dFdu = backend.derivative(F_form, fwd_block_variable.saved_output, backend.TrialFunction(u.function_space()))
         dFdu_form = backend.adjoint(dFdu)
         dJdu = dJdu.copy()
-        adj_sol, adj_sol_bdy = self._assemble_and_solve_adj_eq(dFdu_form, dJdu)
+        bcs = self._homogenize_bcs()
+        adj_sol, adj_sol_bdy = self._assemble_and_solve_adj_eq(dFdu_form, dJdu, bcs)
         self.adj_sol = adj_sol
         if self.adj_cb is not None:
             self.adj_cb(adj_sol)
@@ -216,35 +204,21 @@ class SolveBlock(Block):
         r["adj_sol_bdy"] = adj_sol_bdy
         return r
 
-    def _replace_map(self, form):
-        replace_coeffs = {}
-        for block_variable in self.get_dependencies():
-            coeff = block_variable.output
-            if coeff in form.coefficients():
-                replace_coeffs[coeff] = block_variable.saved_output
-        return replace_coeffs
-
-    def _homogenize_bcs(self):
-        bcs = []
-        for bc in self.bcs:
-            if isinstance(bc, backend.DirichletBC):
-                bc = compat.create_bc(bc, homogenize=True)
-            bcs.append(bc)
-        return bcs
-
-    def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu):
+    def _assemble_and_solve_adj_eq(self, dFdu_adj_form, dJdu, bcs, compute_bdy=True):
         dJdu_copy = dJdu.copy()
-        dFdu = compat.assemble_adjoint_value(dFdu_form, **self.assemble_kwargs)
+        dFdu = compat.assemble_adjoint_value(dFdu_adj_form, **self.assemble_kwargs)
 
-        # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
-        for bc in self._homogenize_bcs():
+        # Apply boundary conditions on adj_dFdu and dJdu.
+        for bc in bcs:
             bc.apply(dFdu, dJdu)
 
         adj_sol = Function(self.function_space)
-        compat.linalg_solve(dFdu, adj_sol.vector(), dJdu, **self.kwargs)
+        compat.linalg_solve(dFdu, adj_sol.vector(), dJdu, *self.adj_args, **self.adj_kwargs)
 
-        adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
-            backend.action(dFdu_form, adj_sol)))
+        adj_sol_bdy = None
+        if compute_bdy:
+            adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
+                backend.action(dFdu_adj_form, adj_sol)))
 
         return adj_sol, adj_sol_bdy
 
@@ -297,10 +271,10 @@ class SolveBlock(Block):
         # Obtain dFdu.
         dFdu = backend.derivative(F_form, fwd_block_variable.saved_output, backend.TrialFunction(u.function_space()))
 
-        r = {}
-        r["form"] = F_form
-        r["dFdu"] = dFdu
-        return r
+        return {
+            "form": F_form,
+            "dFdu": dFdu
+        }
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
         F_form = prepared["form"]
@@ -381,7 +355,8 @@ class SolveBlock(Block):
 
     def _assemble_and_solve_soa_eq(self, dFdu_form, adj_sol, hessian_input, d2Fdu2):
         b = self._assemble_soa_eq_rhs(dFdu_form, adj_sol, hessian_input, d2Fdu2)
-        adj_sol2, adj_sol2_bdy = self._assemble_and_solve_adj_eq(dFdu_form, b)
+        bcs = self._homogenize_bcs()
+        adj_sol2, adj_sol2_bdy = self._assemble_and_solve_adj_eq(dFdu_form, b, bcs)
         if self.adj2_cb is not None:
             self.adj2_cb(adj_sol2)
         if self.adj2_bdy_cb is not None:
@@ -508,8 +483,8 @@ class SolveBlock(Block):
         else:
             return hessian_output
 
-    def _create_initial_guess(self):
-        return backend.Function(self.function_space)
+    def prepare_recompute_component(self, inputs, relevant_outputs):
+        return self._replace_recompute_form()
 
     def _replace_recompute_form(self):
         func = self._create_initial_guess()
@@ -522,39 +497,13 @@ class SolveBlock(Block):
 
         return lhs, rhs, func, bcs
 
-    def _recover_bcs(self):
-        bcs = []
-        for block_variable in self.get_dependencies():
-            c = block_variable.output
-            c_rep = block_variable.saved_output
-
-            if isinstance(c, backend.DirichletBC):
-                bcs.append(c_rep)
-        return bcs
-
-    def prepare_recompute_component(self, inputs, relevant_outputs):
-        return self._replace_recompute_form()
-
-    def _replace_form(self, form, func=None):
-        replace_map = {}
-        for block_variable in self.get_dependencies():
-            c = block_variable.output
-            if c in form.coefficients():
-                c_rep = block_variable.saved_output
-                if c != c_rep:
-                    replace_map[c] = c_rep
-                    if func is not None and c == self.func:
-                        backend.Function.assign(func, c_rep)
-                        replace_map[c] = func
-        return ufl.replace(form, replace_map)
-
-    def _forward_solve(self, lhs, rhs, func, bcs, **kwargs):
-        backend.solve(lhs == rhs, func, bcs, **kwargs)
+    def _forward_solve(self, lhs, rhs, func, bcs):
+        backend.solve(lhs == rhs, func, bcs, *self.forward_args, **self.forward_kwargs)
         return func
 
-    def _assembled_solve(self, lhs, rhs, func, bcs, *args):
+    def _assembled_solve(self, lhs, rhs, func, bcs):
         [bc.apply(lhs, rhs) for bc in bcs]
-        backend.solve(lhs, func.vector(), rhs, *args)
+        compat.linalg_solve(lhs, func.vector(), rhs, *self.forward_args, **self.forward_kwargs)
         return func
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
@@ -562,16 +511,120 @@ class SolveBlock(Block):
         rhs = prepared[1]
         func = prepared[2]
         bcs = prepared[3]
-        # FIXME: We should probably split pre-assembled systems into
-        # a separate block.
-        if hasattr(self, "ident_zeros_tol"):
-            # Check if we are dealing with as system where ident_zeros as been
-            # used. Then we have to assemble before solving the forward system
-            lhs = backend.assemble(lhs)
-            rhs = backend.assemble(rhs)
-            lhs.ident_zeros(self.ident_zeros_tol)
-            return self._assembled_solve(lhs, rhs, func, bcs,
-                                         *self.forward_assembled_kwargs)
+        return self._forward_solve(lhs, rhs, func, bcs)
+
+
+class SolveLinearSystemBlock(GenericSolveBlock):
+    def __init__(self, A, u, b, *args, **kwargs):
+        lhs = A.form
+        func = u.function
+        rhs = b.form
+        bcs = A.bcs if hasattr(A, "bcs") else []
+        super().__init__(lhs, rhs, func, bcs, *args, **kwargs)
+
+        # Set up parameters initialization
+        self.ident_zeros_tol = A.ident_zeros_tol if hasattr(A, "ident_zeros_tol") else None
+        self.assemble_system = A.assemble_system if hasattr(A, "assemble_system") else False
+
+    def _init_solver_parameters(self, args, kwargs):
+        super()._init_solver_parameters(args, kwargs)
+        if len(self.forward_args) <= 0:
+            self.forward_args = args
+
+        if len(self.adj_args) <= 0:
+            self.adj_args = self.forward_args
+
+    def _assemble_and_solve_adj_eq(self, dFdu_adj_form, dJdu, bcs, compute_bdy=True):
+        dJdu_copy = dJdu.copy()
+
+        if self.assemble_system:
+            rhs_bcs_form = backend.inner(backend.Function(self.function_space),
+                                         dFdu_adj_form.arguments()[0]) * backend.dx
+            A, _ = backend.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs)
         else:
-            return self._forward_solve(lhs, rhs, func, bcs,
-                                       **self.forward_kwargs)
+            A = backend.assemble(dFdu_adj_form)
+            [bc.apply(A) for bc in bcs]
+
+        [bc.apply(dJdu) for bc in bcs]
+
+        adj_sol = Function(self.function_space)
+        compat.linalg_solve(A, adj_sol.vector(), dJdu, *self.adj_args, **self.adj_kwargs)
+
+        adj_sol_bdy = None
+        if compute_bdy:
+            adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
+                backend.action(dFdu_adj_form, adj_sol)))
+
+        return adj_sol, adj_sol_bdy
+
+    def _forward_solve(self, lhs, rhs, func, bcs, **kwargs):
+        if self.assemble_system:
+            A, b = backend.assemble_system(lhs, rhs, bcs)
+        else:
+            A = backend.assemble(lhs)
+            b = backend.assemble(rhs)
+            [bc.apply(A, b) for bc in bcs]
+
+        if self.ident_zeros_tol is not None:
+            A.ident_zeros(self.ident_zeros_tol)
+
+        backend.solve(A, func.vector(), b, *self.forward_args, **self.forward_kwargs)
+        return func
+
+
+class SolveVarFormBlock(GenericSolveBlock):
+    pop_kwargs_keys = GenericSolveBlock.pop_kwargs_keys
+
+    def __init__(self, equation, func, bcs=[], *args, **kwargs):
+        lhs = equation.lhs
+        rhs = equation.rhs
+        super().__init__(lhs, rhs, func, bcs, *args, **kwargs)
+
+    def _init_solver_parameters(self, args, kwargs):
+        super()._init_solver_parameters(args, kwargs)
+        if len(self.forward_args) <= 0:
+            self.forward_args = args
+
+        if len(self.forward_kwargs) <= 0:
+            self.forward_kwargs = kwargs
+
+        if "solver_parameters" in self.forward_kwargs and "mat_type" in self.forward_kwargs["solver_parameters"]:
+            self.assemble_kwargs["mat_type"] = self.forward_kwargs["solver_parameters"]["mat_type"]
+
+        if len(self.adj_kwargs) <= 0:
+            solver_parameters = kwargs.get("solver_parameters", {})
+            if "linear_solver" in solver_parameters:
+                adj_args = [solver_parameters["linear_solver"]]
+                if "preconditioner" in solver_parameters:
+                    adj_args.append(solver_parameters["preconditioner"])
+                self.adj_args = tuple(adj_args)
+            self.adj_kwargs = solver_parameters
+
+    def _assemble_and_solve_adj_eq(self, dFdu_adj_form, dJdu, bcs, compute_bdy=True):
+        dJdu_copy = dJdu.copy()
+        dFdu = compat.assemble_adjoint_value(dFdu_adj_form, **self.assemble_kwargs)
+
+        # Apply boundary conditions on adj_dFdu and dJdu.
+        for bc in bcs:
+            bc.apply(dFdu, dJdu)
+
+        adj_sol = Function(self.function_space)
+        lu_solver_methods = backend.lu_solver_methods()
+        solver_method = self.adj_args[0] if len(self.adj_args) >= 1 else "default"
+        solver_method = "default" if solver_method == "lu" else solver_method
+
+        if solver_method in lu_solver_methods:
+            solver = backend.LUSolver(solver_method)
+            solver_parameters = self.adj_kwargs.get("lu_solver", {})
+        else:
+            solver = backend.KrylovSolver(*self.adj_args)
+            solver_parameters = self.adj_kwargs.get("krylov_solver", {})
+        solver.parameters.update(solver_parameters)
+        solver.solve(dFdu, adj_sol.vector(), dJdu)
+
+        adj_sol_bdy = None
+        if compute_bdy:
+            adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
+                backend.action(dFdu_adj_form, adj_sol)))
+
+        return adj_sol, adj_sol_bdy

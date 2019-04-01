@@ -27,7 +27,7 @@ def test_tape_visualisation(outname, dot):
     project(u_, V)
 
     tape = get_working_tape()
-    tape.visualise()
+    tape.visualise(outname)
 
 @pytest.mark.parametrize("outname,dot", [("tape", False), ("tape.dot", True)])
 def test_tape_time(outname, dot):
@@ -124,7 +124,7 @@ def test_tape_time_visualisation(outname, dot):
             t += dt
 
     assemble(u_1**2*dx)
-    tape.visualise()
+    tape.visualise(outname)
 
 @pytest.mark.parametrize("outname,dot", [("tape", False), ("tape.dot", True)])
 def test_visualise_negative_float(outname, dot):
@@ -140,4 +140,4 @@ def test_visualise_negative_float(outname, dot):
     c = a + b
 
     tape = get_working_tape()
-    tape.visualise()
+    tape.visualise(outname)

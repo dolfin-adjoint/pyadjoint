@@ -27,7 +27,8 @@ class Block(object):
         keys = cls.pop_kwargs_keys
         d = {}
         for k in keys:
-            d[k] = kwargs.pop(k, None)
+            if k in kwargs:
+                d[k] = kwargs.pop(k)
         return d
 
     def reset(self):
