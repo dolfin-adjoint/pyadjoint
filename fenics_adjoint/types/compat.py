@@ -51,13 +51,13 @@ if backend.__name__ == "firedrake":
 
     # Most of this is to deal with Firedrake assembly returning
     # Function whereas Dolfin returns Vector.
-    def function_from_vector(V, vector):
+    def function_from_vector(V, vector, cls=backend.Function):
         """Create a new Function sharing data.
 
         :arg V: The function space
         :arg vector: The data to share.
         """
-        return backend.Function(V, val=vector)
+        return cls(V, val=vector)
 
     def inner(a, b):
         """Compute the l2 inner product of a and b.
@@ -191,7 +191,7 @@ else:
                                      bc.sub_domain, method=bc.method())
         return bc
 
-    def function_from_vector(V, vector):
+    def function_from_vector(V, vector, cls=backend.Function):
         """Create a new Function from a vector.
 
         :arg V: The function space
@@ -204,7 +204,7 @@ else:
             # If vector is a fenics_adjoint.Function, which does not inherit
             # backend.cpp.function.Function with pybind11
             vector = vector._cpp_object
-        r = backend.Function(V)
+        r = cls(V)
         r.vector()[:] = vector
         return r
 

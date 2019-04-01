@@ -34,9 +34,7 @@ class Function(FloatingType, backend.Function):
 
     @classmethod
     def _ad_init_object(cls, obj):
-        r = cls(obj.function_space())
-        r.vector()[:] = obj.vector()
-        return r
+        return compat.function_from_vector(obj.function_space(), obj.vector(), cls=cls)
 
     def copy(self, *args, **kwargs):
         annotate = annotate_tape(kwargs)
@@ -104,7 +102,7 @@ class Function(FloatingType, backend.Function):
         riesz_representation = options.get("riesz_representation", "l2")
 
         if riesz_representation == "l2":
-            return Function(self.function_space(), value)
+            return compat.function_from_vector(self.function_space(), value, cls=Function)
         elif riesz_representation == "L2":
             ret = Function(self.function_space())
             u = backend.TrialFunction(self.function_space())
