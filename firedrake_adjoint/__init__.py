@@ -21,9 +21,10 @@ from fenics_adjoint.interpolation import interpolate
 from fenics_adjoint.ufl_constraints import UFLInequalityConstraint, UFLEqualityConstraint
 
 from pyadjoint.tape import (Tape, set_working_tape, get_working_tape,
-                            pause_annotation, continue_annotation)
+                            pause_annotation, continue_annotation,
+                            stop_annotating)
 from pyadjoint.reduced_functional import ReducedFunctional
-from pyadjoint.verification import taylor_test
+from pyadjoint.verification import taylor_test, taylor_to_dict
 from pyadjoint.drivers import compute_gradient, compute_hessian
 from pyadjoint.adjfloat import AdjFloat
 from pyadjoint.control import Control
