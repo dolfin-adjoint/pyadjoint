@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='dolfin_adjoint',
-      version='2018.1.0',
+      version='2018.1.0.r1',
       description='High-level automatic differentiation library for FEniCS and Firedrake.',
       author='Sebastian Kenji Mitusch',
       author_email='sebastkm@math.uio.no',
