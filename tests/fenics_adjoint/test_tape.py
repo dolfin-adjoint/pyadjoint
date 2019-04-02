@@ -108,6 +108,7 @@ def test_tape_time_visualisation():
     tape.visualise()
 
 def test_visualise_negative_float():
+    pytest.importorskip("tensorflow")
     set_working_tape(Tape())
     a = AdjFloat(-1.0)
     b = AdjFloat(2.0)
