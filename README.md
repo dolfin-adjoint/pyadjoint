@@ -2,6 +2,7 @@
 
 The full documentation is available [here](http://pyadjoint.readthedocs.io)
 
+Circle CI status: [![CircleCI](https://circleci.com/bb/dolfin-adjoint/pyadjoint.svg?style=svg)](https://circleci.com/bb/dolfin-adjoint/pyadjoint)
 
 # Installation
 First install [FEniCS](http://fenicsproject.org) or [Firedrake](http://firedrakeproject.org)
