@@ -106,6 +106,7 @@ jobs:
           name: Run tests
           command: |
             source /home/firedrake/firedrake/bin/activate
+            pip3 install coverage
             coverage run --source=firedrake_adjoint,pyadjoint -m pytest tests/firedrake_adjoint/ tests/pyadjoint/
             coverage report
             coverage html
