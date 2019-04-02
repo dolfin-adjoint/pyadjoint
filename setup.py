@@ -3,7 +3,7 @@ from setuptools import setup
 
 extras = {
     'moola': ['moola>=0.1.6'],
-    'test': ['pytest>=3.10', 'flake8'],
+    'test': ['pytest>=3.10', 'flake8', 'coverage'],
     'doc': ['sphinx', 'sphinxcontrib-bibtex'],
     'visualisation': ['tensorflow', 'protobuf==3.6.0',
                       'networkx', 'pygraphviz'],
