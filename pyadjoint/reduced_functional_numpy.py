@@ -83,8 +83,8 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         """ An implementation of the reduced functional hessian action evaluation
             that accepts the controls as an array of scalars. If m_array is None,
             the Hessian action at the latest forward run is returned. """
-        # TODO: Consider if we need to run derivative here.
-        # self.derivative()
+        # Calling derivative is needed, see i.e. examples/stokes-shape-opt
+        self.derivative()
         m_copies = [control.copy_data() for control in self.controls]
         Hm = self.rf.hessian(self.set_local(m_copies, m_dot_array))
         Hm = Enlist(Hm)
