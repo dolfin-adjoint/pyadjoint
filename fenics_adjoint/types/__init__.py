@@ -11,6 +11,10 @@ if backend.__name__ != "firedrake":
     # Shape AD specific imports for dolfin
     from .mesh import *
 
+    from .genericmatrix import *
+    from .genericvector import *
+    from .io import *
+
     from .as_backend_type import as_backend_type, VectorSpaceBasis
 from .function import Function
 
