@@ -132,7 +132,8 @@ Contributors
 The dolfin-adjoint project is developed and maintained by the
 following authors:
 
-- Sebastian Mitusch (Simula Research Laboratory)
+- `Sebastian Mitusch <https://www.simula.no/people/sebastkm>`__ (Simula Research Laboratory)
+- `Jørgen S. Dokken <https://www.simula.no/people/dokken>`__ (Simula Research Laboratory)
 - `Patrick E. Farrell <http://pefarrell.org>`__ (Mathematical Institute, University of Oxford)
 - `Simon W. Funke <http://simonfunke.com>`__ (Simula Research Laboratory)
 - `David A. Ham <http://www.ic.ac.uk/people/david.ham>`__ (Department of Mathematics and Department of Computing, Imperial College London)
