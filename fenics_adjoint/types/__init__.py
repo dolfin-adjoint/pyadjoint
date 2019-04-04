@@ -16,6 +16,7 @@ if backend.__name__ != "firedrake":
     from .io import *
 
     from .as_backend_type import as_backend_type, VectorSpaceBasis
+    from .function_assigner import *
 from .function import Function
 
 # Use pyadjoint AdjFloat for numpy.float64.
