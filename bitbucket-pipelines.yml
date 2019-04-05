@@ -9,7 +9,7 @@ pipelines:
             - instant
             - dijitso
           script:
-            - pip3 install -r requirements.txt
+            - pip3 install -e .[all]
             - cd $BITBUCKET_CLONE_DIR
             - pip3 install --no-cache-dir --upgrade --prefix=$FENICS_PREFIX .
             - cp tests/fenics_adjoint/*.xdmf .
