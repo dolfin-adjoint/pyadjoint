@@ -46,7 +46,7 @@
 # is the stress and strain tensors, respectively. We set :math:`\lambda_{elas}=0`, and let :math:`\mu_{elas}` solve
 #
 # .. math::
-#       \Delta \mu_{elas} = 0& \qquad \text{in } \Omega \\
+#       \Delta \mu_{elas} = 0& \qquad \text{in } \Omega_0 \\
 #       \mu_{elas} = 1 &\qquad \text{on} \ \Lambda_1\cup\Lambda_2\cup\Lambda_3\\
 #       \mu_{elas} = 500& \qquad \text{on} \ \Gamma
 #
