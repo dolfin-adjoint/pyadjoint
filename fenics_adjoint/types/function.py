@@ -11,6 +11,8 @@ from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, \
     no_annotations
 from . import compat
 from .compat import gather
+from .function_assigner import FunctionAssigner, FunctionAssignerBlock
+from pyadjoint.enlisting import Enlist
 
 
 @register_overloaded_type
@@ -38,11 +40,14 @@ class Function(FloatingType, backend.Function):
 
     def copy(self, *args, **kwargs):
         annotate = annotate_tape(kwargs)
-        c = backend.Function.copy(self, *args, **kwargs)
-        func = create_overloaded_object(c)
+        deepcopy = kwargs.pop("deepcopy", False)
+        if deepcopy:
+            func = Function(self.function_space(), self._cpp_object.vector().copy())
+        else:
+            func = Function(self.function_space(), self._cpp_object.vector())
 
         if annotate:
-            if kwargs.pop("deepcopy", False):
+            if deepcopy:
                 block = AssignBlock(func, self)
                 tape = get_working_tape()
                 tape.add_block(block)
@@ -76,19 +81,36 @@ class Function(FloatingType, backend.Function):
     def split(self, *args, **kwargs):
         deepcopy = kwargs.get("deepcopy", False)
         annotate = annotate_tape(kwargs)
-        if deepcopy or not annotate:
-            # TODO: This is wrong for deepcopy=True. You need to convert every subfunction into an OverloadedType.
-            return backend.Function.split(self, *args, **kwargs)
-
         num_sub_spaces = backend.Function.function_space(self).num_sub_spaces()
-        ret = [Function(self, i,
-                        block_class=SplitBlock,
-                        _ad_floating_active=True,
-                        _ad_args=[self, i],
-                        _ad_output_args=[i],
-                        output_block_class=MergeBlock,
-                        _ad_outputs=[self])
-               for i in range(num_sub_spaces)]
+        if not annotate:
+            if deepcopy:
+                ret = [create_overloaded_object(f) for f in backend.Function.split(self, *args, **kwargs)]
+            else:
+                ret = [Function(self, i)
+                       for i in range(num_sub_spaces)]
+        elif deepcopy:
+            ret = []
+            fs = []
+            for idx, f in enumerate(backend.Function.split(self, *args, **kwargs)):
+                f = create_overloaded_object(f)
+                fs.append(f.function_space())
+                ret.append(f)
+            fa = FunctionAssigner(fs, self.function_space())
+            block = FunctionAssignerBlock(fa, Enlist(self))
+            tape = get_working_tape()
+            tape.add_block(block)
+            for output in ret:
+                block.add_output(output.block_variable)
+
+        else:
+            ret = [Function(self, i,
+                            block_class=SplitBlock,
+                            _ad_floating_active=True,
+                            _ad_args=[self, i],
+                            _ad_output_args=[i],
+                            output_block_class=MergeBlock,
+                            _ad_outputs=[self])
+                   for i in range(num_sub_spaces)]
         return tuple(ret)
 
     def vector(self):
@@ -129,15 +151,15 @@ class Function(FloatingType, backend.Function):
             raise NotImplementedError(
                 "Unknown Riesz representation %s" % riesz_representation)
 
+    @no_annotations
     def _ad_create_checkpoint(self):
         if self.block is None:
             # TODO: This might crash if annotate=False, but still using a sub-function.
             #       Because subfunction.copy(deepcopy=True) raises the can't access vector error.
             return self.copy(deepcopy=True)
 
-        dep = self.block.get_dependencies()[0]
-        return backend.Function.sub(dep.saved_output, self.block.idx,
-                                    deepcopy=True)
+        dep = self.block.get_dependencies()[0].saved_output
+        return dep.sub(self.block.idx, deepcopy=True)
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
@@ -155,7 +177,7 @@ class Function(FloatingType, backend.Function):
     @no_annotations
     def _ad_add(self, other):
         r = get_overloaded_class(backend.Function)(self.function_space())
-        backend.Function.assign(r, self + other)
+        r.vector()[:] = self.vector() + other.vector()
         return r
 
     def _ad_dot(self, other, options=None):
