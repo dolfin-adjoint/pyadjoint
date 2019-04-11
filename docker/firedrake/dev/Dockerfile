@@ -1,11 +1,11 @@
-# Builds a Docker image with dolfin-adjoint stable version built from
+# Builds a Docker image with dolfin-adjoint development version built from
 # git sources. The image is at:
 #
 # Authors:
 # Simon W. Funke <simon@simula.no>
 # Jørgen Dokken <dokken@simula.no>
 
-FROM firedrakeproject/firedrake:latest
+FROM firedrakeproject/firedrake-vanilla:latest
 MAINTAINER Simon W. Funke <simon@simula.no>
 ARG DOLFIN_ADJOINT_BRANCH="master"
 ARG MOOLA_BRANCH="master"
