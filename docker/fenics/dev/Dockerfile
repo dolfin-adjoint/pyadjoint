@@ -28,8 +28,7 @@ RUN /bin/bash -l -c "pip3 install git+https://bitbucket.org/dolfin-adjoint/pyadj
 RUN /bin/bash -l -c "pip3 install --ignore-installed scipy"
 RUN /bin/bash -l -c "source $FENICS_HOME/dolfin-adjoint.conf && \
                      update_ipopt && \
-                     update_pyipopt && \
-                     clean_up"
+                     update_pyipopt"
 
 USER fenics
 COPY WELCOME $FENICS_HOME/WELCOME
