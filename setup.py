@@ -13,7 +13,7 @@ extras = {
 extras['all'] = list(chain(*extras.values()))
 
 setup(name='dolfin_adjoint',
-      version='2018.1.0',
+      version='2018.2.0.dev0',
       description='High-level automatic differentiation library for FEniCS.',
       author='Sebastian Kenji Mitusch',
       author_email='sebastkm@math.uio.no',
@@ -22,10 +22,12 @@ setup(name='dolfin_adjoint',
                 'dolfin_adjoint',
                 'firedrake_adjoint',
                 'firedrake_adjoint.types',
+                'numpy_adjoint',
                 'pyadjoint',
                 'pyadjoint.optimization'],
       package_dir={'fenics_adjoint': 'fenics_adjoint', 'pyadjoint': 'pyadjoint',
-                   'firedrake_adjoint': 'firedrake_adjoint', 'dolfin_adjoint': 'dolfin_adjoint'},
+                   'firedrake_adjoint': 'firedrake_adjoint', 'dolfin_adjoint': 'dolfin_adjoint',
+                   'numpy_adjoint': 'numpy_adjoint'},
       install_requires=['scipy>=1.0'],
       extras_require=extras,
       )
