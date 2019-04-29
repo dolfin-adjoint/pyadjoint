@@ -10,24 +10,6 @@ from .function import Function
 __all__ = ["Mesh"] + backend.utility_meshes.__all__
 
 
-def _coordinates_function(self):
-    """The :class:`.Function` containing the coordinates of this mesh."""
-    self.init()
-    coordinates_fs = self._coordinates.function_space()
-    V = backend.functionspaceimpl.WithGeometry(coordinates_fs, self)
-    f = Function(V, val=self._coordinates,
-                 block_class=MeshInputBlock,
-                 _ad_floating_active=True,
-                 _ad_args=[self],
-                 _ad_output_args=[self],
-                 _ad_outputs=[self],
-                 output_block_class=MeshOutputBlock)
-    return f
-
-
-backend.mesh.MeshGeometry._coordinates_function = backend.utils.cached_property(_coordinates_function)
-
-
 @register_overloaded_type
 class MeshGeometry(OverloadedType, backend.mesh.MeshGeometry):
     def __init__(self, *args, **kwargs):
@@ -42,6 +24,10 @@ class MeshGeometry(OverloadedType, backend.mesh.MeshGeometry):
     def _ad_init_object(cls, obj):
         obj.__class__ = cls
         obj._ad_overloaded_init()
+        if "_coordinates_function" in obj.__dict__:
+            coordinates = obj.coordinates
+            del obj.__dict__["_coordinates_function"]
+            obj.coordinates.interpolate(coordinates)
         return obj
 
     def _ad_create_checkpoint(self):
@@ -51,6 +37,21 @@ class MeshGeometry(OverloadedType, backend.mesh.MeshGeometry):
     def _ad_restore_at_checkpoint(self, checkpoint):
         self.coordinates.assign(checkpoint)
         return self
+
+    @backend.utils.cached_property
+    def _coordinates_function(self):
+        """The :class:`.Function` containing the coordinates of this mesh."""
+        self.init()
+        coordinates_fs = self._coordinates.function_space()
+        V = backend.functionspaceimpl.WithGeometry(coordinates_fs, self)
+        f = Function(V, val=self._coordinates,
+                     block_class=MeshInputBlock,
+                     _ad_floating_active=True,
+                     _ad_args=[self],
+                     _ad_output_args=[self],
+                     _ad_outputs=[self],
+                     output_block_class=MeshOutputBlock)
+        return f
 
 
 class MeshInputBlock(Block):
