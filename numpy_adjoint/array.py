@@ -57,4 +57,3 @@ class NumpyArraySliceBlock(Block):
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
         return inputs[0][self.item]
-

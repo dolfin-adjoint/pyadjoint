@@ -12,7 +12,6 @@ from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, \
 from . import compat
 from .compat import gather
 import numpy
-import numpy_adjoint as ndarray
 
 
 @register_overloaded_type
