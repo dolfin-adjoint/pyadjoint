@@ -210,11 +210,14 @@ class SolveBlock(Block):
 
     def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu):
         dJdu_copy = dJdu.copy()
-        dFdu = compat.assemble_adjoint_value(dFdu_form, **self.assemble_kwargs)
-
+        kwargs = self.assemble_kwargs.copy()
         # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
-        for bc in self._homogenize_bcs():
-            bc.apply(dFdu, dJdu)
+        bcs = self._homogenize_bcs()
+        kwargs["bcs"] = bcs
+        dFdu = compat.assemble_adjoint_value(dFdu_form, **kwargs)
+
+        for bc in bcs:
+            bc.apply(dJdu)
 
         adj_sol = Function(self.function_space)
         compat.linalg_solve(dFdu, adj_sol.vector(), dJdu, **self.kwargs)
