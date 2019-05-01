@@ -322,7 +322,7 @@ class SolveBlock(Block):
 
         dFdm = compat.assemble_adjoint_value(dFdm) + dFdm_shape
         dudm = backend.Function(V)
-        return self._assemble_and_solve_tlm_eq(compat.assemble_adjoint_value(dFdu), dFdm, dudm, bcs)
+        return self._assemble_and_solve_tlm_eq(compat.assemble_adjoint_value(dFdu, bcs=bcs), dFdm, dudm, bcs)
 
     def _assemble_and_solve_tlm_eq(self, dFdu, dFdm, dudm, bcs):
         return self._assembled_solve(dFdu, dFdm, dudm, bcs)
@@ -531,7 +531,8 @@ class SolveBlock(Block):
         return func
 
     def _assembled_solve(self, lhs, rhs, func, bcs, **kwargs):
-        [bc.apply(lhs, rhs) for bc in bcs]
+        for bc in bcs:
+            bc.apply(rhs)
         backend.solve(lhs, func.vector(), rhs, **kwargs)
         return func
 
