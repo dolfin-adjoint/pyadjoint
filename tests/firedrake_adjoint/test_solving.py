@@ -126,27 +126,6 @@ def xtest_wrt_constant_dirichlet_boundary():
     _test_adjoint_constant_boundary(J, bc)
 
 
-def _test_wrt_function_dirichlet_boundary():
-    mesh = IntervalMesh(10, 0, 1)
-    V = FunctionSpace(mesh, "Lagrange", 1)
-
-    c = Constant(1)
-
-    u = TrialFunction(V)
-    u_ = Function(V)
-    v = TestFunction(V)
-    f = project(Expression("1", degree=1), V)
-    bc = DirichletBC(V, f, "on_boundary")
-
-    def J(bc):
-        a = inner(grad(u), grad(v))*dx
-        L = c*v*dx
-        solve(a == L, u_, bc)
-        return assemble(u_**2*dx)
-
-    _test_adjoint_function_boundary(J, bc, f)
-
-
 def xtest_wrt_function_dirichlet_boundary():
     mesh = UnitSquareMesh(10,10)
 
