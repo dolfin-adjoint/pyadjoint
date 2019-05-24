@@ -6,9 +6,6 @@ from firedrake_adjoint import *
 
 from numpy.random import rand
 
-# To access Expressions - they are disabled in firedrake_adjoint (even without annotate)
-import firedrake as fd
-
 
 def test_assign_linear_combination():
     mesh = IntervalMesh(10, 0, 1)
