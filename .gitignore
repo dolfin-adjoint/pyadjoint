@@ -5,6 +5,7 @@ docs/_build/*
 docs/build/*
 *.egg-info
 *.py~
+dist/*
 
 # Generated files
 *.pvd
@@ -13,3 +14,4 @@ docs/build/*
 .idea/*
 *.xml
 *.msh
+
