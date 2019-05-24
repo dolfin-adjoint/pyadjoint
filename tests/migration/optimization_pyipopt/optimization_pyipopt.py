@@ -10,7 +10,7 @@ import numpy
 try:
     import pyipopt
 except ImportError:
-    info_blue("pyipopt bindings unavailable, skipping test")
+    print("pyipopt bindings unavailable, skipping test")
     sys.exit(0)
 
 set_log_level(LogLevel.ERROR)

@@ -28,7 +28,8 @@ on an L-shaped domain using Chorin's splitting method."""
 from fenics import *
 from fenics_adjoint import *
 
-from numpy.random import rand
+from numpy.random import rand, seed
+seed(21)
 
 # Print log messages only from the root process in parallel
 parameters["std_out_all_processes"] = False
