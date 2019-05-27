@@ -37,7 +37,7 @@ Once both Docker and the FEniCS Docker script have been installed, you can
 easily start a FEniCS session with dolfin-adjoint by running the following
 command::
 
-    fenicsproject run quay.io/dolfinadjoint/pyadjoint:2018.1.0
+    fenicsproject run quay.io/dolfinadjoint/pyadjoint:2019.1.0
 
 A Jupyter notebook instance with a user defined name (here myproject) can be started with::
 
@@ -86,7 +86,7 @@ Install dolfin-adjoint and its Python dependencies with pip:
 
 .. code-block:: bash
 
-    pip install git+https://bitbucket.org/dolfin-adjoint/pyadjoint.git@2018.1.0
+    pip install git+https://bitbucket.org/dolfin-adjoint/pyadjoint.git@2019.1.0
 
 Test your installation by running:
 
