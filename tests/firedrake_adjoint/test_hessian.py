@@ -55,10 +55,10 @@ def test_mixed_derivatives():
     V = FunctionSpace(mesh, "Lagrange", 1)
 
     f = Function(V)
-    f.vector()[:] = 2
-
     g = Function(V)
-    g.vector()[:] = 3
+    with stop_annotating():
+        f.vector()[:] = 2
+        g.vector()[:] = 3
 
     u = TrialFunction(V)
     v = TestFunction(V)
@@ -100,7 +100,8 @@ def test_function():
 
     c = Constant(4)
     f = Function(V)
-    f.vector()[:] = 3
+    with stop_annotating():
+        f.vector()[:] = 3
 
     u = Function(V)
     v = TestFunction(V)
@@ -319,6 +320,7 @@ def test_burgers():
 
 
 # Temporary mixed controls taylor test until pyadjoint natively supports it.
+@no_annotations
 def conv_mixed(J, f, g, m_1, m_2, h_1, h_2, dJdm, Hm):
     tape = get_working_tape()
     def J_eval(m_1, m_2):

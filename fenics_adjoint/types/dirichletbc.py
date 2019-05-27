@@ -6,7 +6,7 @@ from .constant import Constant
 from .function import Function
 
 from pyadjoint.tape import no_annotations
-from pyadjoint.overloaded_type import OverloadedType, FloatingType
+from pyadjoint.overloaded_type import OverloadedType
 from pyadjoint.block import Block
 
 
@@ -14,17 +14,17 @@ from pyadjoint.block import Block
 #       new boundary values/function.
 
 
-class DirichletBC(FloatingType, backend.DirichletBC):
+class DirichletBC(OverloadedType, backend.DirichletBC):
     def __init__(self, *args, **kwargs):
         super(DirichletBC, self).__init__(*args, **kwargs)
 
-        FloatingType.__init__(self,
-                              *args,
-                              block_class=DirichletBCBlock,
-                              _ad_args=args,
-                              _ad_floating_active=True,
-                              annotate=kwargs.pop("annotate", True),
-                              **kwargs)
+        OverloadedType.__init__(self,
+                                *args,
+                                _ad_block_class=DirichletBCBlock,
+                                _ad_args=args,
+                                _ad_floating_active=True,
+                                annotate=kwargs.pop("annotate", True),
+                                **kwargs)
 
         # Call backend constructor after popped AD specific keyword args.
         backend.DirichletBC.__init__(self, *args, **kwargs)
@@ -42,7 +42,7 @@ class DirichletBC(FloatingType, backend.DirichletBC):
         return backend.DirichletBC.apply(self, *args, **kwargs)
 
     def _ad_create_checkpoint(self):
-        deps = self.block.get_dependencies()
+        deps = self._ad_block.get_dependencies()
         if len(deps) <= 0:
             # We don't have any dependencies so the supplied value was not an OverloadedType.
             # Most probably it was just a float that is immutable so will never change.

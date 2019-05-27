@@ -9,10 +9,11 @@ __maintainer__ = 'Sebastian Kenji Mitusch'
 __email__ = 'sebastkm@simula.no'
 
 
-from .array import ndarray
+from .array import ndarray, array, zeros
 
 # Use pyadjoint AdjFloat for numpy.float64.
 import numpy
 from pyadjoint.overloaded_type import register_overloaded_type
 from pyadjoint.adjfloat import AdjFloat
 register_overloaded_type(AdjFloat, numpy.float64)
+register_overloaded_type(AdjFloat, int)

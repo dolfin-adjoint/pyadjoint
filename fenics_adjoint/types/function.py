@@ -3,7 +3,7 @@ import ufl
 
 from pyadjoint.adjfloat import AdjFloat
 from pyadjoint.block import Block
-from pyadjoint.overloaded_type import (OverloadedType, FloatingType,
+from pyadjoint.overloaded_type import (OverloadedType,
                                        create_overloaded_object,
                                        register_overloaded_type,
                                        get_overloaded_class)
@@ -15,16 +15,16 @@ import numpy
 
 
 @register_overloaded_type
-class Function(FloatingType, backend.Function):
+class Function(OverloadedType, backend.Function):
     def __init__(self, *args, **kwargs):
         super(Function, self).__init__(*args,
-                                       block_class=kwargs.pop("block_class",
+                                       _ad_block_class=kwargs.pop("_ad_block_class",
                                                               None),
                                        _ad_floating_active=kwargs.pop(
                                            "_ad_floating_active", False),
                                        _ad_args=kwargs.pop("_ad_args", None),
-                                       output_block_class=kwargs.pop(
-                                           "output_block_class", None),
+                                       _ad_output_block_class=kwargs.pop(
+                                           "_ad_output_block_class", None),
                                        _ad_output_args=kwargs.pop(
                                            "_ad_output_args", None),
                                        _ad_outputs=kwargs.pop("_ad_outputs",
@@ -34,6 +34,7 @@ class Function(FloatingType, backend.Function):
         backend.Function.__init__(self, *args, **kwargs)
 
     @classmethod
+    @no_annotations
     def _ad_init_object(cls, obj):
         return compat.function_from_vector(obj.function_space(), obj.vector(), cls=cls)
 
@@ -83,11 +84,11 @@ class Function(FloatingType, backend.Function):
 
         num_sub_spaces = backend.Function.function_space(self).num_sub_spaces()
         ret = [Function(self, i,
-                        block_class=SplitBlock,
+                        _ad_block_class=SplitBlock,
                         _ad_floating_active=True,
                         _ad_args=[self, i],
                         _ad_output_args=[i],
-                        output_block_class=MergeBlock,
+                        _ad_output_block_class=MergeBlock,
                         _ad_outputs=[self])
                for i in range(num_sub_spaces)]
         return tuple(ret)
@@ -111,9 +112,18 @@ class Function(FloatingType, backend.Function):
 
         return out
 
-    def vector(self):
-        vec = backend.Function.vector(self)
+    def vector(self, *args, **kwargs):
+        annotate = annotate_tape(kwargs)
+
+        with stop_annotating():
+            vec = backend.Function.vector(self, *args, **kwargs)
+        vec = create_overloaded_object(vec)
         vec.function = self
+        if annotate:
+            vec._ad_make_floating(block_class=FunctionToVectorBlock,
+                                  args=[self],
+                                  output_block_class=MergeFunctionToVectorBlock,
+                                  outputs=[self])
         return vec
 
     @no_annotations
@@ -150,13 +160,13 @@ class Function(FloatingType, backend.Function):
                 "Unknown Riesz representation %s" % riesz_representation)
 
     def _ad_create_checkpoint(self):
-        if self.block is None:
+        if self._ad_block is None:
             # TODO: This might crash if annotate=False, but still using a sub-function.
             #       Because subfunction.copy(deepcopy=True) raises the can't access vector error.
             return self.copy(deepcopy=True)
 
-        dep = self.block.get_dependencies()[0]
-        return backend.Function.sub(dep.saved_output, self.block.idx,
+        dep = self._ad_block.get_dependencies()[0]
+        return backend.Function.sub(dep.saved_output, self._ad_block.idx,
                                     deepcopy=True)
 
     def _ad_restore_at_checkpoint(self, checkpoint):
@@ -230,6 +240,9 @@ class Function(FloatingType, backend.Function):
         # FIXME: PETSc complains when we add the same vector to itself.
         # So we make a copy.
         vec += other.vector().copy()
+
+    def _ad_name(self):
+        return str(self)
 
     def _reduce(self, r, r0):
         vec = self.vector().get_local()
@@ -461,3 +474,45 @@ class MergeBlock(Block):
         dep = self.get_dependencies()[0].checkpoint
         output = self.get_outputs()[0].checkpoint
         backend.assign(backend.Function.sub(output, self.idx), dep)
+
+
+class FunctionToVectorBlock(Block):
+    def __init__(self, func):
+        super().__init__()
+        self.add_dependency(func)
+
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        return adj_inputs[0]
+
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        return tlm_inputs[0].vector()
+
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+                                   relevant_dependencies, prepared=None):
+        return hessian_inputs[0]
+
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        return inputs[0].vector()
+
+
+class MergeFunctionToVectorBlock(Block):
+    def __init__(self, vec):
+        super().__init__()
+        self.add_dependency(vec)
+
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        return adj_inputs[0]
+
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        out = Function(self.get_outputs()[0].saved_output.function_space())
+        out.vector()[:] = tlm_inputs[0]
+        return out
+
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+                                   relevant_dependencies, prepared=None):
+        return hessian_inputs[0]
+
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        out = Function(self.get_outputs()[0].saved_output.function_space())
+        out.vector()[:] = inputs[0]
+        return out

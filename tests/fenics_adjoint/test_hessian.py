@@ -88,10 +88,11 @@ def test_mixed_derivatives():
     V = FunctionSpace(mesh, "Lagrange", 1)
 
     f = Function(V)
-    f.vector()[:] = 2
-
     g = Function(V)
-    g.vector()[:] = 3
+
+    with stop_annotating():
+        f.vector()[:] = 2
+        g.vector()[:] = 3
 
     u = TrialFunction(V)
     v = TestFunction(V)
@@ -133,7 +134,8 @@ def test_function():
 
     c = Constant(4)
     f = Function(V)
-    f.vector()[:] = 3
+    with stop_annotating():
+        f.vector()[:] = 3
 
     u = Function(V)
     v = TestFunction(V)
@@ -174,7 +176,8 @@ def test_nonlinear():
     V = FunctionSpace(mesh, "Lagrange", 1)
 
     f = Function(V)
-    f.vector()[:] = 5
+    with stop_annotating():
+        f.vector()[:] = 5
 
     u = Function(V)
     v = TestFunction(V)
@@ -212,12 +215,12 @@ def test_dirichlet():
     V = FunctionSpace(mesh, "Lagrange", 1)
 
     f = Function(V)
-    f.vector()[:] = 30
-
     u = Function(V)
     v = TestFunction(V)
     c = Function(V)
-    c.vector()[:] = 1
+    with stop_annotating():
+        f.vector()[:] = 30
+        c.vector()[:] = 1
     bc = DirichletBC(V, c, "on_boundary")
 
     F = inner(grad(u), grad(v)) * dx + u**4*v*dx - f**2 * v * dx
@@ -412,11 +415,5 @@ def convergence_rates(E_values, eps_values):
     return r
 
 if __name__ == "__main__":
-    test_simple_solve()
-    test_expression()
-    test_burgers()
-    test_function()
-    test_mixed_derivatives()
     test_nonlinear()
-    test_simple_solve_rf()
 

@@ -13,7 +13,6 @@ class BlockVariable(object):
         self.hessian_value = None
         self._checkpoint = None
         self.is_control = False
-        self.floating_type = False
         # Helper flag for use during tape traversals.
         self.marked_in_path = False
 
@@ -68,7 +67,10 @@ class BlockVariable(object):
         self.save_output(overwrite=overwrite)
 
     def __str__(self):
-        return str(self.output)
+        name = self.output._ad_name()
+        if name is None:
+            return str(self.checkpoint)
+        return name
 
     @property
     def checkpoint(self):

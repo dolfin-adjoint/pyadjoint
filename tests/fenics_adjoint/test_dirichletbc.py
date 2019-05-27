@@ -68,6 +68,7 @@ def test_expression_constant():
     u, p = split(s)
     J = assemble(u**2*dx)
     Jhat = ReducedFunctional(J, Control(m))
+    get_working_tape().visualise("test.dot")
 
     h = Constant(0.1)
     assert taylor_test(Jhat, m, h) > 1.9

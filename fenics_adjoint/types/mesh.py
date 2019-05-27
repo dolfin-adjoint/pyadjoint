@@ -2,7 +2,7 @@ import backend
 import sys
 from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, no_annotations
 from pyadjoint.block import Block
-from pyadjoint.overloaded_type import OverloadedType, FloatingType, register_overloaded_type
+from pyadjoint.overloaded_type import OverloadedType, register_overloaded_type
 from ..shapead_transformations import vector_boundary_to_mesh, vector_mesh_to_boundary
 
 
@@ -31,13 +31,16 @@ class Mesh(OverloadedType, backend.Mesh):
         self.coordinates()[:] = checkpoint
         return self
 
+    def _ad_name(self):
+        return str(self)
+
 
 @register_overloaded_type
-class BoundaryMesh(FloatingType, backend.BoundaryMesh):
+class BoundaryMesh(OverloadedType, backend.BoundaryMesh):
     def __init__(self, *args, **kwargs):
         # Calling constructer
         super(BoundaryMesh, self).__init__(*args,
-                                           block_class=BoundaryMeshBlock,
+                                           _ad_block_class=BoundaryMeshBlock,
                                            _ad_args=args,
                                            _ad_floating_active=True,
                                            annotate=kwargs.pop("annotate", True),
@@ -50,6 +53,9 @@ class BoundaryMesh(FloatingType, backend.BoundaryMesh):
     def _ad_restore_at_checkpoint(self, checkpoint):
         self.coordinates()[:] = checkpoint
         return self
+
+    def _ad_name(self):
+        return str(self)
 
 
 def overloaded_mesh(mesh_class):
@@ -67,6 +73,9 @@ def overloaded_mesh(mesh_class):
         def _ad_restore_at_checkpoint(self, checkpoint):
             self.coordinates()[:] = checkpoint
             return self
+
+        def _ad_name(self):
+            return str(self)
     return OverloadedMesh
 
 

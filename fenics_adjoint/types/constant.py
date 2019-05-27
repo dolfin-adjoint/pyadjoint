@@ -91,6 +91,9 @@ class Constant(OverloadedType, backend.Constant):
     def _ad_iadd(self, other):
         self.assign(self._constant_from_values(self.values() + other.values()))
 
+    def _ad_name(self):
+        return str(self)
+
     def _reduce(self, r, r0):
         npdata = self.values()
         for i in range(len(npdata)):

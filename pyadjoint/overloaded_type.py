@@ -1,5 +1,5 @@
 from .block_variable import BlockVariable
-from .tape import get_working_tape
+from .tape import get_working_tape, no_annotations
 
 _overloaded_types = {}
 
@@ -79,7 +79,20 @@ class OverloadedType(object):
     def __init__(self, *args, **kwargs):
         self.original_block_variable = self.create_block_variable()
 
+        self._ad_block_class = kwargs.pop("_ad_block_class", None)
+        self._ad_args = kwargs.pop("_ad_args", [])
+        self._ad_kwargs = kwargs.pop("_ad_kwargs", {})
+        self._ad_floating_active = kwargs.pop("_ad_floating_active", False)
+        self._ad_block = None
+
+        self._ad_output_block = None
+        self._ad_output_args = kwargs.pop("_ad_output_args", [])
+        self._ad_output_kwargs = kwargs.pop("_ad_output_kwargs", {})
+        self._ad_output_block_class = kwargs.pop("_ad_output_block_class", None)
+        self._ad_outputs = kwargs.pop("_ad_outputs", [])
+
     @classmethod
+    @no_annotations
     def _ad_init_object(cls, obj):
         """This method will often need to be overridden.
 
@@ -101,7 +114,7 @@ class OverloadedType(object):
 
     @property
     def adj_value(self):
-        return self.original_block_variable.adj_value
+        return self.block_variable.adj_value
 
     @adj_value.setter
     def adj_value(self, value):
@@ -109,11 +122,11 @@ class OverloadedType(object):
 
     @property
     def tlm_value(self):
-        return self.original_block_variable.tlm_value
+        return self.block_variable.tlm_value
 
     @tlm_value.setter
     def tlm_value(self, value):
-        self.original_block_variable.tlm_value = value
+        self.block_variable.tlm_value = value
 
     def _ad_convert_type(self, value, options={}):
         """This method must be overridden.
@@ -259,7 +272,10 @@ class OverloadedType(object):
         """Method called when the object is added as a Block dependency.
 
         """
-        self.block_variable.save_output(overwrite=False)
+        if self._ad_floating_active:
+            with OverloadedType.stop_floating(self):
+                self._ad_annotate_block()
+        self.block_variable.save_output(overwrite=self._ad_floating_active)
 
     def _ad_will_add_as_output(self):
         """Method called when the object is added as a Block output.
@@ -268,6 +284,9 @@ class OverloadedType(object):
             bool: True if the saved checkpoint should be overwritten.
 
         """
+        if self._ad_floating_active:
+            with OverloadedType.stop_floating(self):
+                self._ad_annotate_output_block()
         return True
 
     @staticmethod
@@ -338,59 +357,56 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
+    def _ad_name(self):
+        """Returns the name to display in visualisation tools.
 
-class FloatingType(OverloadedType):
-    def __init__(self, *args, **kwargs):
-        self.block_class = kwargs.pop("block_class", None)
-        self._ad_args = kwargs.pop("_ad_args", [])
-        self._ad_kwargs = kwargs.pop("_ad_kwargs", {})
-        self._ad_floating_active = kwargs.pop("_ad_floating_active", False)
-        self.block = None
+        If this method returns None, the __str__ method of the checkpointed value is displayed.
 
-        self.output_block = None
-        self._ad_output_args = kwargs.pop("_ad_output_args", [])
-        self._ad_output_kwargs = kwargs.pop("_ad_output_kwargs", {})
-        self.output_block_class = kwargs.pop("output_block_class", None)
-        self._ad_outputs = kwargs.pop("_ad_outputs", [])
-        OverloadedType.__init__(self, *args, **kwargs)
+        Returns:
+            str: The name to display in visualisation tools
 
-    def create_block_variable(self):
-        block_variable = OverloadedType.create_block_variable(self)
-        block_variable.floating_type = True
-        return block_variable
-
-    def _ad_will_add_as_dependency(self):
-        if self._ad_floating_active:
-            with FloatingType.stop_floating(self):
-                self._ad_annotate_block()
-        self.block_variable.save_output(overwrite=True)
-
-    def _ad_will_add_as_output(self):
-        if self._ad_floating_active:
-            with FloatingType.stop_floating(self):
-                self._ad_annotate_output_block()
-        return True
+        """
+        return None
 
     def _ad_annotate_block(self):
-        if self.block_class is None:
+        if self._ad_block_class is None:
             return
 
         tape = get_working_tape()
-        block = self.block_class(*self._ad_args, **self._ad_kwargs)
-        self.block = block
+        block = self._ad_block_class(*self._ad_args, **self._ad_kwargs)
+        self._ad_block = block
         tape.add_block(block)
         block.add_output(self.create_block_variable())
 
     def _ad_annotate_output_block(self):
-        if self.output_block_class is None:
+        if self._ad_output_block_class is None:
             return
 
         tape = get_working_tape()
-        block = self.output_block_class(self, *self._ad_output_args, **self._ad_output_kwargs)
-        self.output_block = block
+        block = self._ad_output_block_class(self, *self._ad_output_args, **self._ad_output_kwargs)
+        self._ad_output_block = block
         tape.add_block(block)
         for output in self._ad_outputs:
             block.add_output(output.create_block_variable())
+
+    def _ad_make_floating(self,
+                          block_class=None,
+                          args=[],
+                          kwargs={},
+                          floating_active=True,
+                          output_block_class=None,
+                          output_args=[],
+                          output_kwargs={},
+                          outputs=[]
+                          ):
+        self._ad_block_class = block_class
+        self._ad_args = args
+        self._ad_kwargs = kwargs
+        self._ad_floating_active = floating_active
+        self._ad_output_args = output_args
+        self._ad_output_kwargs = output_kwargs
+        self._ad_output_block_class = output_block_class
+        self._ad_outputs = outputs
 
     class stop_floating(object):
         def __init__(self, obj):

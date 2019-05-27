@@ -2,3 +2,4 @@
 
 from .function import Function
 from .mesh import *
+from .vector import Vector

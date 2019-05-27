@@ -147,7 +147,7 @@ def test_time_dependent(solve_type):
     Jhat = ReducedFunctional(J, control)
     h = Function(V)
     h.vector()[:] = rand(h.dof_dset.size)
-    u_1.tlm_value = h
+    control.block_variable.tlm_value = h
     tape.evaluate_tlm()
     assert (taylor_test(Jhat, control.data(), h, dJdm=J.block_variable.tlm_value) > 1.9)
 

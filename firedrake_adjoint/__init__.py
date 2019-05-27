@@ -22,7 +22,7 @@ from fenics_adjoint.ufl_constraints import UFLInequalityConstraint, UFLEqualityC
 
 from pyadjoint.tape import (Tape, set_working_tape, get_working_tape,
                             pause_annotation, continue_annotation,
-                            stop_annotating)
+                            stop_annotating, no_annotations)
 from pyadjoint.reduced_functional import ReducedFunctional
 from pyadjoint.verification import taylor_test, taylor_to_dict
 from pyadjoint.drivers import compute_gradient, compute_hessian

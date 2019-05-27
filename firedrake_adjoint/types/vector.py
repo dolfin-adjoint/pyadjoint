@@ -1,5 +1,4 @@
 import backend
-from .compat import gather
 
 from pyadjoint.tape import stop_annotating, annotate_tape, get_working_tape
 from pyadjoint.overloaded_type import create_overloaded_object
@@ -10,9 +9,11 @@ from pyadjoint.overloaded_type import OverloadedType, register_overloaded_type
 __all__ = []
 
 
-class GenericVector(OverloadedType):
+@register_overloaded_type
+class Vector(OverloadedType, backend.Vector):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        backend.Vector.__init__(self, *args, **kwargs)
 
     @classmethod
     def _ad_init_object(cls, obj):
@@ -37,7 +38,7 @@ class GenericVector(OverloadedType):
             tape.add_block(block)
 
         with stop_annotating():
-            out = backend.GenericVector.get_local(self, *args, **kwargs)
+            out = backend.Vector.get_local(self, *args, **kwargs)
         out = create_overloaded_object(out)
 
         if annotate:
@@ -53,7 +54,7 @@ class GenericVector(OverloadedType):
             tape.add_block(block)
 
         with stop_annotating():
-            out = backend.GenericVector.__getitem__(self, item)
+            out = backend.Vector.__getitem__(self, item)
         out = create_overloaded_object(out)
 
         if annotate:
@@ -70,21 +71,12 @@ class GenericVector(OverloadedType):
             tape.add_block(block)
 
         with stop_annotating():
-            out = backend.GenericVector.__setitem__(self, key, value)
+            out = backend.Vector.__setitem__(self, key, value)
 
         if annotate:
             block.add_output(self.create_block_variable())
 
         return out
-
-
-class PETScVector(GenericVector, backend.PETScVector):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        backend.PETScVector.__init__(self, *args, **kwargs)
-
-
-register_overloaded_type(PETScVector, backend.PETScVector)
 
 
 class SliceBlock(Block):
@@ -94,8 +86,7 @@ class SliceBlock(Block):
         self.item = item
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        adj_vec = inputs[0].copy()
-        adj_vec.zero()
+        adj_vec = backend.Function(inputs[0].function.function_space()).vector()
         adj_vec[self.item] = adj_inputs[0]
         return adj_vec
 
@@ -139,26 +130,7 @@ class SetSliceBlock(Block):
         self.item = item
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        adj_input = adj_inputs[0]
-        if idx == 0:
-            # Derivative wrt to vector
-            adj_output = adj_input.copy()
-            adj_output[self.item] = 0.
-        else:
-            inp = inputs[1]
-            if isinstance(inp, GenericVector):
-                # Assume always assigned full slice
-                adj_output = adj_input.copy()
-            elif isinstance(inp, float):
-
-                if isinstance(self.item, slice):
-                    adj_output = adj_input[self.item].sum()
-                else:
-                    adj_output = adj_input[self.item]
-            else:
-                # Assume numpy array
-                adj_output = adj_input[self.item]
-        return adj_output
+        return adj_inputs[0]
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
         if tlm_inputs[0] is not None:
@@ -176,7 +148,7 @@ class SetSliceBlock(Block):
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
-        return self.evaluate_adj_component(inputs, hessian_inputs, block_variable, idx, prepared)
+        return hessian_inputs[0]
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
         inputs[0][self.item] = inputs[1]

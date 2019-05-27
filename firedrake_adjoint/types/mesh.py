@@ -45,12 +45,12 @@ class MeshGeometry(OverloadedType, backend.mesh.MeshGeometry):
         coordinates_fs = self._coordinates.function_space()
         V = backend.functionspaceimpl.WithGeometry(coordinates_fs, self)
         f = Function(V, val=self._coordinates,
-                     block_class=MeshInputBlock,
+                     _ad_block_class=MeshInputBlock,
                      _ad_floating_active=True,
                      _ad_args=[self],
                      _ad_output_args=[self],
                      _ad_outputs=[self],
-                     output_block_class=MeshOutputBlock)
+                     _ad_output_block_class=MeshOutputBlock)
         return f
 
 

@@ -5,7 +5,7 @@ from fenics import *
 from fenics_adjoint import *
 
 # For asserts
-from pyadjoint.overloaded_type import OverloadedType, FloatingType
+from pyadjoint.overloaded_type import OverloadedType
 
 
 def test_subclass_expression():

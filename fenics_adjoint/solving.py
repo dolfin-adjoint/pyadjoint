@@ -52,7 +52,7 @@ def solve(*args, **kwargs):
         output = backend.solve(*args, **kwargs)
 
     if annotate:
-        if hasattr(args[1], "create_block_variable"):
+        if not isinstance(args[1], compat.VectorType):
             block_variable = args[1].create_block_variable()
         else:
             block_variable = args[1].function.create_block_variable()

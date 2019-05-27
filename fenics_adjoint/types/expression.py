@@ -2,10 +2,10 @@ import backend
 
 from pyadjoint.adjfloat import AdjFloat
 from pyadjoint.block import Block
-from pyadjoint.overloaded_type import OverloadedType, FloatingType
+from pyadjoint.overloaded_type import OverloadedType
 from pyadjoint.tape import annotate_tape
 
-_REMEMBERED_EXPRESSION_ATTRIBUTES = ["block_variable", "block", "block_class", "annotate_tape",
+_REMEMBERED_EXPRESSION_ATTRIBUTES = ["block_variable", "block", "_ad_block_class", "annotate_tape",
                                      "user_defined_derivatives", "ad_ignored_attributes", "_ad_attributes_dict"]
 _IGNORED_EXPRESSION_ATTRIBUTES = ['_ad_init_object', '_cppcode', '_parameters', '_user_parameters', 'degree',
                                   '_cpp_object', '_ad_dim', '__init_subclass__', '_ufl_required_properties_',
@@ -52,19 +52,19 @@ _IGNORED_EXPRESSION_ATTRIBUTES = ['_ad_init_object', '_cppcode', '_parameters', 
                                   '__mul__']
 
 
-class BaseExpression(FloatingType):
+class BaseExpression(OverloadedType):
     def __init__(self, *args, **kwargs):
         annotate = annotate_tape(kwargs)
         self._ad_initialized = False
         self._ad_attributes_dict = {}
         self.ad_ignored_attributes = []
         self.user_defined_derivatives = {}
-        FloatingType.__init__(self, *args,
-                              block_class=ExpressionBlock,
-                              annotate=annotate,
-                              _ad_args=[self],
-                              _ad_floating_active=True,
-                              **kwargs)
+        OverloadedType.__init__(self, *args,
+                                _ad_block_class=ExpressionBlock,
+                                annotate=annotate,
+                                _ad_args=[self],
+                                _ad_floating_active=True,
+                                **kwargs)
         self._ad_initialized = True
         self._cached_fs = {}
 

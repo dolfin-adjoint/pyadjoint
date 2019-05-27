@@ -102,6 +102,7 @@ def test_constraint_works_sensibly(contype):
         def jacobian_action(self, m, dm, result):
             result.assign(self.smass.inner(-dm.vector()))
 
+        @no_annotations
         def jacobian_adjoint_action(self, m, dp, result):
             result.vector()[:] = self.smass * (-1.*dp.values()[0])
 

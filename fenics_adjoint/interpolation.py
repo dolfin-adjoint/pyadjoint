@@ -1,5 +1,6 @@
 import backend
 from pyadjoint.overloaded_type import create_overloaded_object
+from pyadjoint.tape import stop_annotating
 
 
 def interpolate(*args, **kwargs):
@@ -7,5 +8,6 @@ def interpolate(*args, **kwargs):
     We are not able to annotate the interpolation call at the moment.
 
     """
-    output = backend.interpolate(*args, **kwargs)
+    with stop_annotating():
+        output = backend.interpolate(*args, **kwargs)
     return create_overloaded_object(output)

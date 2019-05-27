@@ -17,6 +17,7 @@ def test_simple():
     res = Jhat(2.0)
     assert res != e
     assert res == e*6
+
     assert Jhat(2.0) == e * 6 ** 2
     assert Jhat(2.0) == e * 6 ** 3
     assert Jhat(2.0) == e * 6 ** 4

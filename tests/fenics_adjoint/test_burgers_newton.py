@@ -77,6 +77,7 @@ def _test_adjoint(J, f, solve_type):
     tape = Tape()
     set_working_tape(tape)
 
+    bv = f.block_variable
     V = f.function_space()
     h = Function(V)
     h.vector()[:] = numpy.random.rand(V.dim())
@@ -94,7 +95,7 @@ def _test_adjoint(J, f, solve_type):
         Jm.adj_value = 1.0
         tape.evaluate_adj()
 
-        dJdf = f.adj_value
+        dJdf = bv.adj_value
         #print dJdf.array()
 
         residual = abs(Jp - Jm - eps*dJdf.inner(h.vector()))

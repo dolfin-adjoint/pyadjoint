@@ -55,7 +55,7 @@ from pyadjoint import (Tape, set_working_tape, get_working_tape,
                        AdjFloat, Control, minimize, maximize, MinimizationProblem,
                        IPOPTSolver, ROLSolver, InequalityConstraint, EqualityConstraint,
                        MoolaOptimizationProblem, print_optimization_methods,
-                       stop_annotating)
+                       stop_annotating, no_annotations)
 
 
 set_working_tape(Tape())

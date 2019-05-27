@@ -576,7 +576,8 @@ def test_functional_optimized_reduced_functional():
     V = FunctionSpace(mesh, "CG", 1)
 
     f = Function(V)
-    f.vector()[:] = 1
+    with stop_annotating():
+        f.vector()[:] = 1
     control = Control(f)
     u = TrialFunction(V)
     v = TestFunction(V)
