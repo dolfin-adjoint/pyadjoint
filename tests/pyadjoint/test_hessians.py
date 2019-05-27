@@ -60,8 +60,6 @@ def test_div():
     b = AdjFloat(5.0)
     J = (a ** 2 / b ** 2)**2 / (a - b)
 
-    get_working_tape().visualise("test.dot")
-
     Jhat1 = ReducedFunctional(J, Control(a))
     Jhat2 = ReducedFunctional(J, Control(b))
     Jhat3 = ReducedFunctional(J, [Control(a), Control(b)])

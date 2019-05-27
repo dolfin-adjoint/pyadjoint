@@ -14,7 +14,7 @@ def adjoint_broadcast(src, shape):
     """
     src_shape = src.shape
 
-    sum_axes = [i for i in range(-1, -len(shape)-1, -1) if src_shape[i] != shape[i]]
+    sum_axes = [i for i in range(-1, -len(shape) - 1, -1) if src_shape[i] != shape[i]]
     sum_axes += list(range(len(src_shape) - len(shape)))
 
     out = numpy.sum(src, axis=tuple(sum_axes), keepdims=True)

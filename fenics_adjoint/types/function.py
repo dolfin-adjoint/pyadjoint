@@ -1,4 +1,5 @@
 import backend
+import numpy
 import ufl
 
 from pyadjoint.adjfloat import AdjFloat
@@ -11,7 +12,6 @@ from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, \
     no_annotations
 from . import compat
 from .compat import gather
-import numpy
 
 
 @register_overloaded_type
@@ -19,7 +19,7 @@ class Function(OverloadedType, backend.Function):
     def __init__(self, *args, **kwargs):
         super(Function, self).__init__(*args,
                                        _ad_block_class=kwargs.pop("_ad_block_class",
-                                                              None),
+                                                                  None),
                                        _ad_floating_active=kwargs.pop(
                                            "_ad_floating_active", False),
                                        _ad_args=kwargs.pop("_ad_args", None),

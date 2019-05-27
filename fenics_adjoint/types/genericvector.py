@@ -1,5 +1,4 @@
 import backend
-from .compat import gather
 
 from pyadjoint.tape import stop_annotating, annotate_tape, get_working_tape
 from pyadjoint.overloaded_type import create_overloaded_object

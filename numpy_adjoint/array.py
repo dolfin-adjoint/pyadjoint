@@ -232,7 +232,7 @@ class DivBlock(Block):
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         if idx == 0:
-            return adj_inputs[0] * 1./inputs[1]
+            return adj_inputs[0] / inputs[1]
         else:
             return adj_inputs[0] * (-inputs[0] / inputs[1]**2)
 
@@ -284,7 +284,7 @@ class PowBlock(Block):
         adj_input = adj_inputs[0]
 
         if idx == 0:
-            return adj_input * exponent_value * base_value**(exponent_value-1)
+            return adj_input * exponent_value * base_value**(exponent_value - 1)
         else:
             return adj_input * numpy.log(base_value) * base_value**exponent_value
 
@@ -308,8 +308,8 @@ class PowBlock(Block):
         base_value = inputs[0]
         exponent_value = inputs[1]
         adj_input = adj_inputs[0]
-        mixed_derivatives = adj_input * base_value ** (exponent_value - 1) * (
-                    exponent_value * numpy.log(base_value) + 1)
+        mixed_derivatives = (adj_input * base_value ** (exponent_value - 1)
+                             * (exponent_value * numpy.log(base_value) + 1))
         return mixed_derivatives
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
@@ -325,8 +325,8 @@ class PowBlock(Block):
                 # Compute adj_value * d^2 f / dx^2 tlm_value
                 if idx == 0:
                     # x is base
-                    hessian_output += adj_input * exponent_value * (exponent_value - 1) * base_value ** (
-                                exponent_value - 2) * bv.tlm_value
+                    hessian_output += (adj_input * exponent_value * (exponent_value - 1)
+                                       * base_value ** (exponent_value - 2) * bv.tlm_value)
                 else:
                     # x is exponent
                     hessian_output += adj_input * numpy.log(
