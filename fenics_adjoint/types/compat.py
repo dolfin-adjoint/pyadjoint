@@ -246,10 +246,10 @@ else:
         """
         return value
 
-    def assemble_adjoint_value(form, **kwargs):
+    def assemble_adjoint_value(*args, **kwargs):
         """Wrapper that assembles a matrix with boundary conditions"""
         bcs = kwargs.pop("bcs", ())
-        result = backend.assemble(form)
+        result = backend.assemble(*args, **kwargs)
         for bc in bcs:
             bc.apply(result)
         return result
