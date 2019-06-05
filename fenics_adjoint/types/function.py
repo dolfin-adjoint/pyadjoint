@@ -128,9 +128,7 @@ class Function(FloatingType, backend.Function):
             u = backend.TrialFunction(self.function_space())
             v = backend.TestFunction(self.function_space())
             M = backend.assemble(backend.inner(u, v) * backend.dx)
-            if not isinstance(value, backend.GenericVector):
-                value = value.vector()
-            backend.solve(M, ret.vector(), value)
+            compat.linalg_solve(M, ret.vector(), value)
             return ret
         elif riesz_representation == "H1":
             ret = Function(self.function_space())
@@ -139,9 +137,7 @@ class Function(FloatingType, backend.Function):
             M = backend.assemble(
                 backend.inner(u, v) * backend.dx + backend.inner(
                     backend.grad(u), backend.grad(v)) * backend.dx)
-            if not isinstance(value, backend.GenericVector):
-                value = value.vector()
-            backend.solve(M, ret.vector(), value)
+            compat.linalg_solve(M, ret.vector(), value)
             return ret
         elif callable(riesz_representation):
             return riesz_representation(value)
