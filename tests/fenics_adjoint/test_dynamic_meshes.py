@@ -48,9 +48,10 @@ def test_dynamic_meshes_2D(mesh, reset):
                   project(C*as_vector((-x[0]**2, x[1])), S)]
         zero = [Function(S),Function(S), Function(S)]
         results = taylor_to_dict(Jhat, zero, taylor)
+    print(results)
     assert(np.mean(results["FD"]["Rate"])>0.9)
     assert(np.mean(results["dJdm"]["Rate"])>1.9)
-    assert(np.mean(results["Hm"]["Rate"])>0.9)
+    assert(np.mean(results["Hm"]["Rate"])>2.9)
 
 
 @pytest.mark.parametrize("reset", [True, False])
@@ -99,5 +100,5 @@ def test_dynamic_meshes_3D(mesh, reset):
     print(results)
     assert(np.mean(results["FD"]["Rate"])>0.9)
     assert(np.mean(results["dJdm"]["Rate"])>1.9)
-    assert(np.mean(results["Hm"]["Rate"])>0.9)
+    assert(np.mean(results["Hm"]["Rate"])>2.9)
 
