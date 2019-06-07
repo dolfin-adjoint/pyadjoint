@@ -153,7 +153,7 @@ class Function(FloatingType, backend.Function):
 
         dep = self.block.get_dependencies()[0]
         return backend.Function.sub(dep.saved_output, self.block.idx,
-                                    deepcopy=True)
+                                    deepcopy=False)
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
