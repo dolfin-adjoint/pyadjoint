@@ -53,8 +53,9 @@ The demos are documented and available at [www.dolfin-adjoint.org](www.dolfin-ad
 
 We would like to thank Imperial College London and the Firedrake team for their contributions to pyadjoint and dolfin-adjoint.
 A special thanks to Lawrence Mitchell for his work on the Firedrake specific implementations, and David Ham for his
-input on strong Dirichlet boundary condition controls. 
+input on strong Dirichlet boundary condition controls.
+Sebastian Mitusch was supported by the Norwegian Ministry of Education and Research. 
+Simon Funke and Jørgen Dokken were supported by the Research Council of Norway through a FRIPRO grant, project 251237. 
 Finally, thanks to everyone who has contributed to the pyadjoint repository.
-
 
 # References
