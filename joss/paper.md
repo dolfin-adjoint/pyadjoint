@@ -26,7 +26,7 @@ bibliography: references.bib
 # Summary
 
 Adjoint models play an important role in scientific computing.
-For examples, they enable sensitivity and stability analysis, goal-oriented mesh adaptivity and optimisation.
+For example, they enable sensitivity and stability analysis, goal-oriented mesh adaptivity and optimisation.
 However, the derivation and implementation of adjoint models is challenging, especially for models governed by  non-linear or time-dependent partial differential equations (PDEs).
 Farrell et al. proposed to automatically derive adjoint models through high-level algorithmic differentiation, where the forward model is considered as  a sequence of variational problems [@FarrellEtAl2013].
 The implementation, named dolfin-adjoint, automatically and robustly derives adjoint models for models written in the finite element software FEniCS [@LoggEtAl2012].
