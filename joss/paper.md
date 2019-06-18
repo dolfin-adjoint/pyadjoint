@@ -26,23 +26,23 @@ bibliography: references.bib
 # Summary
 
 Adjoint models play an important role in scientific computing.
-They enable for instance sensitivity and stability analysis, goal-oriented mesh adaptivity and optimisation.
+For examples, they enable sensitivity and stability analysis, goal-oriented mesh adaptivity and optimisation.
 However, the derivation and implementation of adjoint models is challenging, especially for models governed by  non-linear or time-dependent partial differential equations (PDEs).
-In [@FarrellEtAl2013], the authors proposed to automatically derive adjoint models through high-level algorithmic differentiation, where the forward model is considered as  a sequence of variational problems.
+Farrell et al. proposed to automatically derive adjoint models through high-level algorithmic differentiation, where the forward model is considered as  a sequence of variational problems [@FarrellEtAl2013].
 The implementation, named dolfin-adjoint, automatically and robustly derives adjoint models for models written in the finite element software FEniCS [@LoggEtAl2012].
-However, the assumption that the model consists of a sequence of variational problems can be limiting.
-For instance when considering Dirichlet boundary conditions that are not explicitly stated in the variational formulation, when considering complex functionals that cannot be represented as an integral, or when coupling FEniCS to other non-PDE models.
+However, the assumption that the model consists of a sequence of variational problems can be limiting,
+for instance, when considering Dirichlet boundary conditions that are not explicitly stated in the variational formulation, when considering complex functionals that cannot be represented as an integral, or when coupling FEniCS to other non-PDE models.
 
 We present a new implementation of dolfin-adjoint that overcomes these limitations.
 The core of our implementation is a generic, operator-overloading based, algorithmic differentiation tool for Python called pyadjoint.
-To apply pyadjoint to a Python module, one implements a *pyadjoint.Block* subclass for each module function which can recompute the function with new inputs and compute the function’s derivatives.
+To apply pyadjoint to a Python module, one implements a *pyadjoint.Block* subclass for each module function that can recompute the function with new inputs and compute the function’s derivatives.
 During runtime, pyadjoint builds a graph of Block instances, and applies the chain rule to automatically compute gradients and Hessian actions.
 Further, pyadjoint includes gradient verification tools and an optimisation framework that interfaces external packages such as scipy, ipopt, moola and ROL.
 
 To support automated adjoints for FEniCS and Firedrake [@RathgeberEtAl2017] models, we overloaded their user-interface functions.
 In FEniCS and Firedrake, variational problems are represented in the domain-specific language UFL [@AlnaesEtAl2014].
 UFL allows the definition and manipulation of discrete variational formulations, which we leverage to automatically obtain the desired equations in a format that can be solved by FEniCS/Firedrake.
-This allows us to efficiently derive the adjoint and tangent-linear equations and solve them using the existing solver methods in FEniCS/Firedrake, as described in [@FarrellEtAl2013].
+This allows us to efficiently derive the adjoint and tangent-linear equations and solve them using the existing solver methods in FEniCS/Firedrake, as described by Farrell et al. [@FarrellEtAl2013]
 In addition, we have implemented support for computing the adjoint solution at the boundary, which enables the automatic differentiation of PDE solutions with respect to strongly imposed Dirichlet boundary conditions.
 
 The dolfin-adjoint repository contains a wide range of tests and demos.
