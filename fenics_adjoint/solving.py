@@ -342,7 +342,7 @@ class SolveBlock(Block):
 
             if isinstance(c, compat.MeshType):
                 X = backend.SpatialCoordinate(c)
-                dFdu_adj = backend.action(dFdu_form, adj_sol)
+                dFdu_adj = backend.action(backend.adjoint(dFdu_form), adj_sol)
                 d2Fdudm = ufl.algorithms.expand_derivatives(
                     backend.derivative(dFdu_adj, X, tlm_input))
                 if len(d2Fdudm.integrals()) > 0:
