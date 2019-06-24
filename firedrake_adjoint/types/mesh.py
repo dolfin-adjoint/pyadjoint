@@ -5,9 +5,10 @@ from pyadjoint.overloaded_type import (OverloadedType, register_overloaded_type,
                                        create_overloaded_object)
 from pyadjoint.tape import no_annotations, stop_annotating
 from .function import Function
+from functools import partial
 
 
-__all__ = ["Mesh"] + backend.utility_meshes.__all__
+__all__ = ["Mesh", "ExtrudedMesh", "MeshHierarchy", "ExtrudedMeshHierarchy"] + backend.utility_meshes.__all__
 
 
 @register_overloaded_type
@@ -120,3 +121,12 @@ for name in backend.utility_meshes.__all__:
 
 Mesh = overloaded_mesh(backend.Mesh)
 Mesh.__doc__ = backend.Mesh.__doc__
+
+ExtrudedMesh = overloaded_mesh(backend.ExtrudedMesh)
+ExtrudedMesh.__doc__ = backend.ExtrudedMesh.__doc__
+
+MeshHierarchy = partial(backend.MeshHierarchy, mesh_builder=Mesh)
+MeshHierarchy.__doc__ = backend.MeshHierarchy.__doc__
+
+ExtrudedMeshHierarchy = partial(backend.ExtrudedMeshHierarchy, mesh_builder=ExtrudedMesh)
+ExtrudedMeshHierarchy.__doc__ = backend.ExtrudedMeshHierarchy.__doc__
