@@ -169,7 +169,9 @@ def test_burgers():
     def Dt(u, u_, timestep):
         return (u - u_)/timestep
 
-    pr = project(Expression("sin(2*pi*x[0])", degree=1), V)
+    from pyadjoint.tape import stop_annotating
+    with stop_annotating():
+        pr = project(Expression("sin(2*pi*x[0])", degree=1), V)
     ic = Function(V)
     ic.vector()[:] = pr.vector()[:]
 
@@ -735,3 +737,5 @@ def test_eval_callback():
     assert calls_counter["eval_cb_pre_calls"] == 1
     assert calls_counter["derivative_cb_pre_calls"] == 1
 
+if __name__ == "__main__":
+    test_burgers()

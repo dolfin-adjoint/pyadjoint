@@ -213,5 +213,5 @@ def test_bmesh_floating_block_operations():
 
 if __name__ == "__main__":
     test_h1_smoothing()
-    test_strong_boundary_enforcement()
-    test_bmesh_block_operations()
+    #test_strong_boundary_enforcement()
+    #test_bmesh_block_operations()

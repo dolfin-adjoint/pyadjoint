@@ -12,7 +12,7 @@ from firedrake_adjoint.types.expression import Expression
 from firedrake_adjoint.types.function import Function
 
 from pyadjoint.tape import (Tape, set_working_tape, get_working_tape,
-                            pause_annotation, continue_annotation)
+                            pause_annotation, continue_annotation, stop_annotating)
 from pyadjoint.reduced_functional import ReducedFunctional
 from pyadjoint.verification import taylor_test
 from pyadjoint.drivers import compute_gradient, compute_hessian

@@ -61,6 +61,158 @@ def solve(*args, **kwargs):
     return output
 
 
+class UFLFormCoefficient(ufl.coefficient.Coefficient):
+    def __init__(self, v):
+        self.v = v
+        self._hash = hash(v)
+        self._count = v.count()
+        self._repr = repr(v)
+        self._str = str(v)
+        self._record_items = False
+
+    def __getattr__(self, attr):
+        return getattr(self.v, attr)
+
+    def __getitem__(self, item):
+        return type(self.v).__getitem__(self, item)
+
+    @property
+    def __class__(self):
+        return self.v.__class__
+
+    def __hash__(self):
+        return self._hash
+
+    def __str__(self):
+        return self._str
+
+    def __truediv__(self, other):
+        return self.v / other
+
+
+class UFLSubForm(object):
+    def __init__(self, form, coefficient_map):
+        self.form = form
+        self.subforms = {}
+        self.coefficient_map = coefficient_map
+
+    def derivative(self, coefficient, direction=None):
+        subforms = self.subforms
+        if coefficient not in subforms:
+            subforms[coefficient] = [None, None]
+        subform = subforms[coefficient]
+        i = 0 if direction is None or isinstance(direction, ufl.Argument) else 1
+        if subform[i] is None:
+            if i == 1:
+                placeholder = UFLFormCoefficient(direction)
+            else:
+                placeholder = direction
+            if coefficient in self.coefficient_map:
+                mapped_coefficient = self.coefficient_map[coefficient]
+            else:
+                mapped_coefficient = coefficient
+            subform[i] = (UFLSubForm(ufl.algorithms.expand_derivatives(
+                backend.derivative(self.form, mapped_coefficient, placeholder)),
+                                     self.coefficient_map),
+                          placeholder)
+
+        subform, *placeholder = subform[i]
+        if i == 1:
+            placeholder[0].v = direction
+        return subform
+
+    def adjoint(self):
+        subforms = self.subforms
+        if "__adjoint__" not in subforms:
+            subforms["__adjoint__"] = UFLSubForm(backend.adjoint(self.form),
+                                                 self.coefficient_map)
+        return subforms["__adjoint__"]
+
+    def action(self, coefficient):
+        subforms = self.subforms
+        if "__action__" not in subforms:
+            placeholder = UFLFormCoefficient(coefficient)
+            subforms["__action__"] = (UFLSubForm(backend.action(self.form, placeholder),
+                                                 self.coefficient_map),
+                                      placeholder)
+        subform, placeholder = subforms["__action__"]
+        placeholder.v = coefficient
+        return subform
+
+    def replace(self, replace_map):
+        for coeff in replace_map:
+            self.coefficient_map[coeff].v = replace_map[coeff]
+
+    def replace_coefficient(self, coefficient, new_coefficient):
+        self.coefficient_map[coefficient].v = new_coefficient
+
+    def replace_with_argument(self, coeff, argument):
+        subforms = self.subforms
+        if "__replace_with_argument__" not in subforms:
+            subforms["__replace_with_argument__"] = UFLSubForm(ufl.replace(self.form,
+                                                                               {
+                                                                                   self.coefficient_map[coeff]:
+                                                                                       argument
+                                                                               }),
+                                                               self.coefficient_map)
+        return subforms["__replace_with_argument__"]
+
+    def lhs(self):
+        subforms = self.subforms
+        if "__lhs__" not in subforms:
+            subforms["__lhs__"] = UFLSubForm(backend.lhs(self.form), self.coefficient_map)
+        return subforms["__lhs__"]
+
+    def rhs(self):
+        subforms = self.subforms
+        if "__rhs__" not in subforms:
+            subforms["__rhs__"] = UFLSubForm(backend.rhs(self.form), self.coefficient_map)
+        return subforms["__rhs__"]
+
+    def __getattr__(self, item):
+        return getattr(self.form, item)
+
+    @property
+    def __class__(self):
+        return self.form.__class__
+
+    def __hash__(self):
+        return hash(self.form)
+
+    def __str__(self):
+        return str(self.form)
+
+    def __neg__(self):
+        subforms = self.subforms
+        if "__neg__" not in subforms:
+            subforms["__neg__"] = UFLSubForm(-self.form, self.coefficient_map)
+        return subforms["__neg__"]
+
+    def __eq__(self, other):
+        return self.form == other
+
+    def __add__(self, other):
+        return UFLSubForm(self.form + other, self.coefficient_map)
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+
+class UFLForm(UFLSubForm):
+    def __init__(self, form, coefficient_map):
+        placeholder_coeff_map = {}
+        for coefficient in coefficient_map:
+            placeholder_coeff_map[coefficient] = UFLFormCoefficient(coefficient_map[coefficient])
+        form = ufl.replace(form, placeholder_coeff_map)
+        self.cached_forms = {}
+        super().__init__(form, placeholder_coeff_map)
+
+    def replace_variables(self):
+        for variable in self.variables:
+            coefficient = variable.output
+            self.coefficient_map[coefficient].v = variable.saved_output
+
+
 class SolveBlock(Block):
     pop_kwargs_keys = ["adj_cb", "adj_bdy_cb", "adj2_cb", "adj2_bdy_cb"]
 
@@ -78,6 +230,9 @@ class SolveBlock(Block):
         if backend.__name__ != "firedrake":
             mesh = self.lhs.ufl_domain().ufl_cargo()
             self.add_dependency(mesh.block_variable)
+        self.form = None
+        self.replaced_form = None
+        self.trial = None
 
     def __str__(self):
         return "{} = {}".format(str(self.lhs), str(self.rhs))
@@ -153,32 +308,39 @@ class SolveBlock(Block):
             self.add_dependency(c.block_variable, no_duplicates=True)
 
     def _create_F_form(self):
-        # Process the equation forms, replacing values with checkpoints,
-        # and gathering lhs and rhs in one single form.
-        if self.linear:
-            tmp_u = Function(self.function_space)
-            F_form = backend.action(self.lhs, tmp_u) - self.rhs
-        else:
-            tmp_u = self.func
-            F_form = self.lhs
+        if self.replaced_form is None:
+            # Process the equation forms, replacing values with checkpoints,
+            # and gathering lhs and rhs in one single form.
+            if self.linear:
+                tmp_u = Function(self.function_space)
+                F_form = backend.action(self.lhs, tmp_u) - self.rhs
+            else:
+                tmp_u = self.func
+                F_form = self.lhs
 
-        replace_map = self._replace_map(F_form)
-        replace_map[tmp_u] = self.get_outputs()[0].saved_output
-        return ufl.replace(F_form, replace_map)
+            self.form = F_form
+            self.trial = tmp_u
+            replace_map = self._replace_map()
+            replace_map[tmp_u] = self.get_outputs()[0].saved_output
+            self.replaced_form = UFLForm(F_form, replace_map)
+        else:
+            replace_map = self._replace_map()
+            replace_map[self.trial] = self.get_outputs()[0].saved_output
+            self.replaced_form.replace(replace_map)
+        return self.replaced_form
 
     def prepare_evaluate_adj(self, inputs, adj_inputs, relevant_dependencies):
         fwd_block_variable = self.get_outputs()[0]
         u = fwd_block_variable.output
 
         dJdu = adj_inputs[0]
-
         F_form = self._create_F_form()
-
-        dFdu = backend.derivative(F_form, fwd_block_variable.saved_output, backend.TrialFunction(u.function_space()))
-        dFdu_form = backend.adjoint(dFdu)
+        dFdu = F_form.derivative(self.trial, backend.TrialFunction(u.function_space()))
+        dFdu_form = dFdu.adjoint()
         dJdu = dJdu.copy()
         adj_sol, adj_sol_bdy = self._assemble_and_solve_adj_eq(dFdu_form, dJdu)
         self.adj_sol = adj_sol
+
         if self.adj_cb is not None:
             self.adj_cb(adj_sol)
         if self.adj_bdy_cb is not None:
@@ -186,15 +348,15 @@ class SolveBlock(Block):
 
         r = {}
         r["form"] = F_form
-        r["adj_sol"] = adj_sol
+        r["adj_sol"] = self.adj_sol
         r["adj_sol_bdy"] = adj_sol_bdy
         return r
 
-    def _replace_map(self, form):
+    def _replace_map(self):
         replace_coeffs = {}
         for block_variable in self.get_dependencies():
             coeff = block_variable.output
-            if coeff in form.coefficients():
+            if coeff in self.form.coefficients():
                 replace_coeffs[coeff] = block_variable.saved_output
         return replace_coeffs
 
@@ -208,17 +370,21 @@ class SolveBlock(Block):
 
     def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu):
         dJdu_copy = dJdu.copy()
-        dFdu = compat.assemble_adjoint_value(dFdu_form, **self.assemble_kwargs)
+
+        kwargs = self.assemble_kwargs.copy()
+        bcs = self._homogenize_bcs()
+        kwargs["bcs"] = bcs
+        dFdu = compat.assemble_adjoint_value(dFdu_form, **kwargs)
 
         # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
-        for bc in self._homogenize_bcs():
-            bc.apply(dFdu, dJdu)
+        for bc in bcs:
+            bc.apply(dJdu)
 
         adj_sol = Function(self.function_space)
         compat.linalg_solve(dFdu, adj_sol.vector(), dJdu, **self.kwargs)
 
-        adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
-            backend.action(dFdu_form, adj_sol)))
+        adj_sol_bdy = compat.function_from_vector(self.function_space,
+                                                  dJdu_copy - compat.assemble_adjoint_value(dFdu_form.action(adj_sol)))
 
         return adj_sol, adj_sol_bdy
 
@@ -247,16 +413,16 @@ class SolveBlock(Block):
         elif isinstance(c, compat.MeshType):
             # Using CoordianteDerivative requires us to do action before
             # differentiating, might change in the future.
-            F_form_tmp = backend.action(F_form, adj_sol)
+            F_form_tmp = F_form.action(adj_sol)
             X = backend.SpatialCoordinate(c_rep)
-            dFdm = backend.derivative(-F_form_tmp, X)
-            dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
+            dFdm = F_form_tmp.derivative(X)
+            dFdm = -compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
             return dFdm
 
-        dFdm = -backend.derivative(F_form, c_rep, trial_function)
-        dFdm = backend.adjoint(dFdm)
-        dFdm = dFdm * adj_sol
-        dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
+        dFdm = F_form.derivative(c, trial_function)
+        dFdm = dFdm.adjoint()
+        dFdm = dFdm.action(adj_sol)
+        dFdm = compat.assemble_adjoint_value(-dFdm)
         if isinstance(c, compat.ExpressionType):
             return [[dFdm, c_fs]]
         else:
@@ -269,7 +435,7 @@ class SolveBlock(Block):
         F_form = self._create_F_form()
 
         # Obtain dFdu.
-        dFdu = backend.derivative(F_form, fwd_block_variable.saved_output, backend.TrialFunction(u.function_space()))
+        dFdu = F_form.derivative(self.trial, backend.TrialFunction(self.function_space))
 
         r = {}
         r["form"] = F_form
@@ -306,10 +472,9 @@ class SolveBlock(Block):
                 continue
 
             if isinstance(c, compat.MeshType):
-                dFdm_shape += backend.assemble(
-                    backend.derivative(-F_form, c_rep, tlm_value))
+                dFdm_shape += -backend.assemble(F_form.derivative(c_rep, tlm_value))
             else:
-                dFdm += backend.derivative(-F_form, c_rep, tlm_value)
+                dFdm += -F_form.derivative(c, tlm_value)
 
         if isinstance(dFdm, float):
             v = dFdu.arguments()[0]
@@ -317,7 +482,7 @@ class SolveBlock(Block):
 
         dFdm = backend.assemble(dFdm) + dFdm_shape
         dudm = backend.Function(V)
-        return self._assemble_and_solve_tlm_eq(backend.assemble(dFdu), dFdm, dudm, bcs)
+        return self._assemble_and_solve_tlm_eq(compat.assemble_adjoint_value(dFdu, bcs=bcs), dFdm, dudm, bcs)
 
     def _assemble_and_solve_tlm_eq(self, dFdu, dFdm, dudm, bcs):
         return self._assembled_solve(dFdu, dFdm, dudm, bcs)
@@ -337,20 +502,18 @@ class SolveBlock(Block):
 
             if isinstance(c, compat.MeshType):
                 X = backend.SpatialCoordinate(c)
-                dFdu_adj = backend.action(dFdu_form, adj_sol)
-                d2Fdudm = ufl.algorithms.expand_derivatives(
-                    backend.derivative(dFdu_adj, X, tlm_input))
+                dFdu_adj = dFdu_form.action(adj_sol)
+                d2Fdudm = dFdu_adj.derivative(X, tlm_input)
                 if len(d2Fdudm.integrals()) > 0:
                     b -= compat.assemble_adjoint_value(d2Fdudm)
 
             elif not isinstance(c, backend.DirichletBC):
-                d2Fdudm = backend.derivative(dFdu_form, c_rep, tlm_input)
+                d2Fdudm = dFdu_form.derivative(c, tlm_input)
                 b_form += d2Fdudm
 
-        b_form = ufl.algorithms.expand_derivatives(b_form)
         if len(b_form.integrals()) > 0:
-            b_form = backend.adjoint(b_form)
-            b -= compat.assemble_adjoint_value(backend.action(b_form, adj_sol))
+            b_form = b_form.adjoint()
+            b -= compat.assemble_adjoint_value(b_form.action(adj_sol))
         return b
 
     def _assemble_and_solve_soa_eq(self, dFdu_form, adj_sol, hessian_input, d2Fdu2):
@@ -377,11 +540,10 @@ class SolveBlock(Block):
         F_form = self._create_F_form()
 
         # Using the equation Form we derive dF/du, d^2F/du^2 * du/dm * direction.
-        dFdu_form = backend.derivative(F_form, fwd_block_variable.saved_output)
-        d2Fdu2 = ufl.algorithms.expand_derivatives(
-            backend.derivative(dFdu_form, fwd_block_variable.saved_output, tlm_output))
+        dFdu_form = F_form.derivative(self.trial)
+        d2Fdu2 = dFdu_form.derivative(self.trial, tlm_output)
 
-        dFdu_form = backend.adjoint(dFdu_form)
+        dFdu_form = dFdu_form.adjoint()
         adj_sol = self.adj_sol
         if adj_sol is None:
             raise RuntimeError("Hessian computation was run before adjoint.")
@@ -429,21 +591,23 @@ class SolveBlock(Block):
             W = c.function_space()
 
         dc = backend.TestFunction(W)
-        form_adj = backend.action(F_form, adj_sol)
-        form_adj2 = backend.action(F_form, adj_sol2)
+        form_adj2 = F_form.action(adj_sol2)
         if isinstance(c, compat.MeshType):
-            dFdm_adj = backend.derivative(form_adj, X, dc)
-            dFdm_adj2 = backend.derivative(form_adj2, X, dc)
+            dFdm_adj2 = form_adj2.derivative(X, dc)
         else:
-            dFdm_adj = backend.derivative(form_adj, c_rep, dc)
-            dFdm_adj2 = backend.derivative(form_adj2, c_rep, dc)
+            dFdm_adj2 = form_adj2.derivative(c, dc)
+
+        hessian_output = 0. # Workaround for firedrake
+        hessian_output -= compat.assemble_adjoint_value(dFdm_adj2)
+
+        form_adj = F_form.action(adj_sol)
+        if isinstance(c, compat.MeshType):
+            dFdm_adj = form_adj.derivative(X, dc)
+        else:
+            dFdm_adj = form_adj.derivative(c, dc)
 
         # TODO: Old comment claims this might break on split. Confirm if true or not.
-        d2Fdudm = ufl.algorithms.expand_derivatives(
-            backend.derivative(dFdm_adj, fwd_block_variable.saved_output,
-                               tlm_output))
-
-        hessian_output = 0
+        d2Fdudm = dFdm_adj.derivative(self.trial, tlm_output)
 
         # We need to add terms from every other dependency
         # i.e. the terms d^2F/dm_1dm_2
@@ -464,9 +628,9 @@ class SolveBlock(Block):
             # TODO: If tlm_input is a Sum, this crashes in some instances?
             if isinstance(c2_rep, compat.MeshType):
                 X = backend.SpatialCoordinate(c2_rep)
-                d2Fdm2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, X, tlm_input))
+                d2Fdm2 = dFdm_adj.derivative(X, tlm_input)
             else:
-                d2Fdm2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, c2_rep, tlm_input))
+                d2Fdm2 = dFdm_adj.derivative(c2, tlm_input)
             if d2Fdm2.empty():
                 continue
 
@@ -475,7 +639,6 @@ class SolveBlock(Block):
         if not d2Fdudm.empty():
             # FIXME: This can be empty in the multimesh case, ask sebastian
             hessian_output -= compat.assemble_adjoint_value(d2Fdudm)
-        hessian_output -= compat.assemble_adjoint_value(dFdm_adj2)
 
         if isinstance(c, compat.ExpressionType):
             return [(hessian_output, W)]
@@ -483,18 +646,28 @@ class SolveBlock(Block):
             return hessian_output
 
     def _create_initial_guess(self):
-        return backend.Function(self.function_space)
+        ig = backend.Function(self.function_space)
+        for dep in self.get_dependencies():
+            if dep.output == self.func:
+                ig.assign(dep.saved_output)
+        return ig
 
     def _replace_recompute_form(self):
         func = self._create_initial_guess()
 
         bcs = self._recover_bcs()
-        lhs = self._replace_form(self.lhs, func=func)
-        rhs = 0
-        if self.linear:
-            rhs = self._replace_form(self.rhs)
+        F = self._create_F_form()
 
-        return lhs, rhs, func, bcs
+        lhs = F
+        rhs = 0
+
+        if self.linear:
+            F = F.replace_with_argument(self.trial, backend.TrialFunction(self.function_space))
+            lhs = F.lhs()
+            rhs = F.rhs()
+
+        F.replace_coefficient(self.trial, func)
+        return lhs, rhs, F.coefficient_map[self.trial], bcs
 
     def _recover_bcs(self):
         bcs = []
@@ -522,12 +695,13 @@ class SolveBlock(Block):
                         replace_map[c] = func
         return ufl.replace(form, replace_map)
 
-    def _forward_solve(self, lhs, rhs, func, bcs, **kwargs):
+    def _forward_solve(self, lhs, rhs, func, bcs, asdcounter={"i": 0}, **kwargs):
         backend.solve(lhs == rhs, func, bcs, **kwargs)
         return func
 
     def _assembled_solve(self, lhs, rhs, func, bcs, **kwargs):
-        [bc.apply(lhs, rhs) for bc in bcs]
+        for bc in bcs:
+            bc.apply(rhs)
         backend.solve(lhs, func.vector(), rhs, **kwargs)
         return func
 
@@ -537,4 +711,4 @@ class SolveBlock(Block):
         func = prepared[2]
         bcs = prepared[3]
 
-        return self._forward_solve(lhs, rhs, func, bcs, **self.forward_kwargs)
+        return self._forward_solve(lhs, rhs, func, bcs, **self.forward_kwargs).v

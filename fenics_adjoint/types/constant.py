@@ -1,5 +1,5 @@
 import backend
-from pyadjoint.tape import get_working_tape
+from pyadjoint.tape import get_working_tape, annotate_tape
 from pyadjoint.overloaded_type import OverloadedType, create_overloaded_object, register_overloaded_type
 from .compat import constant_function_firedrake_compat
 from pyadjoint.block import Block
@@ -15,8 +15,8 @@ class Constant(OverloadedType, backend.Constant):
         backend.Constant.__init__(self, *args, **kwargs)
 
     def assign(self, *args, **kwargs):
-        annotate_tape = kwargs.pop("annotate_tape", True)
-        if annotate_tape:
+        annotate = annotate_tape(kwargs)
+        if annotate:
             other = args[0]
             if not isinstance(other, OverloadedType):
                 other = create_overloaded_object(other)
@@ -27,7 +27,7 @@ class Constant(OverloadedType, backend.Constant):
 
         ret = backend.Constant.assign(self, *args, **kwargs)
 
-        if annotate_tape:
+        if annotate:
             block.add_output(self.create_block_variable())
 
         return ret

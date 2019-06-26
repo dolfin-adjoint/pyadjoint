@@ -333,3 +333,6 @@ def test_assemble_recompute():
     f.tlm_value = h
     tape.evaluate_tlm()
     assert (taylor_test(Jhat, g, h, dJdm=J.block_variable.tlm_value) > 1.9)
+
+if __name__ == "__main__":
+    test_burgers()

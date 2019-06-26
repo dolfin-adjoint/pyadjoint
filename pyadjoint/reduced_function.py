@@ -1,5 +1,5 @@
 from .enlisting import Enlist
-from .tape import stop_annotating, get_working_tape
+from .tape import stop_annotating, get_working_tape, no_annotations
 from .drivers import compute_gradient
 
 
@@ -16,7 +16,9 @@ class ReducedFunction(object):
         self.adj_jac_action_cb_post = lambda *args: None
         self.eval_cb_pre = lambda *args: None
         self.eval_cb_post = lambda *args: None
+        self.block_variables = None
 
+    @no_annotations
     def adj_jac_action(self, *args, options=None):
         inputs = args
         if len(inputs) != len(self.outputs):
@@ -40,6 +42,7 @@ class ReducedFunction(object):
 
         return self.controls.delist(derivatives)
 
+    @no_annotations
     def __call__(self, *args):
         inputs = args
         if len(inputs) != len(self.controls):
@@ -68,6 +71,22 @@ class ReducedFunction(object):
 
     def marked_controls(self):
         return marked_controls(self)
+
+    def save_checkpoints(self):
+        if self.block_variables is None:
+            tape = self.tape
+            bvs = set()
+            for block in tape.get_blocks():
+                for bv in block.get_dependencies():
+                    bvs.add(bv)
+                for bv in block.get_outputs():
+                    bvs.add(bv)
+            self.block_variables = bvs
+        return [bv._checkpoint for bv in self.block_variables]
+
+    def set_checkpoints(self, p):
+        for bv, chp in zip(self.block_variables, p):
+            bv._checkpoint = chp
 
 
 class marked_controls(object):

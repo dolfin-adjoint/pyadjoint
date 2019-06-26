@@ -206,10 +206,10 @@ class ExpressionBlock(Block):
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
         # Restore _ad_attributes_dict.
-        block_variable.saved_output
+        expr = block_variable.saved_output
 
-        tlm_output = 0.
-        tlm_used = False
+        tlm_inputs = []
+        expression_derivatives = []
         for block_variable in self.get_dependencies():
             tlm_input = block_variable.tlm_value
             if tlm_input is None:
@@ -223,11 +223,15 @@ class ExpressionBlock(Block):
                 if key not in self.expression.ad_ignored_attributes:
                     setattr(self.expression.user_defined_derivatives[c], key, self.expression._ad_attributes_dict[key])
 
-            tlm_used = True
-            tlm_output += tlm_input * self.expression.user_defined_derivatives[c]
-        if not tlm_used:
+            if not hasattr(tlm_input, "_cpp_object"):
+                # Assuming tlm_input is a float
+                tlm_input = backend.Constant(tlm_input)
+
+            tlm_inputs.append(tlm_input._cpp_object)
+            expression_derivatives.append(self.expression.user_defined_derivatives[c]._cpp_object)
+        if len(expression_derivatives) <= 0:
             return None
-        return tlm_output
+        return create_tlm_expression(expr.ufl_element(), expression_derivatives, tlm_inputs)
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
@@ -313,3 +317,59 @@ class ExpressionBlock(Block):
 
     def __str__(self):
         return "Expression block"
+
+
+_tlm_expression_code = '''
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11/eigen.h>
+namespace py = pybind11;
+
+#include <dolfin/function/Expression.h>
+class TLMExpression : public dolfin::Expression
+{
+public:
+      std::vector<std::shared_ptr<dolfin::Expression>> expr_derivatives;
+      std::vector<std::shared_ptr<dolfin::GenericFunction>> tlm_inputs;
+  TLMExpression() : dolfin::Expression() {}
+  TLMExpression(std::vector<std::size_t> value_shape) : dolfin::Expression(value_shape) {}
+
+  void eval(Eigen::Ref<Eigen::VectorXd> values,
+            Eigen::Ref<const Eigen::VectorXd> x,
+            const ufc::cell& cell) const override
+  {
+    const std::size_t vs = value_size(), cd = expr_derivatives.size();
+    for (std::size_t j = 0; j < vs; ++j)
+        values[j] = 0.0;
+    for(std::size_t i = 0; i < cd; i++) {
+        Eigen::VectorXd expr_value(values), tlm_value(values);
+        expr_derivatives[i]->eval(expr_value, x, cell);
+        tlm_inputs[i]->eval(tlm_value, x, cell);
+        values += expr_value*tlm_value;
+    }
+  }
+  };
+
+PYBIND11_MODULE(SIGNATURE, m)
+{
+py::class_<TLMExpression, std::shared_ptr<TLMExpression>, dolfin::Expression>
+(m, "TLMExpression")
+.def(py::init<>())
+.def(py::init<std::vector<std::size_t>>())
+.def_readwrite("expr_derivatives", &TLMExpression::expr_derivatives)
+.def_readwrite("tlm_inputs", &TLMExpression::tlm_inputs);
+}
+
+'''
+_tlm_cpp_module = None
+
+
+def create_tlm_expression(element, expr_derivatives, tlm_inputs):
+    global _tlm_cpp_module
+    if _tlm_cpp_module is None:
+        _tlm_cpp_module = backend.compile_cpp_code(_tlm_expression_code)
+    value_shape = element.value_shape()
+    return backend.CompiledExpression(_tlm_cpp_module.TLMExpression(value_shape),
+                                      element=element,
+                                      expr_derivatives=expr_derivatives,
+                                      tlm_inputs=tlm_inputs)

@@ -253,7 +253,13 @@ else:
         """
         return value
 
-    assemble_adjoint_value = backend.assemble
+    def assemble_adjoint_value(form, **kwargs):
+        """Wrapper that assembles a matrix with boundary conditions"""
+        bcs = kwargs.pop("bcs", ())
+        result = backend.assemble(form)
+        for bc in bcs:
+            bc.apply(result)
+        return result
 
     def gather(vec):
         import numpy
