@@ -519,7 +519,7 @@ class SolveBlock(Block):
 
     def _assemble_and_solve_soa_eq(self, dFdu_form, adj_sol, hessian_input, d2Fdu2):
         b = self._assemble_soa_eq_rhs(dFdu_form, adj_sol, hessian_input, d2Fdu2)
-        dFdu_form = backend.adjoint(dFdu_form)
+        dFdu_form = dFdu_form.adjoint()
         adj_sol2, adj_sol2_bdy = self._assemble_and_solve_adj_eq(dFdu_form, b)
         if self.adj2_cb is not None:
             self.adj2_cb(adj_sol2)
