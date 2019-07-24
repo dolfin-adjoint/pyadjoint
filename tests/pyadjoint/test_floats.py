@@ -174,3 +174,17 @@ def test_float_exponentiation():
     assert_approx_equal(rf.derivative(), 4.0 * (log(2.0)+1.0))
 
     # TODO: __rpow__ is not yet implemented
+
+
+@pytest.mark.parametrize("B", range(2,5))
+@pytest.mark.parametrize("E", [-2,-1,2,3])
+def test_pow_hessian(B, E):
+    # Testing issue 126
+    set_working_tape(Tape())
+    e = AdjFloat(E)
+    b = AdjFloat(B)
+    f = b**e
+    J = ReducedFunctional(f, Control(e))
+    results = taylor_to_dict(J, e, AdjFloat(1))
+    for (i, Ri) in enumerate(["R0","R1","R2"]):
+        assert(min(results[Ri]["Rate"]) >= i + 0.95)

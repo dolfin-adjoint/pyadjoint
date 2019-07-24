@@ -198,7 +198,7 @@ class PowBlock(FloatOperatorBlock):
         if base.tlm_value is not None:
             second_order = float.__mul__(float.__mul__(
                 float.__mul__(adj_input, float.__mul__(exponent_value, exponent_value - 1)),
-                float.__pow__(base_value, exponent_value - 2)), base.tlm_value)
+                float.__pow__(base_value, exponent_value - 2)), exponent.tlm_value)
             base.add_hessian_output(second_order)
 
         first_order = float.__mul__(float.__mul__(hessian_input, exponent_value),
@@ -209,7 +209,7 @@ class PowBlock(FloatOperatorBlock):
         from numpy import log
         if exponent.tlm_value is not None:
             second_order = float.__mul__(float.__mul__(float.__mul__(adj_input, float.__pow__(log(base_value), 2)),
-                                                       float.__pow__(base_value, exponent_value)), base.tlm_value)
+                                                       float.__pow__(base_value, exponent_value)), exponent.tlm_value)
             exponent.add_hessian_output(second_order)
 
         first_order = float.__mul__(float.__mul__(hessian_input, log(base_value)),
