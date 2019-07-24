@@ -47,9 +47,9 @@ def test_dynamic_meshes_2D(mesh):
         zero = [Function(S),Function(S), Function(S)]
         results = taylor_to_dict(Jhat, zero, taylor)
     print(results)
-    assert(np.mean(results["FD"]["Rate"])>0.9)
-    assert(np.mean(results["dJdm"]["Rate"])>1.9)
-    assert(np.mean(results["Hm"]["Rate"])>2.9)
+    assert(np.mean(results["R0"]["Rate"])>0.9)
+    assert(np.mean(results["R1"]["Rate"])>1.9)
+    assert(np.mean(results["R2"]["Rate"])>2.9)
 
 
 @pytest.mark.parametrize("mesh", [UnitCubeMesh(4,4,5),
@@ -107,7 +107,7 @@ def test_dynamic_meshes_3D(mesh):
         zero = [Function(S),Function(S), Function(S)]
         results = taylor_to_dict(Jhat, zero, taylor)
     print(results)
-    assert(np.mean(results["FD"]["Rate"])>0.9)
-    assert(np.mean(results["dJdm"]["Rate"])>1.9)
-    assert(np.mean(results["Hm"]["Rate"])>2.9)
+    assert(np.mean(results["R0"]["Rate"])>0.9)
+    assert(np.mean(results["R1"]["Rate"])>1.9)
+    assert(np.mean(results["R2"]["Rate"])>2.9)
 

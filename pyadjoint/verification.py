@@ -91,13 +91,13 @@ def taylor_to_dict(J, m, h):
         dict: The perturbation sizes, residuals and rates of the tests.
 
             eps (list): List of all perturbation sizes used, eps[i]*h.
-            FD (dict): Results from 0th order taylor test (finite difference).
+            R0 (dict): Results from 0th order taylor test (finite difference).
                 Residual (list): The computed residuals.
                 Rate (list): The computed convergence rates based on eps and residuals. Expected to be 1.0.
-            dJdm (dict): Results from the 1st order taylor test.
+            R1 (dict): Results from the 1st order taylor test.
                 Residual (list): The computed residuals.
                 Rate (list): The computed convergence rates based on eps and residuals. Expected to be 2.0.
-            Hm (dict): Results from the 2nd order taylor test.
+            R2 (dict): Results from the 2nd order taylor test.
                 Residual (list): The computed residuals.
                 Rate (list): The computed convergence rates based on eps and residuals. Expected to be 3.0.
 
@@ -132,17 +132,17 @@ def taylor_to_dict(J, m, h):
             return ms.delist(ret)
 
         print("Running Taylor test")
-        error_dict = {"eps": None, "FD": {"Residual": [], "Rate": None},
-                      "dJdm": {"Residual": [], "Rate": None},
-                      "Hm": {"Residual": [], "Rate": None}}
+        error_dict = {"eps": None, "R0": {"Residual": [], "Rate": None},
+                      "R1": {"Residual": [], "Rate": None},
+                      "R2": {"Residual": [], "Rate": None}}
 
         epsilons = [0.01 / 2**i for i in range(4)]
         error_dict["eps"] = epsilons
         for eps in epsilons:
             Jp = J(perturbe(eps))
-            error_dict["FD"]["Residual"].append(abs(Jp - Jm))
-            error_dict["dJdm"]["Residual"].append(abs(Jp - Jm - eps * dJdm))
-            error_dict["Hm"]["Residual"].append(abs(Jp - Jm - eps * dJdm - 0.5 * eps**2 * Hmh))
+            error_dict["R0"]["Residual"].append(abs(Jp - Jm))
+            error_dict["R1"]["Residual"].append(abs(Jp - Jm - eps * dJdm))
+            error_dict["R2"]["Residual"].append(abs(Jp - Jm - eps * dJdm - 0.5 * eps**2 * Hmh))
 
         for key in error_dict.keys():
             if key != "eps":

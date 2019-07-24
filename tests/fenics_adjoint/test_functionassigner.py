@@ -43,9 +43,9 @@ def test_function_assigner_poisson():
         A = 1
         pert = project(A*Expression(("x[0]","cos(pi*x[1])"),degree=3), S)
         results = taylor_to_dict(Jhat, s_, pert)
-        assert min(results["FD"]["Rate"]) > 0.95
-        assert min(results["dJdm"]["Rate"]) > 1.95
-        assert min(results["Hm"]["Rate"]) > 2.95
+        assert min(results["R0"]["Rate"]) > 0.95
+        assert min(results["R1"]["Rate"]) > 1.95
+        assert min(results["R2"]["Rate"]) > 2.95
 
     tape = get_working_tape()
     tape.reset_tlm_values()
