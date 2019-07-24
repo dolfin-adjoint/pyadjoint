@@ -176,15 +176,16 @@ def test_float_exponentiation():
     # TODO: __rpow__ is not yet implemented
 
 
-@pytest.mark.parametrize("B", range(2,5))
-@pytest.mark.parametrize("E", [-2,-1,2,3])
-def test_pow_hessian(B, E):
+@pytest.mark.parametrize("B", [3,4])
+@pytest.mark.parametrize("E", [6,5])
+@pytest.mark.parametrize("f", ["b**e", "e**b"])
+def test_pow_hessian(B, E, f):
     # Testing issue 126
     set_working_tape(Tape())
     e = AdjFloat(E)
     b = AdjFloat(B)
-    f = b**e
+    f = eval(f)
     J = ReducedFunctional(f, Control(e))
-    results = taylor_to_dict(J, e, AdjFloat(1))
+    results = taylor_to_dict(J, e, AdjFloat(10))
     for (i, Ri) in enumerate(["R0","R1","R2"]):
         assert(min(results[Ri]["Rate"]) >= i + 0.95)
