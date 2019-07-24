@@ -14,13 +14,6 @@ if backend.__name__ == "firedrake":
 
     MeshType = backend.mesh.MeshGeometry
 
-    # FIXME: See issue #1372 in Firedrake
-    backend.Vector.__radd__ = lambda self, other: backend.Vector.__add__(self, other)
-
-    def __rsub__(self, other):
-        return -1.0 * self + other
-    backend.Vector.__rsub__ = __rsub__
-
     backend.functionspaceimpl.FunctionSpace._ad_parent_space = property(lambda self: self.parent)
 
     backend.functionspaceimpl.WithGeometry._ad_parent_space = property(lambda self: self.parent)
@@ -58,13 +51,13 @@ if backend.__name__ == "firedrake":
 
     # Most of this is to deal with Firedrake assembly returning
     # Function whereas Dolfin returns Vector.
-    def function_from_vector(V, vector):
+    def function_from_vector(V, vector, cls=backend.Function):
         """Create a new Function sharing data.
 
         :arg V: The function space
         :arg vector: The data to share.
         """
-        return backend.Function(V, val=vector)
+        return cls(V, val=vector)
 
     def inner(a, b):
         """Compute the l2 inner product of a and b.
@@ -198,7 +191,7 @@ else:
                                      bc.sub_domain, method=bc.method())
         return bc
 
-    def function_from_vector(V, vector):
+    def function_from_vector(V, vector, cls=backend.Function):
         """Create a new Function from a vector.
 
         :arg V: The function space
@@ -211,7 +204,7 @@ else:
             # If vector is a fenics_adjoint.Function, which does not inherit
             # backend.cpp.function.Function with pybind11
             vector = vector._cpp_object
-        r = backend.Function(V)
+        r = cls(V)
         r.vector()[:] = vector
         return r
 
@@ -253,10 +246,10 @@ else:
         """
         return value
 
-    def assemble_adjoint_value(form, **kwargs):
+    def assemble_adjoint_value(*args, **kwargs):
         """Wrapper that assembles a matrix with boundary conditions"""
         bcs = kwargs.pop("bcs", ())
-        result = backend.assemble(form)
+        result = backend.assemble(*args, **kwargs)
         for bc in bcs:
             bc.apply(result)
         return result
@@ -275,11 +268,13 @@ else:
 
         return arr
 
-    def linalg_solve(*args, **kwargs):
-        """Temporary workaround for kwargs not expected in fenics linalg,
-        but possible in firedrake.
+    def linalg_solve(A, x, b, *args, **kwargs):
+        """Linear system solve that has a firedrake compatible interface.
 
-        A better solution is expected in the future.
+        Throws away kwargs and uses b.vector() as RHS if
+        b is not a GenericVector instance.
 
         """
-        return backend.solve(*args)
+        if not isinstance(b, backend.GenericVector):
+            b = b.vector()
+        return backend.solve(A, x, b, *args)

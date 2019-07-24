@@ -142,8 +142,8 @@ def transfer_from_boundary(*args, **kwargs):
 class SurfaceTransferBlock(Block):
     def __init__(self, func, other):
         super(SurfaceTransferBlock, self).__init__()
-        self.add_dependency(func.block_variable)
-        self.add_dependency(func.function_space().mesh().block_variable)
+        self.add_dependency(func)
+        self.add_dependency(func.function_space().mesh())
 
     @no_annotations
     def evaluate_adj(self, markings=False):
@@ -209,8 +209,8 @@ def transfer_to_boundary(*args, **kwargs):
 class VolumeTransferBlock(Block):
     def __init__(self, func, other):
         super(VolumeTransferBlock, self).__init__()
-        self.add_dependency(func.block_variable)
-        self.add_dependency(func.function_space().mesh().block_variable)
+        self.add_dependency(func)
+        self.add_dependency(func.function_space().mesh())
 
     @no_annotations
     def evaluate_adj(self, markings=False):

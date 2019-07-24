@@ -20,7 +20,7 @@ class ReducedFunctional(object):
 
     """
 
-    def __init__(self, functional, controls, tape=None,
+    def __init__(self, functional, controls, scale=1.0, tape=None,
                  eval_cb_pre=lambda *args: None,
                  eval_cb_post=lambda *args: None,
                  derivative_cb_pre=lambda *args: None,
@@ -30,6 +30,7 @@ class ReducedFunctional(object):
         self.functional = functional
         self.tape = get_working_tape() if tape is None else tape
         self.controls = Enlist(controls)
+        self.scale = scale
         self.eval_cb_pre = eval_cb_pre
         self.eval_cb_post = eval_cb_post
         self.derivative_cb_pre = derivative_cb_pre
@@ -60,7 +61,8 @@ class ReducedFunctional(object):
         derivatives = compute_gradient(self.functional,
                                        self.controls,
                                        options=options,
-                                       tape=self.tape)
+                                       tape=self.tape,
+                                       adj_value=self.scale)
 
         # Call callback
         self.derivative_cb_post(self.functional.block_variable.checkpoint,
@@ -130,7 +132,7 @@ class ReducedFunctional(object):
             with stop_annotating():
                 self.tape.recompute()
 
-        func_value = self.functional.block_variable.checkpoint
+        func_value = self.scale * self.functional.block_variable.checkpoint
 
         # Call callback
         self.eval_cb_post(func_value, self.controls.delist(values))

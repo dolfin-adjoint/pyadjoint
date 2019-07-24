@@ -88,7 +88,7 @@ class DirichletBCBlock(Block):
             self.collapsed_space = self.function_space.collapse()
 
         if len(args) >= 2 and isinstance(args[1], OverloadedType):
-            self.add_dependency(args[1].block_variable)
+            self.add_dependency(args[1])
         else:
             # TODO: Implement the other cases.
             #       Probably just a BC without dependencies?

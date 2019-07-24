@@ -126,9 +126,10 @@ if __name__ == "__main__":
     J, T = main(ic, annotate=True)
 
     Jhat = ReducedFunctional(J, Control(ic))
-    from numpy.random import rand
+    from numpy.random import rand, seed
+    seed(21)
     p = Function(T.function_space())
-    p.vector()[:] = 250*rand(T.function_space().dim())
+    p.vector()[:] = 50*rand(T.function_space().dim())
     results = taylor_to_dict(Jhat, ic, p)
     print(results)
     assert min(results["dJdm"]["Rate"]) > 1.85

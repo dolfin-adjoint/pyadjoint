@@ -14,7 +14,7 @@ class NormaliseBlock(Block):
     def __init__(self, func, **kwargs):
         super(NormaliseBlock, self).__init__()
         self.kwargs = kwargs
-        self.add_dependency(func.block_variable)
+        self.add_dependency(func)
 
     def __str__(self):
         return 'NormaliseBlock'

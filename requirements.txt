@@ -1,7 +1,0 @@
-scipy
-pytest>=3.10
-sphinx
-sphinxcontrib-bibtex
-git+https://github.com/funsim/moola.git@master
-tensorflow
-flake8

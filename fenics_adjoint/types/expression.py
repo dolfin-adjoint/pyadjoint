@@ -168,7 +168,7 @@ class ExpressionBlock(Block):
         for key in expression._ad_attributes_dict:
             parameter = expression._ad_attributes_dict[key]
             if isinstance(parameter, OverloadedType):
-                self.add_dependency(parameter.block_variable)
+                self.add_dependency(parameter)
                 self.dependency_keys[parameter] = key
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):

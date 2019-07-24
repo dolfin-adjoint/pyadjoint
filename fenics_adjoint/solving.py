@@ -229,7 +229,9 @@ class SolveBlock(Block):
         self.function_space = self.func.function_space()
         if backend.__name__ != "firedrake":
             mesh = self.lhs.ufl_domain().ufl_cargo()
-            self.add_dependency(mesh.block_variable)
+        else:
+            mesh = self.lhs.ufl_domain()
+        self.add_dependency(mesh)
         self.form = None
         self.replaced_form = None
         self.trial = None
@@ -297,15 +299,15 @@ class SolveBlock(Block):
             self.linear = True
             # Add dependence on coefficients on the right hand side.
             for c in self.rhs.coefficients():
-                self.add_dependency(c.block_variable, no_duplicates=True)
+                self.add_dependency(c, no_duplicates=True)
         else:
             self.linear = False
 
         for bc in self.bcs:
-            self.add_dependency(bc.block_variable, no_duplicates=True)
+            self.add_dependency(bc, no_duplicates=True)
 
         for c in self.lhs.coefficients():
-            self.add_dependency(c.block_variable, no_duplicates=True)
+            self.add_dependency(c, no_duplicates=True)
 
     def _create_F_form(self):
         if self.replaced_form is None:
@@ -370,13 +372,12 @@ class SolveBlock(Block):
 
     def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu):
         dJdu_copy = dJdu.copy()
-
         kwargs = self.assemble_kwargs.copy()
+        # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
         bcs = self._homogenize_bcs()
         kwargs["bcs"] = bcs
         dFdu = compat.assemble_adjoint_value(dFdu_form, **kwargs)
 
-        # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
         for bc in bcs:
             bc.apply(dJdu)
 
@@ -480,7 +481,7 @@ class SolveBlock(Block):
             v = dFdu.arguments()[0]
             dFdm = backend.inner(backend.Constant(numpy.zeros(v.ufl_shape)), v) * backend.dx
 
-        dFdm = backend.assemble(dFdm) + dFdm_shape
+        dFdm = compat.assemble_adjoint_value(dFdm) + dFdm_shape
         dudm = backend.Function(V)
         return self._assemble_and_solve_tlm_eq(compat.assemble_adjoint_value(dFdu, bcs=bcs), dFdm, dudm, bcs)
 
@@ -502,7 +503,7 @@ class SolveBlock(Block):
 
             if isinstance(c, compat.MeshType):
                 X = backend.SpatialCoordinate(c)
-                dFdu_adj = dFdu_form.action(adj_sol)
+                dFdu_adj = dFdu_form.adjoint().action(adj_sol)
                 d2Fdudm = dFdu_adj.derivative(X, tlm_input)
                 if len(d2Fdudm.integrals()) > 0:
                     b -= compat.assemble_adjoint_value(d2Fdudm)
@@ -518,6 +519,7 @@ class SolveBlock(Block):
 
     def _assemble_and_solve_soa_eq(self, dFdu_form, adj_sol, hessian_input, d2Fdu2):
         b = self._assemble_soa_eq_rhs(dFdu_form, adj_sol, hessian_input, d2Fdu2)
+        dFdu_form = backend.adjoint(dFdu_form)
         adj_sol2, adj_sol2_bdy = self._assemble_and_solve_adj_eq(dFdu_form, b)
         if self.adj2_cb is not None:
             self.adj2_cb(adj_sol2)
@@ -543,7 +545,6 @@ class SolveBlock(Block):
         dFdu_form = F_form.derivative(self.trial)
         d2Fdu2 = dFdu_form.derivative(self.trial, tlm_output)
 
-        dFdu_form = dFdu_form.adjoint()
         adj_sol = self.adj_sol
         if adj_sol is None:
             raise RuntimeError("Hessian computation was run before adjoint.")

@@ -35,5 +35,8 @@ class Function(function.Function):
                                 enumerate(zip(self.function_space(), self.dat)))
         return self._split
 
+    def _ad_create_checkpoint(self):
+        return self.copy(deepcopy=True)
+
 
 register_overloaded_type(Function, backend.Function)

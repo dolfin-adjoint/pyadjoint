@@ -297,7 +297,7 @@ def test_burgers():
     def Dt(u, u_, timestep):
         return (u - u_)/timestep
 
-    pr = project(Expression("sin(2*pi*x[0])", degree=1, annotate=False), V, annotate=False)
+    pr = project(Expression("x[0]*sin(2*pi*x[0])", degree=1, annotate=False), V, annotate=False)
     ic = Function(V)
     ic.vector()[:] = pr.vector()[:]
 
@@ -332,7 +332,7 @@ def test_burgers():
 
     Jhat = ReducedFunctional(J, Control(ic))
     h = Function(V)
-    h.vector()[:] = 1 #rand(V.dim())
+    h.vector()[:] = 0.1*rand(V.dim())
     g = ic.copy(deepcopy=True)
     J.adj_value = 1.0
     ic.tlm_value = h
@@ -341,12 +341,41 @@ def test_burgers():
 
     J.block_variable.hessian_value = 0
     tape.evaluate_hessian()
+    r =taylor_to_dict(Jhat, g,h)
+    assert min(r["FD"]["Rate"]) > 0.95
+    assert min(r["dJdm"]["Rate"]) > 1.95
+    assert min(r["Hm"]["Rate"]) > 2.90
 
-    dJdm = J.block_variable.tlm_value
-    Hm = ic.original_block_variable.hessian_value.inner(h.vector())
-    assert(taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9)
+def test_advection_diffusion():
+    mesh = UnitSquareMesh(10,10)
+    V = FunctionSpace(mesh, "CG", 1)
+    u, v = TrialFunction(V), TestFunction(V)
+    x, y = SpatialCoordinate(mesh)
+    u_init = project(cos(2*pi*x)*cos(2*pi*y), V)
+    S = VectorFunctionSpace(mesh, "CG", 1)
+    dt_c = Constant(0.1, name="dt")
+    s = project(as_vector((dt_c*y, dt_c*x**2)), S)
 
-# Temporary mixed controls taylor test until pyadjoint natively supports it.
+    alpha = Constant(0.01)
+
+    F = inner((u - u_init)/dt_c, v)*dx \
+        + alpha*inner(grad(u), grad(v))*dx\
+        +inner(1/dt_c*s*u, grad(v))*dx\
+
+    u_next = Function(V)
+    solve(lhs(F) == rhs(F), u_next)
+    J = assemble(inner(grad(u_next),grad(u_next))*dx)
+
+    Jhat = ReducedFunctional(J, Control(s))
+    from pyadjoint import stop_annotating
+    with stop_annotating():
+        p = project(as_vector((dt_c*sin(x), dt_c*cos(y))), S)
+        r = taylor_to_dict(Jhat, s, p)
+    assert min(r["FD"]["Rate"]) > 0.9
+    assert min(r["dJdm"]["Rate"]) > 1.9
+    assert min(r["Hm"]["Rate"]) > 2.9
+
+# Mixed controls taylor test
 def conv_mixed(J, f, g, m_1, m_2, h_1, h_2, dJdm, Hm):
     tape = get_working_tape()
     def J_eval(m_1, m_2):

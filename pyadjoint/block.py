@@ -1,4 +1,5 @@
 from .tape import no_annotations
+from html import escape
 
 
 class Block(object):
@@ -41,14 +42,14 @@ class Block(object):
         BlockVariable was not created by a Block (but by the user).
 
         Args:
-            dep (BlockVariable): The object to be added.
+            dep (OverloadedType): The object to be added.
             no_duplicates (bool, optional): If True, the dependency is only added if it is not already in the list.
                 Default is False.
 
         """
-        if not no_duplicates or dep not in self._dependencies:
-            dep.will_add_as_dependency()
-            self._dependencies.append(dep)
+        if not no_duplicates or dep.block_variable not in self._dependencies:
+            dep._ad_will_add_as_dependency()
+            self._dependencies.append(dep.block_variable)
 
     def get_dependencies(self):
         """Returns the list of dependencies.
@@ -387,3 +388,28 @@ class Block(object):
 
         """
         raise NotImplementedError
+
+    def create_graph(self, G, pos):
+        # Edges for block dependencies
+        for xpos, dep in enumerate(self.get_dependencies()):
+            G.add_edge(id(dep), id(self))
+            if "label" not in G.node[id(dep)]:
+                G.node[id(dep)]['label'] = escape(str(dep))
+                G.node[id(dep)]['node_color'] = "r"
+                G.node[id(dep)]['position'] = (0.1 * xpos, -pos + 0.5)
+
+        # Edges for block outputs
+        for xpos, out in enumerate(self.get_outputs()):
+            G.add_edge(id(self), id(out))
+            if "label" not in G.node[id(out)]:
+                G.node[id(out)]['label'] = escape(str(out))
+                G.node[id(out)]['node_color'] = "r"
+                G.node[id(out)]['position'] = (0.1 * xpos, -pos - 0.5)
+
+        # Set properties for Block node
+        G.node[id(self)]['label'] = escape(str(self))
+        G.node[id(self)]['node_color'] = "b"
+        G.node[id(self)]['position'] = (0, -pos)
+        G.node[id(self)]['shape'] = "box"
+        G.node[id(self)]['style'] = "filled"
+        G.node[id(self)]['fillcolor'] = "lightgrey"

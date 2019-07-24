@@ -8,7 +8,8 @@ About
 
 The dolfin-adjoint project automatically **derives the discrete
 adjoint and tangent linear models** from a forward model written in
-the Python interface to `DOLFIN <http://fenicsproject.org>`__.
+the Python interface to `FEniCS <http://fenicsproject.org>`__ and 
+`Firedrake <http://firedrakeproject.org>`__.
 
 These adjoint and tangent linear models are key ingredients in many
 important algorithms, such as data assimilation, optimal control,
@@ -24,13 +25,19 @@ implementation. In `his recent book`_, Naumann (2011) states that
  Scientific Computing**.
 
 **The dolfin-adjoint project aims to solve this problem** for the case
-where the model is implemented in the Python interface to DOLFIN.
+where the model is implemented in the Python interface to FEniCS/Firedrake.
 
 .. _his recent book: http://dx.doi.org/10.1137/1.9781611972078
 
 
 News
 ====
+**27.05.2019**: dolfin-adjoint 2019.1 released (compatible with FEniCS 2019.1) `ChangeLog.rst`_.
+
+**20.03.2019**: Firedrake docker images with dolfin-adjoint preinstalled are :doc:`now available<download/index>`
+
+**18.02.2019**: New example demonstrating the shape-optimisation capabilities of dolfin-adjoint :doc:`now available<../documentation/stokes-shape-opt/stokes_problem>`
+
 **05.10.2018**: dolfin-adjoint 2018.1 released (compatible with FEniCS 2018.1) `ChangeLog.rst`_.
 
 **08.01.2018**: dolfin-adjoint/pyadjoint 2017.2 released (compatible with FEniCS 2017.2) (this website)
@@ -88,9 +95,11 @@ Limitations
 To do all this, dolfin-adjoint requires some cooperation from the
 model developer:
 
-- Works only with the Python interface of DOLFIN.
+- Works only with the **Python** interface of FEniCS and Firedrake.
 - For the adjoint to be consistent, the discretisation must be differentiable.
-- All changes to object values (matrices, vectors, functions) must happen through the DOLFIN interface.
+- All changes to object values (matrices, vectors, functions) must happen
+  through the FEniCS/Firedrake interface, though custom operations can be 
+  recorded manually.
 
 
 How it works
@@ -125,7 +134,8 @@ Contributors
 The dolfin-adjoint project is developed and maintained by the
 following authors:
 
-- Sebastian Mitusch (Simula Research Laboratory)
+- `Sebastian Mitusch <https://www.simula.no/people/sebastkm>`__ (Simula Research Laboratory)
+- `Jørgen S. Dokken <https://www.simula.no/people/dokken>`__ (Simula Research Laboratory)
 - `Patrick E. Farrell <http://pefarrell.org>`__ (Mathematical Institute, University of Oxford)
 - `Simon W. Funke <http://simonfunke.com>`__ (Simula Research Laboratory)
 - `David A. Ham <http://www.ic.ac.uk/people/david.ham>`__ (Department of Mathematics and Department of Computing, Imperial College London)

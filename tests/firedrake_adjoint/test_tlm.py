@@ -205,46 +205,6 @@ def test_burgers():
     assert (taylor_test(Jhat, g, h, dJdm=J.block_variable.tlm_value) > 1.9)
 
 
-@pytest.mark.xfail(reason="Expression annotation not yet done")
-def test_expression():
-    tape = Tape()
-    set_working_tape(tape)
-    mesh = IntervalMesh(10, 0, 1)
-    V = FunctionSpace(mesh, "CG", 1)
-
-    a = Function(V)
-    a.vector()[:] = 1
-    f = Expression("t*a", a=a, t=0.1, degree=1)
-    f_deriv = Expression("t", t=0.1, degree=1)
-    f.user_defined_derivatives = {a: f_deriv}
-    c = Function(V)
-    c.vector()[:] = 1
-    bc = DirichletBC(V, c, "on_boundary")
-
-    u = Function(V)
-    v = TestFunction(V)
-
-    F = inner(grad(u), grad(v))*dx - f*v*dx
-
-    t = 0.1
-    dt = 0.1
-    T = 0.3
-    while t <= T:
-        solve(F == 0, u, bc)
-        t += dt
-        f.t = t
-
-    J = assemble(u**2*dx)
-
-    Jhat = ReducedFunctional(J, Control(a))
-    h = Function(V)
-    h.vector()[:] = rand(V.dim())
-    g = a.copy(deepcopy=True)
-    a.tlm_value = h
-    tape.evaluate_tlm()
-    assert (taylor_test(Jhat, g, h, dJdm=J.block_variable.tlm_value) > 1.9)
-
-
 def test_projection():
     tape = Tape()
     set_working_tape(tape)

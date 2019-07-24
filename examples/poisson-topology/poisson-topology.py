@@ -156,23 +156,23 @@ if __name__ == "__main__":
     a = interpolate(V, A)  # initial guess.
     T = forward(a)  # solve the forward problem once.
 
-    # With the forward problem solved once, :py:mod:`dolfin_adjoint` has
-    # built a *tape* of the forward model; it will use this tape to drive
-    # the optimisation, by repeatedly solving the forward model and the
-    # adjoint model for varying control inputs.
+# With the forward problem solved once, :py:mod:`dolfin_adjoint` has
+# built a *tape* of the forward model; it will use this tape to drive
+# the optimisation, by repeatedly solving the forward model and the
+# adjoint model for varying control inputs.
 
-    # A common task when solving optimisation problems is to implement a
-    # callback that gets executed at every functional evaluation. (For
-    # example, this might be to record the value of the functional so that
-    # it can be plotted as a function of iteration, or to record statistics
-    # about the controls suggested by the optimisation algorithm.) The
-    # following callback outputs each evaluation to VTK format, for
-    # visualisation in paraview. Note that the callback will output each
-    # *evaluation*; this means that it will be called more often than the
-    # number of iterations the optimisation algorithm reports, due to line
-    # searches. It is also possible to implement :doc:`callbacks that are
-    # executed on every functional derivative calculation
-    # <../../documentation/optimisation>`.
+# A common task when solving optimisation problems is to implement a
+# callback that gets executed at every functional evaluation. (For
+# example, this might be to record the value of the functional so that
+# it can be plotted as a function of iteration, or to record statistics
+# about the controls suggested by the optimisation algorithm.) The
+# following callback outputs each evaluation to VTK format, for
+# visualisation in paraview. Note that the callback will output each
+# *evaluation*; this means that it will be called more often than the
+# number of iterations the optimisation algorithm reports, due to line
+# searches. It is also possible to implement :doc:`callbacks that are
+# executed on every functional derivative calculation
+# <../../documentation/optimisation>`.
 
     controls = File("output/control_iterations.pvd")
     a_viz = Function(A, name="ControlVisualisation")
@@ -182,39 +182,37 @@ if __name__ == "__main__":
         a_viz.assign(a)
         controls << a_viz
 
-
-    # Now we define the functional, compliance with a weak regularisation
-    # term on the gradient of the material
+# Now we define the functional, compliance with a weak regularisation
+# term on the gradient of the material
 
     J = assemble(f * T * dx + alpha * inner(grad(a), grad(a)) * dx)
     m = Control(a)
     Jhat = ReducedFunctional(J, m, eval_cb_post=eval_cb)
 
-    # This :py:class:`ReducedFunctional` object solves the forward PDE using
-    # dolfin-adjoint's tape each time the functional is to be evaluated, and
-    # derives and solves the adjoint equation each time the functional
-    # gradient is to be evaluated. The :py:class:`ReducedFunctional` object
-    # takes in high-level Dolfin objects (i.e. the input to the evaluation
-    # ``Jhat(a)`` would be a :py:class:`dolfin.Function`).
+# This :py:class:`ReducedFunctional` object solves the forward PDE using
+# dolfin-adjoint's tape each time the functional is to be evaluated, and
+# derives and solves the adjoint equation each time the functional
+# gradient is to be evaluated. The :py:class:`ReducedFunctional` object
+# takes in high-level Dolfin objects (i.e. the input to the evaluation
+# ``Jhat(a)`` would be a :py:class:`dolfin.Function`).
 
-    # Now let us configure the control constraints. The bound constraints
-    # are easy:
+# Now let us configure the control constraints. The bound constraints
+# are easy:
 
     lb = 0.0
     ub = 1.0
 
-
-    # The volume constraint involves a little bit more work. Following
-    # :cite:`nocedal2006`, inequality constraints are represented as
-    # (possibly vector) functions :math:`g` defined such that :math:`g(a)
-    # \ge 0`. The constraint is implemented by subclassing the
-    # :py:class:`InequalityConstraint` class. (To implement equality
-    # constraints, see the documentation for
-    # :py:class:`EqualityConstraint`.)  In this case, our :math:`g(a) = V -
-    # \int_{\Omega} a`. In order to implement the constraint, we have to
-    # implement three methods: one to compute the constraint value, one to
-    # compute its Jacobian, and one to return the number of components in
-    # the constraint.
+# The volume constraint involves a little bit more work. Following
+# :cite:`nocedal2006`, inequality constraints are represented as
+# (possibly vector) functions :math:`g` defined such that :math:`g(a)
+# \ge 0`. The constraint is implemented by subclassing the
+# :py:class:`InequalityConstraint` class. (To implement equality
+# constraints, see the documentation for
+# :py:class:`EqualityConstraint`.)  In this case, our :math:`g(a) = V -
+# \int_{\Omega} a`. In order to implement the constraint, we have to
+# implement three methods: one to compute the constraint value, one to
+# compute its Jacobian, and one to return the number of components in
+# the constraint.
 
     class VolumeConstraint(InequalityConstraint):
         """A class that enforces the volume constraint g(a) = V - a*dx >= 0."""
@@ -222,10 +220,10 @@ if __name__ == "__main__":
         def __init__(self, V):
             self.V = float(V)
 
-            # The derivative of the constraint g(x) is constant (it is the
-            # diagonal of the lumped mass matrix for the control function space),
-            # so let's assemble it here once.  This is also useful in rapidly
-            # calculating the integral each time without re-assembling.
+# The derivative of the constraint g(x) is constant (it is the
+# diagonal of the lumped mass matrix for the control function space),
+# so let's assemble it here once.  This is also useful in rapidly
+# calculating the integral each time without re-assembling.
 
             self.smass = assemble(TestFunction(A) * Constant(1) * dx)
             self.tmpvec = Function(A)
@@ -234,7 +232,7 @@ if __name__ == "__main__":
             from pyadjoint.reduced_functional_numpy import set_local
             set_local(self.tmpvec, m)
 
-            # Compute the integral of the control over the domain
+# Compute the integral of the control over the domain
 
             integral = self.smass.inner(self.tmpvec.vector())
             if MPI.rank(MPI.comm_world) == 0:
@@ -252,10 +250,10 @@ if __name__ == "__main__":
             return 1
 
 
-    # Now that all the ingredients are in place, we can perform the
-    # optimisation.  The :py:class:`MinimizationProblem` class
-    # represents the optimisation problem to be solved. We instantiate
-    # this and pass it to :py:mod:`pyipopt` to solve:
+# Now that all the ingredients are in place, we can perform the
+# optimisation.  The :py:class:`MinimizationProblem` class
+# represents the optimisation problem to be solved. We instantiate
+# this and pass it to :py:mod:`pyipopt` to solve:
 
     problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=VolumeConstraint(V))
 

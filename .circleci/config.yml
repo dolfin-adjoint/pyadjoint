@@ -4,7 +4,7 @@
 #
 version: 2
 jobs:
-  build:
+  test-fenics:
     docker:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
@@ -12,7 +12,7 @@ jobs:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
       # - image: quay.io/fenicsproject/stable:latest
-      
+
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
       # documented at https://circleci.com/docs/2.0/circleci-images/
@@ -26,19 +26,24 @@ jobs:
       # Download and cache dependencies
       - restore_cache:
           keys:
-          - v2-dependencies-{{ checksum "requirements.txt" }}
+          - v2-dependencies-{{ checksum "setup.py" }}
           # fallback to using the latest cache if no exact match is found
           - v2-dependencies-
 
       - run:
           name: install dependencies
           command: |
-            pip3 install -r requirements.txt
+            apt-get update
+            apt-get install -y  python-dev graphviz libgraphviz-dev pkg-config patchelf
+            pip3 install -e .[all]
+            pip3 install roltrilinos ROL
+            pip3 install protobuf==3.7.1
+            pip3 install --upgrade numpy
 
       - save_cache:
           paths:
             - ./venv
-          key: v2-dependencies-{{ checksum "requirements.txt" }}
+          key: v2-dependencies-{{ checksum "setup.py" }}
 
       - restore_cache:
           keys:
@@ -48,9 +53,9 @@ jobs:
       - run:
           name: Run tests
           command: |
-            cp tests/fenics_adjoint/*.xdmf .
-            cp tests/fenics_adjoint/*.h5 .
-            python3 -m pytest -v tests/fenics_adjoint/
+            coverage run --source=fenics_adjoint,pyadjoint -m pytest tests/fenics_adjoint/ tests/pyadjoint/
+            coverage report
+            coverage html
 
       - run:
           name: Flake8 tests
@@ -66,5 +71,58 @@ jobs:
       - store_artifacts:
           path: test-reports
           destination: test-reports
-          
 
+      - store_artifacts:
+          path: htmlcov
+
+  test-firedrake:
+    docker:
+      - image: firedrakeproject/firedrake:latest
+
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - v2-dependencies-{{ checksum "setup.py" }}
+            # fallback to using the latest cache if no exact match is found
+            - v2-dependencies-
+
+      - run:
+          name: install dependencies
+          command: |
+            source /home/firedrake/firedrake/bin/activate
+            pip3 install -e .[test]
+
+      - save_cache:
+          paths:
+            - ./venv
+          key: v2-dependencies-{{ checksum "setup.py" }}
+
+      # run tests!
+      - run:
+          name: Run tests
+          command: |
+            source /home/firedrake/firedrake/bin/activate
+            coverage run --source=firedrake_adjoint,pyadjoint -m pytest tests/firedrake_adjoint/ tests/pyadjoint/
+            coverage report
+            coverage html
+
+      - store_artifacts:
+          path: test-reports
+          destination: test-reports
+
+      - store_artifacts:
+          path: htmlcov
+
+
+workflows:
+  version: 2
+  all:
+    jobs:
+      - test-fenics
+      - test-firedrake

@@ -20,6 +20,7 @@ COPY dolfin-adjoint.conf $FENICS_HOME/dolfin-adjoint.conf
 USER root
 RUN apt-get -qq update && \
     apt-get -y install libjsoncpp-dev && \
+    apt-get -y install python-dev graphviz libgraphviz-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 RUN /bin/bash -l -c "pip3 install git+git://github.com/funsim/moola.git@${MOOLA_BRANCH}"
@@ -27,8 +28,7 @@ RUN /bin/bash -l -c "pip3 install git+https://bitbucket.org/dolfin-adjoint/pyadj
 RUN /bin/bash -l -c "pip3 install --ignore-installed scipy"
 RUN /bin/bash -l -c "source $FENICS_HOME/dolfin-adjoint.conf && \
                      update_ipopt && \
-                     update_pyipopt && \
-                     clean_up"
+                     update_pyipopt"
 
 USER fenics
 COPY WELCOME $FENICS_HOME/WELCOME
