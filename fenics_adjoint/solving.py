@@ -90,7 +90,7 @@ class UFLFormCoefficient(ufl.coefficient.Coefficient):
         return self.v / other
 
 
-class UFLSubForm(object):
+class UFLForm(object):
     def __init__(self, form, coefficient_map):
         self.form = form
         self.subforms = {}
@@ -111,7 +111,7 @@ class UFLSubForm(object):
                 mapped_coefficient = self.coefficient_map[coefficient]
             else:
                 mapped_coefficient = coefficient
-            subform[i] = (UFLSubForm(ufl.algorithms.expand_derivatives(
+            subform[i] = (UFLForm(ufl.algorithms.expand_derivatives(
                 backend.derivative(self.form, mapped_coefficient, placeholder)),
                                      self.coefficient_map),
                           placeholder)
@@ -124,7 +124,7 @@ class UFLSubForm(object):
     def adjoint(self):
         subforms = self.subforms
         if "__adjoint__" not in subforms:
-            subforms["__adjoint__"] = UFLSubForm(backend.adjoint(self.form),
+            subforms["__adjoint__"] = UFLForm(backend.adjoint(self.form),
                                                  self.coefficient_map)
         return subforms["__adjoint__"]
 
@@ -132,7 +132,7 @@ class UFLSubForm(object):
         subforms = self.subforms
         if "__action__" not in subforms:
             placeholder = UFLFormCoefficient(coefficient)
-            subforms["__action__"] = (UFLSubForm(backend.action(self.form, placeholder),
+            subforms["__action__"] = (UFLForm(backend.action(self.form, placeholder),
                                                  self.coefficient_map),
                                       placeholder)
         subform, placeholder = subforms["__action__"]
@@ -149,7 +149,7 @@ class UFLSubForm(object):
     def replace_with_argument(self, coeff, argument):
         subforms = self.subforms
         if "__replace_with_argument__" not in subforms:
-            subforms["__replace_with_argument__"] = UFLSubForm(ufl.replace(self.form,
+            subforms["__replace_with_argument__"] = UFLForm(ufl.replace(self.form,
                                                                                {
                                                                                    self.coefficient_map[coeff]:
                                                                                        argument
@@ -160,13 +160,13 @@ class UFLSubForm(object):
     def lhs(self):
         subforms = self.subforms
         if "__lhs__" not in subforms:
-            subforms["__lhs__"] = UFLSubForm(backend.lhs(self.form), self.coefficient_map)
+            subforms["__lhs__"] = UFLForm(backend.lhs(self.form), self.coefficient_map)
         return subforms["__lhs__"]
 
     def rhs(self):
         subforms = self.subforms
         if "__rhs__" not in subforms:
-            subforms["__rhs__"] = UFLSubForm(backend.rhs(self.form), self.coefficient_map)
+            subforms["__rhs__"] = UFLForm(backend.rhs(self.form), self.coefficient_map)
         return subforms["__rhs__"]
 
     def __getattr__(self, item):
@@ -185,32 +185,30 @@ class UFLSubForm(object):
     def __neg__(self):
         subforms = self.subforms
         if "__neg__" not in subforms:
-            subforms["__neg__"] = UFLSubForm(-self.form, self.coefficient_map)
+            subforms["__neg__"] = UFLForm(-self.form, self.coefficient_map)
         return subforms["__neg__"]
 
     def __eq__(self, other):
         return self.form == other
 
     def __add__(self, other):
-        return UFLSubForm(self.form + other, self.coefficient_map)
+        return UFLForm(self.form + other, self.coefficient_map)
 
     def __radd__(self, other):
         return self.__add__(other)
-
-
-class UFLForm(UFLSubForm):
-    def __init__(self, form, coefficient_map):
-        placeholder_coeff_map = {}
-        for coefficient in coefficient_map:
-            placeholder_coeff_map[coefficient] = UFLFormCoefficient(coefficient_map[coefficient])
-        form = ufl.replace(form, placeholder_coeff_map)
-        self.cached_forms = {}
-        super().__init__(form, placeholder_coeff_map)
 
     def replace_variables(self):
         for variable in self.variables:
             coefficient = variable.output
             self.coefficient_map[coefficient].v = variable.saved_output
+
+    @staticmethod
+    def create(form, coefficient_map):
+        placeholder_coeff_map = {}
+        for coefficient in coefficient_map:
+            placeholder_coeff_map[coefficient] = UFLFormCoefficient(coefficient_map[coefficient])
+        form = ufl.replace(form, placeholder_coeff_map)
+        return UFLForm(form, placeholder_coeff_map)
 
 
 class SolveBlock(Block):
@@ -324,7 +322,7 @@ class SolveBlock(Block):
             self.trial = tmp_u
             replace_map = self._replace_map()
             replace_map[tmp_u] = self.get_outputs()[0].saved_output
-            self.replaced_form = UFLForm(F_form, replace_map)
+            self.replaced_form = UFLForm.create(F_form, replace_map)
         else:
             replace_map = self._replace_map()
             replace_map[self.trial] = self.get_outputs()[0].saved_output
