@@ -4,6 +4,7 @@ from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
 from pyadjoint.block import Block
 from pyadjoint.overloaded_type import create_overloaded_object
 from .types import compat
+from .formmanipulations import UFLForm, UFLFormCoefficient
 
 
 def assemble(*args, **kwargs):
@@ -72,20 +73,37 @@ class AssembleBlock(Block):
         self.add_dependency(mesh)
         for c in self.form.coefficients():
             self.add_dependency(c, no_duplicates=True)
+        self._ufl_form = None
 
     def __str__(self):
         return str(self.form)
 
-    def prepare_evaluate_adj(self, inputs, adj_inputs, relevant_dependencies):
+    @property
+    def ufl_form(self):
+        if self._ufl_form is None:
+            self._ufl_form = self.create_ufl_form()
+        return self._ufl_form
+
+    def create_ufl_form(self):
+        replaced_coeffs = self.replace_map()
+        return UFLForm.create(self.form, replaced_coeffs)
+
+    def replace_map(self):
         replaced_coeffs = {}
         for block_variable in self.get_dependencies():
             coeff = block_variable.output
             c_rep = block_variable.saved_output
             if coeff in self.form.coefficients():
                 replaced_coeffs[coeff] = c_rep
+        return replaced_coeffs
 
-        form = ufl.replace(self.form, replaced_coeffs)
-        return form
+    def replaced_form(self):
+        replaced_coeffs = self.replace_map()
+        self.ufl_form.replace(replaced_coeffs)
+        return self.ufl_form
+
+    def prepare_evaluate_adj(self, inputs, adj_inputs, relevant_dependencies):
+        return self.replaced_form()
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         form = prepared
@@ -100,12 +118,12 @@ class AssembleBlock(Block):
             V = c._ad_function_space(mesh)
             dc = backend.TestFunction(V)
 
-            dform = backend.derivative(form, c_rep, dc)
+            dform = form.derivative(c, dc)
             output = compat.assemble_adjoint_value(dform)
             return [[adj_input * output, V]]
         elif isinstance(c, compat.MeshType):
             X = backend.SpatialCoordinate(c_rep)
-            dform = backend.derivative(form, X)
+            dform = form.derivative(X)
             output = compat.assemble_adjoint_value(dform)
             return adj_input * output
 
@@ -115,18 +133,19 @@ class AssembleBlock(Block):
             mesh = compat.extract_mesh_from_form(self.form)
             dc = backend.TestFunction(c._ad_function_space(mesh))
 
-        dform = backend.derivative(form, c_rep, dc)
+        dform = form.derivative(c, dc)
         output = compat.assemble_adjoint_value(dform)
         return adj_input * output
 
     def prepare_evaluate_tlm(self, inputs, tlm_inputs, relevant_outputs):
-        return self.prepare_evaluate_adj(inputs, tlm_inputs, self.get_dependencies())
+        return self.replaced_form()
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
         form = prepared
         dform = 0.
         dform_shape = 0.
         for bv in self.get_dependencies():
+            c = bv.output
             c_rep = bv.saved_output
             tlm_value = bv.tlm_value
 
@@ -135,15 +154,15 @@ class AssembleBlock(Block):
             if isinstance(c_rep, compat.MeshType):
                 X = backend.SpatialCoordinate(c_rep)
                 dform_shape += compat.assemble_adjoint_value(
-                    backend.derivative(form, X, tlm_value))
+                    form.derivative(X, tlm_value))
             else:
-                dform += backend.derivative(form, c_rep, tlm_value)
+                dform += form.derivative(c, tlm_value)
         if not isinstance(dform, float):
             dform = compat.assemble_adjoint_value(dform)
         return dform + dform_shape
 
     def prepare_evaluate_hessian(self, inputs, hessian_inputs, adj_inputs, relevant_dependencies):
-        return self.prepare_evaluate_adj(inputs, adj_inputs, relevant_dependencies)
+        return self.replaced_form()
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
@@ -170,12 +189,13 @@ class AssembleBlock(Block):
 
         if isinstance(c1, compat.MeshType):
             X = backend.SpatialCoordinate(c1)
-            dform = backend.derivative(form, X)
+            dform = form.derivative(X)
         else:
-            dform = backend.derivative(form, c1_rep, dc)
+            dform = form.derivative(c1, dc)
         hessian_outputs = hessian_input * compat.assemble_adjoint_value(dform)
 
         for other_idx, bv in relevant_dependencies:
+            c2 = bv.output
             c2_rep = bv.saved_output
             tlm_input = bv.tlm_value
 
@@ -184,10 +204,12 @@ class AssembleBlock(Block):
 
             if isinstance(c2_rep, compat.MeshType):
                 X = backend.SpatialCoordinate(c2_rep)
-                ddform = backend.derivative(dform, X, tlm_input)
+                ddform = dform.derivative(X, tlm_input)
             else:
-                ddform = backend.derivative(dform, c2_rep, tlm_input)
-            hessian_outputs += adj_input * compat.assemble_adjoint_value(ddform)
+                ddform = dform.derivative(c2, tlm_input)
+
+            if not ddform.empty():
+                hessian_outputs += adj_input * compat.assemble_adjoint_value(ddform)
 
         if isinstance(c1, compat.ExpressionType):
             return [(hessian_outputs, W)]
@@ -195,7 +217,7 @@ class AssembleBlock(Block):
             return hessian_outputs
 
     def prepare_recompute_component(self, inputs, relevant_outputs):
-        return self.prepare_evaluate_adj(inputs, None, None)
+        return self.replaced_form()
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
         form = prepared
