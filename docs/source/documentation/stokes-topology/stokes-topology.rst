@@ -87,9 +87,9 @@ optimisation algorithm.
 ::
 
   try:
-      import pyipopt
+      import ipyopt
   except ImportError:
-      print("""This example depends on IPOPT and pyipopt. \
+      print("""This example depends on IPOPT and ipyopt. \
     When compiling IPOPT, make sure to link against HSL, as it \
     is a necessity for practical problems.""")
       raise
