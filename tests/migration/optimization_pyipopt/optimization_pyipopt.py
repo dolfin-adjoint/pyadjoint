@@ -8,9 +8,9 @@ from fenics_adjoint import *
 import numpy
 
 try:
-    import pyipopt
+    from pyadjoint import ipopt  # noqa
 except ImportError:
-    print("pyipopt bindings unavailable, skipping test")
+    print("ipopt bindings unavailable, skipping test")
     sys.exit(0)
 
 set_log_level(LogLevel.ERROR)

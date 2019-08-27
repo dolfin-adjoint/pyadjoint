@@ -72,7 +72,7 @@ PETScOptions.set("pc_gamg_agg_nsmooths", 1)
 # optimisation algorithm.
 
 try:
-    import pyipopt
+    from pyadjoint import ipopt
 except ImportError:
     from ufl.log import info_red
 

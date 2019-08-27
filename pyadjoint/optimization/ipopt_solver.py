@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+from functools import partial
+
 import numpy
 
 from . import constraints
@@ -24,11 +26,10 @@ class IPOPTSolver(OptimizationSolver):
         """Build the pyipopt problem from the OptimizationProblem instance."""
 
         try:
-            import pyipopt
+            from .. import ipopt as pyipopt
         except ImportError:
-            print("You need to install pyipopt. It is recommended to install IPOPT with HSL support!")
+            print("You need to install ipyopt or pyipopt. It is recommended to install IPOPT with HSL support!")
             raise
-        from functools import partial
 
         self.rfn = ReducedFunctionalNumPy(self.problem.reduced_functional)
         ncontrols = len(self.rfn.get_controls())
