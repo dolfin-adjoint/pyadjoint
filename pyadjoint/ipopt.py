@@ -1,17 +1,13 @@
 """
-Compatibility layer for pyipopt and its currently-maintained fork ipyopt
+Compatibility layer for ipopt wrappers
+Currently only cyipopt is supported
 
 Repos:
 
-- https://github.com/xuy/pyipopt
-- https://github.com/g-braeunlich/IPyOpt
+- https://github.com/matthias-k/cyipopt
 """
 
 try:
-    from pyipopt import *  # noqa
+    import cyipopt  # noqa: F401
 except ImportError:
-    # fallback on ipyopt fork
-    try:
-        from ipyopt import *  # noqa
-    except ImportError:
-        raise ImportError("pyadjoint ipopt support requires pyipopt or ipyopt")
+    raise ImportError("You need to install cyipopt. It is recommended to install IPOPT with HSL support!")

@@ -8,7 +8,7 @@ from fenics_adjoint import *
 import numpy
 
 try:
-    from pyadjoint import ipopt  # noqa
+    import cyipopt  # noqa
 except ImportError:
     print("ipopt bindings unavailable, skipping test")
     sys.exit(0)
