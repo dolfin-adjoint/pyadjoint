@@ -1,5 +1,5 @@
 """ Solves an optimisation problem with the Burgers equation as constraint, using
-the pyipopt Python bindings to IPOPT"""
+the Python bindings to IPOPT"""
 
 import sys
 
