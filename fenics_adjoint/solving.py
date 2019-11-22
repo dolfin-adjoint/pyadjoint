@@ -100,6 +100,9 @@ class SolveBlock(Block):
             self.assemble_kwargs = {}
             if "solver_parameters" in kwargs and "mat_type" in kwargs["solver_parameters"]:
                 self.assemble_kwargs["mat_type"] = kwargs["solver_parameters"]["mat_type"]
+            if "appctx" in kwargs:
+                self.assemble_kwargs["appctx"] = kwargs["appctx"]
+                self.kwargs.pop("appctx", None)
         else:
             self.kwargs = kwargs
             self.forward_kwargs = kwargs.copy()
