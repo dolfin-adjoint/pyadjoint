@@ -342,9 +342,9 @@ def test_burgers():
     J.block_variable.hessian_value = 0
     tape.evaluate_hessian()
     r =taylor_to_dict(Jhat, g,h)
-    assert min(r["FD"]["Rate"]) > 0.95
-    assert min(r["dJdm"]["Rate"]) > 1.95
-    assert min(r["Hm"]["Rate"]) > 2.90
+    assert min(r["R0"]["Rate"]) > 0.95
+    assert min(r["R1"]["Rate"]) > 1.95
+    assert min(r["R2"]["Rate"]) > 2.90
 
 def test_advection_diffusion():
     mesh = UnitSquareMesh(10,10)
@@ -371,9 +371,9 @@ def test_advection_diffusion():
     with stop_annotating():
         p = project(as_vector((dt_c*sin(x), dt_c*cos(y))), S)
         r = taylor_to_dict(Jhat, s, p)
-    assert min(r["FD"]["Rate"]) > 0.9
-    assert min(r["dJdm"]["Rate"]) > 1.9
-    assert min(r["Hm"]["Rate"]) > 2.9
+    assert min(r["R0"]["Rate"]) > 0.9
+    assert min(r["R1"]["Rate"]) > 1.9
+    assert min(r["R2"]["Rate"]) > 2.9
 
 # Mixed controls taylor test
 def conv_mixed(J, f, g, m_1, m_2, h_1, h_2, dJdm, Hm):

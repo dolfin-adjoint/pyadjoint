@@ -210,11 +210,14 @@ class SolveBlock(Block):
 
     def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu):
         dJdu_copy = dJdu.copy()
-        dFdu = compat.assemble_adjoint_value(dFdu_form, **self.assemble_kwargs)
-
+        kwargs = self.assemble_kwargs.copy()
         # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
-        for bc in self._homogenize_bcs():
-            bc.apply(dFdu, dJdu)
+        bcs = self._homogenize_bcs()
+        kwargs["bcs"] = bcs
+        dFdu = compat.assemble_adjoint_value(dFdu_form, **kwargs)
+
+        for bc in bcs:
+            bc.apply(dJdu)
 
         adj_sol = Function(self.function_space)
         compat.linalg_solve(dFdu, adj_sol.vector(), dJdu, **self.kwargs)
@@ -319,7 +322,7 @@ class SolveBlock(Block):
 
         dFdm = compat.assemble_adjoint_value(dFdm) + dFdm_shape
         dudm = backend.Function(V)
-        return self._assemble_and_solve_tlm_eq(compat.assemble_adjoint_value(dFdu), dFdm, dudm, bcs)
+        return self._assemble_and_solve_tlm_eq(compat.assemble_adjoint_value(dFdu, bcs=bcs), dFdm, dudm, bcs)
 
     def _assemble_and_solve_tlm_eq(self, dFdu, dFdm, dudm, bcs):
         return self._assembled_solve(dFdu, dFdm, dudm, bcs)
@@ -339,7 +342,7 @@ class SolveBlock(Block):
 
             if isinstance(c, compat.MeshType):
                 X = backend.SpatialCoordinate(c)
-                dFdu_adj = backend.action(dFdu_form, adj_sol)
+                dFdu_adj = backend.action(backend.adjoint(dFdu_form), adj_sol)
                 d2Fdudm = ufl.algorithms.expand_derivatives(
                     backend.derivative(dFdu_adj, X, tlm_input))
                 if len(d2Fdudm.integrals()) > 0:
@@ -528,7 +531,8 @@ class SolveBlock(Block):
         return func
 
     def _assembled_solve(self, lhs, rhs, func, bcs, **kwargs):
-        [bc.apply(lhs, rhs) for bc in bcs]
+        for bc in bcs:
+            bc.apply(rhs)
         backend.solve(lhs, func.vector(), rhs, **kwargs)
         return func
 

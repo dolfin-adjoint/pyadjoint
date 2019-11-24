@@ -305,9 +305,9 @@ to the expected values.
   perturbation = interpolate(Expression(("-A*x[0]", "A*x[1]"),
                                         A=5000,degree=2), S_b)
   results = taylor_to_dict(Jhat, Function(S_b), perturbation)
-  assert(min(results["FD"]["Rate"])>0.9)
-  assert(min(results["dJdm"]["Rate"])>1.95)
-  assert(min(results["Hm"]["Rate"])>2.95)
+  assert(min(results["R0"]["Rate"])>0.9)
+  assert(min(results["R1"]["Rate"])>1.95)
+  assert(min(results["R2"]["Rate"])>2.95)
   
 .. bibliography:: /documentation/stokes-shape-opt/stokes-shape-opt.bib
    :cited:

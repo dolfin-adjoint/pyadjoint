@@ -76,7 +76,7 @@ from fenics_adjoint import *
 
 
 try:
-    import pyipopt # noqa: F401
+    from pyadjoint import ipopt  # noqa: F401
 except ImportError:
     print("""This example depends on IPOPT and pyipopt. \
   When compiling IPOPT, make sure to link against HSL, as it \

@@ -29,6 +29,7 @@ examples:
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/stokes-shape-opt/stokes_problem.py $(EXAMPLES_OUT)/stokes-shape-opt/stokes_problem.rst
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/time-distributed-control/time-distributed-control.py $(EXAMPLES_OUT)/time-distributed-control/time-distributed-control.rst
 	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/time-dependent-wave/time-dependent-wave.py $(EXAMPLES_OUT)/time-dependent-wave/time-dependent-wave.rst
+	bin/pylit.py --overwrite=yes $(EXAMPLES_IN)/tube-shape-derivative/tube-shape-derivative.py $(EXAMPLES_OUT)/tube-shape-derivative/tube-shape-derivative.rst
 
 run_tutorials:
 	python source/_static/tutorial1.py

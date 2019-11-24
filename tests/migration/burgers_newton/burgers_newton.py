@@ -54,6 +54,6 @@ if __name__ == "__main__":
     h.vector()[:] = 0.1*rand(V.dim())
 
     minconv = taylor_to_dict(Jhat, ic, h)
-    assert(min(minconv["FD"]["Rate"]) > 0.9)
-    assert(min(minconv["dJdm"]["Rate"]) > 1.9)
-    assert(min(minconv["Hm"]["Rate"]) > 2.9)
+    assert(min(minconv["R0"]["Rate"]) > 0.9)
+    assert(min(minconv["R1"]["Rate"]) > 1.9)
+    assert(min(minconv["R2"]["Rate"]) > 2.9)

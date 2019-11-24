@@ -83,7 +83,7 @@ from dolfin_adjoint import *
 # optimisation algorithm.
 
 try:
-    import pyipopt
+    from pyadjoint import ipopt  # noqa: F401
 except ImportError:
     print("""This example depends on IPOPT and pyipopt. \
   When compiling IPOPT, make sure to link against HSL, as it \

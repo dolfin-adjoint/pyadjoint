@@ -19,9 +19,5 @@ if backend.__name__ != "firedrake":
     from .function_assigner import *
 from .function import Function
 
-# Use pyadjoint AdjFloat for numpy.float64.
-import numpy
-from pyadjoint.overloaded_type import register_overloaded_type
-from pyadjoint.adjfloat import AdjFloat
-register_overloaded_type(AdjFloat, numpy.float64)
-
+# Import numpy_adjoint to annotate numpy outputs
+import numpy_adjoint

@@ -246,7 +246,13 @@ else:
         """
         return value
 
-    assemble_adjoint_value = backend.assemble
+    def assemble_adjoint_value(*args, **kwargs):
+        """Wrapper that assembles a matrix with boundary conditions"""
+        bcs = kwargs.pop("bcs", ())
+        result = backend.assemble(*args, **kwargs)
+        for bc in bcs:
+            bc.apply(result)
+        return result
 
     def gather(vec):
         import numpy
@@ -262,11 +268,13 @@ else:
 
         return arr
 
-    def linalg_solve(*args, **kwargs):
-        """Temporary workaround for kwargs not expected in fenics linalg,
-        but possible in firedrake.
+    def linalg_solve(A, x, b, *args, **kwargs):
+        """Linear system solve that has a firedrake compatible interface.
 
-        A better solution is expected in the future.
+        Throws away kwargs and uses b.vector() as RHS if
+        b is not a GenericVector instance.
 
         """
-        return backend.solve(*args)
+        if not isinstance(b, backend.GenericVector):
+            b = b.vector()
+        return backend.solve(A, x, b, *args)
