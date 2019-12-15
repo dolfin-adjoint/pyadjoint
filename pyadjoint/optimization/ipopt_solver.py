@@ -11,71 +11,73 @@ from ..reduced_functional_numpy import ReducedFunctionalNumPy
 from ..reduced_functional_numpy import gather
 
 
-class IPOPTSolver(OptimizationSolver):
-    """Use the pyipopt bindings to IPOPT to solve the given optimization problem.
+class _IPOptProblem:
+    """API used by cyipopt for wrapping the problem"""
+    def __init__(self, objective, gradient, constraints, jacobian):
+        self.objective = objective
+        self.gradient = gradient
+        self.constraints = constraints
+        self.jacobian = jacobian
 
-    The pyipopt Problem instance is accessible as solver.pyipopt_problem."""
+
+class IPOPTSolver(OptimizationSolver):
+    """Use the cyipopt bindings to IPOPT to solve the given optimization problem.
+
+    The cyipopt Problem instance is accessible as solver.ipopt_problem."""
 
     def __init__(self, problem, parameters=None):
         OptimizationSolver.__init__(self, problem, parameters)
 
-        self.__build_pyipopt_problem()
+        self.__build_ipopt_problem()
         self.__set_parameters()
 
-    def __build_pyipopt_problem(self):
-        """Build the pyipopt problem from the OptimizationProblem instance."""
+    def __build_ipopt_problem(self):
+        """Build the ipopt problem from the OptimizationProblem instance."""
 
-        try:
-            from .. import ipopt as pyipopt
-        except ImportError:
-            print("You need to install ipyopt or pyipopt. It is recommended to install IPOPT with HSL support!")
-            raise
+        from pyadjoint.ipopt import cyipopt
 
         self.rfn = ReducedFunctionalNumPy(self.problem.reduced_functional)
-        ncontrols = len(self.rfn.get_controls())
 
         (lb, ub) = self.__get_bounds()
         (nconstraints, fun_g, jac_g, clb, cub) = self.__get_constraints()
-        constraints_nnz = nconstraints * ncontrols
 
         # A callback that evaluates the functional and derivative.
         J = self.rfn.__call__
         dJ = partial(self.rfn.derivative, forget=False)
-
-        nlp = pyipopt.create(len(ub),  # length of control vector
-                             lb,  # lower bounds on control vector
-                             ub,  # upper bounds on control vector
-                             nconstraints,  # number of constraints
-                             clb,  # lower bounds on constraints,
-                             cub,  # upper bounds on constraints,
-                             constraints_nnz,  # number of nonzeros in the constraint Jacobian
-                             0,  # number of nonzeros in the Hessian
-                             J,  # to evaluate the functional
-                             dJ,  # to evaluate the gradient
-                             fun_g,  # to evaluate the constraints
-                             jac_g)  # to evaluate the constraint Jacobian
-
-        pyipopt.set_loglevel(1)  # turn off annoying pyipopt logging
+        nlp = cyipopt.problem(
+            n=len(ub),  # length of control vector
+            lb=lb,  # lower bounds on control vector
+            ub=ub,  # upper bounds on control vector
+            m=nconstraints,  # number of constraints
+            cl=clb,  # lower bounds on constraints
+            cu=cub,  # upper bounds on constraints
+            problem_obj=_IPOptProblem(
+                objective=J,  # to evaluate the functional
+                gradient=dJ,  # to evaluate the gradient
+                constraints=fun_g,  # to evaluate the constraints
+                jacobian=jac_g,  # to evaluate the constraint Jacobian
+            ),
+        )
 
         """
         if rank(self.problem.reduced_functional.mpi_comm()) > 0:
-            nlp.int_option('print_level', 0)    # disable redundant IPOPT output in parallel
+            nlp.addOption('print_level', 0)    # disable redundant IPOPT output in parallel
         else:
-            nlp.int_option('print_level', 6)    # very useful IPOPT output
+            nlp.addOption('print_level', 6)    # very useful IPOPT output
         """
         # TODO: Earlier the commented out code above was present.
         # Figure out how to solve parallel output cases like these in pyadjoint.
-        nlp.int_option("print_level", 6)
+        nlp.addOption("print_level", 6)
 
         if isinstance(self.problem, MaximizationProblem):
             # multiply objective function by -1 internally in
             # ipopt to maximise instead of minimise
-            nlp.num_option('obj_scaling_factor', -1.0)
+            nlp.addOption('obj_scaling_factor', -1.0)
 
-        self.pyipopt_problem = nlp
+        self.ipopt_problem = nlp
 
     def __get_bounds(self):
-        r"""Convert the bounds into the format accepted by pyipopt (two numpy arrays,
+        r"""Convert the bounds into the format accepted by ipopt (two numpy arrays,
         one for the lower bound and one for the upper).
 
         FIXME: Do we really have to pass (-\infty, +\infty) when there are no bounds?"""
@@ -136,13 +138,8 @@ class IPOPTSolver(OptimizationSolver):
                 return empty
 
             # The constraint Jacobian
-            def jac_g(x, flag, user_data=None):
-                if flag:
-                    rows = numpy.array([], dtype=int)
-                    cols = numpy.array([], dtype=int)
-                    return (rows, cols)
-                else:
-                    return empty
+            def jac_g(x, user_data=None):
+                return empty
 
             return (nconstraints, fun_g, jac_g, clb, cub)
 
@@ -159,19 +156,10 @@ class IPOPTSolver(OptimizationSolver):
             # The constraint Jacobian:
             # flag = True  means 'tell me the sparsity pattern';
             # flag = False means 'give me the damn Jacobian'.
-            def jac_g(x, flag, user_data=None):
-                if flag:
-                    # FIXME: Don't have any sparsity information on constraints;
-                    # pass in a dense matrix (it usually is anyway).
-                    rows = []
-                    for i in range(nconstraints):
-                        rows += [i] * ncontrols
-                    cols = list(range(ncontrols)) * nconstraints
-                    return (numpy.array(rows), numpy.array(cols))
-                else:
-                    j = constraint.jacobian(x)
-                    out = numpy.array(gather(j), dtype=float)
-                    return out
+            def jac_g(x, user_data=None):
+                j = constraint.jacobian(x)
+                out = numpy.array(gather(j), dtype=float)
+                return out
 
             # The bounds for the constraint: by the definition of our
             # constraint type, the lower bound is always zero,
@@ -190,33 +178,25 @@ class IPOPTSolver(OptimizationSolver):
 
             return (nconstraints, fun_g, jac_g, clb, cub)
 
+    _param_map = {
+        'tolerance': 'tol',
+        'maximum_iterations': 'max_iter',
+    }
+
     def __set_parameters(self):
         """Set some basic parameters from the parameters dictionary that the user
         passed in, if any."""
 
         if self.parameters is not None:
-            for param in self.parameters:
-                if param == "tolerance":
-                    tol = self.parameters['tolerance']
-                    self.pyipopt_problem.num_option('tol', tol)
-                elif param == "maximum_iterations":
-                    maxiter = self.parameters['maximum_iterations']
-                    self.pyipopt_problem.int_option('max_iter', maxiter)
-                else:
-                    out = self.parameters[param]
-                    if isinstance(out, int):
-                        self.pyipopt_problem.int_option(param, out)
-                    elif isinstance(out, str):
-                        self.pyipopt_problem.str_option(param, out)
-                    elif isinstance(out, float):
-                        self.pyipopt_problem.num_option(param, out)
-                    else:
-                        raise ValueError("Don't know how to deal with parameter %s (a %s)" % (param, out.__class__))
+            for param, value in self.parameters.items():
+                # some parameters have a different name in ipopt
+                param = self._param_map.get(param, param)
+                self.ipopt_problem.addOption(param, value)
 
     def solve(self):
         """Solve the optimization problem and return the optimized controls."""
         guess = self.rfn.get_controls()
-        results = self.pyipopt_problem.solve(guess)
+        results = self.ipopt_problem.solve(guess)
         new_params = [control.copy_data() for control in self.rfn.controls]
         self.rfn.set_local(new_params, results[0])
 

@@ -62,7 +62,7 @@ interface to DOLFIN.
 
  # Run optimization
  constraint = VolumeConstraint(V=0.4)
- nlp = rfn.pyipopt_problem(bounds=(lb, ub), 
+ nlp = rfn.ipopt_problem(bounds=(lb, ub),
                   constraints=constraint)
  a_opt = nlp.solve(full=False)</code></pre>
            </div>
