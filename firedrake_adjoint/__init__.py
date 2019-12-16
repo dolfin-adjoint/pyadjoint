@@ -19,5 +19,6 @@ from pyadjoint.drivers import compute_gradient, compute_hessian
 from pyadjoint.adjfloat import AdjFloat
 from pyadjoint.control import Control
 from pyadjoint import IPOPTSolver, ROLSolver, MinimizationProblem, InequalityConstraint, minimize
+import numpy_adjoint
 
 set_working_tape(Tape())
