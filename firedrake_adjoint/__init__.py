@@ -21,4 +21,5 @@ from pyadjoint.control import Control
 from pyadjoint import IPOPTSolver, ROLSolver, MinimizationProblem, InequalityConstraint, minimize
 import numpy_adjoint
 
+continue_annotation()
 set_working_tape(Tape())
