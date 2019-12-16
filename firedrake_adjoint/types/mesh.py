@@ -4,8 +4,9 @@ from pyadjoint.block import Block
 from pyadjoint.overloaded_type import (OverloadedType, register_overloaded_type,
                                        create_overloaded_object)
 from pyadjoint.tape import no_annotations, stop_annotating
-from .function import Function
 from functools import partial
+
+Function = backend.Function
 
 
 __all__ = ["Mesh", "ExtrudedMesh", "MeshHierarchy", "ExtrudedMeshHierarchy"] + backend.utility_meshes.__all__

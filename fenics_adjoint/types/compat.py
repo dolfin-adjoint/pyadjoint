@@ -2,6 +2,10 @@ from fenics_adjoint import backend
 
 
 if backend.__name__ == "firedrake":
+    class Function(object):
+        def __init__(*args, **kwargs):
+            raise RuntimeError("This Function class should never be used. Please use firedrake.Function.")
+
     MatrixType = backend.matrix.MatrixBase
     VectorType = backend.vector.Vector
     FunctionType = backend.Function
@@ -125,6 +129,7 @@ if backend.__name__ == "firedrake":
     linalg_solve = backend.solve
 
 else:
+    Function = backend.Function
     MatrixType = (backend.cpp.la.Matrix, backend.cpp.la.GenericMatrix)
     VectorType = backend.cpp.la.GenericVector
     FunctionType = backend.cpp.function.Function

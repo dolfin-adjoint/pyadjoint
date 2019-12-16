@@ -15,7 +15,7 @@ import numpy
 
 
 @register_overloaded_type
-class Function(FloatingType, backend.Function):
+class Function(FloatingType, compat.Function):
     def __init__(self, *args, **kwargs):
         super(Function, self).__init__(*args,
                                        block_class=kwargs.pop("block_class",
