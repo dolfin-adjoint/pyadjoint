@@ -30,7 +30,7 @@ ARG MOOLA_BRANCH="master"
 RUN /bin/bash -l -c "pip3 install --no-cache git+git://github.com/funsim/moola.git@${MOOLA_BRANCH}"
 
 ARG DOLFIN_ADJOINT_BRANCH="2019.1.0"
-RUN /bin/bash -l -c "pip3 install --no-cache git+https://bitbucket.org/dolfin-adjoint/pyadjoint.git@${DOLFIN_ADJOINT_BRANCH}"
+RUN /bin/bash -l -c "pip3 install --no-cache git+https://github.com/dolfin-adjoint/pyadjoint.git@${DOLFIN_ADJOINT_BRANCH}"
 
 USER fenics
 COPY --chown=fenics WELCOME $FENICS_HOME/WELCOME

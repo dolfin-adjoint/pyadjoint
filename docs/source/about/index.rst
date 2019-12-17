@@ -59,11 +59,10 @@ News
 
 **11.6.2015**: P. E. Farrell, S. W. Funke, D. A. Ham and M. E. Rognes were awarded the 2015 `Wilkinson prize for numerical software`_ for dolfin-adjoint.
 
-.. _ChangeLog.rst: https://bitbucket.org/dolfin-adjoint/pyadjoint/src/master/ChangeLog.rst
-.. _Changelog: https://bitbucket.org/dolfin-adjoint/dolfin-adjoint/raw/master/ChangeLog
-.. _available here: https://bitbucket.org/dolfin-adjoint/pyadjoint/src/master/tests/migration/README.md?at=master&fileviewer=file-view-default
+.. _ChangeLog.rst: https://github.com/dolfin-adjoint/pyadjoint/blob/master/ChangeLog.rst
+.. _available here: https://github.com/dolfin-adjoint/pyadjoint/blob/master/tests/migration/README.md
 .. _contact us: support/index.html
-.. _pyadjoint: https://bitbucket.org/dolfin-adjoint/pyadjoint
+.. _pyadjoint: https://github.com/dolfin-adjoint/pyadjoint
 .. _documentation: http://dolfin-adjoint-doc.readthedocs.io/
 .. _Wilkinson prize for numerical software: http://www.nag.co.uk/other/WilkinsonPrize.html
 .. _poster: https://drive.google.com/file/d/1NjIFj07u_QMfuXB2Z8uv5f2LUDwY1XeM/view?usp=sharing
