@@ -1,3 +1,4 @@
+from pyadjoint import Block
 
 class ExpressionBlock(Block):
     def __init__(self, expression):

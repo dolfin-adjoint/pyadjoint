@@ -1,3 +1,4 @@
+from pyadjoint import Block
 
 class ConstantAssignBlock(Block):
     def __init__(self, func, other):

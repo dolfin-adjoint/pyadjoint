@@ -1,3 +1,4 @@
+from pyadjoint import Block
 
 class FunctionEvalBlock(Block):
     def __init__(self, func, coords):

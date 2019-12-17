@@ -1,3 +1,4 @@
+from pyadjoint import Block
 
 class ALEMoveBlock(Block):
     def __init__(self, mesh, vector, **kwargs):
