@@ -15,7 +15,7 @@ from .adjfloat import AdjFloat
 from .reduced_functional import ReducedFunctional
 from .drivers import compute_gradient, compute_hessian
 from .verification import taylor_test, taylor_to_dict
-from .overloaded_type import OverloadedType
+from .overloaded_type import OverloadedType, create_overloaded_object
 from .control import Control
 from .optimization.optimization import minimize, maximize, print_optimization_methods
 from .optimization.optimization_problem import MinimizationProblem

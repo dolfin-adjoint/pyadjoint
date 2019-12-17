@@ -1,4 +1,4 @@
-from pyadjoint import Block, OverloadedType
+from pyadjoint import Block, OverloadedType, AdjFloat
 
 
 class FunctionAssignBlock(Block):
@@ -18,7 +18,7 @@ class FunctionAssignBlock(Block):
 
     def prepare_evaluate_adj(self, inputs, adj_inputs, relevant_dependencies):
         V = self.get_outputs()[0].output.function_space()
-        adj_input_func = compat.function_from_vector(V, adj_inputs[0])
+        adj_input_func = self.compat.function_from_vector(V, adj_inputs[0])
 
         if not self.lincom:
             return adj_input_func
@@ -33,17 +33,17 @@ class FunctionAssignBlock(Block):
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx,
                                prepared=None):
         if not self.lincom:
-            if isinstance(block_variable.output, (AdjFloat, self.compat.Constant)):
+            if isinstance(block_variable.output, (AdjFloat, self.backend.Constant)):
                 return adj_inputs[0].sum()
             else:
-                adj_output = self.compat.Function(
+                adj_output = self.backend.Function(
                     block_variable.output.function_space())
                 adj_output.assign(prepared)
                 return adj_output.vector()
         else:
             # Linear combination
             expr, adj_input_func = prepared
-            adj_output = self.compat.Function(
+            adj_output = self.backend.Function(
                 block_variable.output.function_space())
             diff_expr = ufl.algorithms.expand_derivatives(
                 ufl.derivative(expr, block_variable.saved_output,

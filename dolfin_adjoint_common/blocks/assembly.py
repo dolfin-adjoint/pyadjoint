@@ -1,5 +1,5 @@
 import ufl
-from pyadjoint import Block
+from pyadjoint import Block, create_overloaded_object
 
 
 class AssembleBlock(Block):

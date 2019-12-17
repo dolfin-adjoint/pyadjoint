@@ -1,4 +1,5 @@
 import ufl
+import numpy
 from pyadjoint import Block
 
 
@@ -102,7 +103,7 @@ class SolveBlock(Block):
         # Process the equation forms, replacing values with checkpoints,
         # and gathering lhs and rhs in one single form.
         if self.linear:
-            tmp_u = Function(self.function_space)
+            tmp_u = self.backend.Function(self.function_space)
             F_form = self.backend.action(self.lhs, tmp_u) - self.rhs
         else:
             tmp_u = self.func
@@ -163,7 +164,7 @@ class SolveBlock(Block):
         for bc in bcs:
             bc.apply(dJdu)
 
-        adj_sol = Function(self.function_space)
+        adj_sol = self.backend.Function(self.function_space)
         self.compat.linalg_solve(dFdu, adj_sol.vector(), dJdu, **self.kwargs)
 
         adj_sol_bdy = self.compat.function_from_vector(self.function_space, dJdu_copy - self.compat.assemble_adjoint_value(
