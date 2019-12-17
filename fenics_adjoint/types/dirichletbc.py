@@ -14,7 +14,7 @@ from pyadjoint.block import Block
 #       new boundary values/function.
 
 
-class DirichletBC(FloatingType, backend.DirichletBC):
+class DirichletBC(FloatingType, compat.DirichletBC):
     def __init__(self, *args, **kwargs):
         super(DirichletBC, self).__init__(*args, **kwargs)
 

@@ -2,9 +2,14 @@ from fenics_adjoint import backend
 
 
 if backend.__name__ == "firedrake":
-    class Function(object):
+    # Fenics-adjoint creates wrapper classes. Firedrake-adjoint does
+    # not. This null object is used to resove the inheritance of the
+    # wrapper classes that Firedrake-adjoint doesn't use.
+    class NullObject(object):
         def __init__(*args, **kwargs):
-            raise RuntimeError("This Function class should never be used. Please use firedrake.Function.")
+            raise RuntimeError("This class should never be used. This indicates a bug in Firedrake or dolfin-adjoint.")
+    Function = NullObject
+    DirichletBC = NullObject
 
     MatrixType = backend.matrix.MatrixBase
     VectorType = backend.vector.Vector
@@ -130,6 +135,7 @@ if backend.__name__ == "firedrake":
 
 else:
     Function = backend.Function
+    DirichletBC = backend.DirichletBC
     MatrixType = (backend.cpp.la.Matrix, backend.cpp.la.GenericMatrix)
     VectorType = backend.cpp.la.GenericVector
     FunctionType = backend.cpp.function.Function
