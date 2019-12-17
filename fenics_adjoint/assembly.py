@@ -60,4 +60,3 @@ def assemble_system(*args, **kwargs):
 
     return A, b
 
-
