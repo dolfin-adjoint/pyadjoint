@@ -1,4 +1,5 @@
-from pyadjoint import Block, no_annotations, OverloadedType
+import ufl
+from pyadjoint import Block, OverloadedType, no_annotations
 
 
 class DirichletBCBlock(Block):
@@ -31,12 +32,12 @@ class DirichletBCBlock(Block):
         adj_inputs = adj_inputs[0]
         adj_output = None
         for adj_input in adj_inputs:
-            if isinstance(c, Constant):
-                adj_value = self.compat.Function(self.parent_space)
+            if isinstance(c, self.backend.Constant):
+                adj_value = self.backend.Function(self.parent_space)
                 adj_input.apply(adj_value.vector())
                 if self.function_space != self.parent_space:
-                    vec = compat.extract_bc_subvector(adj_value, self.collapsed_space, bc)
-                    adj_value = compat.function_from_vector(self.collapsed_space, vec)
+                    vec = self.compat.extract_bc_subvector(adj_value, self.collapsed_space, bc)
+                    adj_value = self.compat.function_from_vector(self.collapsed_space, vec)
 
                 if adj_value.ufl_shape == () or adj_value.ufl_shape[0] <= 1:
                     r = adj_value.vector().sum()
@@ -52,22 +53,22 @@ class DirichletBCBlock(Block):
                             prev_idx = i
                         output.append(current_subfunc.sub(prev_idx, deepcopy=True).vector().sum())
 
-                    r = self.compat.cpp.la.Vector(self.compat.MPI.comm_world, len(output))
+                    r = self.backend.cpp.la.Vector(self.backend.MPI.comm_world, len(output))
                     r[:] = output
-            elif isinstance(c, Function):
+            elif isinstance(c, self.backend.Function):
                 # TODO: This gets a little complicated.
                 #       The function may belong to a different space,
                 #       and with `Function.set_allow_extrapolation(True)`
                 #       you can even use the Function outside its domain.
                 # For now we will just assume the FunctionSpace is the same for
                 # the BC and the Function.
-                adj_value = self.compat.Function(self.parent_space)
+                adj_value = self.backend.Function(self.parent_space)
                 adj_input.apply(adj_value.vector())
-                r = compat.extract_bc_subvector(adj_value, c.function_space(), bc)
+                r = self.compat.extract_bc_subvector(adj_value, c.function_space(), bc)
             elif isinstance(c, self.compat.Expression):
-                adj_value = self.compat.Function(self.parent_space)
+                adj_value = self.backend.Function(self.parent_space)
                 adj_input.apply(adj_value.vector())
-                output = compat.extract_bc_subvector(adj_value, self.collapsed_space, bc)
+                output = self.compat.extract_bc_subvector(adj_value, self.collapsed_space, bc)
                 r = [[output, self.collapsed_space]]
             if adj_output is None:
                 adj_output = r
@@ -84,12 +85,12 @@ class DirichletBCBlock(Block):
                 continue
 
             if self.function_space != self.parent_space and not isinstance(tlm_input, ufl.Coefficient):
-                tlm_input = self.compat.project(tlm_input, self.collapsed_space)
+                tlm_input = self.backend.project(tlm_input, self.collapsed_space)
 
             # TODO: This is gonna crash for dirichletbcs with multiple dependencies (can't add two bcs)
             #       However, if there is multiple dependencies, we need to AD the expression (i.e if value=f*g then
             #       dvalue = tlm_f * g + f * tlm_g). Right now we can only handle value=f => dvalue = tlm_f.
-            m = compat.create_bc(bc, value=tlm_input)
+            m = self.compat.create_bc(bc, value=tlm_input)
         return m
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
@@ -105,3 +106,23 @@ class DirichletBCBlock(Block):
 
     def __str__(self):
         return "DirichletBC block"
+
+
+def _extract_subindices(V):
+    assert V.num_sub_spaces() > 0
+    r = []
+    for i in range(V.num_sub_spaces()):
+        indices_sequence = [i]
+        _build_subindices(indices_sequence, r, V.sub(i))
+        indices_sequence.pop()
+    return r
+
+
+def _build_subindices(indices_sequence, r, V):
+    if V.num_sub_spaces() <= 0:
+        r.append(tuple(indices_sequence))
+    else:
+        for i in range(V.num_sub_spaces()):
+            indices_sequence.append(i)
+            _build_subindices(indices_sequence, r, V)
+            indices_sequence.pop()

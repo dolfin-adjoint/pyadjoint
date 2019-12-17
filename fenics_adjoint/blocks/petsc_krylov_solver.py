@@ -1,4 +1,4 @@
-import fenics as backend
+import backend
 from . import SolveBlock
 from dolfin_adjoint_common import compat
 compat = compat.compat(backend)

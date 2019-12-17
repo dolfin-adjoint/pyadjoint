@@ -37,7 +37,7 @@ class FunctionEvalBlock(Block):
 
 class FunctionSplitBlock(Block):
     def __init__(self, func, idx):
-        super(SplitBlock, self).__init__()
+        super().__init__()
         self.add_dependency(func)
         self.idx = idx
 
@@ -47,7 +47,7 @@ class FunctionSplitBlock(Block):
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx,
                                prepared=None):
-        return self.compat.Function.sub(tlm_inputs[0], self.idx, deepcopy=True)
+        return backend.Function.sub(tlm_inputs[0], self.idx, deepcopy=True)
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs,
                                    block_variable, idx,
@@ -55,13 +55,13 @@ class FunctionSplitBlock(Block):
         return hessian_inputs[0]
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        return self.compat.Function.sub(inputs[0], self.idx, deepcopy=True)
+        return backend.Function.sub(inputs[0], self.idx, deepcopy=True)
 
 
 # TODO: This block is not valid in fenics and not correctly implemented. It should never be used.
 class FunctionMergeBlock(Block):
     def __init__(self, func, idx):
-        super(MergeBlock, self).__init__()
+        super().__init__()
         self.add_dependency(func)
         self.idx = idx
 
@@ -75,7 +75,7 @@ class FunctionMergeBlock(Block):
             return
         output = self.get_outputs()[0]
         fs = output.output.function_space()
-        f = self.compat.Function(fs)
+        f = backend.Function(fs)
         output.add_tlm_output(
             self.compat.assign(f.sub(self.idx), tlm_input)
         )
@@ -88,4 +88,4 @@ class FunctionMergeBlock(Block):
     def recompute(self):
         dep = self.get_dependencies()[0].checkpoint
         output = self.get_outputs()[0].checkpoint
-        self.compat.assign(self.compat.Function.sub(output, self.idx), dep)
+        self.compat.assign(backend.Function.sub(output, self.idx), dep)

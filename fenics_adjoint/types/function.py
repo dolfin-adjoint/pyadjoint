@@ -85,11 +85,11 @@ class Function(FloatingType, backend.Function):
 
         num_sub_spaces = backend.Function.function_space(self).num_sub_spaces()
         ret = [Function(self, i,
-                        block_class=SplitBlock,
+                        block_class=FunctionSplitBlock,
                         _ad_floating_active=True,
                         _ad_args=[self, i],
                         _ad_output_args=[i],
-                        output_block_class=MergeBlock,
+                        output_block_class=FunctionMergeBlock,
                         _ad_outputs=[self])
                for i in range(num_sub_spaces)]
         return tuple(ret)
