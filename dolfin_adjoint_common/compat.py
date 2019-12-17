@@ -114,7 +114,7 @@ def compat(backend):
 
             """
             return value.dat.data
-        compat.constant_function_firedrake_compat = constant_finction_firedrake_compat
+        compat.constant_function_firedrake_compat = constant_function_firedrake_compat
 
         def assemble_adjoint_value(*args, **kwargs):
             """A wrapper around Firedrake's assemble that returns a Vector
