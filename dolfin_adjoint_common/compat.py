@@ -8,9 +8,6 @@ def compat(backend):
     
     if backend.__name__ == "firedrake":
 
-        compat.MatrixType = backend.matrix.MatrixBase
-        compat.VectorType = backend.vector.Vector
-        compat.FunctionType = backend.Function
         compat.FunctionSpaceType = (backend.functionspaceimpl.FunctionSpace,
                                     backend.functionspaceimpl.WithGeometry,
                                     backend.functionspaceimpl.MixedFunctionSpace)
