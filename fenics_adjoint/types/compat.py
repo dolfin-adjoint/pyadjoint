@@ -9,6 +9,7 @@ if backend.__name__ == "firedrake":
         def __init__(*args, **kwargs):
             raise RuntimeError("This class should never be used. This indicates a bug in Firedrake or dolfin-adjoint.")
     Function = NullObject
+    Constant = NullObject
     DirichletBC = NullObject
 
     MatrixType = backend.matrix.MatrixBase
@@ -135,6 +136,7 @@ if backend.__name__ == "firedrake":
 
 else:
     Function = backend.Function
+    Constant = backend.Constant
     DirichletBC = backend.DirichletBC
     MatrixType = (backend.cpp.la.Matrix, backend.cpp.la.GenericMatrix)
     VectorType = backend.cpp.la.GenericVector
