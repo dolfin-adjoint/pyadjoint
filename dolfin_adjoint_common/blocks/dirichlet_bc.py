@@ -1,4 +1,4 @@
-from pyadjoint import Block, no_annotations
+from pyadjoint import Block, no_annotations, OverloadedType
 
 
 class DirichletBCBlock(Block):
