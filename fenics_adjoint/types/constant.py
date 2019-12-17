@@ -10,7 +10,7 @@ import numpy
 
 
 @register_overloaded_type
-class Constant(OverloadedType, compat.Constant):
+class Constant(OverloadedType, backend.Constant):
     def __init__(self, *args, **kwargs):
         super(Constant, self).__init__(*args, **kwargs)
         backend.Constant.__init__(self, *args, **kwargs)

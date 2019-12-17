@@ -4,7 +4,7 @@ from pyadjoint.tape import annotate_tape, get_working_tape
 from .solving import SolveBlock
 from dolfin_adjoint_common import compat
 compat = compat.compat(backend)
-from .blocks import KrylovSolverBlock
+from .blocks import KrylovSolveBlock
 
 
 class KrylovSolver(backend.KrylovSolver):

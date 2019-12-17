@@ -1,3 +1,5 @@
+from pyadjoint import Block
+
 
 class FunctionAssignerBlock(Block):
     def __init__(self, assigner, inputs):

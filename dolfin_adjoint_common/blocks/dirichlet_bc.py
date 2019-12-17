@@ -1,3 +1,5 @@
+from pyadjoint import Block, no_annotations
+
 
 class DirichletBCBlock(Block):
     def __init__(self, *args):

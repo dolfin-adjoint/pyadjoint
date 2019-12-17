@@ -1,7 +1,7 @@
 import backend
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape, no_annotations
 from .solving import SolveBlock
-from .bocks import LinearVariationalSolveBlock, NonlinearVariationalSolveBlock
+from .blocks import LinearVariationalSolveBlock, NonlinearVariationalSolveBlock
 
 class NonlinearVariationalProblem(backend.NonlinearVariationalProblem):
     """This object is overloaded so that solves using this class are automatically annotated,
