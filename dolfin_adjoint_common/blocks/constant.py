@@ -3,7 +3,7 @@ from pyadjoint import Block
 
 class ConstantAssignBlock(Block):
     def __init__(self, func, other):
-        super(AssignBlock, self).__init__()
+        super(ConstantAssignBlock, self).__init__()
         self.add_dependency(other)
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
@@ -17,4 +17,4 @@ class ConstantAssignBlock(Block):
         return hessian_inputs[0]
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        return Constant._constant_from_values(block_variable.output, inputs[0])
+        return self.backend.Constant._constant_from_values(block_variable.output, inputs[0])
