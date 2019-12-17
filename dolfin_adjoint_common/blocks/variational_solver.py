@@ -15,8 +15,8 @@ class NonlinearVariationalSolveBlock(SolveBlock):
         J = self.nonlin_problem_J
         if J is not None:
             J = self._replace_form(J, func)
-        problem = backend.NonlinearVariationalProblem(lhs, func, bcs, J=J)
-        solver = backend.NonlinearVariationalSolver(problem, **self.nonlin_solver_kwargs)
+        problem = self.backend.NonlinearVariationalProblem(lhs, func, bcs, J=J)
+        solver = self.backend.NonlinearVariationalSolver(problem, **self.nonlin_solver_kwargs)
         solver.parameters.update(self.nonlin_solver_params)
         solver.solve()
         return func
