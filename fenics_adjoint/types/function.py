@@ -10,8 +10,9 @@ from pyadjoint.overloaded_type import (OverloadedType, FloatingType,
 from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, \
     no_annotations
 from . import compat
-from .compat import gather
+compat = compat(backend)
 import numpy
+from dolfin_adjoint_common import blocks
 
 
 @register_overloaded_type
@@ -205,7 +206,7 @@ class Function(FloatingType, compat.Function):
             m_v = m.vector()
         else:
             m_v = m
-        m_a = gather(m_v)
+        m_a = compat.gather(m_v)
 
         return m_a.tolist()
 
@@ -265,6 +266,9 @@ def _extract_functions_from_lincom(lincom, functions=None):
     return functions
 
 
+class EvalBlock(blocks.EvalBlock, Backend):
+    pass
+
 class EvalBlock(Block):
     def __init__(self, func, coords):
         super().__init__()
@@ -296,6 +300,9 @@ class EvalBlock(Block):
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
         return inputs[0](self.coords)
+
+class AssignBlock(blocks.AssignBlock, Backend):
+    pass
 
 
 class AssignBlock(Block):

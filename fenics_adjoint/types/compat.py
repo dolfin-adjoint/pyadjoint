@@ -1,7 +1,11 @@
-from fenics_adjoint import backend
+from dolfin_ajoint_common.compat import compat
 
+class Backend:
+    backend = backend
+    compat = compat(backend)
 
-if backend.__name__ == "firedrake":
+def compat(backend):
+    if backend.__name__ == "firedrake":
     # Fenics-adjoint creates wrapper classes. Firedrake-adjoint does
     # not. This null object is used to resove the inheritance of the
     # wrapper classes that Firedrake-adjoint doesn't use.
