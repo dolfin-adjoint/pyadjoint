@@ -5,7 +5,8 @@ import ufl
 from pyadjoint.block import Block
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
 from .types import Function
-from .types import compat
+from dolfin_adjoint_common import compat
+compat = compat.compat(backend)
 from .types.function_space import extract_subfunction
 from .blocks import SolveBlock
 
