@@ -8,7 +8,7 @@ class AssembleBlock(blocks.AssembleBlock, Backend):
     pass
 
 
-class ProjectBlock(blocks.AssembleBlock, Backend):
+class ProjectBlock(blocks.ProjectBlock, Backend):
     pass
 
 

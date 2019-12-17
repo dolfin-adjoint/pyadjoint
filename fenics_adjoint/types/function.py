@@ -12,7 +12,8 @@ from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, \
 from dolfin_adjoint_common import compat
 compat = compat.compat(backend)
 import numpy
-from fenics_adjoint.blocks import FunctionEvalBlock, FunctionMergeBlock, FunctionSplitBlock, FunctionAssignBlock
+from fenics_adjoint.blocks import (FunctionEvalBlock, FunctionMergeBlock,
+                                   FunctionSplitBlock, FunctionAssignBlock)
 
 
 @register_overloaded_type
@@ -45,7 +46,7 @@ class Function(FloatingType, backend.Function):
 
         if annotate:
             if kwargs.pop("deepcopy", False):
-                block = AssignBlock(func, self)
+                block = FunctionAssignBlock(func, self)
                 tape = get_working_tape()
                 tape.add_block(block)
                 block.add_output(func.create_block_variable())
@@ -63,7 +64,7 @@ class Function(FloatingType, backend.Function):
         if annotate:
             if not isinstance(other, ufl.core.operator.Operator):
                 other = create_overloaded_object(other)
-            block = AssignBlock(self, other)
+            block = FunctionAssignBlock(self, other)
             tape = get_working_tape()
             tape.add_block(block)
 

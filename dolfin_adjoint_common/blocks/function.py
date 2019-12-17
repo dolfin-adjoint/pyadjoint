@@ -1,9 +1,9 @@
-from pyadjoint import Block
+from pyadjoint import Block, OverloadedType
 
 
 class FunctionAssignBlock(Block):
     def __init__(self, func, other):
-        super(AssignBlock, self).__init__()
+        super().__init__()
         self.other = None
         self.lincom = False
         if isinstance(other, OverloadedType):
