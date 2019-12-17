@@ -6,7 +6,7 @@ from .types import as_backend_type
 from dolfin_adjoint_common import compat
 compat = compat.compat(backend)
 
-from .blocks import KrylovSolveBlock, PETScKrylovSolveBlockHelper
+from .blocks import PETScKrylovSolveBlock, PETScKrylovSolveBlockHelper
 
 
 class PETScKrylovSolver(backend.PETScKrylovSolver):

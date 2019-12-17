@@ -131,9 +131,12 @@ def compat(backend):
         compat.gather = gather
 
         compat.linalg_solve = backend.solve
+        class Expression(object):
+            pass
+        compat.Expression = Expression
 
     else:
-        
+        compat.Expression = backend.Expression
         compat.MatrixType = (backend.cpp.la.Matrix, backend.cpp.la.GenericMatrix)
         compat.VectorType = backend.cpp.la.GenericVector
         compat.FunctionType = backend.cpp.function.Function
@@ -146,7 +149,7 @@ def compat(backend):
         compat.backend_fs_sub = backend.FunctionSpace.sub
 
         def _fs_sub(self, i):
-            V = backend_fs_sub(self, i)
+            V = compat.backend_fs_sub(self, i)
             V._ad_parent_space = self
             return V
         backend.FunctionSpace.sub = _fs_sub
@@ -158,7 +161,7 @@ def compat(backend):
             """
             if not hasattr(self, "_ad_collapsed_space"):
                 # Create collapsed space
-                self._ad_collapsed_space = backend_fs_collapse(self, collapsed_dofs=True)
+                self._ad_collapsed_space = compat.backend_fs_collapse(self, collapsed_dofs=True)
 
             if collapsed_dofs:
                 return self._ad_collapsed_space
