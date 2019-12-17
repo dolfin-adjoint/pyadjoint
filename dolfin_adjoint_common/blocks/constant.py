@@ -17,4 +17,4 @@ class ConstantAssignBlock(Block):
         return hessian_inputs[0]
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        return Constant._constant_from_values(block_variable.output, inputs[0])
+        return self.backend.Constant._constant_from_values(block_variable.output, inputs[0])
