@@ -3,7 +3,6 @@ from dolfin_adjoint_common import compat
 compat = compat.compat(backend)
 from pyadjoint.tape import get_working_tape
 from pyadjoint.overloaded_type import OverloadedType, create_overloaded_object, register_overloaded_type
-from .compat import constant_function_firedrake_compat
 from pyadjoint.block import Block
 from pyadjoint.reduced_functional_numpy import gather
 
@@ -45,7 +44,7 @@ class Constant(OverloadedType, compat.Constant):
             # TODO: Should the default be 0 constant here or return just None?
             return Constant(numpy.zeros(self.ufl_shape))
         value = gather(value)
-        value = constant_function_firedrake_compat(value)
+        value = compat.constant_function_firedrake_compat(value)
         return self._constant_from_values(value)
 
     def _ad_function_space(self, mesh):
