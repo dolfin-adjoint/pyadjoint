@@ -34,9 +34,9 @@ If you would like to know if a specific FEniCs feature is already implemented in
 
 If you would like to contribute, please `contact us`_.
                 
-.. _this list: https://bitbucket.org/dolfin-adjoint/pyadjoint/src/master/tests/migration/README.md?at=master&fileviewer=file-view-default
+.. _this list: https://github.com/dolfin-adjoint/pyadjoint/blob/master/tests/migration/README.md
 .. _contact us: support/index.html
-.. _pyadjoint: https://bitbucket.org/dolfin-adjoint/pyadjoint
+.. _pyadjoint: https://github.com/dolfin-adjoint/pyadjoint
 .. _libadjoint: https://bitbucket.org/dolfin-adjoint/libadjoint
 .. _here: http://dolfin-adjoint-doc.readthedocs.io/
 .. _poster: https://drive.google.com/file/d/1NjIFj07u_QMfuXB2Z8uv5f2LUDwY1XeM/view?usp=sharing
