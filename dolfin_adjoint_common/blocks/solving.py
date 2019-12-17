@@ -1,3 +1,5 @@
+import ufl
+
 
 class SolveBlock(Block):
     pop_kwargs_keys = ["adj_cb", "adj_bdy_cb", "adj2_cb", "adj2_bdy_cb"]

@@ -1,3 +1,6 @@
+from . import SolveBlock
+
+
 class ProjectBlock(SolveBlock):
     def __init__(self, v, V, output, bcs=[], *args, **kwargs):
         mesh = kwargs.pop("mesh", None)
