@@ -9,8 +9,8 @@ from pyadjoint.overloaded_type import (OverloadedType, FloatingType,
                                        get_overloaded_class)
 from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, \
     no_annotations
-from . import compat
-compat = compat(backend)
+from dolfin_adjoint_common import compat
+compat = compat.compat(backend)
 import numpy
 from dolfin_adjoint_common import blocks
 

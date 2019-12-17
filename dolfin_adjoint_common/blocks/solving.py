@@ -1,3 +1,6 @@
+import ufl
+from pyadjoint import Block
+
 
 class SolveBlock(Block):
     pop_kwargs_keys = ["adj_cb", "adj_bdy_cb", "adj2_cb", "adj2_bdy_cb"]
@@ -13,7 +16,7 @@ class SolveBlock(Block):
         self._init_solver_parameters(*args, **kwargs)
         self._init_dependencies(*args, **kwargs)
         self.function_space = self.func.function_space()
-        if backend.__name__ != "firedrake":
+        if self.backend.__name__ != "firedrake":
             mesh = self.lhs.ufl_domain().ufl_cargo()
         else:
             mesh = self.lhs.ufl_domain()
@@ -27,9 +30,9 @@ class SolveBlock(Block):
             self.kwargs = kwargs
             self.forward_kwargs = kwargs.copy()
             if "J" in self.kwargs:
-                self.kwargs["J"] = backend.adjoint(self.kwargs["J"])
+                self.kwargs["J"] = self.backend.adjoint(self.kwargs["J"])
             if "Jp" in self.kwargs:
-                self.kwargs["Jp"] = backend.adjoint(self.kwargs["Jp"])
+                self.kwargs["Jp"] = self.backend.adjoint(self.kwargs["Jp"])
 
             if "M" in self.kwargs:
                 raise NotImplementedError("Annotation of adaptive solves not implemented.")
@@ -100,7 +103,7 @@ class SolveBlock(Block):
         # and gathering lhs and rhs in one single form.
         if self.linear:
             tmp_u = Function(self.function_space)
-            F_form = backend.action(self.lhs, tmp_u) - self.rhs
+            F_form = self.backend.action(self.lhs, tmp_u) - self.rhs
         else:
             tmp_u = self.func
             F_form = self.lhs
@@ -117,8 +120,8 @@ class SolveBlock(Block):
 
         F_form = self._create_F_form()
 
-        dFdu = backend.derivative(F_form, fwd_block_variable.saved_output, backend.TrialFunction(u.function_space()))
-        dFdu_form = backend.adjoint(dFdu)
+        dFdu = self.backend.derivative(F_form, fwd_block_variable.saved_output, self.backend.TrialFunction(u.function_space()))
+        dFdu_form = self.backend.adjoint(dFdu)
         dJdu = dJdu.copy()
         adj_sol, adj_sol_bdy = self._assemble_and_solve_adj_eq(dFdu_form, dJdu)
         self.adj_sol = adj_sol
@@ -144,7 +147,7 @@ class SolveBlock(Block):
     def _homogenize_bcs(self):
         bcs = []
         for bc in self.bcs:
-            if isinstance(bc, backend.DirichletBC):
+            if isinstance(bc, self.backend.DirichletBC):
                 bc = compat.create_bc(bc, homogenize=True)
             bcs.append(bc)
         return bcs
@@ -164,7 +167,7 @@ class SolveBlock(Block):
         compat.linalg_solve(dFdu, adj_sol.vector(), dJdu, **self.kwargs)
 
         adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
-            backend.action(dFdu_form, adj_sol)))
+            self.backend.action(dFdu_form, adj_sol)))
 
         return adj_sol, adj_sol_bdy
 
@@ -178,29 +181,29 @@ class SolveBlock(Block):
         c = block_variable.output
         c_rep = block_variable.saved_output
 
-        if isinstance(c, backend.Function):
-            trial_function = backend.TrialFunction(c.function_space())
-        elif isinstance(c, backend.Constant):
+        if isinstance(c, self.backend.Function):
+            trial_function = self.backend.TrialFunction(c.function_space())
+        elif isinstance(c, self.backend.Constant):
             mesh = compat.extract_mesh_from_form(F_form)
-            trial_function = backend.TrialFunction(c._ad_function_space(mesh))
+            trial_function = self.backend.TrialFunction(c._ad_function_space(mesh))
         elif isinstance(c, compat.ExpressionType):
             mesh = F_form.ufl_domain().ufl_cargo()
             c_fs = c._ad_function_space(mesh)
-            trial_function = backend.TrialFunction(c_fs)
-        elif isinstance(c, backend.DirichletBC):
+            trial_function = self.backend.TrialFunction(c_fs)
+        elif isinstance(c, self.backend.DirichletBC):
             tmp_bc = compat.create_bc(c, value=extract_subfunction(adj_sol_bdy, c.function_space()))
             return [tmp_bc]
         elif isinstance(c, compat.MeshType):
             # Using CoordianteDerivative requires us to do action before
             # differentiating, might change in the future.
-            F_form_tmp = backend.action(F_form, adj_sol)
-            X = backend.SpatialCoordinate(c_rep)
-            dFdm = backend.derivative(-F_form_tmp, X)
+            F_form_tmp = self.backend.action(F_form, adj_sol)
+            X = self.backend.SpatialCoordinate(c_rep)
+            dFdm = self.backend.derivative(-F_form_tmp, X)
             dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
             return dFdm
 
-        dFdm = -backend.derivative(F_form, c_rep, trial_function)
-        dFdm = backend.adjoint(dFdm)
+        dFdm = -self.backend.derivative(F_form, c_rep, trial_function)
+        dFdm = self.backend.adjoint(dFdm)
         dFdm = dFdm * adj_sol
         dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
         if isinstance(c, compat.ExpressionType):
@@ -215,7 +218,7 @@ class SolveBlock(Block):
         F_form = self._create_F_form()
 
         # Obtain dFdu.
-        dFdu = backend.derivative(F_form, fwd_block_variable.saved_output, backend.TrialFunction(u.function_space()))
+        dFdu = self.backend.derivative(F_form, fwd_block_variable.saved_output, self.backend.TrialFunction(u.function_space()))
 
         r = {}
         r["form"] = F_form
@@ -235,14 +238,14 @@ class SolveBlock(Block):
             c = block_variable.output
             c_rep = block_variable.saved_output
 
-            if isinstance(c, backend.DirichletBC):
+            if isinstance(c, self.backend.DirichletBC):
                 if tlm_value is None:
                     bcs.append(compat.create_bc(c, homogenize=True))
                 else:
                     bcs.append(tlm_value)
                 continue
             elif isinstance(c, compat.MeshType):
-                X = backend.SpatialCoordinate(c)
+                X = self.backend.SpatialCoordinate(c)
                 c_rep = X
 
             if tlm_value is None:
@@ -253,16 +256,16 @@ class SolveBlock(Block):
 
             if isinstance(c, compat.MeshType):
                 dFdm_shape += compat.assemble_adjoint_value(
-                    backend.derivative(-F_form, c_rep, tlm_value))
+                    self.backend.derivative(-F_form, c_rep, tlm_value))
             else:
-                dFdm += backend.derivative(-F_form, c_rep, tlm_value)
+                dFdm += self.backend.derivative(-F_form, c_rep, tlm_value)
 
         if isinstance(dFdm, float):
             v = dFdu.arguments()[0]
-            dFdm = backend.inner(backend.Constant(numpy.zeros(v.ufl_shape)), v) * backend.dx
+            dFdm = self.backend.inner(self.backend.Constant(numpy.zeros(v.ufl_shape)), v) * self.backend.dx
 
         dFdm = compat.assemble_adjoint_value(dFdm) + dFdm_shape
-        dudm = backend.Function(V)
+        dudm = self.backend.Function(V)
         return self._assemble_and_solve_tlm_eq(compat.assemble_adjoint_value(dFdu, bcs=bcs), dFdm, dudm, bcs)
 
     def _assemble_and_solve_tlm_eq(self, dFdu, dFdm, dudm, bcs):
@@ -282,25 +285,25 @@ class SolveBlock(Block):
                 continue
 
             if isinstance(c, compat.MeshType):
-                X = backend.SpatialCoordinate(c)
-                dFdu_adj = backend.action(backend.adjoint(dFdu_form), adj_sol)
+                X = self.backend.SpatialCoordinate(c)
+                dFdu_adj = self.backend.action(self.backend.adjoint(dFdu_form), adj_sol)
                 d2Fdudm = ufl.algorithms.expand_derivatives(
-                    backend.derivative(dFdu_adj, X, tlm_input))
+                    self.backend.derivative(dFdu_adj, X, tlm_input))
                 if len(d2Fdudm.integrals()) > 0:
                     b -= compat.assemble_adjoint_value(d2Fdudm)
 
-            elif not isinstance(c, backend.DirichletBC):
-                b_form += backend.derivative(dFdu_form, c_rep, tlm_input)
+            elif not isinstance(c, self.backend.DirichletBC):
+                b_form += self.backend.derivative(dFdu_form, c_rep, tlm_input)
 
         b_form = ufl.algorithms.expand_derivatives(b_form)
         if len(b_form.integrals()) > 0:
-            b_form = backend.adjoint(b_form)
-            b -= compat.assemble_adjoint_value(backend.action(b_form, adj_sol))
+            b_form = self.backend.adjoint(b_form)
+            b -= compat.assemble_adjoint_value(self.backend.action(b_form, adj_sol))
         return b
 
     def _assemble_and_solve_soa_eq(self, dFdu_form, adj_sol, hessian_input, d2Fdu2):
         b = self._assemble_soa_eq_rhs(dFdu_form, adj_sol, hessian_input, d2Fdu2)
-        dFdu_form = backend.adjoint(dFdu_form)
+        dFdu_form = self.backend.adjoint(dFdu_form)
         adj_sol2, adj_sol2_bdy = self._assemble_and_solve_adj_eq(dFdu_form, b)
         if self.adj2_cb is not None:
             self.adj2_cb(adj_sol2)
@@ -323,9 +326,9 @@ class SolveBlock(Block):
         F_form = self._create_F_form()
 
         # Using the equation Form we derive dF/du, d^2F/du^2 * du/dm * direction.
-        dFdu_form = backend.derivative(F_form, fwd_block_variable.saved_output)
+        dFdu_form = self.backend.derivative(F_form, fwd_block_variable.saved_output)
         d2Fdu2 = ufl.algorithms.expand_derivatives(
-            backend.derivative(dFdu_form, fwd_block_variable.saved_output, tlm_output))
+            self.backend.derivative(dFdu_form, fwd_block_variable.saved_output, tlm_output))
 
         adj_sol = self.adj_sol
         if adj_sol is None:
@@ -356,36 +359,36 @@ class SolveBlock(Block):
 
         # If m = DirichletBC then d^2F(u,m)/dm^2 = 0 and d^2F(u,m)/dudm = 0,
         # so we only have the term dF(u,m)/dm * adj_sol2
-        if isinstance(c, backend.DirichletBC):
+        if isinstance(c, self.backend.DirichletBC):
             tmp_bc = compat.create_bc(c, value=extract_subfunction(adj_sol2_bdy, c.function_space()))
             return [tmp_bc]
 
-        if isinstance(c_rep, backend.Constant):
+        if isinstance(c_rep, self.backend.Constant):
             mesh = compat.extract_mesh_from_form(F_form)
             W = c._ad_function_space(mesh)
         elif isinstance(c, compat.ExpressionType):
             mesh = F_form.ufl_domain().ufl_cargo()
             W = c._ad_function_space(mesh)
         elif isinstance(c, compat.MeshType):
-            X = backend.SpatialCoordinate(c)
+            X = self.backend.SpatialCoordinate(c)
             element = X.ufl_domain().ufl_coordinate_element()
-            W = backend.FunctionSpace(c, element)
+            W = self.backend.FunctionSpace(c, element)
         else:
             W = c.function_space()
 
-        dc = backend.TestFunction(W)
-        form_adj = backend.action(F_form, adj_sol)
-        form_adj2 = backend.action(F_form, adj_sol2)
+        dc = self.backend.TestFunction(W)
+        form_adj = self.backend.action(F_form, adj_sol)
+        form_adj2 = self.backend.action(F_form, adj_sol2)
         if isinstance(c, compat.MeshType):
-            dFdm_adj = backend.derivative(form_adj, X, dc)
-            dFdm_adj2 = backend.derivative(form_adj2, X, dc)
+            dFdm_adj = self.backend.derivative(form_adj, X, dc)
+            dFdm_adj2 = self.backend.derivative(form_adj2, X, dc)
         else:
-            dFdm_adj = backend.derivative(form_adj, c_rep, dc)
-            dFdm_adj2 = backend.derivative(form_adj2, c_rep, dc)
+            dFdm_adj = self.backend.derivative(form_adj, c_rep, dc)
+            dFdm_adj2 = self.backend.derivative(form_adj2, c_rep, dc)
 
         # TODO: Old comment claims this might break on split. Confirm if true or not.
         d2Fdudm = ufl.algorithms.expand_derivatives(
-            backend.derivative(dFdm_adj, fwd_block_variable.saved_output,
+            self.backend.derivative(dFdm_adj, fwd_block_variable.saved_output,
                                tlm_output))
 
         hessian_output = 0
@@ -396,7 +399,7 @@ class SolveBlock(Block):
             c2 = bv.output
             c2_rep = bv.saved_output
 
-            if isinstance(c2, backend.DirichletBC):
+            if isinstance(c2, self.backend.DirichletBC):
                 continue
 
             tlm_input = bv.tlm_value
@@ -408,10 +411,10 @@ class SolveBlock(Block):
 
             # TODO: If tlm_input is a Sum, this crashes in some instances?
             if isinstance(c2_rep, compat.MeshType):
-                X = backend.SpatialCoordinate(c2_rep)
-                d2Fdm2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, X, tlm_input))
+                X = self.backend.SpatialCoordinate(c2_rep)
+                d2Fdm2 = ufl.algorithms.expand_derivatives(self.backend.derivative(dFdm_adj, X, tlm_input))
             else:
-                d2Fdm2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, c2_rep, tlm_input))
+                d2Fdm2 = ufl.algorithms.expand_derivatives(self.backend.derivative(dFdm_adj, c2_rep, tlm_input))
             if d2Fdm2.empty():
                 continue
 
@@ -428,7 +431,7 @@ class SolveBlock(Block):
             return hessian_output
 
     def _create_initial_guess(self):
-        return backend.Function(self.function_space)
+        return self.backend.Function(self.function_space)
 
     def _replace_recompute_form(self):
         func = self._create_initial_guess()
@@ -447,7 +450,7 @@ class SolveBlock(Block):
             c = block_variable.output
             c_rep = block_variable.saved_output
 
-            if isinstance(c, backend.DirichletBC):
+            if isinstance(c, self.backend.DirichletBC):
                 bcs.append(c_rep)
         return bcs
 
@@ -463,18 +466,18 @@ class SolveBlock(Block):
                 if c != c_rep:
                     replace_map[c] = c_rep
                     if func is not None and c == self.func:
-                        backend.Function.assign(func, c_rep)
+                        self.backend.Function.assign(func, c_rep)
                         replace_map[c] = func
         return ufl.replace(form, replace_map)
 
     def _forward_solve(self, lhs, rhs, func, bcs, **kwargs):
-        backend.solve(lhs == rhs, func, bcs, **kwargs)
+        self.backend.solve(lhs == rhs, func, bcs, **kwargs)
         return func
 
     def _assembled_solve(self, lhs, rhs, func, bcs, **kwargs):
         for bc in bcs:
             bc.apply(rhs)
-        backend.solve(lhs, func.vector(), rhs, **kwargs)
+        self.backend.solve(lhs, func.vector(), rhs, **kwargs)
         return func
 
     def recompute_component(self, inputs, block_variable, idx, prepared):

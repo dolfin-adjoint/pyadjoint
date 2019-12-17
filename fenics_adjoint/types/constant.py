@@ -1,5 +1,6 @@
 import backend
-from . import compat
+from dolfin_adjoint_common import compat
+compat = compat.compat(backend)
 from pyadjoint.tape import get_working_tape
 from pyadjoint.overloaded_type import OverloadedType, create_overloaded_object, register_overloaded_type
 from .compat import constant_function_firedrake_compat

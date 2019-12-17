@@ -1,8 +1,8 @@
 import backend
 import ufl
 
-from . import compat
-from .constant import Constant
+from dolfin_adjoint_common import compat
+compat = compat.compat(backend)
 from .function import Function
 
 from pyadjoint.tape import no_annotations

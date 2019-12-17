@@ -1,3 +1,5 @@
+import fenics as backend
+from . import SolveBlock
 
 
 class LinearVariationalSolveBlock(SolveBlock):
