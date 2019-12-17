@@ -1,4 +1,4 @@
-from dolfin_ajoint_common.compat import compat
+from dolfin_adjoint_common.compat import compat
 
 class Backend:
     backend = backend

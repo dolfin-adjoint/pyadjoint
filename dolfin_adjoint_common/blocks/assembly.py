@@ -1,4 +1,5 @@
 import ufl
+from pyadjoint import Block
 
 
 class AssembleBlock(Block):
