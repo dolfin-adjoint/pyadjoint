@@ -1,3 +1,6 @@
+import ufl
+
+
 class AssembleBlock(Block):
     def __init__(self, form):
         super(AssembleBlock, self).__init__()

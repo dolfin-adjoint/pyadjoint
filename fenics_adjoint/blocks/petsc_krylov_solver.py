@@ -1,3 +1,8 @@
+import fenics as backend
+from . import SolveBlock
+from dolfin_adjoint_common import compat
+compat = compat.compat(backend)
+
 
 class PETScKrylovSolveBlockHelper(object):
     def __init__(self):

@@ -1,3 +1,6 @@
+from . import SolveBlock
+
+
 class NonlinearVariationalSolveBlock(SolveBlock):
     def __init__(self, *args, **kwargs):
         self.nonlin_problem_J = kwargs.pop("problem_J")
