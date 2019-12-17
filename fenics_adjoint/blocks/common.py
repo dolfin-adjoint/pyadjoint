@@ -1,7 +1,7 @@
 import dolfin_adjoint_common.blocks as blocks
-from .types.compat import Backend
+from fenics_adjoint.types.compat import Backend
 
-__all__ = ["AssembleBlock", "ProjectBlock", "SolveBlock", "NonlinearSolveBlock"]
+__all__ = ["AssembleBlock", "ProjectBlock", "SolveBlock", "NonlinearVariationalSolveBlock"]
 
 
 class AssembleBlock(blocks.AssembleBlock, Backend):

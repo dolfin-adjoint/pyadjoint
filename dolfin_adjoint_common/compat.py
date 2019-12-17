@@ -1,9 +1,10 @@
 
 class Compat:
     # A bag class to act as a namespace for compat.
+    pass
 
 def compat(backend):
-    compat = Compat(backend)
+    compat = Compat()
     
     if backend.__name__ == "firedrake":
 
@@ -139,6 +140,7 @@ def compat(backend):
         compat.MatrixType = (backend.cpp.la.Matrix, backend.cpp.la.GenericMatrix)
         compat.VectorType = backend.cpp.la.GenericVector
         compat.FunctionType = backend.cpp.function.Function
+        compat.FunctionSpace = backend.FunctionSpace
         compat.FunctionSpaceType = backend.cpp.function.FunctionSpace
         compat.ExpressionType = backend.function.expression.BaseExpression
 

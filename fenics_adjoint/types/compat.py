@@ -1,5 +1,6 @@
-from dolfin_ajoint_common.compat import compat
+from dolfin_adjoint_common.compat import compat
+import fenics
 
 class Backend:
-    backend = backend
-    compat = compat(backend)
+    backend = fenics
+    compat = compat(fenics)
