@@ -1,7 +1,7 @@
 import backend
 from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating
 from pyadjoint.overloaded_type import create_overloaded_object
-from .solving import SolveBlock
+from .blocks import SolveBlock, ProjectBlock
 
 
 def project(*args, **kwargs):

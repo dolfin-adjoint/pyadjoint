@@ -3,7 +3,7 @@ import ufl
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
 from pyadjoint.block import Block
 from pyadjoint.overloaded_type import create_overloaded_object
-from .types import compat
+from .blocks import AssembleBlock
 
 
 def assemble(*args, **kwargs):
@@ -59,4 +59,3 @@ def assemble_system(*args, **kwargs):
     A.assemble_system = True
 
     return A, b
-

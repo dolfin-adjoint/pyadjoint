@@ -1,7 +1,7 @@
 import backend
 from pyadjoint.tape import annotate_tape, get_working_tape
 from .types import compat
-from .solving import SolveBlock
+from .blocks import LUSolveBlock, LUSolveBlockHelper
 
 
 class LUSolver(backend.LUSolver):

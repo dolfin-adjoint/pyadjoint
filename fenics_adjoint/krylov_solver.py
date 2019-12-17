@@ -3,6 +3,7 @@ import backend
 from pyadjoint.tape import annotate_tape, get_working_tape
 from .solving import SolveBlock
 from .types import compat
+from .blocks import KrylovSolverBlock
 
 
 class KrylovSolver(backend.KrylovSolver):
