@@ -1,4 +1,5 @@
 import backend
+from . import compat
 from pyadjoint.tape import get_working_tape
 from pyadjoint.overloaded_type import OverloadedType, create_overloaded_object, register_overloaded_type
 from .compat import constant_function_firedrake_compat
@@ -9,7 +10,7 @@ import numpy
 
 
 @register_overloaded_type
-class Constant(OverloadedType, backend.Constant):
+class Constant(OverloadedType, compat.Constant):
     def __init__(self, *args, **kwargs):
         super(Constant, self).__init__(*args, **kwargs)
         backend.Constant.__init__(self, *args, **kwargs)
