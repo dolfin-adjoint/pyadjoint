@@ -254,14 +254,3 @@ class Function(FloatingType, backend.Function):
 
     def __deepcopy__(self, memodict={}):
         return self.copy(deepcopy=True)
-
-
-def _extract_functions_from_lincom(lincom, functions=None):
-    functions = functions or []
-    if isinstance(lincom, backend.Function):
-        functions.append(lincom)
-        return functions
-    else:
-        for op in lincom.ufl_operands:
-            functions = _extract_functions_from_lincom(op, functions)
-    return functions

@@ -1,3 +1,4 @@
+import ufl
 from pyadjoint import Block, OverloadedType, AdjFloat
 
 
@@ -10,7 +11,7 @@ class FunctionAssignBlock(Block):
             self.add_dependency(other, no_duplicates=True)
         else:
             # Assume that this is a linear combination
-            functions = _extract_functions_from_lincom(other)
+            functions = _extract_functions_from_lincom(self.backend, other)
             for f in functions:
                 self.add_dependency(f, no_duplicates=True)
             self.expr = other
@@ -59,7 +60,7 @@ class FunctionAssignBlock(Block):
         replace_map = {}
         for dep in self.get_dependencies():
             V = dep.output.function_space()
-            tlm_input = dep.tlm_value or self.compat.Function(V)
+            tlm_input = dep.tlm_value or self.backend.Function(V)
             replace_map[dep.output] = tlm_input
         expr = ufl.replace(self.expr, replace_map)
 
@@ -72,8 +73,8 @@ class FunctionAssignBlock(Block):
 
         expr = prepared
         V = block_variable.output.function_space()
-        tlm_output = self.compat.Function(V)
-        self.compat.Function.assign(tlm_output, expr)
+        tlm_output = self.backend.Function(V)
+        self.backend.Function.assign(tlm_output, expr)
         return tlm_output
 
     def prepare_evaluate_hessian(self, inputs, hessian_inputs, adj_inputs,
@@ -101,7 +102,17 @@ class FunctionAssignBlock(Block):
     def recompute_component(self, inputs, block_variable, idx, prepared):
         if not self.lincom:
             prepared = inputs[0]
-        output = self.compat.Function(block_variable.output.function_space())
-        self.compat.Function.assign(output, prepared)
+        output = self.backend.Function(block_variable.output.function_space())
+        self.backend.Function.assign(output, prepared)
         return output
 
+
+def _extract_functions_from_lincom(backend, lincom, functions=None):
+    functions = functions or []
+    if isinstance(lincom, backend.Function):
+        functions.append(lincom)
+        return functions
+    else:
+        for op in lincom.ufl_operands:
+            functions = _extract_functions_from_lincom(backend, op, functions)
+    return functions
