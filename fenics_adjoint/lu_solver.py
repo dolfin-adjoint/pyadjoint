@@ -84,7 +84,7 @@ class LUSolveBlock(SolveBlock):
         self.block_helper = kwargs.pop("block_helper")
         self.method = kwargs.pop("lu_solver_method")
 
-    def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu):
+    def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu, bdy=True):
         dJdu_copy = dJdu.copy()
         bcs = self._homogenize_bcs()
 
