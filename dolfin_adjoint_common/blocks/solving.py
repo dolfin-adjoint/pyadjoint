@@ -82,7 +82,7 @@ class SolveBlock(Block):
             self.func = u.function
             self.assemble_system = A.assemble_system if hasattr(A, "assemble_system") else False
 
-        if not isinstance(self.bcs, list):
+        if not isinstance(self.bcs, (list, tuple)):
             self.bcs = [self.bcs]
 
         if isinstance(self.lhs, ufl.Form) and isinstance(self.rhs, ufl.Form):
