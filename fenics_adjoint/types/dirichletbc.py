@@ -2,8 +2,6 @@ import backend
 import ufl
 
 from . import compat
-from .constant import Constant
-from .function import Function
 
 from pyadjoint.tape import no_annotations
 from pyadjoint.overloaded_type import OverloadedType, FloatingType
@@ -106,7 +104,7 @@ class DirichletBCBlock(Block):
         adj_inputs = adj_inputs[0]
         adj_output = None
         for adj_input in adj_inputs:
-            if isinstance(c, Constant):
+            if isinstance(c, backend.Constant):
                 adj_value = backend.Function(self.parent_space)
                 adj_input.apply(adj_value.vector())
                 if self.function_space != self.parent_space:
@@ -129,7 +127,7 @@ class DirichletBCBlock(Block):
 
                     r = backend.cpp.la.Vector(backend.MPI.comm_world, len(output))
                     r[:] = output
-            elif isinstance(c, Function):
+            elif isinstance(c, backend.Function):
                 # TODO: This gets a little complicated.
                 #       The function may belong to a different space,
                 #       and with `Function.set_allow_extrapolation(True)`

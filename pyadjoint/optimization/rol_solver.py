@@ -213,10 +213,10 @@ try:
                                                  ibnds=ibnds)
             x = self.rolvector
             params = ROL.ParameterList(self.params_dict, "Parameters")
-            solver = ROL.OptimizationSolver(rolproblem, params)
-            solver.solve()
+            self.solver = ROL.OptimizationSolver(rolproblem, params)
+            self.solver.solve()
             return self.problem.reduced_functional.controls.delist(x.dat)
-
+        
         def checkGradient(self):
             x = self.rolvector
             g = x.clone()
@@ -224,6 +224,9 @@ try:
             self.rolobjective.gradient(g, x, 0.0)
             res = self.rolobjective.checkGradient(x, g, 7, 1)
             return res
+        
+        def getAlgorithmState(self):
+            return self.solver.getAlgorithmState()
 
 except ImportError:
 

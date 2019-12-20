@@ -100,6 +100,9 @@ class SolveBlock(Block):
             self.assemble_kwargs = {}
             if "solver_parameters" in kwargs and "mat_type" in kwargs["solver_parameters"]:
                 self.assemble_kwargs["mat_type"] = kwargs["solver_parameters"]["mat_type"]
+            if "appctx" in kwargs:
+                self.assemble_kwargs["appctx"] = kwargs["appctx"]
+                self.kwargs.pop("appctx", None)
         else:
             self.kwargs = kwargs
             self.forward_kwargs = kwargs.copy()
@@ -179,11 +182,19 @@ class SolveBlock(Block):
         dFdu = backend.derivative(F_form, fwd_block_variable.saved_output, backend.TrialFunction(u.function_space()))
         dFdu_form = backend.adjoint(dFdu)
         dJdu = dJdu.copy()
-        adj_sol, adj_sol_bdy = self._assemble_and_solve_adj_eq(dFdu_form, dJdu)
+
+        # Check if DirichletBC derivative is relevant:
+        bdy = False
+        for _, dep in relevant_dependencies:
+            if isinstance(dep.output, backend.DirichletBC):
+                bdy = True
+                break
+
+        adj_sol, adj_sol_bdy = self._assemble_and_solve_adj_eq(dFdu_form, dJdu, bdy=bdy)
         self.adj_sol = adj_sol
         if self.adj_cb is not None:
             self.adj_cb(adj_sol)
-        if self.adj_bdy_cb is not None:
+        if self.adj_bdy_cb is not None and bdy:
             self.adj_bdy_cb(adj_sol_bdy)
 
         r = {}
@@ -208,7 +219,7 @@ class SolveBlock(Block):
             bcs.append(bc)
         return bcs
 
-    def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu):
+    def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu, bdy=True):
         dJdu_copy = dJdu.copy()
         kwargs = self.assemble_kwargs.copy()
         # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
@@ -222,8 +233,10 @@ class SolveBlock(Block):
         adj_sol = Function(self.function_space)
         compat.linalg_solve(dFdu, adj_sol.vector(), dJdu, **self.kwargs)
 
-        adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
-            backend.action(dFdu_form, adj_sol)))
+        adj_sol_bdy = None
+        if bdy:
+            adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
+                backend.action(dFdu_form, adj_sol)))
 
         return adj_sol, adj_sol_bdy
 
