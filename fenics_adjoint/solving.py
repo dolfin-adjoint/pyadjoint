@@ -171,6 +171,16 @@ class SolveBlock(Block):
         replace_map[tmp_u] = self.get_outputs()[0].saved_output
         return ufl.replace(F_form, replace_map)
 
+    @staticmethod
+    def _should_compute_boundary_adjoint(relevant_dependencies):
+        # Check if DirichletBC derivative is relevant
+        bdy = False
+        for _, dep in relevant_dependencies:
+            if isinstance(dep.output, backend.DirichletBC):
+                bdy = True
+                break
+        return bdy
+
     def prepare_evaluate_adj(self, inputs, adj_inputs, relevant_dependencies):
         fwd_block_variable = self.get_outputs()[0]
         u = fwd_block_variable.output
@@ -183,13 +193,7 @@ class SolveBlock(Block):
         dFdu_form = backend.adjoint(dFdu)
         dJdu = dJdu.copy()
 
-        # Check if DirichletBC derivative is relevant:
-        bdy = False
-        for _, dep in relevant_dependencies:
-            if isinstance(dep.output, backend.DirichletBC):
-                bdy = True
-                break
-
+        bdy = self._should_compute_boundary_adjoint(relevant_dependencies)
         adj_sol, adj_sol_bdy = self._assemble_and_solve_adj_eq(dFdu_form, dJdu, bdy=bdy)
         self.adj_sol = adj_sol
         if self.adj_cb is not None:
@@ -219,7 +223,7 @@ class SolveBlock(Block):
             bcs.append(bc)
         return bcs
 
-    def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu, bdy=True):
+    def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu, bdy):
         dJdu_copy = dJdu.copy()
         kwargs = self.assemble_kwargs.copy()
         # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
@@ -370,13 +374,13 @@ class SolveBlock(Block):
             b -= compat.assemble_adjoint_value(backend.action(b_form, adj_sol))
         return b
 
-    def _assemble_and_solve_soa_eq(self, dFdu_form, adj_sol, hessian_input, d2Fdu2):
+    def _assemble_and_solve_soa_eq(self, dFdu_form, adj_sol, hessian_input, d2Fdu2, bdy):
         b = self._assemble_soa_eq_rhs(dFdu_form, adj_sol, hessian_input, d2Fdu2)
         dFdu_form = backend.adjoint(dFdu_form)
-        adj_sol2, adj_sol2_bdy = self._assemble_and_solve_adj_eq(dFdu_form, b)
+        adj_sol2, adj_sol2_bdy = self._assemble_and_solve_adj_eq(dFdu_form, b, bdy)
         if self.adj2_cb is not None:
             self.adj2_cb(adj_sol2)
-        if self.adj2_bdy_cb is not None:
+        if self.adj2_bdy_cb is not None and bdy:
             self.adj2_bdy_cb(adj_sol2_bdy)
         return adj_sol2, adj_sol2_bdy
 
@@ -402,7 +406,8 @@ class SolveBlock(Block):
         adj_sol = self.adj_sol
         if adj_sol is None:
             raise RuntimeError("Hessian computation was run before adjoint.")
-        adj_sol2, adj_sol2_bdy = self._assemble_and_solve_soa_eq(dFdu_form, adj_sol, hessian_input, d2Fdu2)
+        bdy = self._should_compute_boundary_adjoint(relevant_dependencies)
+        adj_sol2, adj_sol2_bdy = self._assemble_and_solve_soa_eq(dFdu_form, adj_sol, hessian_input, d2Fdu2, bdy)
 
         r = {}
         r["adj_sol2"] = adj_sol2
