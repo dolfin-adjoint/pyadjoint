@@ -339,7 +339,7 @@ class Tape(object):
             return self.visualise_dot(output)
 
         import tensorflow as tf
-        tf.reset_default_graph()
+        tf.compat.v1.reset_default_graph()
         self._tf_add_blocks()
 
         # Write graph to file
