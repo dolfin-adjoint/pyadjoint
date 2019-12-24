@@ -146,7 +146,7 @@ class IPOPTSolver(OptimizationSolver):
         else:
             # The length of the constraint vector
             nconstraints = constraint._get_constraint_dim()
-            ncontrols = len(self.rfn.get_controls())
+            # ncontrols = len(self.rfn.get_controls())
 
             # The constraint function
             def fun_g(x, user_data=None):
