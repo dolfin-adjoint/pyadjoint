@@ -90,9 +90,9 @@ def test_fn_split_deepcopy():
     h.vector()[:] = rand(Z.dim())
     r = taylor_to_dict(rf, ic, h)
 
-    assert min(r["FD"]["Rate"]) > 0.9
-    assert min(r["dJdm"]["Rate"]) > 1.9
-    assert min(r["Hm"]["Rate"]) > 2.9
+    assert min(r["R0"]["Rate"]) > 0.9
+    assert min(r["R1"]["Rate"]) > 1.9
+    assert min(r["R2"]["Rate"]) > 2.9
 
 
 def test_fn_split_no_annotate():
@@ -117,6 +117,6 @@ def test_fn_split_no_annotate():
     h.vector()[:] = rand(h.function_space().dim())
     r = taylor_to_dict(rf, ic, h)
 
-    assert min(r["FD"]["Rate"]) > 0.9
-    assert min(r["dJdm"]["Rate"]) > 1.9
-    assert min(r["Hm"]["Rate"]) > 2.9
+    assert min(r["R0"]["Rate"]) > 0.9
+    assert min(r["R1"]["Rate"]) > 1.9
+    assert min(r["R2"]["Rate"]) > 2.9
