@@ -84,10 +84,11 @@ class Function(FloatingType, backend.Function):
         num_sub_spaces = backend.Function.function_space(self).num_sub_spaces()
         if not annotate:
             if deepcopy:
-                ret = [create_overloaded_object(f) for f in backend.Function.split(self, *args, **kwargs)]
+                ret = tuple(create_overloaded_object(f)
+                            for f in backend.Function.split(self, *args, **kwargs))
             else:
-                ret = [Function(self, i)
-                       for i in range(num_sub_spaces)]
+                ret = tuple(Function(self, i)
+                            for i in range(num_sub_spaces))
         elif deepcopy:
             ret = []
             fs = []
@@ -101,17 +102,17 @@ class Function(FloatingType, backend.Function):
             tape.add_block(block)
             for output in ret:
                 block.add_output(output.block_variable)
-
+            ret = tuple(ret)
         else:
-            ret = [Function(self, i,
-                            block_class=SplitBlock,
-                            _ad_floating_active=True,
-                            _ad_args=[self, i],
-                            _ad_output_args=[i],
-                            output_block_class=MergeBlock,
-                            _ad_outputs=[self])
-                   for i in range(num_sub_spaces)]
-        return tuple(ret)
+            ret = tuple(Function(self, i,
+                                 block_class=SplitBlock,
+                                 _ad_floating_active=True,
+                                 _ad_args=[self, i],
+                                 _ad_output_args=[i],
+                                 output_block_class=MergeBlock,
+                                 _ad_outputs=[self])
+                        for i in range(num_sub_spaces))
+        return ret
 
     def vector(self):
         vec = backend.Function.vector(self)
@@ -177,7 +178,7 @@ class Function(FloatingType, backend.Function):
     @no_annotations
     def _ad_add(self, other):
         r = get_overloaded_class(backend.Function)(self.function_space())
-        r.vector()[:] = self.vector() + other.vector()
+        backend.Function.assign(r, self + other)
         return r
 
     def _ad_dot(self, other, options=None):
