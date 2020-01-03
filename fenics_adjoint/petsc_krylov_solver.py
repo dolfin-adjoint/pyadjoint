@@ -136,7 +136,7 @@ class PETScKrylovSolveBlock(SolveBlock):
             backend.Function.assign(r, self.initial_guess.saved_output)
         return r
 
-    def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu):
+    def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu, bdy):
         dJdu_copy = dJdu.copy()
         bcs = self._homogenize_bcs()
 

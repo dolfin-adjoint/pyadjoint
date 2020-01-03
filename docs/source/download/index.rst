@@ -37,7 +37,7 @@ Once both Docker and the FEniCS Docker script have been installed, you can
 easily start a FEniCS session with dolfin-adjoint by running the following
 command::
 
-    fenicsproject run quay.io/dolfinadjoint/pyadjoint:2018.1.0
+    fenicsproject run quay.io/dolfinadjoint/pyadjoint:2019.1.0
 
 A Jupyter notebook instance with a user defined name (here myproject) can be started with::
 
@@ -86,7 +86,7 @@ Install dolfin-adjoint and its Python dependencies with pip:
 
 .. code-block:: bash
 
-    pip install git+https://bitbucket.org/dolfin-adjoint/pyadjoint.git@2018.1.0
+    pip install git+https://bitbucket.org/dolfin-adjoint/pyadjoint.git@2019.1.0
 
 Test your installation by running:
 
@@ -110,7 +110,7 @@ pyadjoint can be installed by simply running:
 Optional dependencies:
 ----------------------
 
-- `IPOPT`_ and `pyipopt`_: This is the best available open-source optimisation algorithm. Strongly recommended if you wish to solve :doc:`PDE-constrained optimisation problems <../documentation/optimisation>`. Make sure to compile IPOPT against the `Harwell Subroutine Library`_.
+- `IPOPT`_ and Python bindings (`cyipopt`_): This is the best available open-source optimisation algorithm. Strongly recommended if you wish to solve :doc:`PDE-constrained optimisation problems <../documentation/optimisation>`. Make sure to compile IPOPT against the `Harwell Subroutine Library`_.
 
 - `Moola`_: A set of optimisation algorithms specifically designed for :doc:`PDE-constrained optimisation problems <../documentation/optimisation>`.
 
@@ -120,7 +120,7 @@ Optional dependencies:
 .. _Optizelle: http://www.optimojoe.com/products/optizelle
 .. _SLEPc: http://www.grycap.upv.es/slepc/
 .. _IPOPT: https://projects.coin-or.org/Ipopt
-.. _pyipopt: https://github.com/xuy/pyipopt
+.. _cyipopt: https://github.com/matthias-k/cyipopt
 .. _moola: https://github.com/funsim/moola
 .. _Harwell Subroutine Library: http://www.hsl.rl.ac.uk/ipopt/
 .. _their installation instructions: http://fenicsproject.org/download

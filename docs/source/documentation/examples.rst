@@ -28,4 +28,6 @@ Shape optimization examples
 ---------------------------
 
 .. toctree::
+
    stokes-shape-opt/stokes_problem
+   tube-shape-derivative/tube-shape-derivative

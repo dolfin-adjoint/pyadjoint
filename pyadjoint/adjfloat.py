@@ -209,7 +209,7 @@ class PowBlock(FloatOperatorBlock):
         from numpy import log
         if exponent.tlm_value is not None:
             second_order = float.__mul__(float.__mul__(float.__mul__(adj_input, float.__pow__(log(base_value), 2)),
-                                                       float.__pow__(base_value, exponent_value)), base.tlm_value)
+                                                       float.__pow__(base_value, exponent_value)), exponent.tlm_value)
             exponent.add_hessian_output(second_order)
 
         first_order = float.__mul__(float.__mul__(hessian_input, log(base_value)),

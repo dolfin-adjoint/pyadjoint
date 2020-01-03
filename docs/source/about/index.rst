@@ -32,6 +32,8 @@ where the model is implemented in the Python interface to FEniCS/Firedrake.
 
 News
 ====
+**27.05.2019**: dolfin-adjoint 2019.1 released (compatible with FEniCS 2019.1) `ChangeLog.rst`_.
+
 **20.03.2019**: Firedrake docker images with dolfin-adjoint preinstalled are :doc:`now available<download/index>`
 
 **18.02.2019**: New example demonstrating the shape-optimisation capabilities of dolfin-adjoint :doc:`now available<../documentation/stokes-shape-opt/stokes_problem>`

@@ -13,6 +13,7 @@ from . import compat
 from .compat import gather
 from .function_assigner import FunctionAssigner, FunctionAssignerBlock
 from pyadjoint.enlisting import Enlist
+import numpy
 
 
 @register_overloaded_type
@@ -114,6 +115,25 @@ class Function(FloatingType, backend.Function):
                         for i in range(num_sub_spaces))
         return ret
 
+    def __call__(self, *args, **kwargs):
+        annotate = False
+        if len(args) == 1 and isinstance(args[0], (numpy.ndarray,)):
+            annotate = annotate_tape(kwargs)
+
+        if annotate:
+            block = EvalBlock(self, args[0])
+            tape = get_working_tape()
+            tape.add_block(block)
+
+        with stop_annotating():
+            out = backend.Function.__call__(self, *args, **kwargs)
+
+        if annotate:
+            out = create_overloaded_object(out)
+            block.add_output(out.create_block_variable())
+
+        return out
+
     def vector(self):
         vec = backend.Function.vector(self)
         vec.function = self
@@ -131,9 +151,7 @@ class Function(FloatingType, backend.Function):
             u = backend.TrialFunction(self.function_space())
             v = backend.TestFunction(self.function_space())
             M = backend.assemble(backend.inner(u, v) * backend.dx)
-            if not isinstance(value, backend.GenericVector):
-                value = value.vector()
-            backend.solve(M, ret.vector(), value)
+            compat.linalg_solve(M, ret.vector(), value)
             return ret
         elif riesz_representation == "H1":
             ret = Function(self.function_space())
@@ -142,9 +160,7 @@ class Function(FloatingType, backend.Function):
             M = backend.assemble(
                 backend.inner(u, v) * backend.dx + backend.inner(
                     backend.grad(u), backend.grad(v)) * backend.dx)
-            if not isinstance(value, backend.GenericVector):
-                value = value.vector()
-            backend.solve(M, ret.vector(), value)
+            compat.linalg_solve(M, ret.vector(), value)
             return ret
         elif callable(riesz_representation):
             return riesz_representation(value)
@@ -160,7 +176,7 @@ class Function(FloatingType, backend.Function):
             return self.copy(deepcopy=True)
 
         dep = self.block.get_dependencies()[0].saved_output
-        return dep.sub(self.block.idx, deepcopy=True)
+        return dep.sub(self.block.idx, deepcopy=False)
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
@@ -270,6 +286,39 @@ def _extract_functions_from_lincom(lincom, functions=None):
         for op in lincom.ufl_operands:
             functions = _extract_functions_from_lincom(op, functions)
     return functions
+
+
+class EvalBlock(Block):
+    def __init__(self, func, coords):
+        super().__init__()
+        self.add_dependency(func)
+        self.coords = coords
+
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        p = backend.Point(numpy.array(self.coords))
+        V = inputs[0].function_space()
+        dofs = V.dofmap()
+        mesh = V.mesh()
+        element = V.element()
+        visited = []
+        adj_vec = Function(V).vector()
+
+        for cell_idx in range(len(mesh.cells())):
+            cell = backend.Cell(mesh, cell_idx)
+            if cell.contains(p):
+                for ref_dof, dof in enumerate(dofs.cell_dofs(cell_idx)):
+                    if dof in visited:
+                        continue
+                    visited.append(dof)
+                    basis = element.evaluate_basis(ref_dof,
+                                                   p.array(),
+                                                   cell.get_coordinate_dofs(),
+                                                   cell.orientation())
+                    adj_vec[dof] = basis.dot(adj_inputs[idx])
+        return adj_vec
+
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        return inputs[0](self.coords)
 
 
 class AssignBlock(Block):
