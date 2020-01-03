@@ -11,7 +11,6 @@ from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, \
     no_annotations
 from . import compat
 from .compat import gather
-from .function_assigner import FunctionAssigner, FunctionAssignerBlock
 from pyadjoint.enlisting import Enlist
 import numpy
 
@@ -80,6 +79,7 @@ class Function(FloatingType, backend.Function):
         return ret
 
     def split(self, *args, **kwargs):
+        from .function_assigner import FunctionAssigner, FunctionAssignerBlock
         deepcopy = kwargs.get("deepcopy", False)
         annotate = annotate_tape(kwargs)
         num_sub_spaces = backend.Function.function_space(self).num_sub_spaces()
