@@ -24,7 +24,7 @@ class Mesh(OverloadedType, backend.Mesh):
         else:
             self.org_mesh_coords = None
 
-        self._coordinate_mesh = None
+        self._ad_coordinate_space = None
 
     def _ad_create_checkpoint(self):
         return self.coordinates().copy()
