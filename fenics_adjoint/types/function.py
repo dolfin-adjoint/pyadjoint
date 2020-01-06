@@ -36,18 +36,15 @@ class Function(FloatingType, backend.Function):
 
     @classmethod
     def _ad_init_object(cls, obj):
-        return compat.function_from_vector(obj.function_space(), obj.vector(), cls=cls)
+        return compat.type_cast_function(obj, cls)
 
     def copy(self, *args, **kwargs):
         annotate = annotate_tape(kwargs)
-        deepcopy = kwargs.pop("deepcopy", False)
-        if deepcopy:
-            func = Function(self.function_space(), self._cpp_object.vector().copy())
-        else:
-            func = Function(self.function_space(), self._cpp_object.vector())
+        c = backend.Function.copy(self, *args, **kwargs)
+        func = create_overloaded_object(c)
 
         if annotate:
-            if deepcopy:
+            if kwargs.pop("deepcopy", False):
                 block = AssignBlock(func, self)
                 tape = get_working_tape()
                 tape.add_block(block)
