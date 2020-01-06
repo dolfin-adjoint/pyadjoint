@@ -161,7 +161,7 @@ class SolveBlock(Block):
         # Process the equation forms, replacing values with checkpoints,
         # and gathering lhs and rhs in one single form.
         if self.linear:
-            tmp_u = Function(self.function_space)
+            tmp_u = compat.create_function(self.function_space)
             F_form = backend.action(self.lhs, tmp_u) - self.rhs
         else:
             tmp_u = self.func
@@ -234,7 +234,7 @@ class SolveBlock(Block):
         for bc in bcs:
             bc.apply(dJdu)
 
-        adj_sol = Function(self.function_space)
+        adj_sol = compat.create_function(self.function_space)
         compat.linalg_solve(dFdu, adj_sol.vector(), dJdu, **self.kwargs)
 
         adj_sol_bdy = None

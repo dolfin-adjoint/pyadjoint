@@ -85,7 +85,7 @@ class Function(FloatingType, backend.Function):
                 ret = tuple(create_overloaded_object(f)
                             for f in backend.Function.split(self, *args, **kwargs))
             else:
-                ret = tuple(Function(self, i)
+                ret = tuple(compat.create_function(self, i)
                             for i in range(num_sub_spaces))
         elif deepcopy:
             ret = []
@@ -102,13 +102,14 @@ class Function(FloatingType, backend.Function):
                 block.add_output(output.block_variable)
             ret = tuple(ret)
         else:
-            ret = tuple(Function(self, i,
-                                 block_class=SplitBlock,
-                                 _ad_floating_active=True,
-                                 _ad_args=[self, i],
-                                 _ad_output_args=[i],
-                                 output_block_class=MergeBlock,
-                                 _ad_outputs=[self])
+            ret = tuple(compat.create_function(self,
+                                               i,
+                                               block_class=SplitBlock,
+                                               _ad_floating_active=True,
+                                               _ad_args=[self, i],
+                                               _ad_output_args=[i],
+                                               output_block_class=MergeBlock,
+                                               _ad_outputs=[self])
                         for i in range(num_sub_spaces))
         return ret
 
@@ -142,16 +143,18 @@ class Function(FloatingType, backend.Function):
         riesz_representation = options.get("riesz_representation", "l2")
 
         if riesz_representation == "l2":
-            return compat.function_from_vector(self.function_space(), value, cls=Function)
+            return create_overloaded_object(
+                compat.function_from_vector(self.function_space(), value, cls=backend.Function)
+            )
         elif riesz_representation == "L2":
-            ret = Function(self.function_space())
+            ret = compat.create_function(self.function_space())
             u = backend.TrialFunction(self.function_space())
             v = backend.TestFunction(self.function_space())
             M = backend.assemble(backend.inner(u, v) * backend.dx)
             compat.linalg_solve(M, ret.vector(), value)
             return ret
         elif riesz_representation == "H1":
-            ret = Function(self.function_space())
+            ret = compat.create_function(self.function_space())
             u = backend.TrialFunction(self.function_space())
             v = backend.TestFunction(self.function_space())
             M = backend.assemble(
@@ -298,7 +301,7 @@ class EvalBlock(Block):
         mesh = V.mesh()
         element = V.element()
         visited = []
-        adj_vec = Function(V).vector()
+        adj_vec = backend.Function(V).vector()
 
         for cell_idx in range(len(mesh.cells())):
             cell = backend.Cell(mesh, cell_idx)

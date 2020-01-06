@@ -131,6 +131,11 @@ if backend.__name__ == "firedrake":
         """
         return function_from_vector(obj.function_space(), obj.vector(), cls=cls)
 
+    def create_function(*args, **kwargs):
+        """Initialises a fenics_adjoint.Function object and returns it."""
+        from firedrake_adjoint import Function
+        return Function(*args, **kwargs)
+
 else:
     MatrixType = (backend.cpp.la.Matrix, backend.cpp.la.GenericMatrix)
     VectorType = backend.cpp.la.GenericVector
@@ -292,3 +297,8 @@ else:
         Useful when converting backend.Function to overloaded Function.
         """
         return cls(obj.function_space(), obj._cpp_object)
+
+    def create_function(*args, **kwargs):
+        """Initialises a fenics_adjoint.Function object and returns it."""
+        from .function import Function
+        return Function(*args, **kwargs)
