@@ -305,7 +305,6 @@ class SolveBlock(Block):
 
         bcs = []
         dFdm = 0.
-        dFdm_shape = 0.
         for block_variable in self.get_dependencies():
             tlm_value = block_variable.tlm_value
             c = block_variable.output
@@ -327,17 +326,12 @@ class SolveBlock(Block):
             if c == self.func and not self.linear:
                 continue
 
-            if isinstance(c, compat.MeshType):
-                dFdm_shape += compat.assemble_adjoint_value(
-                    backend.derivative(-F_form, c_rep, tlm_value))
-            else:
-                dFdm += backend.derivative(-F_form, c_rep, tlm_value)
+            dFdm += backend.derivative(-F_form, c_rep, tlm_value)
 
         if isinstance(dFdm, float):
             v = dFdu.arguments()[0]
             dFdm = backend.inner(backend.Constant(numpy.zeros(v.ufl_shape)), v) * backend.dx
-
-        dFdm = compat.assemble_adjoint_value(dFdm) + dFdm_shape
+        dFdm = compat.assemble_adjoint_value(dFdm)
         dudm = backend.Function(V)
         return self._assemble_and_solve_tlm_eq(compat.assemble_adjoint_value(dFdu, bcs=bcs), dFdm, dudm, bcs)
 
@@ -347,7 +341,10 @@ class SolveBlock(Block):
     def _assemble_soa_eq_rhs(self, dFdu_form, adj_sol, hessian_input, d2Fdu2):
         # Start piecing together the rhs of the soa equation
         b = hessian_input.copy()
-        b_form = d2Fdu2
+        if len(d2Fdu2.integrals()) > 0:
+            b_form = backend.action(backend.adjoint(d2Fdu2), adj_sol)
+        else:
+            b_form = d2Fdu2
 
         for bo in self.get_dependencies():
             c = bo.output
@@ -363,15 +360,16 @@ class SolveBlock(Block):
                 d2Fdudm = ufl.algorithms.expand_derivatives(
                     backend.derivative(dFdu_adj, X, tlm_input))
                 if len(d2Fdudm.integrals()) > 0:
-                    b -= compat.assemble_adjoint_value(d2Fdudm)
-
+                    b_form += d2Fdudm
             elif not isinstance(c, backend.DirichletBC):
-                b_form += backend.derivative(dFdu_form, c_rep, tlm_input)
+                dFdu_adj = backend.action(backend.adjoint(dFdu_form), adj_sol)
+                b_form += backend.derivative(dFdu_adj, c_rep, tlm_input)
+
 
         b_form = ufl.algorithms.expand_derivatives(b_form)
         if len(b_form.integrals()) > 0:
-            b_form = backend.adjoint(b_form)
-            b -= compat.assemble_adjoint_value(backend.action(b_form, adj_sol))
+            b -= compat.assemble_adjoint_value(b_form)
+
         return b
 
     def _assemble_and_solve_soa_eq(self, dFdu_form, adj_sol, hessian_input, d2Fdu2, bdy):
@@ -465,8 +463,7 @@ class SolveBlock(Block):
             backend.derivative(dFdm_adj, fwd_block_variable.saved_output,
                                tlm_output))
 
-        hessian_output = 0
-
+        d2Fdm2 = 0
         # We need to add terms from every other dependency
         # i.e. the terms d^2F/dm_1dm_2
         for _, bv in relevant_dependencies:
@@ -486,18 +483,13 @@ class SolveBlock(Block):
             # TODO: If tlm_input is a Sum, this crashes in some instances?
             if isinstance(c2_rep, compat.MeshType):
                 X = backend.SpatialCoordinate(c2_rep)
-                d2Fdm2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, X, tlm_input))
+                d2Fdm2 += ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, X, tlm_input))
             else:
-                d2Fdm2 = ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, c2_rep, tlm_input))
-            if d2Fdm2.empty():
-                continue
+                d2Fdm2 += ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, c2_rep, tlm_input))
 
-            hessian_output -= compat.assemble_adjoint_value(d2Fdm2)
-
-        if not d2Fdudm.empty():
-            # FIXME: This can be empty in the multimesh case, ask sebastian
-            hessian_output -= compat.assemble_adjoint_value(d2Fdudm)
-        hessian_output -= compat.assemble_adjoint_value(dFdm_adj2)
+        hessian_form = d2Fdm2 + dFdm_adj2 + d2Fdudm
+        if not hessian_form.empty():
+            hessian_output = -compat.assemble_adjoint_value(hessian_form)
 
         if isinstance(c, compat.ExpressionType):
             return [(hessian_output, W)]

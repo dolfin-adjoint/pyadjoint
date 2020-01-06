@@ -125,7 +125,6 @@ class AssembleBlock(Block):
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
         form = prepared
         dform = 0.
-        dform_shape = 0.
         for bv in self.get_dependencies():
             c_rep = bv.saved_output
             tlm_value = bv.tlm_value
@@ -134,13 +133,12 @@ class AssembleBlock(Block):
                 continue
             if isinstance(c_rep, compat.MeshType):
                 X = backend.SpatialCoordinate(c_rep)
-                dform_shape += compat.assemble_adjoint_value(
-                    backend.derivative(form, X, tlm_value))
+                dform += backend.derivative(form, X, tlm_value)
             else:
                 dform += backend.derivative(form, c_rep, tlm_value)
         if not isinstance(dform, float):
             dform = compat.assemble_adjoint_value(dform)
-        return dform + dform_shape
+        return dform
 
     def prepare_evaluate_hessian(self, inputs, hessian_inputs, adj_inputs, relevant_dependencies):
         return self.prepare_evaluate_adj(inputs, adj_inputs, relevant_dependencies)
@@ -175,6 +173,7 @@ class AssembleBlock(Block):
             dform = backend.derivative(form, c1_rep, dc)
         hessian_outputs = hessian_input * compat.assemble_adjoint_value(dform)
 
+        ddform = 0
         for other_idx, bv in relevant_dependencies:
             c2_rep = bv.saved_output
             tlm_input = bv.tlm_value
@@ -184,10 +183,10 @@ class AssembleBlock(Block):
 
             if isinstance(c2_rep, compat.MeshType):
                 X = backend.SpatialCoordinate(c2_rep)
-                ddform = backend.derivative(dform, X, tlm_input)
+                ddform += backend.derivative(dform, X, tlm_input)
             else:
-                ddform = backend.derivative(dform, c2_rep, tlm_input)
-            hessian_outputs += adj_input * compat.assemble_adjoint_value(ddform)
+                ddform += backend.derivative(dform, c2_rep, tlm_input)
+        hessian_outputs += adj_input * compat.assemble_adjoint_value(ddform)
 
         if isinstance(c1, compat.ExpressionType):
             return [(hessian_outputs, W)]
