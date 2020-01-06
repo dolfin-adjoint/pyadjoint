@@ -124,6 +124,18 @@ if backend.__name__ == "firedrake":
 
     linalg_solve = backend.solve
 
+    def type_cast_function(obj, cls):
+        """Type casts Function object `obj` to an instance of `cls`.
+
+        Useful when converting backend.Function to overloaded Function.
+        """
+        return function_from_vector(obj.function_space(), obj.vector(), cls=cls)
+
+    def create_function(*args, **kwargs):
+        """Initialises a fenics_adjoint.Function object and returns it."""
+        from firedrake_adjoint import Function
+        return Function(*args, **kwargs)
+
 else:
     MatrixType = (backend.cpp.la.Matrix, backend.cpp.la.GenericMatrix)
     VectorType = backend.cpp.la.GenericVector
@@ -278,3 +290,15 @@ else:
         if not isinstance(b, backend.GenericVector):
             b = b.vector()
         return backend.solve(A, x, b, *args)
+
+    def type_cast_function(obj, cls):
+        """Type casts Function object `obj` to an instance of `cls`.
+
+        Useful when converting backend.Function to overloaded Function.
+        """
+        return cls(obj.function_space(), obj._cpp_object)
+
+    def create_function(*args, **kwargs):
+        """Initialises a fenics_adjoint.Function object and returns it."""
+        from .function import Function
+        return Function(*args, **kwargs)
