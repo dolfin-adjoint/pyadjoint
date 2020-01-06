@@ -105,7 +105,7 @@ class AssembleBlock(Block):
             return [[adj_input * output, V]]
         elif isinstance(c, compat.MeshType):
             X = backend.SpatialCoordinate(c_rep)
-            dform = backend.derivative(form, X)
+            dform = backend.derivative(form, X, backend.TestFunction(c._ad_function_space()))
             output = compat.assemble_adjoint_value(dform)
             return adj_input * output
 
@@ -168,7 +168,7 @@ class AssembleBlock(Block):
 
         if isinstance(c1, compat.MeshType):
             X = backend.SpatialCoordinate(c1)
-            dform = backend.derivative(form, X)
+            dform = backend.derivative(form, X, backend.TestFunction(c1._ad_function_space()))
         else:
             dform = backend.derivative(form, c1_rep, dc)
         hessian_outputs = hessian_input * compat.assemble_adjoint_value(dform)

@@ -271,7 +271,7 @@ class SolveBlock(Block):
             # differentiating, might change in the future.
             F_form_tmp = backend.action(F_form, adj_sol)
             X = backend.SpatialCoordinate(c_rep)
-            dFdm = backend.derivative(-F_form_tmp, X)
+            dFdm = backend.derivative(-F_form_tmp, X, backend.TrialFunction(c._ad_function_space()))
             dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
             return dFdm
 
@@ -443,8 +443,7 @@ class SolveBlock(Block):
             W = c._ad_function_space(mesh)
         elif isinstance(c, compat.MeshType):
             X = backend.SpatialCoordinate(c)
-            element = X.ufl_domain().ufl_coordinate_element()
-            W = backend.FunctionSpace(c, element)
+            W = c._ad_function_space()
         else:
             W = c.function_space()
 
