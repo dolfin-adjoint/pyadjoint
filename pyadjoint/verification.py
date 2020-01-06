@@ -2,7 +2,7 @@ import logging
 
 from .enlisting import Enlist
 from .tape import stop_annotating
-from dolfin import Timer, list_timings, TimingClear, TimingType, dump_timings_to_xml
+
 
 def taylor_test(J, m, h, dJdm=None, Hm=0):
     """Run a taylor test on the functional J around point m in direction h.
@@ -110,14 +110,11 @@ def taylor_to_dict(J, m, h):
             raise ValueError("{0:d} perturbations are given but only {1:d} expansion points are provided"
                              .format(len(hs), len(ms)))
 
-        with Timer("Forward Problem") as t:
-            Jm = J(m)
-
+        Jm = J(m)
         print("Computing derivative")
         for (hi, mi) in zip(hs, ms):
             mi.tlm_value = hi.tlm_value
-        with Timer("Derivative") as t:
-            ds = Enlist(J.derivative())
+        ds = Enlist(J.derivative())
         if len(ds) != len(ms):
             raise ValueError("The derivative of J depends on {0:d} variables"
                              .format(len(ds))
@@ -126,8 +123,8 @@ def taylor_to_dict(J, m, h):
         dJdm = sum(hi._ad_dot(di) for hi, di in zip(hs, ds))
 
         print("Computing Hessian")
-        with Timer("Hessian") as t:
-            Hm = Enlist(J.hessian(hs))
+
+        Hm = Enlist(J.hessian(hs))
         Hmh = sum(hi._ad_dot(hmi) for hi, hmi in zip(hs, Hm))
 
         def perturbe(eps):
@@ -142,12 +139,10 @@ def taylor_to_dict(J, m, h):
         epsilons = [0.01 / 2**i for i in range(4)]
         error_dict["eps"] = epsilons
         for eps in epsilons:
-            with Timer("Forward Problem") as t:
-                Jp = J(perturbe(eps))
+            Jp = J(perturbe(eps))
             error_dict["R0"]["Residual"].append(abs(Jp - Jm))
             error_dict["R1"]["Residual"].append(abs(Jp - Jm - eps * dJdm))
             error_dict["R2"]["Residual"].append(abs(Jp - Jm - eps * dJdm - 0.5 * eps**2 * Hmh))
-
 
         for key in error_dict.keys():
             if key != "eps":
@@ -155,8 +150,5 @@ def taylor_to_dict(J, m, h):
                                                             ["Residual"][:],
                                                             error_dict["eps"],
                                                             show=False)
-    with Timer("Forward Problem") as t:
-        J(m)
-    dump_timings_to_xml("timings.xml", TimingClear.keep)
-    list_timings(TimingClear.keep, [TimingType.wall])
+    J(m)
     return error_dict
