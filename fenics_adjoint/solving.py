@@ -205,7 +205,7 @@ class GenericSolveBlock(Block):
         self.adj_sol = adj_sol
         if self.adj_cb is not None:
             self.adj_cb(adj_sol)
-        if self.adj_bdy_cb is not None and bdy:
+        if self.adj_bdy_cb is not None and compute_bdy:
             self.adj_bdy_cb(adj_sol_bdy)
 
         r = {}
@@ -371,7 +371,7 @@ class GenericSolveBlock(Block):
         adj_sol2, adj_sol2_bdy = self._assemble_and_solve_adj_eq(dFdu_form, b, compute_bdy)
         if self.adj2_cb is not None:
             self.adj2_cb(adj_sol2)
-        if self.adj2_bdy_cb is not None and bdy:
+        if self.adj2_bdy_cb is not None and compute_bdy:
             self.adj2_bdy_cb(adj_sol2_bdy)
         return adj_sol2, adj_sol2_bdy
 
