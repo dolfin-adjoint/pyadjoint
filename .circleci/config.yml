@@ -1,4 +1,4 @@
-# Python CircleCI 2.0 configuration file
+ Python CircleCI 2.0 configuration file
 #
 # Check https://circleci.com/docs/2.0/language-python/ for more details
 #
@@ -36,11 +36,9 @@ jobs:
             export DEBIAN_FRONTEND=noninteractive
             apt-get update
             apt-get install -y  python-dev graphviz libgraphviz-dev pkg-config patchelf
-            git clone https://dokken@bitbucket.org/dokken/ffc-interval-tables-and-quadrature-fixes.git ffc
-            cd ffc
-            git checkout dokken/interval-tables-and-quadrature-fixes
-            sudo pip3 install .
-            cd ..
+            pip3 install git+https://github.com/FEniCS/fiat.git@master
+            pip3 install git+https://github.com/FEniCS/ufl.git@master
+            pip3 install git+https://bitbucket.org/dokken/ffc-interval-tables-and-quadrature-fixes.git@dokken/interval-tables-and-quadrature-fixes
             pip3 install -e .[all]
             pip3 install roltrilinos ROL
             pip3 install protobuf==3.8.0
