@@ -39,7 +39,7 @@ jobs:
             git clone https://dokken@bitbucket.org/dokken/ffc-interval-tables-and-quadrature-fixes.git ffc
             cd ffc
             git checkout dokken/interval-tables-and-quadrature-fixes
-            pip3 install .
+            sudo pip3 install .
             cd ..
             pip3 install -e .[all]
             pip3 install roltrilinos ROL
