@@ -13,6 +13,9 @@ __all__ = ["Mesh", "ExtrudedMesh", "MeshHierarchy", "ExtrudedMeshHierarchy"] + b
 
 @register_overloaded_type
 class MeshGeometry(OverloadedType, backend.mesh.MeshGeometry):
+
+    _ad_coordinate_space = None
+
     def __init__(self, *args, **kwargs):
         super(MeshGeometry, self).__init__(*args,
                                            **kwargs)
@@ -55,7 +58,9 @@ class MeshGeometry(OverloadedType, backend.mesh.MeshGeometry):
         return f
 
     def _ad_function_space(self):
-        return self._coordinates.function_space()
+        if self._ad_coordinate_space is None:
+            self._ad_coordinate_space = self.coordinates.function_space().ufl_function_space()
+        return self._ad_coordinate_space
 
 
 class MeshInputBlock(Block):

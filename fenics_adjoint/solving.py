@@ -281,7 +281,8 @@ class SolveBlock(Block):
             # differentiating, might change in the future.
             F_form_tmp = backend.action(F_form, adj_sol)
             X = backend.SpatialCoordinate(c_rep)
-            dFdm = backend.derivative(-F_form_tmp, X, backend.TrialFunction(c._ad_function_space()))
+            dFdm = backend.derivative(-F_form_tmp, X, backend.TestFunction(c._ad_function_space()))
+
             dFdm = compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
             return dFdm
 
@@ -498,8 +499,9 @@ class SolveBlock(Block):
                 d2Fdm2 += ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, c2_rep, tlm_input))
 
         hessian_form = ufl.algorithms.expand_derivatives(d2Fdm2 + dFdm_adj2 + d2Fdudm)
+        hessian_output = 0
         if not hessian_form.empty():
-            hessian_output = -compat.assemble_adjoint_value(hessian_form)
+            hessian_output -= compat.assemble_adjoint_value(hessian_form)
 
         if isinstance(c, compat.ExpressionType):
             return [(hessian_output, W)]
