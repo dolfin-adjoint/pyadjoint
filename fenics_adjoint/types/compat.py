@@ -51,13 +51,13 @@ if backend.__name__ == "firedrake":
 
     # Most of this is to deal with Firedrake assembly returning
     # Function whereas Dolfin returns Vector.
-    def function_from_vector(V, vector):
+    def function_from_vector(V, vector, cls=backend.Function):
         """Create a new Function sharing data.
 
         :arg V: The function space
         :arg vector: The data to share.
         """
-        return backend.Function(V, val=vector)
+        return cls(V, val=vector)
 
     def inner(a, b):
         """Compute the l2 inner product of a and b.
@@ -123,6 +123,18 @@ if backend.__name__ == "firedrake":
         return vec.gather()
 
     linalg_solve = backend.solve
+
+    def type_cast_function(obj, cls):
+        """Type casts Function object `obj` to an instance of `cls`.
+
+        Useful when converting backend.Function to overloaded Function.
+        """
+        return function_from_vector(obj.function_space(), obj.vector(), cls=cls)
+
+    def create_function(*args, **kwargs):
+        """Initialises a fenics_adjoint.Function object and returns it."""
+        from firedrake_adjoint import Function
+        return Function(*args, **kwargs)
 
 else:
     MatrixType = (backend.cpp.la.Matrix, backend.cpp.la.GenericMatrix)
@@ -191,7 +203,7 @@ else:
                                      bc.sub_domain, method=bc.method())
         return bc
 
-    def function_from_vector(V, vector):
+    def function_from_vector(V, vector, cls=backend.Function):
         """Create a new Function from a vector.
 
         :arg V: The function space
@@ -204,7 +216,7 @@ else:
             # If vector is a fenics_adjoint.Function, which does not inherit
             # backend.cpp.function.Function with pybind11
             vector = vector._cpp_object
-        r = backend.Function(V)
+        r = cls(V)
         r.vector()[:] = vector
         return r
 
@@ -246,7 +258,13 @@ else:
         """
         return value
 
-    assemble_adjoint_value = backend.assemble
+    def assemble_adjoint_value(*args, **kwargs):
+        """Wrapper that assembles a matrix with boundary conditions"""
+        bcs = kwargs.pop("bcs", ())
+        result = backend.assemble(*args, **kwargs)
+        for bc in bcs:
+            bc.apply(result)
+        return result
 
     def gather(vec):
         import numpy
@@ -262,11 +280,25 @@ else:
 
         return arr
 
-    def linalg_solve(*args, **kwargs):
-        """Temporary workaround for kwargs not expected in fenics linalg,
-        but possible in firedrake.
+    def linalg_solve(A, x, b, *args, **kwargs):
+        """Linear system solve that has a firedrake compatible interface.
 
-        A better solution is expected in the future.
+        Throws away kwargs and uses b.vector() as RHS if
+        b is not a GenericVector instance.
 
         """
-        return backend.solve(*args)
+        if not isinstance(b, backend.GenericVector):
+            b = b.vector()
+        return backend.solve(A, x, b, *args)
+
+    def type_cast_function(obj, cls):
+        """Type casts Function object `obj` to an instance of `cls`.
+
+        Useful when converting backend.Function to overloaded Function.
+        """
+        return cls(obj.function_space(), obj._cpp_object)
+
+    def create_function(*args, **kwargs):
+        """Initialises a fenics_adjoint.Function object and returns it."""
+        from .function import Function
+        return Function(*args, **kwargs)

@@ -46,8 +46,8 @@ where
 is the stress and strain tensors, respectively. We set :math:`\lambda_{elas}=0`, and let :math:`\mu_{elas}` solve
 
 .. math::
-      \Delta \mu_{elas} = 0& \qquad \text{in } \Omega \\
-      \mu_{elas} = 0 &\qquad \text{on} \ \Lambda_1\cup\Lambda_2\cup\Lambda_3\\
+      \Delta \mu_{elas} = 0& \qquad \text{in } \Omega_0 \\
+      \mu_{elas} = 1 &\qquad \text{on} \ \Lambda_1\cup\Lambda_2\cup\Lambda_3\\
       \mu_{elas} = 500& \qquad \text{on} \ \Gamma
 
 As opposed to :cite:`schulz2016computational`, we do not use the the linear
@@ -279,7 +279,7 @@ We define the reduced functional, where :math:`h` is the design parameter# and u
 ::
 
   Jhat = ReducedFunctional(J, Control(h))
-  s_opt = minimize(Jhat,tol=1e-6, options={"gtol": 1e-6, "maxiter": 50})
+  s_opt = minimize(Jhat,tol=1e-6, options={"gtol": 1e-6, "maxiter": 50, "disp":True})
   
   # We evaluate the functional with the optimal solution and plot
   # the initial and final mesh
@@ -305,9 +305,9 @@ to the expected values.
   perturbation = interpolate(Expression(("-A*x[0]", "A*x[1]"),
                                         A=5000,degree=2), S_b)
   results = taylor_to_dict(Jhat, Function(S_b), perturbation)
-  assert(min(results["FD"]["Rate"])>0.9)
-  assert(min(results["dJdm"]["Rate"])>1.95)
-  assert(min(results["Hm"]["Rate"])>2.95)
+  assert(min(results["R0"]["Rate"])>0.9)
+  assert(min(results["R1"]["Rate"])>1.95)
+  assert(min(results["R2"]["Rate"])>2.95)
   
 .. bibliography:: /documentation/stokes-shape-opt/stokes-shape-opt.bib
    :cited:

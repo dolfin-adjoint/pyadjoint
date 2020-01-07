@@ -84,7 +84,7 @@ class LUSolveBlock(SolveLinearSystemBlock):
         self.block_helper = kwargs.pop("block_helper")
         self.method = kwargs.pop("lu_solver_method")
 
-    def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu, bcs, compute_bdy=True):
+    def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu, compute_bdy):
         dJdu_copy = dJdu.copy()
 
         solver = self.block_helper.adjoint_solver

@@ -2,6 +2,7 @@ import backend
 from pyadjoint.tape import annotate_tape
 from pyadjoint import OverloadedType
 
+__all__ = []
 __HDF5File_read__ = backend.HDF5File.read
 
 

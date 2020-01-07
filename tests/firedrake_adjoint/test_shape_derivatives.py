@@ -222,9 +222,9 @@ def test_multiple_assignments():
     pert = interpolate(pert, S)
     results = taylor_to_dict(Jhat, s, pert)
 
-    assert min(results["FD"]["Rate"]) > 0.9
-    assert min(results["dJdm"]["Rate"]) > 1.9
-    assert min(results["Hm"]["Rate"]) > 2.9
+    assert min(results["R0"]["Rate"]) > 0.9
+    assert min(results["R1"]["Rate"]) > 1.9
+    assert min(results["R2"]["Rate"]) > 2.9
 
     tape = get_working_tape()
     tape.clear_tape()
@@ -253,6 +253,6 @@ def test_multiple_assignments():
     pert = interpolate(pert, S)
     results = taylor_to_dict(Jhat, s, pert)
 
-    assert min(results["FD"]["Rate"]) > 0.9
-    assert min(results["dJdm"]["Rate"]) > 1.9
-    assert min(results["Hm"]["Rate"]) > 2.9
+    assert min(results["R0"]["Rate"]) > 0.9
+    assert min(results["R1"]["Rate"]) > 1.9
+    assert min(results["R2"]["Rate"]) > 2.9

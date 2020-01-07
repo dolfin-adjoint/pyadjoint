@@ -60,21 +60,21 @@ def test_h1_smoothing():
     rates = taylor_to_dict(Jhat, s, s1)
     print("----H1-mesh smoothing----")
     print("FD residuals")
-    print(rates["FD"]["Residual"])
+    print(rates["R0"]["Residual"])
     print("Derivative residuals")
-    print(rates["dJdm"]["Residual"])
+    print(rates["R1"]["Residual"])
     print("Hessian rate")
-    print(rates["Hm"]["Residual"])
+    print(rates["R2"]["Residual"])
 
     print("FD rates")
-    print(rates["FD"]["Rate"])
-    assert (min(rates["FD"]["Rate"]) > 0.95)
+    print(rates["R0"]["Rate"])
+    assert (min(rates["R0"]["Rate"]) > 0.95)
     print("Derivative rates")
-    print(rates["dJdm"]["Rate"])
-    assert (min(rates["dJdm"]["Rate"]) > 1.95)
+    print(rates["R1"]["Rate"])
+    assert (min(rates["R1"]["Rate"]) > 1.95)
     print("Hessian rate")
-    print(rates["Hm"]["Rate"])
-    assert (min(rates["Hm"]["Rate"]) > 2.95)
+    print(rates["R2"]["Rate"])
+    assert (min(rates["R2"]["Rate"]) > 2.95)
 
 
 def test_strong_boundary_enforcement():
@@ -135,21 +135,21 @@ def test_strong_boundary_enforcement():
     rates = taylor_to_dict(Jhat, s, s1)
     print("---- Dirichlet Boundary movement -----")
     print("FD residuals")
-    print(rates["FD"]["Residual"])
+    print(rates["R0"]["Residual"])
     print("Derivative residuals")
-    print(rates["dJdm"]["Residual"])
+    print(rates["R1"]["Residual"])
     print("Hessian rate")
-    print(rates["Hm"]["Residual"])
+    print(rates["R2"]["Residual"])
 
     print("FD rates")
-    print(rates["FD"]["Rate"])
-    assert (min(rates["FD"]["Rate"]) > 0.95)
+    print(rates["R0"]["Rate"])
+    assert (min(rates["R0"]["Rate"]) > 0.95)
     print("Derivative rates")
-    print(rates["dJdm"]["Rate"])
-    assert (min(rates["dJdm"]["Rate"]) > 1.95)
+    print(rates["R1"]["Rate"])
+    assert (min(rates["R1"]["Rate"]) > 1.95)
     print("Hessian rate")
-    print(rates["Hm"]["Rate"])
-    assert (min(rates["Hm"]["Rate"]) > 2.95)
+    print(rates["R2"]["Rate"])
+    assert (min(rates["R2"]["Rate"]) > 2.95)
 
 
 def test_bmesh_block_operations():
@@ -176,9 +176,9 @@ def test_bmesh_block_operations():
     # Compute 0th, 1st and  2nd taylor residuals
     rates = taylor_to_dict(Jhat, s2, s1)
     print(rates)
-    assert (min(rates["FD"]["Rate"]) > 0.95)
-    assert (min(rates["dJdm"]["Rate"]) > 1.95)
-    assert (min(rates["Hm"]["Rate"]) > 2.95)
+    assert (min(rates["R0"]["Rate"]) > 0.95)
+    assert (min(rates["R1"]["Rate"]) > 1.95)
+    assert (min(rates["R2"]["Rate"]) > 2.95)
 
 
 def test_bmesh_floating_block_operations():
@@ -206,9 +206,9 @@ def test_bmesh_floating_block_operations():
     # Compute 0th, 1st and  2nd taylor residuals
     rates = taylor_to_dict(Jhat, s2, s1)
     print(rates)
-    assert min(rates["FD"]["Rate"]) > 0.95
-    assert min(rates["dJdm"]["Rate"]) > 1.95
-    assert min(rates["Hm"]["Rate"]) > 2.95
+    assert min(rates["R0"]["Rate"]) > 0.95
+    assert min(rates["R1"]["Rate"]) > 1.95
+    assert min(rates["R2"]["Rate"]) > 2.95
 
 
 if __name__ == "__main__":

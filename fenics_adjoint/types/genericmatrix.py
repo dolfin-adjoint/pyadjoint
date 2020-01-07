@@ -1,5 +1,6 @@
 import backend
 
+__all__ = []
 backend_genericmatrix_mul = backend.cpp.la.GenericMatrix.__mul__
 
 

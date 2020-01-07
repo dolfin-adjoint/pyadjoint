@@ -132,4 +132,4 @@ if __name__ == "__main__":
     p.vector()[:] = 50*rand(T.function_space().dim())
     results = taylor_to_dict(Jhat, ic, p)
     print(results)
-    assert min(results["dJdm"]["Rate"]) > 1.85
+    assert min(results["R1"]["Rate"]) > 1.85

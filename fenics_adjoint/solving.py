@@ -129,7 +129,7 @@ class GenericSolveBlock(Block):
         # Process the equation forms, replacing values with checkpoints,
         # and gathering lhs and rhs in one single form.
         if self.linear:
-            tmp_u = Function(self.function_space)
+            tmp_u = compat.create_function(self.function_space)
             F_form = backend.action(self.lhs, tmp_u) - self.rhs
         else:
             tmp_u = self.func
@@ -179,6 +179,16 @@ class GenericSolveBlock(Block):
             replace_map[self.func] = func
         return ufl.replace(form, replace_map)
 
+    @staticmethod
+    def _should_compute_boundary_adjoint(relevant_dependencies):
+        # Check if DirichletBC derivative is relevant
+        bdy = False
+        for _, dep in relevant_dependencies:
+            if isinstance(dep.output, backend.DirichletBC):
+                bdy = True
+                break
+        return bdy
+
     def prepare_evaluate_adj(self, inputs, adj_inputs, relevant_dependencies):
         fwd_block_variable = self.get_outputs()[0]
         u = fwd_block_variable.output
@@ -190,12 +200,13 @@ class GenericSolveBlock(Block):
         dFdu = backend.derivative(F_form, fwd_block_variable.saved_output, backend.TrialFunction(u.function_space()))
         dFdu_form = backend.adjoint(dFdu)
         dJdu = dJdu.copy()
-        bcs = self._homogenize_bcs()
-        adj_sol, adj_sol_bdy = self._assemble_and_solve_adj_eq(dFdu_form, dJdu, bcs)
+
+        bdy = self._should_compute_boundary_adjoint(relevant_dependencies)
+        adj_sol, adj_sol_bdy = self._assemble_and_solve_adj_eq(dFdu_form, dJdu, bdy=bdy)
         self.adj_sol = adj_sol
         if self.adj_cb is not None:
             self.adj_cb(adj_sol)
-        if self.adj_bdy_cb is not None:
+        if self.adj_bdy_cb is not None and bdy:
             self.adj_bdy_cb(adj_sol_bdy)
 
         r = {}
@@ -206,13 +217,16 @@ class GenericSolveBlock(Block):
 
     def _assemble_and_solve_adj_eq(self, dFdu_adj_form, dJdu, bcs, compute_bdy=True):
         dJdu_copy = dJdu.copy()
-        dFdu = compat.assemble_adjoint_value(dFdu_adj_form, **self.assemble_kwargs)
+        kwargs = self.assemble_kwargs.copy()
+        # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
+        bcs = self._homogenize_bcs()
+        kwargs["bcs"] = bcs
+        dFdu = compat.assemble_adjoint_value(dFdu_form, **kwargs)
 
-        # Apply boundary conditions on adj_dFdu and dJdu.
         for bc in bcs:
-            bc.apply(dFdu, dJdu)
+            bc.apply(dJdu)
 
-        adj_sol = Function(self.function_space)
+        adj_sol = compat.create_function(self.function_space)
         compat.linalg_solve(dFdu, adj_sol.vector(), dJdu, *self.adj_args, **self.adj_kwargs)
 
         adj_sol_bdy = None
@@ -317,7 +331,7 @@ class GenericSolveBlock(Block):
 
         dFdm = compat.assemble_adjoint_value(dFdm) + dFdm_shape
         dudm = backend.Function(V)
-        return self._assemble_and_solve_tlm_eq(compat.assemble_adjoint_value(dFdu), dFdm, dudm, bcs)
+        return self._assemble_and_solve_tlm_eq(compat.assemble_adjoint_value(dFdu, bcs=bcs), dFdm, dudm, bcs)
 
     def _assemble_and_solve_tlm_eq(self, dFdu, dFdm, dudm, bcs):
         return self._assembled_solve(dFdu, dFdm, dudm, bcs)
@@ -337,15 +351,14 @@ class GenericSolveBlock(Block):
 
             if isinstance(c, compat.MeshType):
                 X = backend.SpatialCoordinate(c)
-                dFdu_adj = backend.action(dFdu_form, adj_sol)
+                dFdu_adj = backend.action(backend.adjoint(dFdu_form), adj_sol)
                 d2Fdudm = ufl.algorithms.expand_derivatives(
                     backend.derivative(dFdu_adj, X, tlm_input))
                 if len(d2Fdudm.integrals()) > 0:
                     b -= compat.assemble_adjoint_value(d2Fdudm)
 
             elif not isinstance(c, backend.DirichletBC):
-                d2Fdudm = backend.derivative(dFdu_form, c_rep, tlm_input)
-                b_form += d2Fdudm
+                b_form += backend.derivative(dFdu_form, c_rep, tlm_input)
 
         b_form = ufl.algorithms.expand_derivatives(b_form)
         if len(b_form.integrals()) > 0:
@@ -353,13 +366,13 @@ class GenericSolveBlock(Block):
             b -= compat.assemble_adjoint_value(backend.action(b_form, adj_sol))
         return b
 
-    def _assemble_and_solve_soa_eq(self, dFdu_form, adj_sol, hessian_input, d2Fdu2):
+    def _assemble_and_solve_soa_eq(self, dFdu_form, adj_sol, hessian_input, d2Fdu2, compute_bdy):
         b = self._assemble_soa_eq_rhs(dFdu_form, adj_sol, hessian_input, d2Fdu2)
-        bcs = self._homogenize_bcs()
-        adj_sol2, adj_sol2_bdy = self._assemble_and_solve_adj_eq(dFdu_form, b, bcs)
+        dFdu_form = backend.adjoint(dFdu_form)
+        adj_sol2, adj_sol2_bdy = self._assemble_and_solve_adj_eq(dFdu_form, b, compute_bdy)
         if self.adj2_cb is not None:
             self.adj2_cb(adj_sol2)
-        if self.adj2_bdy_cb is not None:
+        if self.adj2_bdy_cb is not None and bdy:
             self.adj2_bdy_cb(adj_sol2_bdy)
         return adj_sol2, adj_sol2_bdy
 
@@ -382,11 +395,11 @@ class GenericSolveBlock(Block):
         d2Fdu2 = ufl.algorithms.expand_derivatives(
             backend.derivative(dFdu_form, fwd_block_variable.saved_output, tlm_output))
 
-        dFdu_form = backend.adjoint(dFdu_form)
         adj_sol = self.adj_sol
         if adj_sol is None:
             raise RuntimeError("Hessian computation was run before adjoint.")
-        adj_sol2, adj_sol2_bdy = self._assemble_and_solve_soa_eq(dFdu_form, adj_sol, hessian_input, d2Fdu2)
+        bdy = self._should_compute_boundary_adjoint(relevant_dependencies)
+        adj_sol2, adj_sol2_bdy = self._assemble_and_solve_soa_eq(dFdu_form, adj_sol, hessian_input, d2Fdu2, bdy)
 
         r = {}
         r["adj_sol2"] = adj_sol2
@@ -501,9 +514,10 @@ class GenericSolveBlock(Block):
         backend.solve(lhs == rhs, func, bcs, *self.forward_args, **self.forward_kwargs)
         return func
 
-    def _assembled_solve(self, lhs, rhs, func, bcs):
-        [bc.apply(lhs, rhs) for bc in bcs]
-        compat.linalg_solve(lhs, func.vector(), rhs, *self.forward_args, **self.forward_kwargs)
+    def _assembled_solve(self, lhs, rhs, func, bcs, **kwargs):
+        for bc in bcs:
+            bc.apply(rhs)
+        backend.solve(lhs, func.vector(), rhs, **kwargs)
         return func
 
     def recompute_component(self, inputs, block_variable, idx, prepared):

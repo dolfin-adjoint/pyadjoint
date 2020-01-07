@@ -1,6 +1,6 @@
 # flake8: noqa
 
-__version__ = '2018.2.0.dev0'
+__version__ = '2019.1.0'
 __author__  = 'Sebastian Kenji Mitusch'
 __credits__ = []
 __license__ = 'LGPL-3'
@@ -17,7 +17,7 @@ from .drivers import compute_gradient, compute_hessian
 from .verification import taylor_test, taylor_to_dict
 from .overloaded_type import OverloadedType
 from .control import Control
-from .optimization.optimization import minimize, print_optimization_methods
+from .optimization.optimization import minimize, maximize, print_optimization_methods
 from .optimization.optimization_problem import MinimizationProblem
 from .optimization.ipopt_solver import IPOPTSolver
 from .optimization.rol_solver import ROLSolver

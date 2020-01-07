@@ -11,6 +11,8 @@ from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, \
     no_annotations
 from . import compat
 from .compat import gather
+from pyadjoint.enlisting import Enlist
+import numpy
 
 
 @register_overloaded_type
@@ -34,9 +36,7 @@ class Function(FloatingType, backend.Function):
 
     @classmethod
     def _ad_init_object(cls, obj):
-        r = cls(obj.function_space())
-        r.vector()[:] = obj.vector()
-        return r
+        return compat.type_cast_function(obj, cls)
 
     def copy(self, *args, **kwargs):
         annotate = annotate_tape(kwargs)
@@ -76,22 +76,61 @@ class Function(FloatingType, backend.Function):
         return ret
 
     def split(self, *args, **kwargs):
+        from .function_assigner import FunctionAssigner, FunctionAssignerBlock
         deepcopy = kwargs.get("deepcopy", False)
         annotate = annotate_tape(kwargs)
-        if deepcopy or not annotate:
-            # TODO: This is wrong for deepcopy=True. You need to convert every subfunction into an OverloadedType.
-            return backend.Function.split(self, *args, **kwargs)
-
         num_sub_spaces = backend.Function.function_space(self).num_sub_spaces()
-        ret = [Function(self, i,
-                        block_class=SplitBlock,
-                        _ad_floating_active=True,
-                        _ad_args=[self, i],
-                        _ad_output_args=[i],
-                        output_block_class=MergeBlock,
-                        _ad_outputs=[self])
-               for i in range(num_sub_spaces)]
-        return tuple(ret)
+        if not annotate:
+            if deepcopy:
+                ret = tuple(create_overloaded_object(f)
+                            for f in backend.Function.split(self, *args, **kwargs))
+            else:
+                ret = tuple(compat.create_function(self, i)
+                            for i in range(num_sub_spaces))
+        elif deepcopy:
+            ret = []
+            fs = []
+            for idx, f in enumerate(backend.Function.split(self, *args, **kwargs)):
+                f = create_overloaded_object(f)
+                fs.append(f.function_space())
+                ret.append(f)
+            fa = FunctionAssigner(fs, self.function_space())
+            block = FunctionAssignerBlock(fa, Enlist(self))
+            tape = get_working_tape()
+            tape.add_block(block)
+            for output in ret:
+                block.add_output(output.block_variable)
+            ret = tuple(ret)
+        else:
+            ret = tuple(compat.create_function(self,
+                                               i,
+                                               block_class=SplitBlock,
+                                               _ad_floating_active=True,
+                                               _ad_args=[self, i],
+                                               _ad_output_args=[i],
+                                               output_block_class=MergeBlock,
+                                               _ad_outputs=[self])
+                        for i in range(num_sub_spaces))
+        return ret
+
+    def __call__(self, *args, **kwargs):
+        annotate = False
+        if len(args) == 1 and isinstance(args[0], (numpy.ndarray,)):
+            annotate = annotate_tape(kwargs)
+
+        if annotate:
+            block = EvalBlock(self, args[0])
+            tape = get_working_tape()
+            tape.add_block(block)
+
+        with stop_annotating():
+            out = backend.Function.__call__(self, *args, **kwargs)
+
+        if annotate:
+            out = create_overloaded_object(out)
+            block.add_output(out.create_block_variable())
+
+        return out
 
     def vector(self):
         vec = backend.Function.vector(self)
@@ -104,26 +143,24 @@ class Function(FloatingType, backend.Function):
         riesz_representation = options.get("riesz_representation", "l2")
 
         if riesz_representation == "l2":
-            return Function(self.function_space(), value)
+            return create_overloaded_object(
+                compat.function_from_vector(self.function_space(), value, cls=backend.Function)
+            )
         elif riesz_representation == "L2":
-            ret = Function(self.function_space())
+            ret = compat.create_function(self.function_space())
             u = backend.TrialFunction(self.function_space())
             v = backend.TestFunction(self.function_space())
             M = backend.assemble(backend.inner(u, v) * backend.dx)
-            if not isinstance(value, backend.GenericVector):
-                value = value.vector()
-            backend.solve(M, ret.vector(), value)
+            compat.linalg_solve(M, ret.vector(), value)
             return ret
         elif riesz_representation == "H1":
-            ret = Function(self.function_space())
+            ret = compat.create_function(self.function_space())
             u = backend.TrialFunction(self.function_space())
             v = backend.TestFunction(self.function_space())
             M = backend.assemble(
                 backend.inner(u, v) * backend.dx + backend.inner(
                     backend.grad(u), backend.grad(v)) * backend.dx)
-            if not isinstance(value, backend.GenericVector):
-                value = value.vector()
-            backend.solve(M, ret.vector(), value)
+            compat.linalg_solve(M, ret.vector(), value)
             return ret
         elif callable(riesz_representation):
             return riesz_representation(value)
@@ -131,15 +168,15 @@ class Function(FloatingType, backend.Function):
             raise NotImplementedError(
                 "Unknown Riesz representation %s" % riesz_representation)
 
+    @no_annotations
     def _ad_create_checkpoint(self):
         if self.block is None:
             # TODO: This might crash if annotate=False, but still using a sub-function.
             #       Because subfunction.copy(deepcopy=True) raises the can't access vector error.
             return self.copy(deepcopy=True)
 
-        dep = self.block.get_dependencies()[0]
-        return backend.Function.sub(dep.saved_output, self.block.idx,
-                                    deepcopy=True)
+        dep = self.block.get_dependencies()[0].saved_output
+        return dep.sub(self.block.idx, deepcopy=False)
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
@@ -249,6 +286,39 @@ def _extract_functions_from_lincom(lincom, functions=None):
         for op in lincom.ufl_operands:
             functions = _extract_functions_from_lincom(op, functions)
     return functions
+
+
+class EvalBlock(Block):
+    def __init__(self, func, coords):
+        super().__init__()
+        self.add_dependency(func)
+        self.coords = coords
+
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        p = backend.Point(numpy.array(self.coords))
+        V = inputs[0].function_space()
+        dofs = V.dofmap()
+        mesh = V.mesh()
+        element = V.element()
+        visited = []
+        adj_vec = backend.Function(V).vector()
+
+        for cell_idx in range(len(mesh.cells())):
+            cell = backend.Cell(mesh, cell_idx)
+            if cell.contains(p):
+                for ref_dof, dof in enumerate(dofs.cell_dofs(cell_idx)):
+                    if dof in visited:
+                        continue
+                    visited.append(dof)
+                    basis = element.evaluate_basis(ref_dof,
+                                                   p.array(),
+                                                   cell.get_coordinate_dofs(),
+                                                   cell.orientation())
+                    adj_vec[dof] = basis.dot(adj_inputs[idx])
+        return adj_vec
+
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        return inputs[0](self.coords)
 
 
 class AssignBlock(Block):

@@ -1,1 +1,6 @@
+scipy
+sphinx
 sphinxcontrib-bibtex
+git+https://github.com/shomah4a/sphinxcontrib.youtube.git
+git+https://github.com/funsim/moola.git@master
+tensorflow

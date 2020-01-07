@@ -32,6 +32,8 @@ where the model is implemented in the Python interface to FEniCS/Firedrake.
 
 News
 ====
+**27.05.2019**: dolfin-adjoint 2019.1 released (compatible with FEniCS 2019.1) `ChangeLog.rst`_.
+
 **20.03.2019**: Firedrake docker images with dolfin-adjoint preinstalled are :doc:`now available<download/index>`
 
 **18.02.2019**: New example demonstrating the shape-optimisation capabilities of dolfin-adjoint :doc:`now available<../documentation/stokes-shape-opt/stokes_problem>`
@@ -132,7 +134,8 @@ Contributors
 The dolfin-adjoint project is developed and maintained by the
 following authors:
 
-- Sebastian Mitusch (Simula Research Laboratory)
+- `Sebastian Mitusch <https://www.simula.no/people/sebastkm>`__ (Simula Research Laboratory)
+- `Jørgen S. Dokken <https://www.simula.no/people/dokken>`__ (Simula Research Laboratory)
 - `Patrick E. Farrell <http://pefarrell.org>`__ (Mathematical Institute, University of Oxford)
 - `Simon W. Funke <http://simonfunke.com>`__ (Simula Research Laboratory)
 - `David A. Ham <http://www.ic.ac.uk/people/david.ham>`__ (Department of Mathematics and Department of Computing, Imperial College London)

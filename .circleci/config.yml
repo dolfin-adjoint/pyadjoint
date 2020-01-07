@@ -26,21 +26,25 @@ jobs:
       # Download and cache dependencies
       - restore_cache:
           keys:
-          - v2-dependencies-{{ checksum "requirements.txt" }}
+          - v2-dependencies-{{ checksum "setup.py" }}
           # fallback to using the latest cache if no exact match is found
           - v2-dependencies-
 
       - run:
           name: install dependencies
           command: |
+            export DEBIAN_FRONTEND=noninteractive
             apt-get update
-            apt-get install -y  python-dev graphviz libgraphviz-dev pkg-config
+            apt-get install -y  python-dev graphviz libgraphviz-dev pkg-config patchelf
             pip3 install -e .[all]
+            pip3 install roltrilinos ROL
+            pip3 install protobuf==3.8.0
+            pip3 install --upgrade numpy
 
       - save_cache:
           paths:
             - ./venv
-          key: v2-dependencies-{{ checksum "requirements.txt" }}
+          key: v2-dependencies-{{ checksum "setup.py" }}
 
       - restore_cache:
           keys:
@@ -50,8 +54,9 @@ jobs:
       - run:
           name: Run tests
           command: |
-            python3 -m pytest -v tests/fenics_adjoint/
-            python3 -m pytest -v tests/pyadjoint/
+            coverage run --source=fenics_adjoint,pyadjoint -m pytest tests/fenics_adjoint/ tests/pyadjoint/
+            coverage report
+            coverage html
 
       - run:
           name: Flake8 tests
@@ -68,6 +73,9 @@ jobs:
           path: test-reports
           destination: test-reports
 
+      - store_artifacts:
+          path: htmlcov
+
   test-firedrake:
     docker:
       - image: firedrakeproject/firedrake:latest
@@ -81,7 +89,7 @@ jobs:
       # Download and cache dependencies
       - restore_cache:
           keys:
-            - v2-dependencies-{{ checksum "requirements.txt" }}
+            - v2-dependencies-{{ checksum "setup.py" }}
             # fallback to using the latest cache if no exact match is found
             - v2-dependencies-
 
@@ -94,19 +102,23 @@ jobs:
       - save_cache:
           paths:
             - ./venv
-          key: v2-dependencies-{{ checksum "requirements.txt" }}
+          key: v2-dependencies-{{ checksum "setup.py" }}
 
       # run tests!
       - run:
           name: Run tests
           command: |
             source /home/firedrake/firedrake/bin/activate
-            python3 -m pytest -v tests/firedrake_adjoint/
-            python3 -m pytest -v tests/pyadjoint/
+            coverage run --source=firedrake_adjoint,pyadjoint -m pytest tests/firedrake_adjoint/ tests/pyadjoint/
+            coverage report
+            coverage html
 
       - store_artifacts:
           path: test-reports
           destination: test-reports
+
+      - store_artifacts:
+          path: htmlcov
 
 
 workflows:
