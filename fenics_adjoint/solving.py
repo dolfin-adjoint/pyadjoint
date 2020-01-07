@@ -5,7 +5,6 @@ import ufl
 from pyadjoint.block import Block
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
 from pyadjoint.enlisting import Enlist
-from .types import Function
 from .types import compat
 from .types.function_space import extract_subfunction
 
@@ -201,8 +200,8 @@ class GenericSolveBlock(Block):
         dFdu_form = backend.adjoint(dFdu)
         dJdu = dJdu.copy()
 
-        bdy = self._should_compute_boundary_adjoint(relevant_dependencies)
-        adj_sol, adj_sol_bdy = self._assemble_and_solve_adj_eq(dFdu_form, dJdu, bdy=bdy)
+        compute_bdy = self._should_compute_boundary_adjoint(relevant_dependencies)
+        adj_sol, adj_sol_bdy = self._assemble_and_solve_adj_eq(dFdu_form, dJdu, compute_bdy)
         self.adj_sol = adj_sol
         if self.adj_cb is not None:
             self.adj_cb(adj_sol)
@@ -215,13 +214,13 @@ class GenericSolveBlock(Block):
         r["adj_sol_bdy"] = adj_sol_bdy
         return r
 
-    def _assemble_and_solve_adj_eq(self, dFdu_adj_form, dJdu, bcs, compute_bdy=True):
+    def _assemble_and_solve_adj_eq(self, dFdu_adj_form, dJdu, compute_bdy):
         dJdu_copy = dJdu.copy()
         kwargs = self.assemble_kwargs.copy()
         # Homogenize and apply boundary conditions on adj_dFdu and dJdu.
         bcs = self._homogenize_bcs()
         kwargs["bcs"] = bcs
-        dFdu = compat.assemble_adjoint_value(dFdu_form, **kwargs)
+        dFdu = compat.assemble_adjoint_value(dFdu_adj_form, **kwargs)
 
         for bc in bcs:
             bc.apply(dJdu)
@@ -548,9 +547,9 @@ class SolveLinearSystemBlock(GenericSolveBlock):
         if len(self.adj_args) <= 0:
             self.adj_args = self.forward_args
 
-    def _assemble_and_solve_adj_eq(self, dFdu_adj_form, dJdu, bcs, compute_bdy=True):
+    def _assemble_and_solve_adj_eq(self, dFdu_adj_form, dJdu, compute_bdy):
         dJdu_copy = dJdu.copy()
-
+        bcs = self._homogenize_bcs()
         if self.assemble_system:
             rhs_bcs_form = backend.inner(backend.Function(self.function_space),
                                          dFdu_adj_form.arguments()[0]) * backend.dx
@@ -561,7 +560,7 @@ class SolveLinearSystemBlock(GenericSolveBlock):
 
         [bc.apply(dJdu) for bc in bcs]
 
-        adj_sol = Function(self.function_space)
+        adj_sol = compat.create_function(self.function_space)
         compat.linalg_solve(A, adj_sol.vector(), dJdu, *self.adj_args, **self.adj_kwargs)
 
         adj_sol_bdy = None
@@ -614,15 +613,16 @@ class SolveVarFormBlock(GenericSolveBlock):
                 self.adj_args = tuple(adj_args)
             self.adj_kwargs = solver_parameters
 
-    def _assemble_and_solve_adj_eq(self, dFdu_adj_form, dJdu, bcs, compute_bdy=True):
+    def _assemble_and_solve_adj_eq(self, dFdu_adj_form, dJdu, compute_bdy=True):
         dJdu_copy = dJdu.copy()
         dFdu = compat.assemble_adjoint_value(dFdu_adj_form, **self.assemble_kwargs)
+        bcs = self._homogenize_bcs()
 
         # Apply boundary conditions on adj_dFdu and dJdu.
         for bc in bcs:
             bc.apply(dFdu, dJdu)
 
-        adj_sol = Function(self.function_space)
+        adj_sol = compat.create_function(self.function_space)
         lu_solver_methods = backend.lu_solver_methods()
         solver_method = self.adj_args[0] if len(self.adj_args) >= 1 else "default"
         solver_method = "default" if solver_method == "lu" else solver_method

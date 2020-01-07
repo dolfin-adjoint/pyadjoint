@@ -84,17 +84,18 @@ class LUSolveBlock(SolveLinearSystemBlock):
         self.block_helper = kwargs.pop("block_helper")
         self.method = kwargs.pop("lu_solver_method")
 
-    def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu, compute_bdy):
+    def _assemble_and_solve_adj_eq(self, dFdu_adj_form, dJdu, compute_bdy):
         dJdu_copy = dJdu.copy()
+        bcs = self._homogenize_bcs()
 
         solver = self.block_helper.adjoint_solver
         if solver is None:
             if self.assemble_system:
                 rhs_bcs_form = backend.inner(backend.Function(self.function_space),
-                                             dFdu_form.arguments()[0]) * backend.dx
-                A, _ = backend.assemble_system(dFdu_form, rhs_bcs_form, bcs)
+                                             dFdu_adj_form.arguments()[0]) * backend.dx
+                A, _ = backend.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs)
             else:
-                A = compat.assemble_adjoint_value(dFdu_form)
+                A = compat.assemble_adjoint_value(dFdu_adj_form)
                 [bc.apply(A) for bc in bcs]
 
             solver = backend.LUSolver(A, self.method)
@@ -109,7 +110,7 @@ class LUSolveBlock(SolveLinearSystemBlock):
         adj_sol_bdy = None
         if compute_bdy:
             adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
-                backend.action(dFdu_form, adj_sol)))
+                backend.action(dFdu_adj_form, adj_sol)))
 
         return adj_sol, adj_sol_bdy
 

@@ -129,8 +129,9 @@ class KrylovSolveBlock(SolveLinearSystemBlock):
             backend.Function.assign(r, self.initial_guess.saved_output)
         return r
 
-    def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu, compute_bdy):
+    def _assemble_and_solve_adj_eq(self, dFdu_adj_form, dJdu, compute_bdy):
         dJdu_copy = dJdu.copy()
+        bcs = self._homogenize_bcs()
 
         solver = self.block_helper.adjoint_solver
         if solver is None:
@@ -138,8 +139,8 @@ class KrylovSolveBlock(SolveLinearSystemBlock):
 
             if self.assemble_system:
                 rhs_bcs_form = backend.inner(backend.Function(self.function_space),
-                                             dFdu_form.arguments()[0]) * backend.dx
-                A, _ = backend.assemble_system(dFdu_form, rhs_bcs_form, bcs)
+                                             dFdu_adj_form.arguments()[0]) * backend.dx
+                A, _ = backend.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs)
 
                 if self.pc_operator is not None:
                     P = self._replace_form(self.pc_operator)
@@ -148,7 +149,7 @@ class KrylovSolveBlock(SolveLinearSystemBlock):
                 else:
                     solver.set_operator(A)
             else:
-                A = compat.assemble_adjoint_value(dFdu_form)
+                A = compat.assemble_adjoint_value(dFdu_adj_form)
                 [bc.apply(A) for bc in bcs]
 
                 if self.pc_operator is not None:
@@ -170,7 +171,7 @@ class KrylovSolveBlock(SolveLinearSystemBlock):
         adj_sol_bdy = None
         if compute_bdy:
             adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
-                backend.action(dFdu_form, adj_sol)))
+                backend.action(dFdu_adj_form, adj_sol)))
 
         return adj_sol, adj_sol_bdy
 
