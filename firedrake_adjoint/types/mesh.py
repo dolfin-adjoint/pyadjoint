@@ -54,6 +54,9 @@ class MeshGeometry(OverloadedType, backend.mesh.MeshGeometry):
                      output_block_class=MeshOutputBlock)
         return f
 
+    def _ad_function_space(self):
+        return self._coordinates.function_space()
+
 
 class MeshInputBlock(Block):
     """
