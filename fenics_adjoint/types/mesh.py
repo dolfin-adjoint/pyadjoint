@@ -50,6 +50,7 @@ class BoundaryMesh(FloatingType, backend.BoundaryMesh):
                                            annotate=kwargs.pop("annotate", True),
                                            **kwargs)
         backend.BoundaryMesh.__init__(self, *args, **kwargs)
+        self._ad_coordinate_space = None
 
     def _ad_create_checkpoint(self):
         return self.coordinates().copy()
@@ -57,6 +58,12 @@ class BoundaryMesh(FloatingType, backend.BoundaryMesh):
     def _ad_restore_at_checkpoint(self, checkpoint):
         self.coordinates()[:] = checkpoint
         return self
+
+    def _ad_function_space(self):
+        if self._ad_coordinate_space is None:
+            self._ad_coordinate_space = backend.FunctionSpace(self, self.ufl_coordinate_element())
+        return self._ad_coordinate_space
+
 
 
 def overloaded_mesh(mesh_class):

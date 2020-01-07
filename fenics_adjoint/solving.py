@@ -330,6 +330,7 @@ class SolveBlock(Block):
         if isinstance(dFdm, float):
             v = dFdu.arguments()[0]
             dFdm = backend.inner(backend.Constant(numpy.zeros(v.ufl_shape)), v) * backend.dx
+        dFdm = ufl.algorithms.expand_derivatives(dFdm)
         dFdm = compat.assemble_adjoint_value(dFdm)
         dudm = backend.Function(V)
         return self._assemble_and_solve_tlm_eq(compat.assemble_adjoint_value(dFdu, bcs=bcs), dFdm, dudm, bcs)
@@ -485,7 +486,7 @@ class SolveBlock(Block):
             else:
                 d2Fdm2 += ufl.algorithms.expand_derivatives(backend.derivative(dFdm_adj, c2_rep, tlm_input))
 
-        hessian_form = d2Fdm2 + dFdm_adj2 + d2Fdudm
+        hessian_form = ufl.algorithms.expand_derivatives(d2Fdm2 + dFdm_adj2 + d2Fdudm)
         if not hessian_form.empty():
             hessian_output = -compat.assemble_adjoint_value(hessian_form)
 

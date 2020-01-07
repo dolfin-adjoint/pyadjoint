@@ -137,6 +137,7 @@ class AssembleBlock(Block):
             else:
                 dform += backend.derivative(form, c_rep, tlm_value)
         if not isinstance(dform, float):
+            dform = ufl.algorithms.expand_derivatives(dform)
             dform = compat.assemble_adjoint_value(dform)
         return dform
 
@@ -171,6 +172,7 @@ class AssembleBlock(Block):
             dform = backend.derivative(form, X, backend.TestFunction(c1._ad_function_space()))
         else:
             dform = backend.derivative(form, c1_rep, dc)
+        dform = ufl.algorithms.expand_derivatives(dform)
         hessian_outputs = hessian_input * compat.assemble_adjoint_value(dform)
 
         ddform = 0
@@ -186,7 +188,9 @@ class AssembleBlock(Block):
                 ddform += backend.derivative(dform, X, tlm_input)
             else:
                 ddform += backend.derivative(dform, c2_rep, tlm_input)
-        hessian_outputs += adj_input * compat.assemble_adjoint_value(ddform)
+        ddform = ufl.algorithms.expand_derivatives(ddform)
+        if not ddform.empty():
+            hessian_outputs += adj_input * compat.assemble_adjoint_value(ddform)
 
         if isinstance(c1, compat.ExpressionType):
             return [(hessian_outputs, W)]
