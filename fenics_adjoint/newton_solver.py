@@ -22,6 +22,7 @@ class NewtonSolver(backend.NewtonSolver):
 
             sb_kwargs = SolveBlock.pop_kwargs(kwargs)
             params = self.parameters.to_dict()
+
             def unravel_dict(params):
                 non_transfer_param = ["krylov_solver", "lu_solver"]
                 for param in non_transfer_param:

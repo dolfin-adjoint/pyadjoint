@@ -65,7 +65,6 @@ class BoundaryMesh(FloatingType, backend.BoundaryMesh):
         return self._ad_coordinate_space
 
 
-
 def overloaded_mesh(mesh_class):
     @register_overloaded_type
     class OverloadedMesh(OverloadedType, mesh_class):

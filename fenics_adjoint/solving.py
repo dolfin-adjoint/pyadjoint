@@ -246,7 +246,6 @@ class SolveBlock(Block):
         else:
             compat.linalg_solve(dFdu, adj_sol.vector(), dJdu, **self.kwargs)
 
-
         adj_sol_bdy = None
         if bdy:
             adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
@@ -376,7 +375,6 @@ class SolveBlock(Block):
             elif not isinstance(c, backend.DirichletBC):
                 dFdu_adj = backend.action(backend.adjoint(dFdu_form), adj_sol)
                 b_form += backend.derivative(dFdu_adj, c_rep, tlm_input)
-
 
         b_form = ufl.algorithms.expand_derivatives(b_form)
         if len(b_form.integrals()) > 0:
