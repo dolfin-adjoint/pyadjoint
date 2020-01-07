@@ -35,6 +35,7 @@ jobs:
           command: |
             export DEBIAN_FRONTEND=noninteractive
             apt-get update
+            pip3 uninstall fenics-fiat fenics-ffc fenics-ufl
             apt-get install -y  python-dev graphviz libgraphviz-dev pkg-config patchelf
             pip3 install git+https://github.com/FEniCS/fiat.git@master
             pip3 install git+https://github.com/FEniCS/ufl.git@master
