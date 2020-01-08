@@ -287,16 +287,12 @@ def test_newton_solver_parameters():
             self.bc = bc
 
         def F(self, b, x):
-            assembler = SystemAssembler(self.jacob, self.f, self.bc)
-            assembler.assemble(b, x)
-            #assemble(self.f, tensor=b)
-            #self.bc.apply(b, x)
+            assemble(self.f, tensor=b)
+            self.bc.apply(b, x)
 
         def J(self, A, x):
-            assembler = SystemAssembler(self.jacob, self.f, self.bc)
-            assembler.assemble(A)
-            #assemble(self.jacob, tensor=A)
-            #self.bc.apply(A)
+            assemble(self.jacob, tensor=A)
+            self.bc.apply(A)
 
     problem = Eq(F, U, bc)
     solver.parameters["convergence_criterion"] = "residual"
