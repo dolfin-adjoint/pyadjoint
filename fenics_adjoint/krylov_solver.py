@@ -1,7 +1,7 @@
 import backend
 
 from pyadjoint.tape import annotate_tape, get_working_tape
-from .solving import SolveBlock
+from .solving import SolveLinearSystemBlock
 from .types import compat
 
 
@@ -65,7 +65,7 @@ class KrylovSolver(backend.KrylovSolver):
             nonzero_initial_guess = parameters["nonzero_initial_guess"] or False
 
             tape = get_working_tape()
-            sb_kwargs = SolveBlock.pop_kwargs(kwargs)
+            sb_kwargs = KrylovSolveBlock.pop_kwargs(kwargs)
             block = KrylovSolveBlock(A, x, b,
                                      krylov_solver_parameters=parameters,
                                      block_helper=block_helper,
@@ -94,15 +94,21 @@ class KrylovSolveBlockHelper(object):
         self.adjoint_solver = None
 
 
-class KrylovSolveBlock(SolveBlock):
-    def __init__(self, *args, **kwargs):
-        super(KrylovSolveBlock, self).__init__(*args, **kwargs)
-        self.krylov_solver_parameters = kwargs.pop("krylov_solver_parameters")
-        self.block_helper = kwargs.pop("block_helper")
-        self.pc_operator = kwargs.pop("pc_operator")
-        self.nonzero_initial_guess = kwargs.pop("nonzero_initial_guess")
-        self.method = kwargs.pop("krylov_method")
-        self.preconditioner = kwargs.pop("krylov_preconditioner")
+class KrylovSolveBlock(SolveLinearSystemBlock):
+    def __init__(self, A, u, b,
+                 krylov_solver_parameters,
+                 block_helper, nonzero_initial_guess,
+                 pc_operator, krylov_method,
+                 krylov_preconditioner,
+                 **kwargs):
+        super(KrylovSolveBlock, self).__init__(A, u, b, **kwargs)
+
+        self.krylov_solver_parameters = krylov_solver_parameters
+        self.block_helper = block_helper
+        self.nonzero_initial_guess = nonzero_initial_guess
+        self.pc_operator = pc_operator
+        self.method = krylov_method
+        self.preconditioner = krylov_preconditioner
 
         if self.nonzero_initial_guess:
             # Here we store a variable that isn't necessarily a dependency.
@@ -123,7 +129,7 @@ class KrylovSolveBlock(SolveBlock):
             backend.Function.assign(r, self.initial_guess.saved_output)
         return r
 
-    def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu, bdy):
+    def _assemble_and_solve_adj_eq(self, dFdu_adj_form, dJdu, compute_bdy):
         dJdu_copy = dJdu.copy()
         bcs = self._homogenize_bcs()
 
@@ -133,8 +139,8 @@ class KrylovSolveBlock(SolveBlock):
 
             if self.assemble_system:
                 rhs_bcs_form = backend.inner(backend.Function(self.function_space),
-                                             dFdu_form.arguments()[0]) * backend.dx
-                A, _ = backend.assemble_system(dFdu_form, rhs_bcs_form, bcs)
+                                             dFdu_adj_form.arguments()[0]) * backend.dx
+                A, _ = backend.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs)
 
                 if self.pc_operator is not None:
                     P = self._replace_form(self.pc_operator)
@@ -143,7 +149,7 @@ class KrylovSolveBlock(SolveBlock):
                 else:
                     solver.set_operator(A)
             else:
-                A = compat.assemble_adjoint_value(dFdu_form)
+                A = compat.assemble_adjoint_value(dFdu_adj_form)
                 [bc.apply(A) for bc in bcs]
 
                 if self.pc_operator is not None:
@@ -162,8 +168,10 @@ class KrylovSolveBlock(SolveBlock):
         adj_sol = backend.Function(self.function_space)
         solver.solve(adj_sol.vector(), dJdu)
 
-        adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
-            backend.action(dFdu_form, adj_sol)))
+        adj_sol_bdy = None
+        if compute_bdy:
+            adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
+                backend.action(dFdu_adj_form, adj_sol)))
 
         return adj_sol, adj_sol_bdy
 
