@@ -22,7 +22,7 @@ class NewtonSolver(backend.NewtonSolver):
 
             sb_kwargs = SolveVarFormBlock.pop_kwargs(kwargs)
             block = SolveVarFormBlock(F == 0, u, bcs,
-                                      solver_parameters={"newton_solver": self.parameters.to_dict()},
+                                      solver_parameters={"newton_solver": self.parameters.copy()},
                                       **sb_kwargs)
             tape.add_block(block)
 
