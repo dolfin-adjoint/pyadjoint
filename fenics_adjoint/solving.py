@@ -225,7 +225,6 @@ class GenericSolveBlock(Block):
         for bc in bcs:
             bc.apply(dJdu)
 
-
         adj_sol = compat.create_function(self.function_space)
         compat.linalg_solve(dFdu, adj_sol.vector(), dJdu, *self.adj_args, **self.adj_kwargs)
 
