@@ -21,21 +21,8 @@ class NewtonSolver(backend.NewtonSolver):
             u = vec.function
 
             sb_kwargs = SolveBlock.pop_kwargs(kwargs)
-            params = self.parameters.to_dict()
-
-            def unravel_dict(params):
-                non_transfer_param = ["krylov_solver", "lu_solver"]
-                for param in non_transfer_param:
-                    if param in params.keys():
-                        params.pop(param)
-                for key in params.keys():
-                    if isinstance(params[key], dict):
-                        params[key] = unravel_dict(params[key])
-                    else:
-                        params[key] = params[key].value()
-            unravel_dict(params)
             block = SolveBlock(F == 0, u, bcs,
-                               solver_parameters={"newton_solver": params},
+                               solver_parameters={"newton_solver": self.parameters.to_dict()},
                                **sb_kwargs)
             tape.add_block(block)
 
