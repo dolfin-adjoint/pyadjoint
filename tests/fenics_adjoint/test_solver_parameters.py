@@ -287,14 +287,16 @@ def test_newton_solver_parameters():
             self.bc = bc
 
         def F(self, b, x):
-            assemble(self.f, tensor=b)
-            self.bc.apply(b, x)
+            assembler = SystemAssembler(self.jacob, self.f, self.bc)
+            assembler.assemble(b, x)
 
         def J(self, A, x):
-            assemble(self.jacob, tensor=A)
-            self.bc.apply(A)
+            assembler = SystemAssembler(self.jacob, self.f, self.bc)
+            assembler.assemble(A)
 
     problem = Eq(F, U, bc)
+    solver.parameters["linear_solver"] = "gmres"
+    solver.parameters["preconditioner"] = "petsc_amg"
     solver.parameters["convergence_criterion"] = "residual"
     solver.parameters["relative_tolerance"] = 1e-6
     solver.parameters["absolute_tolerance"] = 1e-10
