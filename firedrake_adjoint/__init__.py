@@ -31,6 +31,7 @@ from pyadjoint.control import Control
 from pyadjoint import IPOPTSolver, ROLSolver, MinimizationProblem, InequalityConstraint, minimize
 
 from firedrake_adjoint.types import *
+import firedrake_adjoint.solving
 
 
 set_working_tape(Tape())
