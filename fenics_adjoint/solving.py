@@ -49,6 +49,7 @@ def solve(*args, **kwargs):
 
     with stop_annotating():
         output = backend.solve(*args, **kwargs)
+
     if annotate:
         if hasattr(args[1], "create_block_variable"):
             block_variable = args[1].create_block_variable()
@@ -83,8 +84,6 @@ class SolveBlock(Block):
         return "{} = {}".format(str(self.lhs), str(self.rhs))
 
     def _init_solver_parameters(self, *args, **kwargs):
-        self.prec_type = None
-        self.solver_type = None
         if self.varform:
             self.kwargs = kwargs
             self.forward_kwargs = kwargs.copy()
@@ -103,10 +102,6 @@ class SolveBlock(Block):
             if "appctx" in kwargs:
                 self.assemble_kwargs["appctx"] = kwargs["appctx"]
                 self.kwargs.pop("appctx", None)
-            if "solver_parameters" in kwargs and "linear_solver" in kwargs["solver_parameters"]:
-                self.solver_type = kwargs["solver_parameters"]["linear_solver"]
-                if "preconditioner" in kwargs["solver_parameters"]:
-                    self.prec_type = kwargs["solver_parameters"]["preconditioner"]
         else:
             self.kwargs = kwargs
             self.forward_kwargs = kwargs.copy()
@@ -237,15 +232,10 @@ class SolveBlock(Block):
 
         for bc in bcs:
             bc.apply(dJdu)
-        adj_sol = compat.create_function(self.function_space)
-        if self.solver_type is not None:
-            if self.prec_type is not None:
-                compat.linalg_solve(dFdu, adj_sol.vector(), dJdu, self.solver_type, self.prec_type)
-            else:
-                compat.linalg_solve(dFdu, adj_sol.vector(), dJdu, self.solver_type)
-        else:
-            compat.linalg_solve(dFdu, adj_sol.vector(), dJdu, **self.kwargs)
 
+
+        adj_sol = compat.create_function(self.function_space)
+        compat.linalg_solve(dFdu, adj_sol.vector(), dJdu, **self.kwargs)
         adj_sol_bdy = None
         if bdy:
             adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
@@ -553,13 +543,7 @@ class SolveBlock(Block):
     def _assembled_solve(self, lhs, rhs, func, bcs, **kwargs):
         for bc in bcs:
             bc.apply(rhs)
-        if self.solver_type is not None:
-            if self.prec_type is not None:
-                backend.solve(lhs, func.vector(), rhs, self.solver_type, self.prec_type)
-            else:
-                backend.solve(lhs, func.vector(), rhs, self.solver_type)
-        else:
-            backend.solve(lhs, func.vector(), rhs, **kwargs)
+        backend.solve(lhs, func.vector(), rhs, **kwargs)
         return func
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
