@@ -1,6 +1,5 @@
 import backend
 import ufl
-import numpy
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
 from pyadjoint.block import Block
 from pyadjoint.overloaded_type import create_overloaded_object
