@@ -20,16 +20,13 @@ class DirichletBC(FloatingType, backend.DirichletBC):
                               *args,
                               block_class=DirichletBCBlock,
                               _ad_args=args,
+                              _ad_kwargs=kwargs,
                               _ad_floating_active=True,
                               annotate=kwargs.pop("annotate", True),
                               **kwargs)
 
         # Call backend constructor after popped AD specific keyword args.
         backend.DirichletBC.__init__(self, *args, **kwargs)
-
-        self._g = args[1]
-        self._ad_args = args
-        self._ad_kwargs = kwargs
 
     @no_annotations
     def apply(self, *args, **kwargs):
@@ -75,7 +72,7 @@ def _build_subindices(indices_sequence, r, V):
 
 
 class DirichletBCBlock(Block):
-    def __init__(self, *args):
+    def __init__(self, *args, **kwargs):
         Block.__init__(self)
         self.function_space = args[0]
         self.parent_space = self.function_space
