@@ -1,6 +1,6 @@
 from .block import Block
-from .overloaded_type import OverloadedType, register_overloaded_type
-from .tape import get_working_tape, annotate_tape
+from .overloaded_type import OverloadedType, register_overloaded_type, create_overloaded_object
+from .tape import get_working_tape, annotate_tape, stop_annotating
 
 
 def annotate_operator(operator):
@@ -125,6 +125,100 @@ class AdjFloat(OverloadedType, float):
 
     def _ad_copy(self):
         return self
+
+_min = min
+_max = max
+def min(a, b, **kwargs):
+    annotate = annotate_tape(kwargs)
+    if annotate:
+        # Ensure a and b are of OverloadedType
+        a = create_overloaded_object(a)
+        b = create_overloaded_object(b)
+
+        block = MinBlock(a, b)
+        tape = get_working_tape()
+        tape.add_block(block)
+
+    with stop_annotating():
+        out = _min(a, b)
+    out = AdjFloat(out)
+
+    if annotate:
+        block.add_output(out.block_variable)
+    return out
+
+
+def max(a, b, **kwargs):
+    annotate = annotate_tape(kwargs)
+    if annotate:
+        # Ensure a and b are of OverloadedType
+        a = create_overloaded_object(a)
+        b = create_overloaded_object(b)
+
+        block = MaxBlock(a, b)
+        tape = get_working_tape()
+        tape.add_block(block)
+
+    with stop_annotating():
+        out = _max(a, b)
+    out = AdjFloat(out)
+
+    if annotate:
+        block.add_output(out.block_variable)
+    return out
+
+
+class MinBlock(Block):
+    def __init__(self, a, b):
+        super().__init__()
+        self.add_dependency(a)
+        self.add_dependency(b)
+
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        adj_input = adj_inputs[0]
+        active_idx = 0 if inputs[0] <= inputs[1] else 1
+        if idx == active_idx:
+            return adj_input
+        else:
+            return 0.
+
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        idx = 0 if inputs[0] <= inputs[1] else 1
+        return tlm_inputs[idx]
+
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+                                   relevant_dependencies, prepared=None):
+        return self.evaluate_adj_component(inputs, hessian_inputs, block_variable, idx, prepared)
+
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        return _min(inputs[0], inputs[1])
+
+
+class MaxBlock(Block):
+    def __init__(self, a, b):
+        super().__init__()
+        self.add_dependency(a)
+        self.add_dependency(b)
+
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        adj_input = adj_inputs[0]
+        active_idx = 0 if inputs[0] >= inputs[1] else 1
+        if idx == active_idx:
+            return adj_input
+        else:
+            return 0.
+
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        idx = 0 if inputs[0] >= inputs[1] else 1
+        return tlm_inputs[idx]
+
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+                                   relevant_dependencies, prepared=None):
+        return self.evaluate_adj_component(inputs, hessian_inputs, block_variable, idx, prepared)
+
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        r = _max(inputs[0], inputs[1])
+        return r
 
 
 class FloatOperatorBlock(Block):
