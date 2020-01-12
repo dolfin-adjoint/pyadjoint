@@ -126,8 +126,11 @@ class AdjFloat(OverloadedType, float):
     def _ad_copy(self):
         return self
 
+
 _min = min
 _max = max
+
+
 def min(a, b, **kwargs):
     annotate = annotate_tape(kwargs)
     if annotate:
