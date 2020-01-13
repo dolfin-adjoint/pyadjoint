@@ -100,7 +100,7 @@ class Function(FloatingType, backend.Function):
             annotate = annotate_tape(kwargs)
 
         if annotate:
-            block = EvalBlock(self, args[0])
+            block = FunctionEvalBlock(self, args[0])
             tape = get_working_tape()
             tape.add_block(block)
 

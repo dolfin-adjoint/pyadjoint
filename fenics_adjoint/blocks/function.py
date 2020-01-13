@@ -1,5 +1,6 @@
 import backend
 from pyadjoint import Block
+import numpy
 
 
 class FunctionEvalBlock(Block):
@@ -15,7 +16,7 @@ class FunctionEvalBlock(Block):
         mesh = V.mesh()
         element = V.element()
         visited = []
-        adj_vec = Function(V).vector()
+        adj_vec = backend.Function(V).vector()
 
         for cell_idx in range(len(mesh.cells())):
             cell = backend.Cell(mesh, cell_idx)
