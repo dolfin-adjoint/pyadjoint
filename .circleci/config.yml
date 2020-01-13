@@ -33,6 +33,7 @@ jobs:
       - run:
           name: install dependencies
           command: |
+            export DEBIAN_FRONTEND=noninteractive
             apt-get update
             apt-get install -y  python-dev graphviz libgraphviz-dev pkg-config patchelf
             pip3 install -e .[all]

@@ -135,6 +135,20 @@ def compat(backend):
             pass
         compat.Expression = Expression
 
+        def type_cast_function(obj, cls):
+            """Type casts Function object `obj` to an instance of `cls`.
+
+            Useful when converting backend.Function to overloaded Function.
+            """
+            return function_from_vector(obj.function_space(), obj.vector(), cls=cls)
+        compat.type_cast_function = type_cast_function
+
+        def create_function(*args, **kwargs):
+            """Initialises a fenics_adjoint.Function object and returns it."""
+            from firedrake_adjoint import Function
+            return Function(*args, **kwargs)
+        compat.create_function = create_function
+
     else:
         compat.Expression = backend.Expression
         compat.MatrixType = (backend.cpp.la.Matrix, backend.cpp.la.GenericMatrix)
@@ -301,5 +315,19 @@ def compat(backend):
                 b = b.vector()
             return backend.solve(A, x, b, *args)
         compat.linalg_solve = linalg_solve
+
+        def type_cast_function(obj, cls):
+            """Type casts Function object `obj` to an instance of `cls`.
+
+            Useful when converting backend.Function to overloaded Function.
+            """
+            return cls(obj.function_space(), obj._cpp_object)
+        compat.type_cast_function = type_cast_function
+
+        def create_function(*args, **kwargs):
+            """Initialises a fenics_adjoint.Function object and returns it."""
+            from fenics_adjoint import Function
+            return Function(*args, **kwargs)
+        compat.create_function = create_function
 
     return compat

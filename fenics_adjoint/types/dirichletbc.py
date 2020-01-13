@@ -1,12 +1,10 @@
 import backend
-import ufl
 
 from dolfin_adjoint_common import compat
 compat = compat.compat(backend)
-from .function import Function
 
 from pyadjoint.tape import no_annotations
-from pyadjoint.overloaded_type import OverloadedType, FloatingType
+from pyadjoint.overloaded_type import FloatingType
 from fenics_adjoint.blocks import DirichletBCBlock
 
 
@@ -22,16 +20,13 @@ class DirichletBC(FloatingType, backend.DirichletBC):
                               *args,
                               block_class=DirichletBCBlock,
                               _ad_args=args,
+                              _ad_kwargs=kwargs,
                               _ad_floating_active=True,
                               annotate=kwargs.pop("annotate", True),
                               **kwargs)
 
         # Call backend constructor after popped AD specific keyword args.
         backend.DirichletBC.__init__(self, *args, **kwargs)
-
-        self._g = args[1]
-        self._ad_args = args
-        self._ad_kwargs = kwargs
 
     @no_annotations
     def apply(self, *args, **kwargs):

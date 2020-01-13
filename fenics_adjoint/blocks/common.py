@@ -1,7 +1,8 @@
 import dolfin_adjoint_common.blocks as blocks
 from fenics_adjoint.compat import Backend
 
-__all__ = ["AssembleBlock", "ProjectBlock", "SolveBlock",
+__all__ = ["AssembleBlock", "ProjectBlock", "GenericSolveBlock",
+           "SolveLinearSystemBlock", "SolveVarFormBlock",
            "NonlinearVariationalSolveBlock", "FunctionAssignBlock",
            "DirichletBCBlock"]
 
@@ -14,7 +15,15 @@ class ProjectBlock(blocks.ProjectBlock, Backend):
     pass
 
 
-class SolveBlock(blocks.SolveBlock, Backend):
+class GenericSolveBlock(blocks.GenericSolveBlock, Backend):
+    pass
+
+
+class SolveLinearSystemBlock(blocks.SolveLinearSystemBlock, Backend):
+    pass
+
+
+class SolveVarFormBlock(blocks.SolveVarFormBlock, Backend):
     pass
 
 

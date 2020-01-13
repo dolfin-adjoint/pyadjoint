@@ -2,7 +2,7 @@ import backend
 from pyadjoint.tape import annotate_tape, get_working_tape
 from dolfin_adjoint_common import compat
 compat = compat.compat(backend)
-from .blocks import SolveBlock, LUSolveBlock, LUSolveBlockHelper
+from .blocks import LUSolveBlock, LUSolveBlockHelper
 
 
 class LUSolver(backend.LUSolver):
@@ -52,7 +52,7 @@ class LUSolver(backend.LUSolver):
             parameters = self.parameters.copy()
 
             tape = get_working_tape()
-            sb_kwargs = SolveBlock.pop_kwargs(kwargs)
+            sb_kwargs = LUSolveBlock.pop_kwargs(kwargs)
             block = LUSolveBlock(A, x, b,
                                  lu_solver_parameters=parameters,
                                  block_helper=block_helper,

@@ -1,14 +1,8 @@
 import backend
-import numpy
 import ufl
 
-from pyadjoint.block import Block
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
-from .types import Function
-from dolfin_adjoint_common import compat
-compat = compat.compat(backend)
-from .types.function_space import extract_subfunction
-from .blocks import SolveBlock
+from .blocks import SolveVarFormBlock, SolveLinearSystemBlock
 
 # Type dependencies
 
@@ -39,14 +33,17 @@ def solve(*args, **kwargs):
             the boundary. The interior values are not guaranteed to be zero.
 
     """
-
     annotate = annotate_tape(kwargs)
-
     if annotate:
         tape = get_working_tape()
-        sb_kwargs = SolveBlock.pop_kwargs(kwargs)
+
+        solve_block_type = SolveVarFormBlock
+        if not isinstance(args[0], ufl.equation.Equation):
+            solve_block_type = SolveLinearSystemBlock
+
+        sb_kwargs = solve_block_type.pop_kwargs(kwargs)
         sb_kwargs.update(kwargs)
-        block = SolveBlock(*args, **sb_kwargs)
+        block = solve_block_type(*args, **sb_kwargs)
         tape.add_block(block)
 
     with stop_annotating():

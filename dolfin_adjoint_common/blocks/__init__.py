@@ -1,7 +1,6 @@
-from .solving import SolveBlock
 from .assembly import AssembleBlock
 from .projection import ProjectBlock
-from .solving import SolveBlock
+from .solving import GenericSolveBlock, SolveVarFormBlock, SolveLinearSystemBlock
 from .variational_solver import NonlinearVariationalSolveBlock
 from .function import FunctionAssignBlock
 from .function_assigner import FunctionAssignerBlock
