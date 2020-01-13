@@ -1,5 +1,6 @@
 import backend
-from .types import compat
+from dolfin_adjoint_common import compat
+compat = compat.compat(backend)
 from pyadjoint.tape import stop_annotating
 
 

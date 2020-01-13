@@ -145,7 +145,7 @@ def compat(backend):
 
         def create_function(*args, **kwargs):
             """Initialises a fenics_adjoint.Function object and returns it."""
-            from firedrake_adjoint import Function
+            from firedrake import Function
             return Function(*args, **kwargs)
         compat.create_function = create_function
 

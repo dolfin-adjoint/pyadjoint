@@ -118,8 +118,7 @@ class GenericSolveBlock(Block):
             replace_map[self.func] = func
         return ufl.replace(form, replace_map)
 
-    @staticmethod
-    def _should_compute_boundary_adjoint(relevant_dependencies):
+    def _should_compute_boundary_adjoint(self, relevant_dependencies):
         # Check if DirichletBC derivative is relevant
         bdy = False
         for _, dep in relevant_dependencies:
@@ -493,10 +492,11 @@ class SolveLinearSystemBlock(GenericSolveBlock):
         if self.assemble_system:
             rhs_bcs_form = self.backend.inner(self.backend.Function(self.function_space),
                                          dFdu_adj_form.arguments()[0]) * self.backend.dx
-            A, _ = self.backend.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs)
+            A, _ = self.backend.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs, **self.assemble_kwargs)
         else:
-            A = self.backend.assemble(dFdu_adj_form)
-            [bc.apply(A) for bc in bcs]
+            kwargs = self.assemble_kwargs.copy()
+            kwargs["bcs"] = bcs
+            A = self.compat.assemble_adjoint_value(dFdu_adj_form, **kwargs)
 
         [bc.apply(dJdu) for bc in bcs]
 
@@ -514,9 +514,11 @@ class SolveLinearSystemBlock(GenericSolveBlock):
         if self.assemble_system:
             A, b = self.backend.assemble_system(lhs, rhs, bcs)
         else:
-            A = self.backend.assemble(lhs)
+            assemble_kwargs = self.assemble_kwargs.copy()
+            assemble_kwargs["bcs"] = bcs
+            A = self.compat.assemble_adjoint_value(lhs, **assemble_kwargs)
             b = self.backend.assemble(rhs)
-            [bc.apply(A, b) for bc in bcs]
+            [bc.apply(b) for bc in bcs]
 
         if self.ident_zeros_tol is not None:
             A.ident_zeros(self.ident_zeros_tol)
@@ -555,12 +557,14 @@ class SolveVarFormBlock(GenericSolveBlock):
 
     def _assemble_and_solve_adj_eq(self, dFdu_adj_form, dJdu, compute_bdy=True):
         dJdu_copy = dJdu.copy()
-        dFdu = self.compat.assemble_adjoint_value(dFdu_adj_form, **self.assemble_kwargs)
         bcs = self._homogenize_bcs()
+        kwargs = self.assemble_kwargs.copy()
+        kwargs["bcs"] = bcs
+        dFdu = self.compat.assemble_adjoint_value(dFdu_adj_form, **kwargs)
 
         # Apply boundary conditions on adj_dFdu and dJdu.
         for bc in bcs:
-            bc.apply(dFdu, dJdu)
+            bc.apply(dJdu)
 
         adj_sol = self.compat.create_function(self.function_space)
         lu_solver_methods = self.backend.lu_solver_methods()
