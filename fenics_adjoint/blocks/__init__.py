@@ -1,4 +1,6 @@
 from .common import *
+from .solving import SolveLinearSystemBlock, SolveVarFormBlock
+from .projection import ProjectBlock
 from .variational_solver import LinearVariationalSolveBlock, NonlinearVariationalSolveBlock
 from .krylov_solver import KrylovSolveBlock, KrylovSolveBlockHelper
 from .lu_solver import LUSolveBlock, LUSolveBlockHelper
