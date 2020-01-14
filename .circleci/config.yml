@@ -35,12 +35,7 @@ jobs:
           command: |
             export DEBIAN_FRONTEND=noninteractive
             apt-get update
-            pip3 uninstall -y fenics-fiat fenics-ffc fenics-ufl fenics-dijitso
             apt-get install -y python-dev graphviz libgraphviz-dev pkg-config patchelf
-            pip3 install git+https://bitbucket.org/fenics-project/dijitso.git@master
-            pip3 install git+https://github.com/FEniCS/fiat.git@master
-            pip3 install git+https://github.com/FEniCS/ufl.git@master
-            pip3 install git+https://bitbucket.org/fenics-project/ffc.git@master
             pip3 install -e .[all]
             pip3 install roltrilinos ROL
             pip3 install protobuf==3.8.0
