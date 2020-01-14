@@ -103,17 +103,15 @@ class AssembleBlock(Block):
             dform = backend.derivative(form, c_rep, dc)
             output = compat.assemble_adjoint_value(dform)
             return [[adj_input * output, V]]
-        elif isinstance(c, compat.MeshType):
-            X = backend.SpatialCoordinate(c_rep)
-            dform = backend.derivative(form, X, backend.TestFunction(c._ad_function_space()))
-            output = compat.assemble_adjoint_value(dform)
-            return adj_input * output
 
         if isinstance(c, backend.Function):
             dc = backend.TestFunction(c.function_space())
         elif isinstance(c, backend.Constant):
             mesh = compat.extract_mesh_from_form(self.form)
             dc = backend.TestFunction(c._ad_function_space(mesh))
+        elif isinstance(c, compat.MeshType):
+            c_rep = backend.SpatialCoordinate(c_rep)
+            dc = backend.TestFunction(c._ad_function_space())
 
         dform = backend.derivative(form, c_rep, dc)
         output = compat.assemble_adjoint_value(dform)
@@ -163,15 +161,12 @@ class AssembleBlock(Block):
             mesh = compat.extract_mesh_from_form(form)
             dc = backend.TestFunction(c1._ad_function_space(mesh))
         elif isinstance(c1, compat.MeshType):
-            pass
+            c1_rep = backend.SpatialCoordinate(c1)
+            dc = backend.TestFunction(c1._ad_function_space())
         else:
             return None
 
-        if isinstance(c1, compat.MeshType):
-            X = backend.SpatialCoordinate(c1)
-            dform = backend.derivative(form, X, backend.TestFunction(c1._ad_function_space()))
-        else:
-            dform = backend.derivative(form, c1_rep, dc)
+        dform = backend.derivative(form, c1_rep, dc)
         dform = ufl.algorithms.expand_derivatives(dform)
         hessian_outputs = hessian_input * compat.assemble_adjoint_value(dform)
 
@@ -188,9 +183,11 @@ class AssembleBlock(Block):
                 ddform += backend.derivative(dform, X, tlm_input)
             else:
                 ddform += backend.derivative(dform, c2_rep, tlm_input)
-        ddform = ufl.algorithms.expand_derivatives(ddform)
-        if not ddform.empty():
-            hessian_outputs += adj_input * compat.assemble_adjoint_value(ddform)
+
+        if not isinstance(ddform, float):
+            ddform = ufl.algorithms.expand_derivatives(ddform)
+            if not ddform.empty():
+                hessian_outputs += adj_input * compat.assemble_adjoint_value(ddform)
 
         if isinstance(c1, compat.ExpressionType):
             return [(hessian_outputs, W)]
