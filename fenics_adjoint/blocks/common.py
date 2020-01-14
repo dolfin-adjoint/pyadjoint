@@ -3,8 +3,7 @@ from fenics_adjoint.compat import Backend
 
 __all__ = ["AssembleBlock", "ProjectBlock", "GenericSolveBlock",
            "SolveLinearSystemBlock", "SolveVarFormBlock",
-           "NonlinearVariationalSolveBlock", "FunctionAssignBlock",
-           "DirichletBCBlock"]
+           "FunctionAssignBlock", "DirichletBCBlock"]
 
 
 class AssembleBlock(blocks.AssembleBlock, Backend):
@@ -24,10 +23,6 @@ class SolveLinearSystemBlock(blocks.SolveLinearSystemBlock, Backend):
 
 
 class SolveVarFormBlock(blocks.SolveVarFormBlock, Backend):
-    pass
-
-
-class NonlinearVariationalSolveBlock(blocks.NonlinearVariationalSolveBlock, Backend):
     pass
 
 
