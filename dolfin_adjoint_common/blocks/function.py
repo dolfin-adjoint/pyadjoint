@@ -2,6 +2,36 @@ import ufl
 from pyadjoint import Block, OverloadedType, AdjFloat
 
 
+class FunctionSplitBlock(Block):
+    def __init__(self, func):
+        super().__init__()
+        self.func = func
+        self.add_dependency(func)
+
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx,
+                               prepared=None):
+        f_rep = self.backend.Function(block_variable.output.function_space())
+        for i, e in enumerate(adj_inputs):
+            if e is not None:
+                f_rep.sub(i).assign(e.function)
+            else:
+                f_rep.sub(i).assign(0)
+        return f_rep
+
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx,
+                               prepared=None):
+        return backend.Function.sub(tlm_inputs[0], self.idx, deepcopy=True)
+
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs,
+                                   block_variable, idx,
+                                   relevant_dependencies, prepared=None):
+        return hessian_inputs#[0]
+
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        new_func = self.backend.Function(self.func.function_space()).assign(inputs[0])
+        return new_func.sub(idx)
+
+
 class FunctionAssignBlock(Block):
     def __init__(self, func, other):
         super().__init__()
@@ -116,3 +146,4 @@ def _extract_functions_from_lincom(backend, lincom, functions=None):
         for op in lincom.ufl_operands:
             functions = _extract_functions_from_lincom(backend, op, functions)
     return functions
+
