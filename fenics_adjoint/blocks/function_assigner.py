@@ -1,3 +1,6 @@
+import backend
+from fenics_adjoint.compat import compat
+compat = compat(backend)
 from pyadjoint import Block
 
 
@@ -12,13 +15,13 @@ class FunctionAssignerBlock(Block):
         adj_assigner = self.assigner.adj_assigner
         inp_functions = []
         for i in range(len(adj_inputs)):
-            f_in = self.compat.Function(self.assigner.output_spaces[i])
+            f_in = backend.Function(self.assigner.output_spaces[i])
             if adj_inputs[i] is not None:
                 f_in.vector()[:] = adj_inputs[i]
             inp_functions.append(f_in)
         out_functions = []
         for j in range(len(self.assigner.input_spaces)):
-            f_out = self.compat.Function(self.assigner.input_spaces[j])
+            f_out = backend.Function(self.assigner.input_spaces[j])
             out_functions.append(f_out)
         adj_assigner.assign(self.assigner.input_spaces.delist(out_functions),
                             self.assigner.output_spaces.delist(inp_functions))
@@ -44,8 +47,8 @@ class FunctionAssignerBlock(Block):
     def prepare_recompute_component(self, inputs, relevant_outputs):
         out_functions = []
         for output in self.get_outputs():
-            out_functions.append(self.compat.Function(output.output.function_space()))
-        self.compat.FunctionAssigner.assign(self.assigner,
+            out_functions.append(backend.Function(output.output.function_space()))
+        backend.FunctionAssigner.assign(self.assigner,
                                         self.assigner.output_spaces.delist(out_functions),
                                         self.assigner.input_spaces.delist(inputs))
         return out_functions

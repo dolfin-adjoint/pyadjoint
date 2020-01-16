@@ -5,4 +5,5 @@ from .variational_solver import LinearVariationalSolveBlock, NonlinearVariationa
 from .krylov_solver import KrylovSolveBlock, KrylovSolveBlockHelper
 from .lu_solver import LUSolveBlock, LUSolveBlockHelper
 from .petsc_krylov_solver import PETScKrylovSolveBlock, PETScKrylovSolveBlockHelper
+from .function_assigner import FunctionAssignerBlock
 from fenics_adjoint.blocks.function import FunctionEvalBlock, FunctionSplitBlock, FunctionMergeBlock
