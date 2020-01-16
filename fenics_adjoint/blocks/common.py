@@ -2,7 +2,8 @@ import dolfin_adjoint_common.blocks as blocks
 from fenics_adjoint.compat import Backend
 
 __all__ = ["AssembleBlock", "GenericSolveBlock",
-           "FunctionAssignBlock", "DirichletBCBlock"]
+           "FunctionAssignBlock", "DirichletBCBlock",
+           "ConstantAssignBlock"]
 
 
 class AssembleBlock(blocks.AssembleBlock, Backend):
@@ -20,3 +21,6 @@ class FunctionAssignBlock(blocks.FunctionAssignBlock, Backend):
 class DirichletBCBlock(blocks.DirichletBCBlock, Backend):
     pass
 
+
+class ConstantAssignBlock(blocks.ConstantAssignBlock, Backend):
+    pass

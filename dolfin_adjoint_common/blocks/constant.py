@@ -1,8 +1,27 @@
 from pyadjoint import Block
+import numpy
+
+
+def constant_from_values(constant, values=None):
+    """Returns a new Constant with `constant.values()` while preserving `constant.ufl_shape`.
+
+    If the optional argument `values` is provided, then `values` will be the values of the
+    new Constant instead, while still preserving the ufl_shape of `constant`.
+
+    Args:
+        constant: A constant with the ufl_shape to preserve.
+        values (numpy.array): An optional argument to use instead of constant.values().
+
+    Returns:
+        Constant: The created Constant of the same type as `constant`.
+
+    """
+    values = constant.values() if values is None else values
+    return type(constant)(numpy.reshape(values, constant.ufl_shape))
 
 
 class ConstantAssignBlock(Block):
-    def __init__(self, func, other):
+    def __init__(self, other):
         super(ConstantAssignBlock, self).__init__()
         self.add_dependency(other)
 
@@ -17,4 +36,4 @@ class ConstantAssignBlock(Block):
         return hessian_inputs[0]
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        return self.backend.Constant._constant_from_values(block_variable.output, inputs[0])
+        return constant_from_values(block_variable.output, inputs[0])
