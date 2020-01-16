@@ -1,7 +1,9 @@
 import backend
 from fenics_adjoint.compat import compat
-compat = compat(backend)
+
 from pyadjoint import Block
+
+compat = compat(backend)
 
 
 class FunctionAssignerBlock(Block):

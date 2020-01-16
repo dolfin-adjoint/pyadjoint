@@ -26,7 +26,7 @@ class SolveLinearSystemBlock(GenericSolveBlock):
         bcs = self._homogenize_bcs()
         if self.assemble_system:
             rhs_bcs_form = self.backend.inner(self.backend.Function(self.function_space),
-                                         dFdu_adj_form.arguments()[0]) * self.backend.dx
+                                              dFdu_adj_form.arguments()[0]) * self.backend.dx
             A, _ = self.backend.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs, **self.assemble_kwargs)
         else:
             kwargs = self.assemble_kwargs.copy()
@@ -40,8 +40,9 @@ class SolveLinearSystemBlock(GenericSolveBlock):
 
         adj_sol_bdy = None
         if compute_bdy:
-            adj_sol_bdy = self.compat.function_from_vector(self.function_space, dJdu_copy - self.compat.assemble_adjoint_value(
-                self.backend.action(dFdu_adj_form, adj_sol)))
+            adj_sol_bdy = self.compat.function_from_vector(self.function_space,
+                                                           dJdu_copy - self.compat.assemble_adjoint_value(
+                                                               self.backend.action(dFdu_adj_form, adj_sol)))
 
         return adj_sol, adj_sol_bdy
 
@@ -117,7 +118,8 @@ class SolveVarFormBlock(GenericSolveBlock):
 
         adj_sol_bdy = None
         if compute_bdy:
-            adj_sol_bdy = self.compat.function_from_vector(self.function_space, dJdu_copy - self.compat.assemble_adjoint_value(
-                self.backend.action(dFdu_adj_form, adj_sol)))
+            adj_sol_bdy = self.compat.function_from_vector(self.function_space,
+                                                           dJdu_copy - self.compat.assemble_adjoint_value(
+                                                               self.backend.action(dFdu_adj_form, adj_sol)))
 
         return adj_sol, adj_sol_bdy

@@ -57,4 +57,3 @@ def solve(*args, **kwargs):
         block.add_output(block_variable)
 
     return output
-

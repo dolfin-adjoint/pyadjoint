@@ -1,3 +1,5 @@
+# flake8: noqa
+
 from .assembly import AssembleBlock
 from .solving import GenericSolveBlock
 from .function import FunctionAssignBlock

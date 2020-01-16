@@ -1,6 +1,5 @@
 import backend
 from dolfin_adjoint_common import compat
-compat = compat.compat(backend)
 from pyadjoint.tape import get_working_tape, stop_annotating
 from pyadjoint.overloaded_type import OverloadedType, create_overloaded_object, register_overloaded_type
 from pyadjoint.reduced_functional_numpy import gather
@@ -10,6 +9,8 @@ from dolfin_adjoint_common.blocks.constant import constant_from_values
 from fenics_adjoint.blocks import ConstantAssignBlock
 
 import numpy
+
+compat = compat.compat(backend)
 
 
 @register_overloaded_type

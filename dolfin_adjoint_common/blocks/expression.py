@@ -1,4 +1,4 @@
-from pyadjoint import Block
+from pyadjoint import Block, OverloadedType, AdjFloat
 
 
 class ExpressionBlock(Block):
@@ -120,7 +120,8 @@ class ExpressionBlock(Block):
                     num_sub_spaces = V.num_sub_spaces()
                     if num_sub_spaces > 1:
                         for i in range(num_sub_spaces):
-                            hessian_output += self.compat.interpolate(hessian_func.sub(i), c1.function_space()).vector()
+                            hessian_output += self.compat.interpolate(hessian_func.sub(i),
+                                                                      c1.function_space()).vector()
                     else:
                         hessian_output += self.compat.interpolate(hessian_func, c1.function_space()).vector()
 

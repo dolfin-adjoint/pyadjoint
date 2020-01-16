@@ -1,6 +1,5 @@
 import backend
 from pyadjoint.tape import get_working_tape, annotate_tape
-from pyadjoint.block import Block
 from pyadjoint.overloaded_type import OverloadedType, create_overloaded_object
 from pyadjoint.enlisting import Enlist
 from fenics_adjoint.blocks import FunctionAssignerBlock

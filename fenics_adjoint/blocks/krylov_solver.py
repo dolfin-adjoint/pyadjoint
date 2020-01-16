@@ -1,7 +1,9 @@
 import fenics as backend
 from . import SolveLinearSystemBlock
 from dolfin_adjoint_common import compat
+
 compat = compat.compat(backend)
+
 
 class KrylovSolveBlockHelper(object):
     def __init__(self):

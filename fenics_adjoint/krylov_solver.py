@@ -2,8 +2,10 @@ import backend
 
 from pyadjoint.tape import annotate_tape, get_working_tape
 from dolfin_adjoint_common import compat
-compat = compat.compat(backend)
+
 from .blocks import KrylovSolveBlock, KrylovSolveBlockHelper
+
+compat = compat.compat(backend)
 
 
 class KrylovSolver(backend.KrylovSolver):

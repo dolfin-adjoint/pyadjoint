@@ -1,6 +1,8 @@
 import backend
 from . import SolveLinearSystemBlock
+from fenics_adjoint.types import as_backend_type
 from dolfin_adjoint_common import compat
+
 compat = compat.compat(backend)
 
 

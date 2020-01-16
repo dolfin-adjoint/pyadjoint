@@ -1,5 +1,6 @@
-import ufl
 import numpy
+import ufl
+
 from pyadjoint import Block
 from pyadjoint.enlisting import Enlist
 
@@ -135,7 +136,9 @@ class GenericSolveBlock(Block):
 
         F_form = self._create_F_form()
 
-        dFdu = self.backend.derivative(F_form, fwd_block_variable.saved_output, self.backend.TrialFunction(u.function_space()))
+        dFdu = self.backend.derivative(F_form,
+                                       fwd_block_variable.saved_output,
+                                       self.backend.TrialFunction(u.function_space()))
         dFdu_form = self.backend.adjoint(dFdu)
         dJdu = dJdu.copy()
 
@@ -169,8 +172,9 @@ class GenericSolveBlock(Block):
 
         adj_sol_bdy = None
         if compute_bdy:
-            adj_sol_bdy = self.compat.function_from_vector(self.function_space, dJdu_copy - self.compat.assemble_adjoint_value(
-                self.backend.action(dFdu_adj_form, adj_sol)))
+            adj_sol_bdy = self.compat.function_from_vector(self.function_space,
+                                                           dJdu_copy - self.compat.assemble_adjoint_value(
+                                                               self.backend.action(dFdu_adj_form, adj_sol)))
 
         return adj_sol, adj_sol_bdy
 
@@ -221,7 +225,9 @@ class GenericSolveBlock(Block):
         F_form = self._create_F_form()
 
         # Obtain dFdu.
-        dFdu = self.backend.derivative(F_form, fwd_block_variable.saved_output, self.backend.TrialFunction(u.function_space()))
+        dFdu = self.backend.derivative(F_form,
+                                       fwd_block_variable.saved_output,
+                                       self.backend.TrialFunction(u.function_space()))
 
         return {
             "form": F_form,
@@ -393,7 +399,7 @@ class GenericSolveBlock(Block):
         # TODO: Old comment claims this might break on split. Confirm if true or not.
         d2Fdudm = ufl.algorithms.expand_derivatives(
             self.backend.derivative(dFdm_adj, fwd_block_variable.saved_output,
-                               tlm_output))
+                                    tlm_output))
 
         hessian_output = 0
 

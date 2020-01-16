@@ -1,5 +1,5 @@
 import backend
-from . import GenericSolveBlock, SolveVarFormBlock
+from . import SolveVarFormBlock
 
 
 class LinearVariationalSolveBlock(SolveVarFormBlock):
@@ -74,7 +74,8 @@ class NonlinearVariationalSolveBlock(SolveVarFormBlock):
         J = self.problem_J
         if J is not None:
             J = self._replace_form(J, func)
-        problem = self.backend.NonlinearVariationalProblem(lhs, func, bcs, J=J, *self.problem_args, **self.problem_kwargs)
+        problem = self.backend.NonlinearVariationalProblem(lhs, func, bcs, J=J,
+                                                           *self.problem_args, **self.problem_kwargs)
         solver = self.backend.NonlinearVariationalSolver(problem, *self.solver_args, **self.solver_kwargs)
         solver.parameters.update(self.solver_params)
         solver.solve(*self.solve_args, **self.solve_kwargs)

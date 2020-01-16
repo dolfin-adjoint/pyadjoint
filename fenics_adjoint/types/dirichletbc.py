@@ -1,12 +1,12 @@
 import backend
 
 from dolfin_adjoint_common import compat
-compat = compat.compat(backend)
 
 from pyadjoint.tape import no_annotations
 from pyadjoint.overloaded_type import FloatingType
 from fenics_adjoint.blocks import DirichletBCBlock
 
+compat = compat.compat(backend)
 
 # TODO: Might need/want some way of creating a new DirichletBCBlock if DirichletBC is assigned
 #       new boundary values/function.

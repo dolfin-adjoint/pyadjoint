@@ -30,5 +30,3 @@ def project(*args, **kwargs):
         block.add_output(output.block_variable)
 
     return output
-
-

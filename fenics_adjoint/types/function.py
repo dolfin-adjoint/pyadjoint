@@ -1,9 +1,7 @@
 import backend
 import ufl
 
-from pyadjoint.adjfloat import AdjFloat
-from pyadjoint.block import Block
-from pyadjoint.overloaded_type import (OverloadedType, FloatingType,
+from pyadjoint.overloaded_type import (FloatingType,
                                        create_overloaded_object,
                                        register_overloaded_type,
                                        get_overloaded_class)
@@ -11,12 +9,13 @@ from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating, \
     no_annotations
 
 from dolfin_adjoint_common import compat
-compat = compat.compat(backend)
 
 from pyadjoint.enlisting import Enlist
 import numpy
 from fenics_adjoint.blocks import (FunctionEvalBlock, FunctionMergeBlock,
                                    FunctionSplitBlock, FunctionAssignBlock)
+
+compat = compat.compat(backend)
 
 
 @register_overloaded_type
