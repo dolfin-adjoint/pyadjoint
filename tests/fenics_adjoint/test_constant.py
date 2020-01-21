@@ -23,3 +23,12 @@ def test_preserved_ufl_shape():
 
     assert dJdc.ufl_shape == c.ufl_shape
 
+
+def test_reinitialization():
+    mesh = UnitIntervalMesh(10)
+
+    c = AdjFloat(2.0)
+    J = assemble(Constant(c) ** 2 * dx(domain=mesh))
+    Jhat = ReducedFunctional(J, Control(c))
+    assert Jhat(2.0) == J
+    assert Jhat.derivative() == 4.

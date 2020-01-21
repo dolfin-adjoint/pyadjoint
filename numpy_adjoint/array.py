@@ -11,7 +11,7 @@ class ndarray(OverloadedType, numpy.ndarray):
 
     @classmethod
     def _ad_init_object(cls, obj):
-        return cls(obj.shape, numpy.float_, buffer=obj)
+        return cls(obj.shape, obj.dtype, buffer=obj)
 
     def _ad_create_checkpoint(self):
         return self.copy()
@@ -38,7 +38,29 @@ class ndarray(OverloadedType, numpy.ndarray):
         return out
 
     def _ad_convert_type(self, value, options={}):
-        return value
+        return numpy.array(value, copy=False).view(ndarray)
+
+    def _ad_dot(self, other):
+        return float((self * other).sum())
+
+    def _ad_mul(self, other):
+        return other * self
+
+    def _ad_add(self, other):
+        return self + other
+
+    @staticmethod
+    def _ad_to_list(m):
+        return m.flatten().tolist()
+
+    def _ad_copy(self):
+        return self.copy()
+
+    @staticmethod
+    def _ad_assign_numpy(dst, src, offset):
+        dst[:] = numpy.reshape(src[offset:offset + dst.size], dst.shape)
+        offset += dst.size
+        return dst, offset
 
     def __array_finalize__(self, obj):
         OverloadedType.__init__(self)

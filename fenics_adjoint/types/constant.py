@@ -11,8 +11,16 @@ import numpy
 @register_overloaded_type
 class Constant(OverloadedType, backend.Constant):
     def __init__(self, *args, **kwargs):
+        annotate = annotate_tape(kwargs)
         super(Constant, self).__init__(*args, **kwargs)
         backend.Constant.__init__(self, *args, **kwargs)
+
+        value = args[0]
+        if annotate and isinstance(value, OverloadedType):
+            block = AssignBlock(self, value)
+            tape = get_working_tape()
+            tape.add_block(block)
+            block.add_output(self.create_block_variable())
 
     def assign(self, *args, **kwargs):
         annotate = annotate_tape(kwargs)
@@ -138,6 +146,9 @@ class AssignBlock(Block):
         self.add_dependency(other)
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        if isinstance(inputs[0], float):
+            value = gather(adj_inputs[0])
+            return value[0]
         return adj_inputs[0]
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
