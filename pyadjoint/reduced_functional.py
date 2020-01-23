@@ -37,6 +37,7 @@ class ReducedFunctional(object):
         self.derivative_cb_post = derivative_cb_post
         self.hessian_cb_pre = hessian_cb_pre
         self.hessian_cb_post = hessian_cb_post
+        self.block_variables = None
 
     def derivative(self, options={}):
         """Returns the derivative of the functional w.r.t. the control.
@@ -147,6 +148,22 @@ class ReducedFunctional(object):
 
     def marked_controls(self):
         return marked_controls(self)
+
+    def save_checkpoints(self):
+        if self.block_variables is None:
+            tape = self.tape
+            bvs = set()
+            for block in tape.get_blocks():
+                for bv in block.get_dependencies():
+                    bvs.add(bv)
+                for bv in block.get_outputs():
+                    bvs.add(bv)
+            self.block_variables = bvs
+        return [bv._checkpoint for bv in self.block_variables]
+
+    def set_checkpoints(self, p):
+        for bv, chp in zip(self.block_variables, p):
+            bv._checkpoint = chp
 
 
 class marked_controls(object):
