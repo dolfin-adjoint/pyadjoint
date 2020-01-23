@@ -70,13 +70,18 @@ To see all the options run::
 
 dolfin-adjoint development version with Firedrake:
 --------------------------------------------------
-The development version of dolfin-adjoint and Firedrake is available with::
 
-    docker run -it -v `pwd`:/home/firedrake/shared quay.io/dolfinadjoint/pyadjoint-firedrake:latest
+dolfin-adjoint is built in to all Firedrake installs. You can
+therefore obtain it with their
+`installation script <https://www.firedrakeproject.org/download.html>`_,
+
+Alternatively, the development version of dolfin-adjoint and Firedrake is available with::
+
+    docker run -it -v `pwd`:/home/firedrake/shared firedrakeproject/firedrake:latest
 
 To update the development container, run::
 
-    docker pull quay.io/dolfinadjoint/pyadjoint-firedrake:latest
+    docker pull firedrakeproject/firedrake:latest
 
 
 PIP (all platforms)
@@ -86,25 +91,13 @@ Install dolfin-adjoint and its Python dependencies with pip:
 
 .. code-block:: bash
 
-    pip install git+https://bitbucket.org/dolfin-adjoint/pyadjoint.git@2019.1.0
+    pip install git+https://github.com/dolfin-adjoint/pyadjoint.git@2019.1.0
 
 Test your installation by running:
 
 .. code-block:: bash
 
     python3 -c "import fenics_adjoint"
-
-
-Firedrake-adjoint with their Firedrake installation script
-===========================================================
-
-If you already have installed firedrake with their
-`installation script <https://www.firedrakeproject.org/download.html>`_,
-pyadjoint can be installed by simply running:
-
-.. code-block:: bash
-
-   firedrake-update --install pyadjoint
 
 
 Optional dependencies:
@@ -129,4 +122,4 @@ Optional dependencies:
 Source code
 ===========
 
-The source code of `pyadjoint` is available on https://bitbucket.org/dolfin-adjoint/pyadjoint.
+The source code of `pyadjoint` is available on https://github.com/dolfin-adjoint/pyadjoint.

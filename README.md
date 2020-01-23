@@ -8,13 +8,13 @@ Circle CI status: [![CircleCI](https://circleci.com/bb/dolfin-adjoint/pyadjoint.
 First install [FEniCS](http://fenicsproject.org) or [Firedrake](http://firedrakeproject.org)
 
 Then install the pyadjoint with:
-    pip install git+https://bitbucket.org/dolfin-adjoint/pyadjoint.git@master
+    pip install git+https://github.com/dolfin-adjoint/pyadjoint.git@master
 
 # Reporting bugs
 
 If you found a bug, create an [issue].
 
-[issue]: https://bitbucket.org/dolfin-adjoint/pyadjoint/issues/new
+[issue]: https://github.com/dolfin-adjoint/pyadjoint/issues/new
 
 # Contributing
 
@@ -34,7 +34,7 @@ Make your change. Add tests for your change. Make the tests pass:
 
 Push to your fork and [submit a pull request][pr].
 
-[pr]: https://bitbucket.org/dolfin-adjoint/pyadjoint/pull-requests/new
+[pr]: https://github.com/dolfin-adjoint/pyadjoint/pulls
 
 At this point you're waiting on us. We may suggest
 some changes or improvements or alternatives.
@@ -50,4 +50,4 @@ Some things that will increase the chance that your pull request is accepted:
 # License
 This software is licensed under the [GNU LGPL v3][license].
 
-[license]: https://bitbucket.org/dolfin-adjoint/pyadjoint/raw/master/LICENSE
+[license]: https://github.com/dolfin-adjoint/pyadjoint/raw/master/LICENSE

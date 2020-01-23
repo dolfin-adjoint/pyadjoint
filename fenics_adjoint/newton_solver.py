@@ -1,6 +1,6 @@
 import backend
 from pyadjoint.tape import annotate_tape, get_working_tape
-from .solving import SolveVarFormBlock
+from .blocks import SolveVarFormBlock
 
 
 class NewtonSolver(backend.NewtonSolver):
