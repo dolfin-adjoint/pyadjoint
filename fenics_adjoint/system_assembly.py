@@ -1,7 +1,9 @@
 import backend
-from .types import compat
+from dolfin_adjoint_common import compat
+
 from pyadjoint.tape import stop_annotating
 
+compat = compat.compat(backend)
 
 _backend_SystemAssembler_assemble = backend.SystemAssembler.assemble
 _backend_SystemAssembler_init = backend.SystemAssembler.__init__

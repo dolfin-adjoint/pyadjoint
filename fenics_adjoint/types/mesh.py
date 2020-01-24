@@ -14,12 +14,12 @@ __all__ = ['Mesh', 'BoundaryMesh', 'SubMesh'] + overloaded_meshes
 @register_overloaded_type
 class Mesh(OverloadedType, backend.Mesh):
     def __init__(self, *args, **kwargs):
-        # Calling constructer
+        # Calling constructor
         super(Mesh, self).__init__(*args, **kwargs)
         backend.Mesh.__init__(self, *args, **kwargs)
 
-        if not len(args) == 0:
-            # If the mesh is not empty, save the original coordiantes
+        if self.num_vertices() >= 1:
+            # If the mesh is not empty, save the original coordinates
             self.org_mesh_coords = self.coordinates().copy()
         else:
             self.org_mesh_coords = None
@@ -42,7 +42,7 @@ class Mesh(OverloadedType, backend.Mesh):
 @register_overloaded_type
 class BoundaryMesh(FloatingType, backend.BoundaryMesh):
     def __init__(self, *args, **kwargs):
-        # Calling constructer
+        # Calling constructor
         super(BoundaryMesh, self).__init__(*args,
                                            block_class=BoundaryMeshBlock,
                                            _ad_args=args,
@@ -69,7 +69,7 @@ def overloaded_mesh(mesh_class):
     @register_overloaded_type
     class OverloadedMesh(OverloadedType, mesh_class):
         def __init__(self, *args, **kwargs):
-            # Calling constructer
+            # Calling constructor
             super(OverloadedMesh, self).__init__(*args, **kwargs)
             mesh_class.__init__(self, *args, **kwargs)
             self.org_mesh_coords = self.coordinates().copy()
