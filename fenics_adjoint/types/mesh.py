@@ -24,12 +24,19 @@ class Mesh(OverloadedType, backend.Mesh):
         else:
             self.org_mesh_coords = None
 
+        self._ad_coordinate_space = None
+
     def _ad_create_checkpoint(self):
         return self.coordinates().copy()
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         self.coordinates()[:] = checkpoint
         return self
+
+    def _ad_function_space(self):
+        if self._ad_coordinate_space is None:
+            self._ad_coordinate_space = backend.FunctionSpace(self, self.ufl_coordinate_element())
+        return self._ad_coordinate_space
 
 
 @register_overloaded_type
@@ -43,6 +50,7 @@ class BoundaryMesh(FloatingType, backend.BoundaryMesh):
                                            annotate=kwargs.pop("annotate", True),
                                            **kwargs)
         backend.BoundaryMesh.__init__(self, *args, **kwargs)
+        self._ad_coordinate_space = None
 
     def _ad_create_checkpoint(self):
         return self.coordinates().copy()
@@ -50,6 +58,11 @@ class BoundaryMesh(FloatingType, backend.BoundaryMesh):
     def _ad_restore_at_checkpoint(self, checkpoint):
         self.coordinates()[:] = checkpoint
         return self
+
+    def _ad_function_space(self):
+        if self._ad_coordinate_space is None:
+            self._ad_coordinate_space = backend.FunctionSpace(self, self.ufl_coordinate_element())
+        return self._ad_coordinate_space
 
 
 def overloaded_mesh(mesh_class):
@@ -60,6 +73,7 @@ def overloaded_mesh(mesh_class):
             super(OverloadedMesh, self).__init__(*args, **kwargs)
             mesh_class.__init__(self, *args, **kwargs)
             self.org_mesh_coords = self.coordinates().copy()
+            self._ad_coordinate_space = None
 
         def _ad_create_checkpoint(self):
             return self.coordinates().copy()
@@ -67,6 +81,12 @@ def overloaded_mesh(mesh_class):
         def _ad_restore_at_checkpoint(self, checkpoint):
             self.coordinates()[:] = checkpoint
             return self
+
+        def _ad_function_space(self):
+            if self._ad_coordinate_space is None:
+                self._ad_coordinate_space = backend.FunctionSpace(self, self.ufl_coordinate_element())
+            return self._ad_coordinate_space
+
     return OverloadedMesh
 
 

@@ -23,7 +23,7 @@ def test_sin_weak():
     V = TestFunction(S)
     dJV = div(V)*f*dx
     actual = assemble(dJV).get_local()
-    assert np.allclose(computed, actual, rtol=1e-14)    
+    assert np.allclose(computed, actual, rtol=1e-14)
 
 def test_sin_weak_spatial():
     mesh = UnitDiscMesh.create(MPI.comm_world, 10, 1, 2)
@@ -87,7 +87,7 @@ def test_shape_hessian():
     X = SpatialCoordinate(mesh)
     S = VectorFunctionSpace(mesh, "CG", 1)
     s = Function(S,name="deform")
-    
+
     ALE.move(mesh, s)
     integrand = X[2]**2*cos(X[1])**2
     J = assemble(integrand* dx(domain=mesh))
@@ -96,7 +96,7 @@ def test_shape_hessian():
 
     h = Function(S,name="V")
     h.interpolate(Expression(("A*cos(x[1])","B*x[2]", "C*x[1]"),degree=2,A=10, B=5, C=1.2))
-    
+
 
     # Second order taylor
     dJdm = Jhat.derivative().vector().inner(h.vector())
@@ -183,7 +183,7 @@ def test_repeated_movement():
     results = taylor_to_dict(Jhat, zero, taylor)
     assert(np.mean(results["R0"]["Rate"])>0.9)
     assert(np.mean(results["R1"]["Rate"])>1.9)
-    assert(np.mean(results["R2"]["Rate"])>0.9)
+    assert(np.mean(results["R2"]["Rate"])>2.9)
 
     tape = get_working_tape()
     tape.clear_tape()
@@ -220,4 +220,4 @@ def test_repeated_movement():
     results = taylor_to_dict(Jhat, zero, taylor)
     assert(np.mean(results["R0"]["Rate"])>0.9)
     assert(np.mean(results["R1"]["Rate"])>1.9)
-    assert(np.mean(results["R2"]["Rate"])>0.9)
+    assert(np.mean(results["R2"]["Rate"])>2.9)
