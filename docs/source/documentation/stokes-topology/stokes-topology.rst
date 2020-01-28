@@ -87,9 +87,9 @@ optimisation algorithm.
 ::
 
   try:
-      import pyadjoint.ipopt
+      from pyadjoint import ipopt  # noqa: F401
   except ImportError:
-      print("""This example depends on IPOPT and ipopt bindings. \
+      print("""This example depends on IPOPT and Python ipopt bindings. \
     When compiling IPOPT, make sure to link against HSL, as it \
     is a necessity for practical problems.""")
       raise

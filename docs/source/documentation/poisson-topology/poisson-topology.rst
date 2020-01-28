@@ -80,9 +80,9 @@ optimisation algorithm.
 ::
 
   try:
-      import ipyopt # noqa: F401
+      from pyadjoint import ipopt  # noqa: F401
   except ImportError:
-      print("""This example depends on IPOPT and ipyopt. \
+      print("""This example depends on IPOPT and Python ipopt bindings. \
     When compiling IPOPT, make sure to link against HSL, as it \
     is a necessity for practical problems.""")
       raise
@@ -279,7 +279,7 @@ Compute the integral of the control over the domain
 Now that all the ingredients are in place, we can perform the
 optimisation.  The :py:class:`MinimizationProblem` class
 represents the optimisation problem to be solved. We instantiate
-this and pass it to :py:mod:`ipyopt` to solve:
+this and pass it to :py:mod:`ipopt` to solve:
 
 ::
 
