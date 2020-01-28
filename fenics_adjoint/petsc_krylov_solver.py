@@ -1,12 +1,11 @@
 import backend
 
 from pyadjoint.tape import annotate_tape, get_working_tape
-from .solving import SolveBlock
-from .types import as_backend_type
 from dolfin_adjoint_common import compat
-compat = compat.compat(backend)
 
 from .blocks import PETScKrylovSolveBlock, PETScKrylovSolveBlockHelper
+
+compat = compat.compat(backend)
 
 
 class PETScKrylovSolver(backend.PETScKrylovSolver):
@@ -78,7 +77,7 @@ class PETScKrylovSolver(backend.PETScKrylovSolver):
             ksp_options_prefix = backend.PETScKrylovSolver.ksp(self).getOptionsPrefix()
 
             tape = get_working_tape()
-            sb_kwargs = SolveBlock.pop_kwargs(kwargs)
+            sb_kwargs = PETScKrylovSolveBlock.pop_kwargs(kwargs)
             block = PETScKrylovSolveBlock(A, x, b,
                                           krylov_solver_parameters=parameters,
                                           block_helper=block_helper,

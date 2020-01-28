@@ -1,7 +1,5 @@
 import backend
-import ufl
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
-from pyadjoint.block import Block
 from pyadjoint.overloaded_type import create_overloaded_object
 from .blocks import AssembleBlock
 

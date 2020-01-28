@@ -1,10 +1,11 @@
 import backend
 
 from pyadjoint.tape import annotate_tape, get_working_tape
-from .solving import SolveBlock
 from dolfin_adjoint_common import compat
-compat = compat.compat(backend)
+
 from .blocks import KrylovSolveBlock, KrylovSolveBlockHelper
+
+compat = compat.compat(backend)
 
 
 class KrylovSolver(backend.KrylovSolver):
@@ -67,7 +68,7 @@ class KrylovSolver(backend.KrylovSolver):
             nonzero_initial_guess = parameters["nonzero_initial_guess"] or False
 
             tape = get_working_tape()
-            sb_kwargs = SolveBlock.pop_kwargs(kwargs)
+            sb_kwargs = KrylovSolveBlock.pop_kwargs(kwargs)
             block = KrylovSolveBlock(A, x, b,
                                      krylov_solver_parameters=parameters,
                                      block_helper=block_helper,

@@ -3,7 +3,8 @@ import pytest
 from fenics import *
 from fenics_adjoint import *
 
-@pytest.mark.parametrize("outname,dot", [("tape", False), ("tape.dot", True)])
+# FIXME: Update tensorflow/tensorboard API and add ("tape", False)
+@pytest.mark.parametrize("outname,dot", [("tape.dot", True)])
 def test_tape_visualisation(outname, dot):
     if dot:
         pytest.importorskip("networkx")
@@ -29,7 +30,8 @@ def test_tape_visualisation(outname, dot):
     tape = get_working_tape()
     tape.visualise(outname)
 
-@pytest.mark.parametrize("outname,dot", [("tape", False), ("tape.dot", True)])
+# FIXME: Update tensorflow/tensorboard API and add ("tape", False)
+@pytest.mark.parametrize("outname,dot", [("tape.dot", True)])
 def test_tape_time(outname, dot):
     if dot:
         pytest.importorskip("networkx")
@@ -76,7 +78,8 @@ def test_tape_time(outname, dot):
     tape = get_working_tape()
     tape.visualise(outname)
 
-@pytest.mark.parametrize("outname,dot", [("tape", False), ("tape.dot", True)])
+# FIXME: Update tensorflow/tensorboard API and add ("tape", False)
+@pytest.mark.parametrize("outname,dot", [("tape.dot", True)])
 def test_tape_time_visualisation(outname, dot):
     if dot:
         pytest.importorskip("networkx")
@@ -126,7 +129,8 @@ def test_tape_time_visualisation(outname, dot):
     assemble(u_1**2*dx)
     tape.visualise(outname)
 
-@pytest.mark.parametrize("outname,dot", [("tape", False), ("tape.dot", True)])
+# FIXME: Update tensorflow/tensorboard API and add ("tape", False)
+@pytest.mark.parametrize("outname,dot", [("tape.dot", True)])
 def test_visualise_negative_float(outname, dot):
     if dot:
         pytest.importorskip("networkx")

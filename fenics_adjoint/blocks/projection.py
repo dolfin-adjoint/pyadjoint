@@ -1,7 +1,7 @@
-from . import SolveBlock
+from . import SolveVarFormBlock
 
 
-class ProjectBlock(SolveBlock):
+class ProjectBlock(SolveVarFormBlock):
     def __init__(self, v, V, output, bcs=[], *args, **kwargs):
         mesh = kwargs.pop("mesh", None)
         if mesh is None:

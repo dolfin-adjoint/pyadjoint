@@ -1,7 +1,7 @@
 import backend
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape, no_annotations
-from .solving import SolveBlock
 from .blocks import LinearVariationalSolveBlock, NonlinearVariationalSolveBlock
+
 
 class NonlinearVariationalProblem(backend.NonlinearVariationalProblem):
     """This object is overloaded so that solves using this class are automatically annotated,
@@ -30,7 +30,7 @@ class NonlinearVariationalSolver(backend.NonlinearVariationalSolver):
         self._ad_args = args
         self._ad_kwargs = kwargs
 
-    def solve(self, **kwargs):
+    def solve(self, *args, **kwargs):
         """To disable the annotation, just pass :py:data:`annotate=False` to this routine, and it acts exactly like the
         Dolfin solve call. This is useful in cases where the solve is known to be irrelevant or diagnostic
         for the purposes of the adjoint computation (such as projecting fields to other function spaces
@@ -40,20 +40,24 @@ class NonlinearVariationalSolver(backend.NonlinearVariationalSolver):
         if annotate:
             tape = get_working_tape()
             problem = self._ad_problem
-            sb_kwargs = SolveBlock.pop_kwargs(kwargs)
+            sb_kwargs = NonlinearVariationalSolveBlock.pop_kwargs(kwargs)
             sb_kwargs.update(kwargs)
             block = NonlinearVariationalSolveBlock(problem._ad_F == 0,
                                                    problem._ad_u,
                                                    problem._ad_bcs,
-                                                   *self._ad_args,
                                                    problem_J=problem._ad_J,
+                                                   problem_args=problem._ad_args,
+                                                   problem_kwargs=problem._ad_kwargs,
                                                    solver_params=self.parameters,
+                                                   solver_args=self._ad_args,
                                                    solver_kwargs=self._ad_kwargs,
+                                                   solve_args=args,
+                                                   solve_kwargs=kwargs,
                                                    **sb_kwargs)
             tape.add_block(block)
 
         with stop_annotating():
-            out = super(NonlinearVariationalSolver, self).solve()
+            out = super(NonlinearVariationalSolver, self).solve(*args, **kwargs)
 
         if annotate:
             block.add_output(self._ad_problem._ad_u.create_block_variable())
@@ -88,7 +92,7 @@ class LinearVariationalSolver(backend.LinearVariationalSolver):
         self._ad_args = args
         self._ad_kwargs = kwargs
 
-    def solve(self, **kwargs):
+    def solve(self, *args, **kwargs):
         """To disable the annotation, just pass :py:data:`annotate=False` to this routine, and it acts exactly like the
         Dolfin solve call. This is useful in cases where the solve is known to be irrelevant or diagnostic
         for the purposes of the adjoint computation (such as projecting fields to other function spaces
@@ -98,19 +102,23 @@ class LinearVariationalSolver(backend.LinearVariationalSolver):
         if annotate:
             tape = get_working_tape()
             problem = self._ad_problem
-            sb_kwargs = SolveBlock.pop_kwargs(kwargs)
+            sb_kwargs = LinearVariationalSolveBlock.pop_kwargs(kwargs)
             sb_kwargs.update(kwargs)
             block = LinearVariationalSolveBlock(problem._ad_a == problem._ad_L,
                                                 problem._ad_u,
                                                 problem._ad_bcs,
-                                                *self._ad_args,
+                                                problem_args=problem._ad_args,
+                                                problem_kwargs=problem._ad_kwargs,
                                                 solver_params=self.parameters,
+                                                solver_args=self._ad_args,
                                                 solver_kwargs=self._ad_kwargs,
+                                                solve_args=args,
+                                                solve_kwargs=kwargs,
                                                 **sb_kwargs)
             tape.add_block(block)
 
         with stop_annotating():
-            out = super(LinearVariationalSolver, self).solve()
+            out = super(LinearVariationalSolver, self).solve(*args, **kwargs)
 
         if annotate:
             block.add_output(self._ad_problem._ad_u.create_block_variable())

@@ -3,9 +3,10 @@ class Compat:
     # A bag class to act as a namespace for compat.
     pass
 
+
 def compat(backend):
     compat = Compat()
-    
+
     if backend.__name__ == "firedrake":
 
         compat.FunctionSpaceType = (backend.functionspaceimpl.FunctionSpace,
@@ -33,11 +34,11 @@ def compat(backend):
 
         def create_bc(bc, value=None, homogenize=None):
             """Create a new bc object from an existing one.
-            
+
             :arg bc: The :class:`~.DirichletBC` to clone.
             :arg value: A new value to use.
             :arg homogenize: If True, return a homogeneous version of the bc.
-            
+
             One cannot provide both ``value`` and ``homogenize``, but
             should provide at least one.
             """
@@ -63,7 +64,7 @@ def compat(backend):
 
         def inner(a, b):
             """Compute the l2 inner product of a and b.
-            
+
             :arg a: a Function.
             :arg b: a Vector.
             """
@@ -131,9 +132,24 @@ def compat(backend):
         compat.gather = gather
 
         compat.linalg_solve = backend.solve
+
         class Expression(object):
             pass
         compat.Expression = Expression
+
+        def type_cast_function(obj, cls):
+            """Type casts Function object `obj` to an instance of `cls`.
+
+            Useful when converting backend.Function to overloaded Function.
+            """
+            return function_from_vector(obj.function_space(), obj.vector(), cls=cls)
+        compat.type_cast_function = type_cast_function
+
+        def create_function(*args, **kwargs):
+            """Initialises a fenics_adjoint.Function object and returns it."""
+            from firedrake import Function
+            return Function(*args, **kwargs)
+        compat.create_function = create_function
 
     else:
         compat.Expression = backend.Expression
@@ -301,5 +317,19 @@ def compat(backend):
                 b = b.vector()
             return backend.solve(A, x, b, *args)
         compat.linalg_solve = linalg_solve
+
+        def type_cast_function(obj, cls):
+            """Type casts Function object `obj` to an instance of `cls`.
+
+            Useful when converting backend.Function to overloaded Function.
+            """
+            return cls(obj.function_space(), obj._cpp_object)
+        compat.type_cast_function = type_cast_function
+
+        def create_function(*args, **kwargs):
+            """Initialises a fenics_adjoint.Function object and returns it."""
+            from fenics_adjoint import Function
+            return Function(*args, **kwargs)
+        compat.create_function = create_function
 
     return compat

@@ -1,7 +1,7 @@
 import backend
 from pyadjoint.tape import get_working_tape, annotate_tape, stop_annotating
 from pyadjoint.overloaded_type import create_overloaded_object
-from .blocks import SolveBlock, ProjectBlock
+from .blocks import ProjectBlock
 
 
 def project(*args, **kwargs):
@@ -20,7 +20,8 @@ def project(*args, **kwargs):
 
     if annotate:
         bcs = kwargs.pop("bcs", [])
-        sb_kwargs = SolveBlock.pop_kwargs(kwargs)
+        sb_kwargs = ProjectBlock.pop_kwargs(kwargs)
+        sb_kwargs.update(kwargs)
         block = ProjectBlock(args[0], args[1], output, bcs, **sb_kwargs)
 
         tape = get_working_tape()
@@ -29,5 +30,3 @@ def project(*args, **kwargs):
         block.add_output(output.block_variable)
 
     return output
-
-

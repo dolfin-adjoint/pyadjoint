@@ -3,7 +3,7 @@ from pyadjoint import Block, OverloadedType, no_annotations
 
 
 class DirichletBCBlock(Block):
-    def __init__(self, *args):
+    def __init__(self, *args, **kwargs):
         Block.__init__(self)
         self.function_space = args[0]
         self.parent_space = self.function_space
