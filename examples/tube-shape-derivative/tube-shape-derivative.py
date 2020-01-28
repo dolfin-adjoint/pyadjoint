@@ -223,7 +223,7 @@ ALE.move(mesh, Function(V), reset_mesh=True)
 
 output = File("output/dJdOmega.pvd")
 out = Function(V)
-for s, dj in zip(S_ctrls, dJdm):
+for s, dj in zip(S_tot, dJdm):
     ALE.move(mesh, s)
     out.assign(dj)
     output << out

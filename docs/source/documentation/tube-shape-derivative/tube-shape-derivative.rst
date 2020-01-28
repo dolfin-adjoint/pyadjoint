@@ -249,7 +249,7 @@ Finally, we store the shape derivative for visualisation:
   
   output = File("output/dJdOmega.pvd")
   out = Function(V)
-  for s, dj in zip(S_ctrls, dJdm):
+  for s, dj in zip(S_tot, dJdm):
       ALE.move(mesh, s)
       out.assign(dj)
       output << out
