@@ -4,7 +4,6 @@ from setuptools import setup
 extras = {
     'moola': ['moola>=0.1.6'],
     'test': ['pytest>=3.10', 'flake8', 'coverage'],
-    'doc': ['sphinx', 'sphinxcontrib-bibtex', 'sphinxcontrib-youtube==0.1.2'],
     'visualisation': ['tensorflow', 'protobuf==3.6.0',
                       'networkx', 'pygraphviz'],
     'meshing': ['pygmsh', 'meshio'],
@@ -31,5 +30,5 @@ setup(name='dolfin_adjoint',
                    'firedrake_adjoint': 'firedrake_adjoint', 'dolfin_adjoint': 'dolfin_adjoint',
                    'dolfin_adjoint_common': 'dolfin_adjoint_common', 'numpy_adjoint': 'numpy_adjoint'},
       install_requires=['scipy>=1.0'],
-      extras_require=extras,
-      )
+      extras_require=extras
+)
