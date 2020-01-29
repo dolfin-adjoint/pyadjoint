@@ -1,6 +1,6 @@
 ..  #!/usr/bin/env python
   # -*- coding: utf-8 -*-
-  
+
 .. _tube-shape-derivative-example:
 
 .. py:currentmodule:: dolfin_adjoint
@@ -31,7 +31,7 @@ In this example, the morphing domain  :math:`\Omega(t)` consists of a circle wit
 Since this geometry is rotational symmetric, we can avoid for mesh-deformation methods by
 creating a cylindric mesh with a hole and rotating the mesh over time:
 
-.. youtube:: jzUXfyFTDf4
+.. youtube:: _corvd7rBXo
 
 We note at this point, that dolfin-adjoint is not restricted to rotational symmetric geometries, but also computes the shape-derivatives in more general cases.
 
@@ -58,7 +58,7 @@ We also reduce the log level for convenience and import pprint for prettier prin
   from dolfin_adjoint import *
   from pprint import pprint
   set_log_level(LogLevel.ERROR)
-  
+
 Next, we load the mesh. The mesh was generated with gmsh; the source
 files are in the mesh directory.
 
@@ -67,7 +67,7 @@ files are in the mesh directory.
   fout = File("output/u.pvd")
   mesh = Mesh("mesh/cable1.xml")
   bdy_markers = MeshFunction("size_t", mesh, "mesh/cable1_facet_region.xml")
-  
+
 Then, we define the discrete function spaces. A piecewise linear
 approximation is a suitable choice for the the solution of the advection-diffusion equation.
 In addition, we need a vector function space for the mesh deformations that describe the
@@ -78,7 +78,7 @@ is the correct choice, since it has one degree of freedom at every mesh node.
 
   V = VectorFunctionSpace(mesh, "CG", 1)
   W = FunctionSpace(mesh, "CG", 1)
-  
+
 Next we define some important model parameters
 
 ::
@@ -89,7 +89,7 @@ Next we define some important model parameters
   dt = Constant(0.01)     # Time-step
   N = int(T/float(dt))    # Number of timesteps
   J = 0                   # Objective functional
-  
+
 Next, we derive the weak variational form for computing the mesh coordinates
 at every timestep. We consider a rotating domain, hence the mesh coordinates follow
 the equation:
@@ -119,7 +119,7 @@ In code, this becomes:
   rot = lambda y: 2*pi*omega*as_vector((y[1], -y[0]))
   F_s = lambda thn: inner(thn, z)*dx\
         - dt*0.5*inner(rot(X+thn)+rot(X), z)*dx
-  
+
 In the time-loop, the solution :math:`S^n` will be used to update the mesh coordinates for the next time-level.
 
 Next, we derive the standard weak variational form for the diffusion-convection equation.
@@ -155,15 +155,15 @@ In code, this becomes:
   F_u = lambda V: (1.0/dt*(w-u0)*v*dx
                     + k*inner(grad(v),Constant(1/2)*(grad(w)+grad(u0)))*dx
                     + inner(Constant(1/2)*(w+u0)*V, grad(v))*dx)
-  
+
 Next, we define the Dirichlet boundary condition on the inner circle. The inner boundary edges are already marked
 in the mesh, so this is achieved with:
 
 ::
 
   bc = DirichletBC(W, Constant(1.0), bdy_markers, 2)
-  
-  
+
+
 Next, we define the set of deformation functions.
 These functions will store the mesh coordinates changes
 from one timestep to the next and will be solved
@@ -175,7 +175,7 @@ to these variables with dolfin-adjoint.
 ::
 
   thetas = [Function(V) for i in range(N+1)]
-  
+
 The mesh movement per time-step is decomposed into a static component (mesh rotation) and a dynamic component (the control variables in thetas).
 The create a function which should contain the total movement per time-step, and assign the first control variable to it, assuming that the system starts from a static position.
 
@@ -183,7 +183,7 @@ The create a function which should contain the total movement per time-step, and
 
   S_tot = [Function(V) for i in range(N+1)]
   S_tot[0].assign(thetas[0])
-  
+
 Now we can implement the timeloop. It consist of four main steps:
 
 1. Solve the mesh deformation PDE to compute the changes in mesh coordinates. During the shape-derivative step and add the control variable to the movement.
@@ -196,29 +196,29 @@ The code is as follows:
 ::
 
   ALE.move(mesh, S_tot[0])
-  
+
   for i in range(N):
       print("t=%.2f"%(float(i*dt)))
-  
+
       # Solve for the fixed mesh displacement and assign this movement
       # summed with the control movement to the movement vector
       a, L = system(F_s(s))
       solve(a==L, S)
       S_tot[i+1].assign(S + thetas[i+1])
-  
+
       # Move mesh
       ALE.move(mesh, S_tot[i+1])
-  
-  
+
+
       # Solve for state
       a, L = system(F_u(0.5/dt*(S_tot[i]+S_tot[i+1])))
       solve(a==L, u1, bc)
       u0.assign(u1)
       fout << u1
-  
+
       # Compute functional
       J += assemble(dt*inner(grad(u1), grad(u1))*dx)
-  
+
 This concludes the forward model, and we can now focus on computing the shape derivatives.
 As a first step, we define the control variables and the reduced functional. The control
 variables are the mesh deformation functions for all timesteps:
@@ -228,7 +228,7 @@ variables are the mesh deformation functions for all timesteps:
   S_ctrls = thetas
   ctrls = [Control(s) for s in S_ctrls]
   Jhat = ReducedFunctional(J, ctrls)
-  
+
 Now, we can run a Taylor test to verify the correctness of the shape derivatives and shape Hessian that dolfin-adjoint
 computes. The Taylor test performs a Taylor expansion in a user-specified perturbation direction.
 Since we have N control functions, we also need to specify N perturbation directions:
@@ -239,22 +239,22 @@ Since we have N control functions, we also need to specify N perturbation direct
   perbs = [project(0.01*Expression(["1-x[0]*x[0]-x[1]*x[1]", "1-x[0]*x[0]-x[1]*x[1]"], degree=2), V) for _ in ctrls]
   conv = taylor_to_dict(Jhat, S_ctrls, perbs)
   pprint(conv)
-  
+
 Finally, we store the shape derivative for visualisation:
 
 ::
 
   dJdm = Jhat.derivative()
   ALE.move(mesh, Function(V), reset_mesh=True)
-  
+
   output = File("output/dJdOmega.pvd")
   out = Function(V)
   for s, dj in zip(S_tot, dJdm):
       ALE.move(mesh, s)
       out.assign(dj)
       output << out
-  
-  
+
+
 The example code can be found in ``examples/tube-shape-derivative`` in
 the ``dolfin-adjoint`` source tree, and executed as follows:
 

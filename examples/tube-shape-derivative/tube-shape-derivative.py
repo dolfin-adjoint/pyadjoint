@@ -31,7 +31,7 @@
 # Since this geometry is rotational symmetric, we can avoid for mesh-deformation methods by
 # creating a cylindric mesh with a hole and rotating the mesh over time:
 #
-# .. youtube:: jzUXfyFTDf4
+# .. youtube:: _corvd7rBXo
 #
 # We note at this point, that dolfin-adjoint is not restricted to rotational symmetric geometries, but also computes the shape-derivatives in more general cases.
 #
