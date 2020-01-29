@@ -31,4 +31,4 @@ setup(name='dolfin_adjoint',
                    'dolfin_adjoint_common': 'dolfin_adjoint_common', 'numpy_adjoint': 'numpy_adjoint'},
       install_requires=['scipy>=1.0'],
       extras_require=extras
-)
+      )
