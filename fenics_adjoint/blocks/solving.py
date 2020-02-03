@@ -84,11 +84,17 @@ class SolveVarFormBlock(GenericSolveBlock):
 
         if len(self.adj_kwargs) <= 0:
             solver_parameters = kwargs.get("solver_parameters", {})
-            if "linear_solver" in solver_parameters:
-                adj_args = [solver_parameters["linear_solver"]]
-                if "preconditioner" in solver_parameters:
-                    adj_args.append(solver_parameters["preconditioner"])
-                self.adj_args = tuple(adj_args)
+            if len(self.adj_args) <= 0:
+                if "linear_solver" in solver_parameters:
+                    adj_args = [solver_parameters["linear_solver"]]
+                    if "preconditioner" in solver_parameters:
+                        adj_args.append(solver_parameters["preconditioner"])
+                    self.adj_args = tuple(adj_args)
+                elif "newton_solver" in solver_parameters and "linear_solver" in solver_parameters["newton_solver"]:
+                    adj_args = [solver_parameters["newton_solver"]["linear_solver"]]
+                    if "preconditioner" in solver_parameters["newton_solver"]:
+                        adj_args.append(solver_parameters["newton_solver"]["preconditioner"])
+                    self.adj_args = tuple(adj_args)
             self.adj_kwargs = solver_parameters
 
     def _assemble_and_solve_adj_eq(self, dFdu_adj_form, dJdu, compute_bdy=True):
