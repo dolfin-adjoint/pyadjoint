@@ -3,6 +3,7 @@ pytest.importorskip("firedrake")
 
 from firedrake import *
 from firedrake_adjoint import *
+import numpy as np
 
 mesh = UnitSquareMesh(2, 2)
 cg2 = FiniteElement("CG", triangle, 2)
@@ -92,3 +93,10 @@ def test_fn_split_no_annotate():
     assert min(r["R0"]["Rate"]) > 0.9
     assert min(r["R1"]["Rate"]) > 1.9
     assert min(r["R2"]["Rate"]) > 2.9
+
+
+def test_split_subvariables_update():
+    z = Function(Z)
+    u,v = z.split()
+    u.project(Constant(1.))
+    assert np.allclose(z.sub(0).vector().dat.data, u.vector().dat.data)
