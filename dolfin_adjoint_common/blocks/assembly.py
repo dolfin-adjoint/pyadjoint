@@ -109,6 +109,7 @@ class AssembleBlock(Block):
             return None
 
         dform = self.backend.derivative(form, c1_rep, dc)
+        dform = ufl.algorithms.map_integrands.map_integrands(self.backend.conj, dform)
         dform = ufl.algorithms.expand_derivatives(dform)
         hessian_outputs = hessian_input * self.compat.assemble_adjoint_value(dform)
 

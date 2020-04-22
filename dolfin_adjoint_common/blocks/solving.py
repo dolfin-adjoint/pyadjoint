@@ -425,6 +425,7 @@ class GenericSolveBlock(Block):
                 d2Fdm2 += ufl.algorithms.expand_derivatives(self.backend.derivative(dFdm_adj, c2_rep, tlm_input))
 
         hessian_form = ufl.algorithms.expand_derivatives(d2Fdm2 + dFdm_adj2 + d2Fdudm)
+        hessian_form = ufl.algorithms.map_integrands.map_integrands(self.backend.conj, hessian_form)
         hessian_output = 0
         if not hessian_form.empty():
             hessian_output -= self.compat.assemble_adjoint_value(hessian_form)
