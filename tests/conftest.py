@@ -15,6 +15,13 @@ def skip_by_missing_module(request):
             pytest.skip('skipped because module {} is missing'.format(to_import))
 
 
+def pytest_configure(config):
+    """Register an additional marker."""
+    config.addinivalue_line(
+        "markers",
+        "skipcomplex: mark as skipped in complex mode")
+
+
 def pytest_runtest_setup(item):
     """ Hook function which is called before every test """
     set_working_tape(Tape())

@@ -41,7 +41,6 @@ def main(ic, fnsplit=True):
 
     return u
 
-@pytest.mark.skipif(utils.complex_mode, reason="u**2 not complex Gateaux differentiable.")
 def test_split(Z):
     ic = Function(Z)
 
@@ -53,7 +52,6 @@ def test_split(Z):
     assert taylor_test(rf, ic.copy(deepcopy=True), h=h0) > 1.9
 
 
-@pytest.mark.skipif(utils.complex_mode, reason="u**2 not complex Gateaux differentiable.")
 def test_fn_split(Z):
     set_working_tape(Tape())
     ic = Function(Z)
@@ -67,7 +65,6 @@ def test_fn_split(Z):
     assert taylor_test(rf, ic, h) > 1.9
 
 
-@pytest.mark.skipif(utils.complex_mode, reason="u**4 not complex Gateaux differentiable.")
 def test_fn_split_hessian(Z):
     set_working_tape(Tape())
     ic = Function(Z)
@@ -82,7 +79,6 @@ def test_fn_split_hessian(Z):
     assert taylor_test(rf, ic, h, dJdm=dJdm, Hm=Hm) > 2.9
 
 
-@pytest.mark.skipif(utils.complex_mode, reason="u**4 not complex Gateaux differentiable.")
 def test_fn_split_no_annotate(Z):
     set_working_tape(Tape())
     ic = Function(Z)
