@@ -38,7 +38,7 @@ def test_assign_vector_valued():
 
     u.assign(f - 0.5*g)
 
-    J = assemble(inner(f, g)*u**2*dx)
+    J = assemble(dot(f, g)*dot(u, u)*dx)
     rf = ReducedFunctional(J, Control(f))
 
     h = Function(V)
@@ -58,7 +58,7 @@ def test_assign_tlm():
 
     u.assign(f - 0.5*g)
 
-    J = assemble(inner(f, g)*u**2*dx)
+    J = assemble(dot(f, g)*dot(u, u)*dx)
     rf = ReducedFunctional(J, Control(f))
 
     h = Function(V)
@@ -83,7 +83,7 @@ def test_assign_hessian():
 
     u.assign(f - 0.5*g)
 
-    J = assemble(inner(f, g)*u**2*dx)
+    J = assemble(inner(f, g)*dot(u, u)*dx)
     rf = ReducedFunctional(J, Control(f))
 
     dJdm = rf.derivative()
