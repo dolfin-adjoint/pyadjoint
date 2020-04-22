@@ -3,7 +3,8 @@ pytest.importorskip("firedrake")
 
 from firedrake import *
 from firedrake_adjoint import *
-from numpy.testing import assert_approx_equal
+from numpy.testing import assert_allclose
+
 
 def test_assemble_0_forms():
     mesh = IntervalMesh(10, 0, 1)
@@ -19,7 +20,8 @@ def test_assemble_0_forms():
     s = a1 + a2 + 2.0 * a3
     rf = ReducedFunctional(s, Control(u))
     # derivative is: (1+2*u+6*u**2)*dx - summing is equivalent to testing with 1
-    assert_approx_equal(rf.derivative().vector().sum(), 1. + 2. * 4 + 6 * 16.)
+    assert_allclose(rf.derivative().vector().sum(), 1. + 2. * 4 + 6 * 16.)
+
 
 def test_assemble_0_forms_mixed():
     mesh = IntervalMesh(10, 0, 1)
@@ -36,4 +38,4 @@ def test_assemble_0_forms_mixed():
     s -= a3  # this is done deliberately to end up with an adj_input of 0.0 for the a3 AssembleBlock
     rf = ReducedFunctional(s, Control(u))
     # derivative is: (1+4*u)*dx - summing is equivalent to testing with 1
-    assert_approx_equal(rf.derivative().vector().sum(), 1. + 4. * 7)
+    assert_allclose(rf.derivative().vector().sum(), 1. + 4. * 7)
