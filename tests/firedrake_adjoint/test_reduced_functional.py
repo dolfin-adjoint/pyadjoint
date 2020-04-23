@@ -18,7 +18,7 @@ def test_constant():
     v = TestFunction(V)
     bc = DirichletBC(V, Constant(1), "on_boundary")
 
-    F = inner(grad(u), grad(v))*dx - f**2*v*dx
+    F = inner(grad(u), grad(v))*dx - inner(f**2, v)*dx
     solve(F == 0, u, bc)
 
     J = assemble(c**2*u*dx)
@@ -38,7 +38,7 @@ def test_function():
     v = TestFunction(V)
     bc = DirichletBC(V, Constant(1), "on_boundary")
 
-    F = inner(grad(u), grad(v))*dx - f**2*v*dx
+    F = inner(grad(u), grad(v))*dx - inner(f**2, v)*dx
     solve(F == 0, u, bc)
 
     J = assemble(c**2*u*dx)
@@ -114,8 +114,8 @@ def test_time_dependent():
     u_1.vector()[:] = 1
     control = Control(u_1)
 
-    a = u_1*u*v*dx + dt*f*inner(grad(u),grad(v))*dx
-    L = u_1*v*dx
+    a = inner(u_1*u, v)*dx + dt*f*inner(grad(u),grad(v))*dx
+    L = inner(u_1, v)*dx
 
     # Time loop
     t = dt
