@@ -53,9 +53,11 @@ class AssembleBlock(Block):
         elif isinstance(c, self.compat.MeshType):
             c_rep = self.backend.SpatialCoordinate(c_rep)
             dc = self.backend.TestFunction(c._ad_function_space())
+            dform = self.backend.derivative(form, c_rep, self.backend.conj(dc))
+            return adj_input * self.compat.assemble_adjoint_value(dform)
 
-        form = ufl.algorithms.map_integrands.map_integrands(self.backend.conj, form)
         dform = self.backend.derivative(form, c_rep, dc)
+        dform = ufl.algorithms.map_integrands.map_integrands(self.backend.conj, dform)
         output = self.compat.assemble_adjoint_value(dform)
         return adj_input * output
 

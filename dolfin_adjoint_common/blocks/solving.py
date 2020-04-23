@@ -205,7 +205,8 @@ class GenericSolveBlock(Block):
             # differentiating, might change in the future.
             F_form_tmp = self.backend.action(F_form, adj_sol)
             X = self.backend.SpatialCoordinate(c_rep)
-            dFdm = self.backend.derivative(-F_form_tmp, X, self.backend.TestFunction(c._ad_function_space()))
+            test_function = self.backend.TestFunction(c._ad_function_space())
+            dFdm = self.backend.derivative(-F_form_tmp, X, self.backend.conj(test_function))
 
             dFdm = self.compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
             return dFdm
