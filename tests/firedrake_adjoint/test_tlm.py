@@ -22,7 +22,7 @@ def test_tlm_assemble():
     v = TestFunction(V)
 
     a = inner(grad(u), grad(v))*dx
-    L = f*v*dx
+    L = inner(f, v)*dx
 
     u_ = Function(V)
 
@@ -55,7 +55,7 @@ def test_tlm_bc():
     v = TestFunction(V)
     bc = DirichletBC(V, c, "on_boundary")
 
-    F = inner(grad(u), grad(v)) * dx - f ** 2 * v * dx
+    F = inner(grad(u), grad(v)) * dx - inner(f**2, v) * dx
     solve(F == 0, u, bc)
 
     J = assemble(c ** 2 * u * dx)
@@ -82,7 +82,7 @@ def test_tlm_func():
     v = TestFunction(V)
     bc = DirichletBC(V, c, "on_boundary")
 
-    F = inner(grad(u), grad(v)) * dx - f ** 2 * v * dx
+    F = inner(grad(u), grad(v)) * dx - inner(f ** 2, v) * dx
     solve(F == 0, u, bc)
 
     J = assemble(c ** 2 * u * dx)
@@ -126,8 +126,8 @@ def test_time_dependent(solve_type):
     u_1.vector()[:] = 1
     control = Control(u_1)
 
-    a = u_1 * u * v * dx + dt * f * inner(grad(u), grad(v)) * dx
-    L = u_1 * v * dx
+    a = u_1 * inner(u, v) * dx + dt * f * inner(grad(u), grad(v)) * dx
+    L = inner(u_1, v) * dx
 
     if solve_type == "LVS":
         problem = LinearVariationalProblem(a, L, u_, bcs=bc, constant_jacobian=False)
@@ -175,8 +175,8 @@ def test_burgers():
 
     timestep = Constant(1.0/n)
 
-    F = (Dt(u, ic, timestep)*v
-         + u*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*dx
+    F = (inner(Dt(u, ic, timestep), v)
+         + u*inner(u.dx(0), v) + nu*inner(u.dx(0), v.dx(0)))*dx
     bc = DirichletBC(V, 0.0, "on_boundary")
 
     t = 0.0
@@ -184,8 +184,8 @@ def test_burgers():
     u_.assign(u)
     t += float(timestep)
 
-    F = (Dt(u, u_, timestep)*v
-         + u*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*dx
+    F = (inner(Dt(u, u_, timestep), v)
+         + u*inner(u.dx(0), v) + nu*inner(u.dx(0), v.dx(0)))*dx
 
     end = 0.2
     while (t <= end):
@@ -194,7 +194,7 @@ def test_burgers():
 
         t += float(timestep)
 
-    J = assemble(u_*u_*dx + ic*ic*dx)
+    J = assemble(u_**2*dx + ic**2*dx)
 
     Jhat = ReducedFunctional(J, Control(ic))
     h = Function(V)
@@ -222,7 +222,7 @@ def test_projection():
     u_ = Function(V)
 
     a = inner(grad(u), grad(v))*dx
-    L = f*v*dx
+    L = inner(f, v)*dx
 
     solve(a == L, u_, bc)
 
@@ -252,7 +252,7 @@ def test_projection_function():
     u_ = Function(V)
 
     a = inner(grad(u), grad(v))*dx
-    L = f*v*dx
+    L = inner(f, v)*dx
 
     solve(a == L, u_, bc)
 
