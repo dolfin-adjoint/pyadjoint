@@ -18,7 +18,7 @@ def test_sin_weak_spatial():
     computed = Jhat.derivative().vector().get_local()
     
     V = TestFunction(S)
-    dJV = div(V)*sin(x[0])*dx + V[0]*cos(x[0])*dx
+    dJV = inner(sin(x[0]), div(V))*dx + inner(cos(x[0]), V[0])*dx
     actual = assemble(dJV).vector().get_local()
     assert np.allclose(computed, actual, rtol=1e-14)
 
@@ -101,8 +101,8 @@ def test_PDE_hessian_neumann():
     f = x[0]*x[1]*x[2]
     V = FunctionSpace(mesh, "CG", 1)
     u, v = TrialFunction(V), TestFunction(V)
-    a = inner(grad(u), grad(v))*dx + u*v*dx
-    l = f*v*dx
+    a = inner(grad(u), grad(v))*dx + inner(u, v)*dx
+    l = inner(f, v)*dx
     u = Function(V)
     solve(a==l, u, solver_parameters={'ksp_type':'preonly', 'pc_type':'lu',
                                           "mat_type": "aij",
@@ -154,7 +154,7 @@ def test_PDE_hessian_dirichlet():
     V = FunctionSpace(mesh, "CG", 1)
     u, v = TrialFunction(V), TestFunction(V)
     a = inner(grad(u), grad(v))*dx
-    l = f*v*dx
+    l = inner(f, v)*dx
     bc = DirichletBC(V, Constant(1), "on_boundary")
     u = Function(V)
     solve(a==l, u, bc, solver_parameters={'ksp_type':'preonly', 'pc_type':'lu',
@@ -208,8 +208,8 @@ def test_multiple_assignments():
     u, v = TrialFunction(V), TestFunction(V)
     x, y = SpatialCoordinate(mesh)
     f = (x - 0.2) ** 2 + y ** 2 - 1
-    a = dot(grad(u), grad(v)) * dx + u * v * dx
-    l = f * v * dx
+    a = dot(grad(u), grad(v)) * dx + inner(u, v) * dx
+    l = inner(f, v) * dx
 
     u = Function(V)
     solve(a == l, u)
@@ -238,8 +238,8 @@ def test_multiple_assignments():
     u, v = TrialFunction(V), TestFunction(V)
     x, y = SpatialCoordinate(mesh)
     f = (x - 0.2) ** 2 + y ** 2 - 1
-    a = dot(grad(u), grad(v)) * dx + u * v * dx
-    l = f * v * dx
+    a = dot(grad(u), grad(v)) * dx + inner(u, v) * dx
+    l = inner(f, v) * dx
 
     u = Function(V)
     solve(a == l, u)
