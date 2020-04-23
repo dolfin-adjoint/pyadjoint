@@ -20,7 +20,7 @@ def test_linear_problem():
 
     def J(f):
         a = inner(grad(u), grad(v))*dx
-        L = f*v*dx
+        L = inner(f, v)*dx
         solve(a == L, u_, bcs=bc)
         return assemble(u_**2*dx)
 
@@ -48,7 +48,7 @@ def test_singular_linear_problem():
 
     def J(f):
         a = inner(grad(u), grad(v))*dx
-        L = f*v*dx
+        L = inner(f, v)*dx
         solve(a == L, u_, nullspace=nullspace, transpose_nullspace=nullspace,
               solver_parameters=solver_parameters)
         return assemble(u_**2*dx)
@@ -69,7 +69,7 @@ def test_nonlinear_problem():
     bc = DirichletBC(V, Constant(1), "on_boundary")
 
     def J(f):
-        a = f*inner(grad(u), grad(v))*dx + u**2*v*dx - f*v*dx
+        a = f*inner(grad(u), grad(v))*dx + inner(u**2, v)*dx - inner(f, v)*dx
         L = 0
         solve(a == L, u, bc)
         return assemble(u**2*dx)
@@ -119,7 +119,7 @@ def xtest_wrt_constant_dirichlet_boundary():
 
     def J(bc):
         a = inner(grad(u), grad(v))*dx
-        L = c*v*dx
+        L = inner(c, v)*dx
         solve(a == L, u_, bc)
         return assemble(u_**2*dx)
 
@@ -198,7 +198,7 @@ def test_wrt_constant():
 
     def J(c):
         a = inner(grad(u), grad(v))*dx
-        L = c*v*dx
+        L = inner(c, v)*dx
         solve(a == L, u_, bc)
         return assemble(u_**2*dx)
 
@@ -258,8 +258,8 @@ def test_time_dependent():
         u_1 = Function(V)
         u_1.vector()[:] = 1 
 
-        a = u_1*u*v*dx + dt*f*inner(grad(u),grad(v))*dx
-        L = u_1*v*dx
+        a = u_1*inner(u, v)*dx + dt*f*inner(grad(u),grad(v))*dx
+        L = inner(u_1, v)*dx
 
         # Time loop
         t = dt
