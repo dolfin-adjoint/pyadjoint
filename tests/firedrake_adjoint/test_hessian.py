@@ -20,14 +20,14 @@ def test_simple_solve():
     u = TrialFunction(V)
     v = TestFunction(V)
 
-    a = u*v*dx
-    L = f*v*dx
+    a = inner(u, v)*dx
+    L = inner(f, v)*dx
 
     u_ = Function(V)
 
     solve(a == L, u_)
 
-    L = u_*v*dx
+    L = inner(u_, v)*dx
 
     u_sol = Function(V)
     solve(a == L, u_sol)
@@ -63,8 +63,8 @@ def test_mixed_derivatives():
     u = TrialFunction(V)
     v = TestFunction(V)
 
-    a = f**2*u*v*dx
-    L = g**2*v*dx
+    a = f**2*inner(u, v)*dx
+    L = inner(g**2, v)*dx
 
     u_ = Function(V)
     solve(a == L, u_)
@@ -106,7 +106,7 @@ def test_function():
     v = TestFunction(V)
     bc = DirichletBC(V, Constant(1), "on_boundary")
 
-    F = inner(grad(u), grad(v)) * dx + u**2*v*dx - f ** 2 * v * dx - c**2*v*dx
+    F = inner(grad(u), grad(v)) * dx + inner(u**2, v)*dx - inner(f**2, v) * dx - inner(c**2, v)*dx
     solve(F == 0, u, bc)
 
     J = assemble(c ** 2 * u ** 2 * dx)
@@ -147,7 +147,7 @@ def test_nonlinear():
     v = TestFunction(V)
     bc = DirichletBC(V, Constant(1), "on_boundary")
 
-    F = inner(grad(u), grad(v)) * dx - u**2*v*dx - f * v * dx
+    F = inner(grad(u), grad(v)) * dx - inner(u**2, v)*dx - inner(f, v) * dx
     solve(F == 0, u, bc)
 
     J = assemble(u ** 4 * dx)
@@ -188,7 +188,7 @@ def test_dirichlet():
     c.vector()[:] = 1
     bc = DirichletBC(V, c, "on_boundary")
 
-    F = inner(grad(u), grad(v)) * dx + u**4*v*dx - f**2 * v * dx
+    F = inner(grad(u), grad(v)) * dx + inner(u**4, v)*dx - inner(f**2, v) * dx
     solve(F == 0, u, bc)
 
     J = assemble(u ** 4 * dx)
@@ -237,8 +237,8 @@ def test_burgers():
 
     timestep = Constant(1.0/n)
 
-    F = (Dt(u, ic, timestep)*v
-         + u*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*dx
+    F = (inner(Dt(u, ic, timestep), v)
+         + u*inner(u.dx(0), v) + nu*inner(u.dx(0), v.dx(0)))*dx
     bc = DirichletBC(V, 0.0, "on_boundary")
 
     t = 0.0
@@ -246,8 +246,8 @@ def test_burgers():
     u_.assign(u)
     t += float(timestep)
 
-    F = (Dt(u, u_, timestep)*v
-         + u*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*dx
+    F = (inner(Dt(u, u_, timestep), v)
+         + u*inner(u.dx(0), v) + nu*inner(u.dx(0), v.dx(0)))*dx
 
     end = 0.2
     while (t <= end):
@@ -256,7 +256,7 @@ def test_burgers():
 
         t += float(timestep)
 
-    J = assemble(u_*u_*dx + ic*ic*dx)
+    J = assemble(u_**2*dx + ic**2*dx)
 
     Jhat = ReducedFunctional(J, Control(ic))
     h = Function(V)

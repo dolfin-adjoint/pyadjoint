@@ -387,6 +387,9 @@ class GenericSolveBlock(Block):
             W = c.function_space()
 
         dc = self.backend.TestFunction(W)
+        if isinstance(c, self.compat.MeshType):
+            dc = self.backend.conj(dc)
+
         form_adj = self.backend.action(F_form, adj_sol)
         form_adj2 = self.backend.action(F_form, adj_sol2)
         if isinstance(c, self.compat.MeshType):
@@ -426,7 +429,9 @@ class GenericSolveBlock(Block):
                 d2Fdm2 += ufl.algorithms.expand_derivatives(self.backend.derivative(dFdm_adj, c2_rep, tlm_input))
 
         hessian_form = ufl.algorithms.expand_derivatives(d2Fdm2 + dFdm_adj2 + d2Fdudm)
-        hessian_form = ufl.algorithms.map_integrands.map_integrands(self.backend.conj, hessian_form)
+        if not isinstance(c, self.compat.MeshType):
+            hessian_form = ufl.algorithms.map_integrands.map_integrands(self.backend.conj, hessian_form)
+
         hessian_output = 0
         if not hessian_form.empty():
             hessian_output -= self.compat.assemble_adjoint_value(hessian_form)

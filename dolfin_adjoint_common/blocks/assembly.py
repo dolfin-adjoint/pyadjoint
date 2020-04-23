@@ -107,11 +107,13 @@ class AssembleBlock(Block):
         elif isinstance(c1, self.compat.MeshType):
             c1_rep = self.backend.SpatialCoordinate(c1)
             dc = self.backend.TestFunction(c1._ad_function_space())
+            dc = self.backend.conj(dc)
         else:
             return None
 
         dform = self.backend.derivative(form, c1_rep, dc)
-        dform = ufl.algorithms.map_integrands.map_integrands(self.backend.conj, dform)
+        if not isinstance(c1, self.compat.MeshType):
+            dform = ufl.algorithms.map_integrands.map_integrands(self.backend.conj, dform)
         dform = ufl.algorithms.expand_derivatives(dform)
         hessian_outputs = hessian_input * self.compat.assemble_adjoint_value(dform)
 
