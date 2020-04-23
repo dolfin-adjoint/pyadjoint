@@ -22,13 +22,13 @@ def test_dynamic_meshes_2D(mesh):
     u, v = TrialFunction(V), TestFunction(V)
     dt = Constant(0.1)
     k = Constant(1/dt)
-    F = k*inner(u-u0, v)*dx + inner(grad(u), grad(v))*dx - f*v*dx
+    F = k*inner(u-u0, v)*dx + inner(grad(u), grad(v))*dx - inner(f,v)*dx
     u1 = Function(V)
     solve(lhs(F) == rhs(F), u1)
     J = float(dt)*assemble(u1**2*dx)
 
     mesh.coordinates.assign(mesh.coordinates + s[2])
-    F = k*inner(u-u1, v)*dx + inner(grad(u), grad(v))*dx - f*v*dx
+    F = k*inner(u-u1, v)*dx + inner(grad(u), grad(v))*dx - inner(f,v)*dx
     u2 = Function(V)
     solve(lhs(F) == rhs(F), u2)
     J += float(dt)*assemble(u2**2*dx)

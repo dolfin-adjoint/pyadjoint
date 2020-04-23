@@ -55,11 +55,7 @@ def test_tlm_bc():
     v = TestFunction(V)
     bc = DirichletBC(V, c, "on_boundary")
 
-<<<<<<< HEAD
-    F = inner(grad(u), grad(v)) * dx - inner(f ** 2, v) * dx
-=======
     F = inner(grad(u), grad(v)) * dx - inner(f**2, v) * dx
->>>>>>> c2ed8be8e502e82509cf270dce91718e2ab76ab8
     solve(F == 0, u, bc)
 
     J = assemble(c ** 2 * u * dx)
@@ -130,11 +126,7 @@ def test_time_dependent(solve_type):
     u_1.vector()[:] = 1
     control = Control(u_1)
 
-<<<<<<< HEAD
     a = inner(u_1 * u, v) * dx + dt * f * inner(grad(u), grad(v)) * dx
-=======
-    a = u_1 * inner(u, v) * dx + dt * f * inner(grad(u), grad(v)) * dx
->>>>>>> c2ed8be8e502e82509cf270dce91718e2ab76ab8
     L = inner(u_1, v) * dx
 
     if solve_type == "LVS":
@@ -184,11 +176,7 @@ def test_burgers():
     timestep = Constant(1.0/n)
 
     F = (inner(Dt(u, ic, timestep), v)
-<<<<<<< HEAD
-         + inner(u*u.dx(0), v) + inner(nu*u.dx(0), v.dx(0)))*dx
-=======
          + u*inner(u.dx(0), v) + nu*inner(u.dx(0), v.dx(0)))*dx
->>>>>>> c2ed8be8e502e82509cf270dce91718e2ab76ab8
     bc = DirichletBC(V, 0.0, "on_boundary")
 
     t = 0.0
@@ -197,11 +185,7 @@ def test_burgers():
     t += float(timestep)
 
     F = (inner(Dt(u, u_, timestep), v)
-<<<<<<< HEAD
-         + inner(u*u.dx(0), v) + inner(nu*u.dx(0), v.dx(0)))*dx
-=======
          + u*inner(u.dx(0), v) + nu*inner(u.dx(0), v.dx(0)))*dx
->>>>>>> c2ed8be8e502e82509cf270dce91718e2ab76ab8
 
     end = 0.2
     while (t <= end):
