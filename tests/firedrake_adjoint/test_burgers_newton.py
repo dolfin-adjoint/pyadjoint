@@ -26,8 +26,8 @@ def J(ic, solve_type):
 
     timestep = Constant(1.0/n)
 
-    F = (Dt(u, ic, timestep)*v
-         + u*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*dx
+    F = (inner(Dt(u, ic, timestep), v)
+         + u*inner(u.dx(0), v) + nu*inner(u.dx(0), v.dx(0)))*dx
     bc = DirichletBC(V, 0.0, "on_boundary")
 
     t = 0.0
@@ -40,8 +40,8 @@ def J(ic, solve_type):
     u_.assign(u)
     t += float(timestep)
 
-    F = (Dt(u, u_, timestep)*v
-         + u*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*dx
+    F = (inner(Dt(u, u_, timestep), v)
+         + u*inner(u.dx(0), v) + nu*inner(u.dx(0), v.dx(0)))*dx
 
     end = 0.2
     while (t <= end):
@@ -53,7 +53,7 @@ def J(ic, solve_type):
 
         t += float(timestep)
 
-    return assemble(u_*u_*dx + ic*ic*dx)
+    return assemble(u_**2*dx + ic**2*dx)
 
 
 @pytest.mark.parametrize("solve_type",
