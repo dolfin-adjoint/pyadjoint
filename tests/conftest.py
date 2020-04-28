@@ -3,7 +3,6 @@ import importlib
 import numpy.random
 from pyadjoint import set_working_tape, Tape
 
-
 @pytest.fixture(autouse=True)
 def skip_by_missing_module(request):
     marker = request.node.get_closest_marker("skipif_module_is_missing")
@@ -13,13 +12,6 @@ def skip_by_missing_module(request):
             importlib.import_module(to_import)
         except ImportError:
             pytest.skip('skipped because module {} is missing'.format(to_import))
-
-
-def pytest_configure(config):
-    """Register an additional marker."""
-    config.addinivalue_line(
-        "markers",
-        "skipcomplex: mark as skipped in complex mode")
 
 
 def pytest_runtest_setup(item):

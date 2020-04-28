@@ -5,6 +5,7 @@ from firedrake_adjoint import *
 from pyadjoint import taylor_to_dict
 
 
+@pytest.mark.skipif(utils.complex_mode, reason="Shape derivatives not yet working in complex mode")
 def test_sin_weak_spatial():
     mesh = UnitOctahedralSphereMesh(2)
     x = SpatialCoordinate(mesh)
@@ -23,6 +24,7 @@ def test_sin_weak_spatial():
     assert np.allclose(computed, actual, rtol=1e-14)
 
 
+@pytest.mark.skipif(utils.complex_mode, reason="Shape derivatives not yet working in complex mode")
 def test_tlm_assemble():
     tape = get_working_tape()
     tape.clear_tape()
@@ -57,6 +59,7 @@ def test_tlm_assemble():
     assert(np.isclose(r1,r1_tlm, rtol=1e-14))
 
 
+@pytest.mark.skipif(utils.complex_mode, reason="Shape derivatives not yet working in complex mode")
 def test_shape_hessian():
     tape = get_working_tape()
     tape.clear_tape()
@@ -86,6 +89,7 @@ def test_shape_hessian():
     assert(np.isclose(assemble(dJdmm_exact), Hm))
 
 
+@pytest.mark.skipif(utils.complex_mode, reason="Shape derivatives not yet working in complex mode")
 def test_PDE_hessian_neumann():
     tape = get_working_tape()
     tape.clear_tape()
@@ -139,6 +143,7 @@ def test_PDE_hessian_neumann():
     assert(r2>2.95)
 
 
+@pytest.mark.skipif(utils.complex_mode, reason="Shape derivatives not yet working in complex mode")
 def test_PDE_hessian_dirichlet():
     tape = get_working_tape()
     tape.clear_tape()
@@ -193,6 +198,7 @@ def test_PDE_hessian_dirichlet():
     assert(r2>2.95)
 
 
+@pytest.mark.skipif(utils.complex_mode, reason="Shape derivatives not yet working in complex mode")
 def test_multiple_assignments():
     tape = get_working_tape()
     tape.clear_tape()

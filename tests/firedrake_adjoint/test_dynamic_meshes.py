@@ -4,6 +4,7 @@ from firedrake_adjoint import *
 import numpy as np
 
 
+@pytest.mark.skipif(utils.complex_mode, reason="Shape derivatives not yet working in complex mode")
 @pytest.mark.parametrize("mesh", [UnitSquareMesh(10,10)])
 def test_dynamic_meshes_2D(mesh):
     S = VectorFunctionSpace(mesh, "CG", 1)
@@ -52,6 +53,7 @@ def test_dynamic_meshes_2D(mesh):
     assert(np.mean(results["R2"]["Rate"])>2.9)
 
 
+@pytest.mark.skipif(utils.complex_mode, reason="Shape derivatives not yet working in complex mode")
 @pytest.mark.parametrize("mesh", [UnitCubeMesh(4,4,5),
                                   UnitOctahedralSphereMesh(3),
                                   UnitIcosahedralSphereMesh(3),
