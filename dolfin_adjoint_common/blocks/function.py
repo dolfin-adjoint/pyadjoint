@@ -116,4 +116,3 @@ def _extract_functions_from_lincom(backend, lincom, functions=None):
         for op in lincom.ufl_operands:
             functions = _extract_functions_from_lincom(backend, op, functions)
     return functions
-
