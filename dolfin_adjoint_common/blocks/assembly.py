@@ -50,9 +50,6 @@ class AssembleBlock(Block):
             dform = self.backend.derivative(form, c_rep, dc)
             output = self.compat.assemble_adjoint_value(dform)
             return [[adj_input * output, V]]
-        elif isinstance(c, self.compat.MeshType):
-            c_rep = self.backend.SpatialCoordinate(c_rep)
-            dc = self.backend.TestFunction(c._ad_function_space())
 
         if isinstance(c, self.backend.Function):
             fct_space = c.function_space()
@@ -60,6 +57,10 @@ class AssembleBlock(Block):
         elif isinstance(c, self.backend.Constant):
             mesh = self.compat.extract_mesh_from_form(self.form)
             fct_space = c._ad_function_space(mesh)
+            dc = self.backend.TestFunction(fct_space)
+        elif isinstance(c, self.compat.MeshType):
+            c_rep = self.backend.SpatialCoordinate(c_rep)
+            fct_space = c._ad_function_space()
             dc = self.backend.TestFunction(fct_space)
 
         if c_rep not in Nk:
