@@ -136,10 +136,25 @@ class GenericSolveBlock(Block):
 
         F_form = self._create_F_form()
 
-        dFdu = self.backend.derivative(F_form,
-                                       fwd_block_variable.saved_output,
-                                       self.backend.TrialFunction(u.function_space()))
+        u_hat = self.backend.TrialFunction(u.function_space())
+        u_rep = fwd_block_variable.saved_output
+        Nk = tuple(e for e in F_form.coefficients() if isinstance(e, ufl.ExternalOperator))
+
+        Nk_rep = tuple(self.backend.replace(e, {u_rep: self.backend.Function(u_rep.function_space())}) for e in Nk)
+        F_form_Nk_rep = self.backend.replace(F_form, dict(zip(Nk, Nk_rep)))
+        dFdu = self.backend.derivative(F_form_Nk_rep, u_rep, u_hat)
         dFdu_form = self.backend.adjoint(dFdu)
+
+        for i, e in enumerate(Nk):
+            if u_rep in e.ufl_operands:
+                e_hat = self.backend.TrialFunction(e.function_space())
+                dFdNi = self.backend.derivative(F_form, e, e_hat)
+                dFdNi_form = self.backend.adjoint(dFdNi)
+                j_ops = list(j for j, op in enumerate(e.ufl_operands) if op == u_rep)[0]
+                dNidu = e._adjoint(j_ops)
+                dNidu = self.backend.inner(dNidu, u_hat)
+                dFdu_form += self.backend.replace(dFdNi_form, {e_hat: dNidu})
+
         dJdu = dJdu.copy()
 
         compute_bdy = self._should_compute_boundary_adjoint(relevant_dependencies)
@@ -152,6 +167,7 @@ class GenericSolveBlock(Block):
 
         r = {}
         r["form"] = F_form
+        r["extops"] = Nk
         r["adj_sol"] = adj_sol
         r["adj_sol_bdy"] = adj_sol_bdy
         return r
@@ -183,22 +199,26 @@ class GenericSolveBlock(Block):
             # We are not able to calculate derivatives wrt initial guess.
             return None
         F_form = prepared["form"]
+        Nk = prepared["extops"]
         adj_sol = prepared["adj_sol"]
         adj_sol_bdy = prepared["adj_sol_bdy"]
         c = block_variable.output
         c_rep = block_variable.saved_output
 
         if isinstance(c, self.backend.Function):
-            trial_function = self.backend.TrialFunction(c.function_space())
+            c_fs = c.function_space()
+            trial_function = self.backend.TrialFunction(c_fs)
         elif isinstance(c, self.backend.Constant):
             mesh = self.compat.extract_mesh_from_form(F_form)
-            trial_function = self.backend.TrialFunction(c._ad_function_space(mesh))
+            c_fs = c._ad_function_space(mesh)
+            trial_function = self.backend.TrialFunction(c_fs)
         elif isinstance(c, self.compat.ExpressionType):
             mesh = F_form.ufl_domain().ufl_cargo()
             c_fs = c._ad_function_space(mesh)
             trial_function = self.backend.TrialFunction(c_fs)
         elif isinstance(c, self.backend.DirichletBC):
-            tmp_bc = self.compat.create_bc(c, value=self.compat.extract_subfunction(adj_sol_bdy, c.function_space()))
+            c_fs = c.function_space()
+            tmp_bc = self.compat.create_bc(c, value=self.compat.extract_subfunction(adj_sol_bdy, c_fs))
             return [tmp_bc]
         elif isinstance(c, self.compat.MeshType):
             # Using CoordianteDerivative requires us to do action before
@@ -209,7 +229,20 @@ class GenericSolveBlock(Block):
             dFdm = self.compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
             return dFdm
 
-        dFdm = -self.backend.derivative(F_form, c_rep, trial_function)
+        if c_rep not in Nk:
+            c_substitute = self.backend.Function(c_fs)
+            if isinstance(c_rep, self.backend.Constant):
+                c_substitute = self.backend.Constant(0.)
+            Nk_rep = tuple(self.backend.replace(e, {c_rep: c_substitute}) for e in Nk)
+            F_form_Nk_rep = self.backend.replace(F_form, dict(zip(Nk, Nk_rep)))
+            dFdm = -self.backend.derivative(F_form_Nk_rep, c_rep, trial_function)
+            if len(ufl.algorithms.expand_derivatives(dFdm).arguments()) != 2:
+                return self.backend.Function(c_fs).vector()
+        else:
+            # Reconstruct c_rep operands with saved outputs
+            c_rep = c_rep._ufl_expr_reconstruct_(*tuple(e.block_variable.saved_output for e in c_rep.ufl_operands))
+            dFdm = -self.backend.derivative(F_form, c_rep, trial_function)
+
         dFdm = self.backend.adjoint(dFdm)
         dFdm = dFdm * adj_sol
         dFdm = self.compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)

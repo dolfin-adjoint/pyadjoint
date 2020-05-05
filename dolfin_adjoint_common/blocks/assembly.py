@@ -26,10 +26,16 @@ class AssembleBlock(Block):
                 replaced_coeffs[coeff] = c_rep
 
         form = ufl.replace(self.form, replaced_coeffs)
-        return form
+        Nk = tuple(e for e in form.coefficients() if isinstance(e, ufl.ExternalOperator))
+
+        prepared = {}
+        prepared["form"] = form
+        prepared["extops"] = Nk
+        return prepared
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        form = prepared
+        form = prepared["form"]
+        Nk = prepared["extops"]
         adj_input = adj_inputs[0]
         c = block_variable.output
         c_rep = block_variable.saved_output
@@ -51,12 +57,25 @@ class AssembleBlock(Block):
             return adj_input * output
 
         if isinstance(c, self.backend.Function):
-            dc = self.backend.TestFunction(c.function_space())
+            fct_space = c.function_space()
+            dc = self.backend.TestFunction(fct_space)
         elif isinstance(c, self.backend.Constant):
             mesh = self.compat.extract_mesh_from_form(self.form)
-            dc = self.backend.TestFunction(c._ad_function_space(mesh))
+            fct_space = c._ad_function_space(mesh)
+            dc = self.backend.TestFunction(fct_space)
 
-        dform = self.backend.derivative(form, c_rep, dc)
+        if c_rep not in Nk:
+            c_substitute = self.backend.Function(fct_space)
+            if isinstance(c_rep, self.backend.Constant):
+                c_substitute = self.backend.Constant(0.)
+            Nk_rep = tuple(self.backend.replace(e, {c_rep: c_substitute}) for e in Nk)
+            form_Nk_rep = self.backend.replace(form, dict(zip(Nk, Nk_rep)))
+            dform = self.backend.derivative(form_Nk_rep, c_rep, dc)
+        else:
+            # Reconstruct c_rep operands with saved outputs
+            c_rep = c_rep._ufl_expr_reconstruct_(*tuple(e.block_variable.saved_output for e in c_rep.ufl_operands))
+            dform = self.backend.derivative(form, c_rep, dc)
+
         output = self.compat.assemble_adjoint_value(dform)
         return adj_input * output
 
@@ -64,7 +83,7 @@ class AssembleBlock(Block):
         return self.prepare_evaluate_adj(inputs, tlm_inputs, self.get_dependencies())
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
-        form = prepared
+        form = prepared["form"]
         dform = 0.
         dform_shape = 0.
         for bv in self.get_dependencies():
@@ -88,7 +107,7 @@ class AssembleBlock(Block):
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
-        form = prepared
+        form = prepared["form"]
         hessian_input = hessian_inputs[0]
         adj_input = adj_inputs[0]
 
@@ -139,7 +158,7 @@ class AssembleBlock(Block):
         return self.prepare_evaluate_adj(inputs, None, None)
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        form = prepared
+        form = prepared["form"]
         output = self.backend.assemble(form)
         output = create_overloaded_object(output)
         return output

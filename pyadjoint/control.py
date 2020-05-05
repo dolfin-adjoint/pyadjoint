@@ -96,6 +96,16 @@ class Control(object):
 
     def mark_as_control(self):
         self.block_variable.is_control = True
+        if hasattr(self.control, '_is_control'):
+            # Specific to firedrake.Constant
+            # Check attribute to avoid importing firedrake.Constant
+            self.block_variable.output._is_control = True
+            self.block_variable.saved_output._is_control = True
 
     def unmark_as_control(self):
         self.block_variable.is_control = False
+        if hasattr(self.control, '_is_control'):
+            # Specific to firedrake.Constant
+            # Check attribute to avoid importing firedrake.Constant
+            self.block_variable.output._is_control = False
+            self.block_variable.saved_output._is_control = False
