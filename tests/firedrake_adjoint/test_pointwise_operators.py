@@ -70,8 +70,6 @@ def test_solve(point_op, params, mesh):
         _test_taylor(J_u_f, f, V)
 
 
-
-#+ Weight optim
 @pytest.mark.parametrize(('point_op', 'params'), tuple(zip(point_op_list, params_list)))
 def test_assemble(point_op, params, mesh):
     V = FunctionSpace(mesh, "Lagrange", 1)
@@ -122,8 +120,37 @@ def test_assemble(point_op, params, mesh):
         _test_taylor(J_u_f, f, V)
 
 
-#def test_weights_optimization():
+def test_weights_optimization():
+    mesh = UnitSquareMesh(5, 5, 1)
+    V = FunctionSpace(mesh, "Lagrange", 1)
 
+    f = Function(V)
+    f.vector()[:] = 1
+
+    u = Function(V)
+    v = TestFunction(V)
+    model = torch.nn.Linear(1, 1)
+
+    p = neuralnet(model, function_space=V)
+    p2 = p(f)
+
+    m = weights(p2)
+    bias = Constant(np.array(p2.model.bias.data[0]))
+
+    def J(m):
+        # If last argument is a Constant we don't automatically add weights in the operands list
+        p2 = p(f, m)
+        F = (-inner(u, v) + inner(grad(u), grad(v)))*dx - p2*v*dx
+        solve(F == 0, u)
+        return assemble(u**2*dx)
+
+    val = J(m)
+    control = Control(m)
+    rf = ReducedFunctional(val, control)
+    m_opt = minimize(rf, method="L-BFGS-B", tol=1.0e-12, options={"disp": True, "gtol": 1.0e-12, "maxiter" : 20})
+
+    # Minimum reached when u = 0, that is when m = -bias (since we only have 1 Linear layer)!
+    assert_approx_equal(m_opt.dat.data_ro, -bias.dat.data_ro)
 
 
 def _test_taylor(J, f, V):
