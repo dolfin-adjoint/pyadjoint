@@ -4,8 +4,10 @@ pytest.importorskip("firedrake")
 from firedrake import *
 from firedrake_adjoint import *
 from numpy.testing import assert_approx_equal
-
-import torch
+try:
+    import torch
+except:
+    raise ImportError("Try: pip install torch")
 
 
 @pytest.fixture(scope='module')
