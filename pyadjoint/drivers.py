@@ -18,8 +18,8 @@ def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
         OverloadedType: The derivative with respect to the control. Should be an instance of the same type as
             the control.
     """
-    options = {} if options is None else options
-    tape = get_working_tape() if tape is None else tape
+    options = options or {}
+    tape = tape or get_working_tape()
     tape.reset_variables()
     J.adj_value = adj_value
     m = Enlist(m)
@@ -48,8 +48,8 @@ def compute_hessian(J, m, m_dot, options=None, tape=None):
         OverloadedType: The second derivative with respect to the control in direction m_dot. Should be an instance of
             the same type as the control.
     """
-    tape = get_working_tape() if tape is None else tape
-    options = {} if options is None else options
+    tape = tape or get_working_tape()
+    options = options or {}
 
     tape.reset_tlm_values()
     tape.reset_hessian_values()
