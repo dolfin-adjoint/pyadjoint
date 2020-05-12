@@ -69,3 +69,20 @@ def compute_hessian(J, m, m_dot, options=None, tape=None):
 
     r = [v.get_hessian(options=options) for v in m]
     return m.delist(r)
+
+
+def solve_adjoint(J, tape=None, adj_value=1.0):
+    """
+    Solve the adjoint problem for a functional J. The adjoint solutions are stored in the 'adj_sol'
+    attribute of each solve block.
+
+    Args:
+        J (AdjFloat):  The objective functional.
+        tape: The tape to use. Default is the current tape.
+    """
+    tape = tape or get_working_tape()
+    tape.reset_variables()
+    J.adj_value = adj_value
+
+    with stop_annotating():
+        tape.evaluate_adj(markings=False)
