@@ -1,4 +1,5 @@
 import ufl
+from ufl.corealg.traversal import traverse_unique_terminals
 from pyadjoint import Block, OverloadedType, AdjFloat
 
 
@@ -6,34 +7,38 @@ class FunctionAssignBlock(Block):
     def __init__(self, func, other):
         super().__init__()
         self.other = None
-        self.lincom = False
+        self.expr = None
         if isinstance(other, OverloadedType):
             self.add_dependency(other, no_duplicates=True)
         else:
-            # Assume that this is a linear combination
-            functions = _extract_functions_from_lincom(self.backend, other)
-            for f in functions:
-                self.add_dependency(f, no_duplicates=True)
+            # Assume that this is a point-wise evaluated UFL expression (firedrake only)
+            for op in traverse_unique_terminals(other):
+                if isinstance(op, OverloadedType):
+                    self.add_dependency(op, no_duplicates=True)
             self.expr = other
-            self.lincom = True
+
+    def _replace_with_saved_output(self):
+        if self.expr is None:
+            return None
+
+        replace_map = {}
+        for dep in self.get_dependencies():
+            replace_map[dep.output] = dep.saved_output
+        return ufl.replace(self.expr, replace_map)
 
     def prepare_evaluate_adj(self, inputs, adj_inputs, relevant_dependencies):
         V = self.get_outputs()[0].output.function_space()
         adj_input_func = self.compat.function_from_vector(V, adj_inputs[0])
 
-        if not self.lincom:
+        if self.expr is None:
             return adj_input_func
-        # If what was assigned was not a lincom (only currently relevant in firedrake),
-        # then we need to replace the coefficients in self.expr with new values.
-        replace_map = {}
-        for dep in self.get_dependencies():
-            replace_map[dep.output] = dep.saved_output
-        expr = ufl.replace(self.expr, replace_map)
+
+        expr = self._replace_with_saved_output()
         return expr, adj_input_func
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx,
                                prepared=None):
-        if not self.lincom:
+        if self.expr is None:
             if isinstance(block_variable.output, (AdjFloat, self.backend.Constant)):
                 return adj_inputs[0].sum()
             else:
@@ -44,38 +49,38 @@ class FunctionAssignBlock(Block):
         else:
             # Linear combination
             expr, adj_input_func = prepared
-            adj_output = self.backend.Function(
-                block_variable.output.function_space())
             diff_expr = ufl.algorithms.expand_derivatives(
                 ufl.derivative(expr, block_variable.saved_output,
                                adj_input_func)
             )
+            adj_output = self.backend.Function(adj_input_func.function_space())
             adj_output.assign(diff_expr)
-            return adj_output.vector()
+            if isinstance(block_variable.output, (AdjFloat, self.backend.Constant)):
+                return adj_output.vector().sum()
+            else:
+                return adj_output.vector()
 
     def prepare_evaluate_tlm(self, inputs, tlm_inputs, relevant_outputs):
-        if not self.lincom:
+        if self.expr is None:
             return None
 
-        replace_map = {}
-        for dep in self.get_dependencies():
-            V = dep.output.function_space()
-            tlm_input = dep.tlm_value or self.backend.Function(V)
-            replace_map[dep.output] = tlm_input
-        expr = ufl.replace(self.expr, replace_map)
-
-        return expr
+        return self._replace_with_saved_output()
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx,
                                prepared=None):
-        if not self.lincom:
+        if self.expr is None:
             return tlm_inputs[0]
 
         expr = prepared
-        V = block_variable.output.function_space()
-        tlm_output = self.backend.Function(V)
-        self.backend.Function.assign(tlm_output, expr)
-        return tlm_output
+        dudm = self.backend.Function(block_variable.output.function_space())
+        for dep in self.get_dependencies():
+            if dep.tlm_value:
+                dudmi = ufl.algorithms.expand_derivatives(
+                    ufl.derivative(expr, dep.saved_output,
+                                   dep.tlm_value)
+                )
+                dudm += dudmi
+        return dudm
 
     def prepare_evaluate_hessian(self, inputs, hessian_inputs, adj_inputs,
                                  relevant_dependencies):
@@ -91,28 +96,13 @@ class FunctionAssignBlock(Block):
                                            block_variable, idx, prepared)
 
     def prepare_recompute_component(self, inputs, relevant_outputs):
-        if not self.lincom:
+        if self.expr is None:
             return None
-
-        replace_map = {}
-        for dep in self.get_dependencies():
-            replace_map[dep.output] = dep.saved_output
-        return ufl.replace(self.expr, replace_map)
+        return self._replace_with_saved_output()
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        if not self.lincom:
+        if self.expr is None:
             prepared = inputs[0]
         output = self.backend.Function(block_variable.output.function_space())
         self.backend.Function.assign(output, prepared)
         return output
-
-
-def _extract_functions_from_lincom(backend, lincom, functions=None):
-    functions = functions or []
-    if isinstance(lincom, backend.Function):
-        functions.append(lincom)
-        return functions
-    else:
-        for op in lincom.ufl_operands:
-            functions = _extract_functions_from_lincom(backend, op, functions)
-    return functions
