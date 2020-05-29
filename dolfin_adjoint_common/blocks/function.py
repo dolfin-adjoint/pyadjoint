@@ -73,13 +73,14 @@ class FunctionAssignBlock(Block):
 
         expr = prepared
         dudm = self.backend.Function(block_variable.output.function_space())
+        dudmi = self.backend.Function(block_variable.output.function_space())
         for dep in self.get_dependencies():
             if dep.tlm_value:
-                dudmi = ufl.algorithms.expand_derivatives(
+                dudmi.assign(ufl.algorithms.expand_derivatives(
                     ufl.derivative(expr, dep.saved_output,
-                                   dep.tlm_value)
-                )
-                dudm += dudmi
+                                   dep.tlm_value)))
+                dudm.vector().axpy(1.0, dudmi.vector())
+
         return dudm
 
     def prepare_evaluate_hessian(self, inputs, hessian_inputs, adj_inputs,
