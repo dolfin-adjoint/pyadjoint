@@ -10,6 +10,11 @@ if 'backend' not in sys.modules:
 else:
     raise ImportError("'backend' module already exists?")
 
+from firedrake.utils import complex_mode
+if complex_mode:
+    raise NotImplementedError("Sorry, firedrake_adjoint doesn't work yet in complex mode "
+                              "please get in touch if you need this!")
+
 from pyadjoint.tape import (Tape, set_working_tape, get_working_tape,
                             pause_annotation, continue_annotation,
                             stop_annotating)
