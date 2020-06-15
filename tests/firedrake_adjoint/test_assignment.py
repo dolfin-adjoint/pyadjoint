@@ -69,6 +69,7 @@ def test_assign_tlm():
     tape = get_working_tape()
     tape.evaluate_tlm()
 
+    assert J.tlm_value is not None
     assert taylor_test(rf, f, h, dJdm=J.tlm_value) > 1.9
 
 
