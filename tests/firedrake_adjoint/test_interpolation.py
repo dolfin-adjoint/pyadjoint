@@ -126,3 +126,40 @@ def test_interpolate_bump_function():
     rf = ReducedFunctional(J, [Control(cx), Control(cy)])
     h = [Constant(0.1), Constant(0.1)]
     assert taylor_test(rf, [cx, cy], h) > 1.9
+
+def test_self_interpolate():
+    mesh = UnitSquareMesh(1,1)
+    V = FunctionSpace(mesh, "CG", 1)
+    u = Function(V)
+    c = Constant(1.)
+    u.interpolate(u+c)
+    J = assemble(u**2*dx)
+    rf = ReducedFunctional(J, Control(c))
+    h = Constant(0.1)
+    assert taylor_test(rf, Constant(2.), h)
+
+def test_self_interpolate_function():
+    mesh = UnitSquareMesh(1,1)
+    V = FunctionSpace(mesh, "CG", 1)
+    u = Function(V)
+    c = Constant(1.)
+    interpolate(u+c, u)
+    interpolate(u+c*u**2, u)
+    J = assemble(u**2*dx)
+    rf = ReducedFunctional(J, Control(c))
+    h = Constant(0.1)
+    assert taylor_test(rf, Constant(3.), h)
+
+def test_interpolate_to_function_space():
+    mesh = UnitSquareMesh(1,1)
+    V = FunctionSpace(mesh, "CG", 1)
+    W = FunctionSpace(mesh, "DG", 1)
+    u = Function(V)
+    x = SpatialCoordinate(mesh)
+    u.interpolate(x[0])
+    c = Constant(1.)
+    w = interpolate((u+c)*u, W)
+    J = assemble(w**2*dx)
+    rf = ReducedFunctional(J, Control(c))
+    h = Constant(0.1)
+    assert taylor_test(rf, Constant(1.), h)
