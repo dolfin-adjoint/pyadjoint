@@ -90,10 +90,11 @@ def test_PDE_hessian_neumann():
     tape = get_working_tape()
     tape.clear_tape()
 
-    mesh = UnitOctahedralSphereMesh(refinement_level=2)
-
+    with stop_annotating():
+        mesh = UnitOctahedralSphereMesh(refinement_level=2)
     x = SpatialCoordinate(mesh)
     mesh.init_cell_orientations(x)
+
 
     S = mesh.coordinates.function_space()
     s = Function(S,name="deform")
@@ -113,7 +114,7 @@ def test_PDE_hessian_neumann():
 
     A = 1e-1
     h = Function(S,name="V")
-    h.interpolate(as_vector((A*x[2], A*cos(x[1]), A*x[0])))
+    h.interpolate(as_vector((A*x[2], A*cos(x[1]), A*x[0])), annotate=False)
 
     # Finite difference
     r0 = taylor_test(Jhat, s, h, dJdm=0)
@@ -167,7 +168,7 @@ def test_PDE_hessian_dirichlet():
 
     A = 1e-1
     h = Function(S,name="V")
-    h.interpolate(as_vector((A*x[2], A*cos(x[1]), A*x[0])))
+    h.interpolate(as_vector((A*x[2], A*cos(x[1]), A*x[0])), annotate=False)
 
     # Finite difference
     r0 = taylor_test(Jhat, s, h, dJdm=0)
