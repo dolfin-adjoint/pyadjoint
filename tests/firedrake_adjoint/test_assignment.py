@@ -52,8 +52,12 @@ def test_assign_tlm():
     element = VectorElement("CG", mesh.ufl_cell(), degree=1, dim=2)
     V = FunctionSpace(mesh, element)
 
+    h = Function(V)
+    h.assign(1)
+
     x = SpatialCoordinate(mesh)
     f = interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V)
+    f.block_variable.tlm_value = h
     g = interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V)
     u = Function(V)
 
@@ -61,10 +65,6 @@ def test_assign_tlm():
 
     J = assemble(inner(f, g)*u**2*dx)
     rf = ReducedFunctional(J, Control(f))
-
-    h = Function(V)
-    h.vector()[:] = 1
-    f.tlm_value = h
 
     tape = get_working_tape()
     tape.evaluate_tlm()
@@ -92,7 +92,7 @@ def test_assign_tlm_wit_constant():
 
     tape.reset_tlm_values()
     c.tlm_value = Constant(0.4)
-    f.tlm_value = g
+    f.block_variable.tlm_value = g
     tape.evaluate_tlm()
     assert_allclose(u.block_variable.tlm_value.dat.data, 0.4 * f.dat.data ** 2 + 10. * f.dat.data * g.dat.data)
 

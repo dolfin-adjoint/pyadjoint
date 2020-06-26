@@ -73,7 +73,7 @@ def test_interpolate_tlm():
 
     h = Function(V1)
     h.vector()[:] = 1
-    f.tlm_value = h
+    f.block_variable.tlm_value = h
 
     tape = get_working_tape()
     tape.evaluate_tlm()
@@ -109,7 +109,7 @@ def test_interpolate_tlm_wit_constant():
     # test tlm w.r.t constant c and function f:
     tape.reset_tlm_values()
     c.tlm_value = Constant(0.4)
-    f.tlm_value = g
+    f.block_variable.tlm_value = g
     rf(c)  # replay to reset checkpoint values based on c=5
     tape.evaluate_tlm()
     assert abs(J.tlm_value - (0.8 + 100. * (5*cos(1.) - 3*sin(1.)))) < 1e-4
