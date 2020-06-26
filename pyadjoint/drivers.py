@@ -75,8 +75,11 @@ def solve_adjoint(J, tape=None, adj_value=1.0):
     """
     Solve the adjoint problem for a functional J.
 
-    Adjoint actions are stored on each tape block as the `adj_value` attribute. In the case of
-    solve blocks, intermediate adjoint solutions can also be accessed via the `adj_sol` attribute.
+    This traverses the entire tape backwards, unlike `compute_gradient` which only works out those
+    parts of the adjoint necessary to compute the sensitivity with respect to the specified control.
+    As a result sensitivities with respect to all intermediate states are accumulated in the
+    `adj_value` attribute of the associated block-variables. The adjoint solution of each solution
+    step is stored in the `adj_sol` attribute of the corresponding solve block.
 
     Args:
         J (AdjFloat):  The objective functional.
