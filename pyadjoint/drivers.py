@@ -73,8 +73,10 @@ def compute_hessian(J, m, m_dot, options=None, tape=None):
 
 def solve_adjoint(J, tape=None, adj_value=1.0):
     """
-    Solve the adjoint problem for a functional J. The adjoint solutions are stored in the 'adj_sol'
-    attribute of each solve block.
+    Solve the adjoint problem for a functional J.
+
+    Adjoint actions are stored on each tape block as the `adj_value` attribute. In the case of
+    solve blocks, intermediate adjoint solutions can also be accessed via the `adj_sol` attribute.
 
     Args:
         J (AdjFloat):  The objective functional.
