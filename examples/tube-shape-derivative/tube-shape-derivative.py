@@ -63,6 +63,7 @@ set_log_level(LogLevel.ERROR)
 fout = File("output/u.pvd")
 mesh = Mesh("mesh/cable1.xml")
 bdy_markers = MeshFunction("size_t", mesh, "mesh/cable1_facet_region.xml")
+original_mesh = Control(mesh)
 
 # Then, we define the discrete function spaces. A piecewise linear
 # approximation is a suitable choice for the the solution of the advection-diffusion equation.
@@ -219,7 +220,7 @@ pprint(conv)
 # Finally, we store the shape derivative for visualisation:
 
 dJdm = Jhat.derivative()
-ALE.move(mesh, Function(V), reset_mesh=True)
+mesh.coordinates()[:] = original_mesh.data()
 
 output = File("output/dJdOmega.pvd")
 out = Function(V)
