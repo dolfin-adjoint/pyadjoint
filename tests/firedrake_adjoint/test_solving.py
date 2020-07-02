@@ -302,10 +302,10 @@ def _test_adjoint_function_boundary(J, bc, f):
         tape.clear_tape()
         bc.set_value(f)
         Jm = J(bc)
-        Jm.adj_value = 1.0
+        Jm.block_variable.adj_value = 1.0
         tape.evaluate_adj()
 
-        dJdbc = bc.adj_value
+        dJdbc = bc.block_variable.adj_value
 
         residual = abs(Jp - Jm - eps*dJdbc.inner(h.vector()))
         residuals.append(residual)
@@ -333,10 +333,10 @@ def _test_adjoint_constant_boundary(J, bc):
         tape.clear_tape()
         bc.set_value(c)
         Jm = J(bc)
-        Jm.adj_value = 1.0
+        Jm.block_variable.adj_value = 1.0
         tape.evaluate_adj()
 
-        dJdbc = bc.adj_value[0]
+        dJdbc = bc.block_variable.adj_value[0]
 
         residual = abs(Jp - Jm - eps*dJdbc.sum())
         residuals.append(residual)
@@ -362,10 +362,10 @@ def _test_adjoint_constant(J, c):
         Jp = J(c + eps*h)
         tape.clear_tape()
         Jm = J(c)
-        Jm.adj_value = 1.0
+        Jm.block_variable.adj_value = 1.0
         tape.evaluate_adj()
 
-        dJdc = c.adj_value[0]
+        dJdc = c.block_variable.adj_value[0]
         print(dJdc)
 
         residual = abs(Jp - Jm - eps*dJdc)
@@ -394,10 +394,10 @@ def _test_adjoint(J, f):
         Jp = J(f + eps*h)
         tape.clear_tape()
         Jm = J(f)
-        Jm.adj_value = 1.0
+        Jm.block_variable.adj_value = 1.0
         tape.evaluate_adj()
 
-        dJdf = f.adj_value
+        dJdf = f.block_variable.adj_value
 
         residual = abs(Jp - Jm - eps*dJdf.inner(h.vector()))
         residuals.append(residual)

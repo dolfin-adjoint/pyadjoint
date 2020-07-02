@@ -286,10 +286,10 @@ def _test_adjoint_constant(J, c):
         Jm = J(c)
         #tape.visualise(dot=True, filename="expr.dot")
         #import sys; sys.exit()
-        Jm.adj_value = 1.0
+        Jm.block_variable.adj_value = 1.0
         tape.evaluate_adj()
 
-        dJdc = c.adj_value
+        dJdc = c.block_variable.adj_value
         print(dJdc)
 
         residual = abs(Jp - Jm - eps*dJdc)
@@ -319,10 +319,10 @@ def _test_adjoint(J, f):
         Jp = J(g)
         tape.clear_tape()
         Jm = J(f)
-        Jm.adj_value = 1.0
+        Jm.block_variable.adj_value = 1.0
         tape.evaluate_adj()
 
-        dJdf = f.adj_value
+        dJdf = f.block_variable.adj_value
 
         residual = abs(Jp - Jm - eps*dJdf.inner(h.vector()))
         residuals.append(residual)

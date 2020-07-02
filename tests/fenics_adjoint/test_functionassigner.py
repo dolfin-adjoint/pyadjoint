@@ -49,7 +49,7 @@ def test_function_assigner_poisson():
 
     tape = get_working_tape()
     tape.reset_tlm_values()
-    s_.tlm_value = pert
+    s_.block_variable.tlm_value = pert
     tape.evaluate_tlm()
     r1_tlm = taylor_test(Jhat, s_, pert, dJdm=J.block_variable.tlm_value)
     assert r1_tlm > 1.95

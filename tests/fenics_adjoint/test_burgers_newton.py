@@ -69,10 +69,10 @@ def test_burgers_newton(solve_type):
     pr = project(Expression("sin(2*pi*x[0])", degree=1),  V)
     ic = Function(V)
     ic.vector()[:] = pr.vector()[:]
+    c = Control(ic)
+    _test_adjoint(J, ic, c, solve_type)
 
-    _test_adjoint(J, ic, solve_type)
-
-def _test_adjoint(J, f, solve_type):
+def _test_adjoint(J, f, control, solve_type):
     import numpy.random
     tape = Tape()
     set_working_tape(tape)
@@ -91,18 +91,16 @@ def _test_adjoint(J, f, solve_type):
         Jp = J(pertubed_ic, solve_type)
         tape.clear_tape()
         Jm = J(f, solve_type)
-        Jm.adj_value = 1.0
+        Jm.block_variable.adj_value = 1.0
         tape.evaluate_adj()
 
-        dJdf = f.adj_value
-        #print dJdf.array()
+        dJdf = control.adj_value
 
         residual = abs(Jp - Jm - eps*dJdf.inner(h.vector()))
         residuals.append(residual)
 
     r = convergence_rates(residuals, eps_)
     print(r)
-    #print residuals
 
     tol = 1E-1
     assert( r[-1] > 2-tol )
