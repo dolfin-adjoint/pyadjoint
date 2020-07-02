@@ -71,9 +71,6 @@ class OverloadedType(object):
     it can be referenced by blocks as well as overload basic mathematical
     operations such as __mul__, __add__, where they are needed.
 
-    Abstract methods:
-        :func:`adj_update_value`
-
     """
 
     def __init__(self, *args, **kwargs):
@@ -141,18 +138,6 @@ class OverloadedType(object):
 
         Returns:
             :obj:`OverloadedType`: The object with same state as at the supplied checkpoint.
-
-        """
-        raise NotImplementedError
-
-    def adj_update_value(self, value):
-        """This method must be overridden.
-
-        The method should implement a routine for assigning a new value
-        to the overloaded object.
-
-        Args:
-            value (:obj:`object`): Should be an instance of the OverloadedType.
 
         """
         raise NotImplementedError
