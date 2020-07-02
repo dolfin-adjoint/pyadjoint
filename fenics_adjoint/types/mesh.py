@@ -18,12 +18,6 @@ class Mesh(OverloadedType, backend.Mesh):
         super(Mesh, self).__init__(*args, **kwargs)
         backend.Mesh.__init__(self, *args, **kwargs)
 
-        if self.num_vertices() >= 1:
-            # If the mesh is not empty, save the original coordinates
-            self.org_mesh_coords = self.coordinates().copy()
-        else:
-            self.org_mesh_coords = None
-
         self._ad_coordinate_space = None
 
     def _ad_create_checkpoint(self):
@@ -72,7 +66,6 @@ def overloaded_mesh(mesh_class):
             # Calling constructor
             super(OverloadedMesh, self).__init__(*args, **kwargs)
             mesh_class.__init__(self, *args, **kwargs)
-            self.org_mesh_coords = self.coordinates().copy()
             self._ad_coordinate_space = None
 
         def _ad_create_checkpoint(self):
@@ -107,7 +100,6 @@ def overloaded_create(mesh_class):
         mesh = __ad_create(*args, **kwargs)
         mesh.__class__ = Mesh
         mesh.__init__()
-        mesh.org_mesh_coords = mesh.coordinates().copy()
 
         return mesh
     create.__doc__ = __ad_create.__doc__
@@ -125,10 +117,6 @@ __backend_ALE_move = backend.ALE.move
 
 def move(mesh, vector, **kwargs):
     annotate = annotate_tape(kwargs)
-    reset = kwargs.pop("reset_mesh", False)
-    if reset:
-        mesh.coordinates()[:] = mesh.org_mesh_coords
-        mesh.block_variable = mesh.original_block_variable
     if annotate:
         assert isinstance(mesh, OverloadedType)
         assert isinstance(vector, OverloadedType)
