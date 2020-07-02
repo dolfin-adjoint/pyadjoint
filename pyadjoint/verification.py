@@ -112,8 +112,6 @@ def taylor_to_dict(J, m, h):
 
         Jm = J(m)
         print("Computing derivative")
-        for (hi, mi) in zip(hs, ms):
-            mi.tlm_value = hi.tlm_value
         ds = Enlist(J.derivative())
         if len(ds) != len(ms):
             raise ValueError("The derivative of J depends on {0:d} variables"

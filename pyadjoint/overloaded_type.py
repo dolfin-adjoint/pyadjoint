@@ -77,7 +77,8 @@ class OverloadedType(object):
     """
 
     def __init__(self, *args, **kwargs):
-        self.original_block_variable = self.create_block_variable()
+        self.block_variable = None
+        self.create_block_variable()
 
     @classmethod
     def _ad_init_object(cls, obj):
@@ -98,22 +99,6 @@ class OverloadedType(object):
     def create_block_variable(self):
         self.block_variable = BlockVariable(self)
         return self.block_variable
-
-    @property
-    def adj_value(self):
-        return self.original_block_variable.adj_value
-
-    @adj_value.setter
-    def adj_value(self, value):
-        self.block_variable.adj_value = value
-
-    @property
-    def tlm_value(self):
-        return self.original_block_variable.tlm_value
-
-    @tlm_value.setter
-    def tlm_value(self, value):
-        self.original_block_variable.tlm_value = value
 
     def _ad_convert_type(self, value, options={}):
         """This method must be overridden.

@@ -84,12 +84,28 @@ class Control(object):
         return self.control._ad_copy()
 
     @property
+    def adj_value(self):
+        return self.block_variable.adj_value
+
+    @adj_value.setter
+    def adj_value(self, value):
+        self.block_variable.adj_value = value
+
+    @property
     def tlm_value(self):
         return self.block_variable.tlm_value
 
     @tlm_value.setter
     def tlm_value(self, value):
         self.block_variable.tlm_value = value
+
+    @property
+    def hessian_value(self):
+        return self.block_variable.hessian_value
+
+    @hessian_value.setter
+    def hessian_value(self, value):
+        self.block_variable.hessian_value = value
 
     def __getattr__(self, item):
         return getattr(self.control, item)
