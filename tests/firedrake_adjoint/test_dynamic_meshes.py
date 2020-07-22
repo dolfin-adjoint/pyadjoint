@@ -6,7 +6,7 @@ import numpy as np
 
 @pytest.mark.parametrize("mesh", [UnitSquareMesh(10,10)])
 def test_dynamic_meshes_2D(mesh):
-    S = VectorFunctionSpace(mesh, "CG", 1)
+    S = mesh.coordinates.function_space()
     s = [Function(S), Function(S), Function(S)]
     mesh.coordinates.assign(mesh.coordinates + s[0])
 
@@ -59,7 +59,7 @@ def test_dynamic_meshes_2D(mesh):
                                   TorusMesh(25,10, 1, 0.5),
                                   CylinderMesh(10,25, radius=0.5, depth=0.8)])
 def test_dynamic_meshes_3D(mesh):
-    S = VectorFunctionSpace(mesh, "CG", 1)
+    S = mesh.coordinates.function_space()
     s = [Function(S), Function(S), Function(S)]
     mesh.coordinates.assign(mesh.coordinates + s[0])
 
