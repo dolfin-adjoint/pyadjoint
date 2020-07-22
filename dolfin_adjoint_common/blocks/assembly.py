@@ -26,7 +26,8 @@ class AssembleBlock(Block):
                 replaced_coeffs[coeff] = c_rep
 
         form = ufl.replace(self.form, replaced_coeffs)
-        Nk = tuple(e for e in form.coefficients() if isinstance(e, ufl.ExternalOperator))
+        extops_coeff = [e.coefficient for e in form.external_operators()]
+        Nk = dict(zip(extops_coeff, form.external_operators()))
 
         prepared = {}
         prepared["form"] = form
@@ -63,15 +64,17 @@ class AssembleBlock(Block):
             fct_space = c._ad_function_space()
             dc = self.backend.TestFunction(fct_space)
 
-        if c_rep not in Nk:
+
+        if c_rep not in Nk.keys():
             c_substitute = self.backend.Function(fct_space)
             if isinstance(c_rep, self.backend.Constant):
                 c_substitute = self.backend.Constant(0.)
-            Nk_rep = tuple(self.backend.replace(e, {c_rep: c_substitute}) for e in Nk)
-            form_Nk_rep = self.backend.replace(form, dict(zip(Nk, Nk_rep)))
+            Nk_rep = tuple(self.backend.replace(e, {c_rep: c_substitute}) for e in Nk.values())
+            form_Nk_rep = self.backend.replace(form, dict(zip(Nk.values(), Nk_rep)))
             dform = self.backend.derivative(form_Nk_rep, c_rep, dc)
         else:
             # Reconstruct c_rep operands with saved outputs
+            c_rep = Nk[c_rep]
             c_rep = c_rep._ufl_expr_reconstruct_(*tuple(e.block_variable.saved_output for e in c_rep.ufl_operands))
             dform = self.backend.derivative(form, c_rep, dc)
 

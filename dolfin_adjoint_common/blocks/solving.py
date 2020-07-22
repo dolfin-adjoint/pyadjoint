@@ -138,14 +138,15 @@ class GenericSolveBlock(Block):
 
         u_hat = self.backend.TrialFunction(u.function_space())
         u_rep = fwd_block_variable.saved_output
-        Nk = tuple(e for e in F_form.coefficients() if isinstance(e, ufl.ExternalOperator))
+        extops_coeff = [e.coefficient for e in F_form.external_operators()]
+        Nk = dict(zip(extops_coeff, F_form.external_operators()))
 
-        Nk_rep = tuple(self.backend.replace(e, {u_rep: self.backend.Function(u_rep.function_space())}) for e in Nk)
-        F_form_Nk_rep = self.backend.replace(F_form, dict(zip(Nk, Nk_rep)))
+        Nk_rep = tuple(self.backend.replace(e, {u_rep: self.backend.Function(u_rep.function_space())}) for e in Nk.values())
+        F_form_Nk_rep = self.backend.replace(F_form, dict(zip(Nk.values(), Nk_rep)))
         dFdu = self.backend.derivative(F_form_Nk_rep, u_rep, u_hat)
         dFdu_form = self.backend.adjoint(dFdu)
 
-        for i, e in enumerate(Nk):
+        for i, e in enumerate(Nk.values()):
             if u_rep in e.ufl_operands:
                 e_hat = self.backend.TrialFunction(e.function_space())
                 dFdNi = self.backend.derivative(F_form, e, e_hat)
@@ -230,17 +231,18 @@ class GenericSolveBlock(Block):
             dFdm = self.compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
             return dFdm
 
-        if c_rep not in Nk:
+        if c_rep not in Nk.keys():
             c_substitute = self.backend.Function(c_fs)
             if isinstance(c_rep, self.backend.Constant):
                 c_substitute = self.backend.Constant(0.)
-            Nk_rep = tuple(self.backend.replace(e, {c_rep: c_substitute}) for e in Nk)
-            F_form_Nk_rep = self.backend.replace(F_form, dict(zip(Nk, Nk_rep)))
+            Nk_rep = tuple(self.backend.replace(e, {c_rep: c_substitute}) for e in Nk.values())
+            F_form_Nk_rep = self.backend.replace(F_form, dict(zip(Nk.values(), Nk_rep)))
             dFdm = -self.backend.derivative(F_form_Nk_rep, c_rep, trial_function)
             if len(ufl.algorithms.expand_derivatives(dFdm).arguments()) != 2:
                 return self.backend.Function(c_fs).vector()
         else:
             # Reconstruct c_rep operands with saved outputs
+            c_rep = Nk[c_rep]
             c_rep = c_rep._ufl_expr_reconstruct_(*tuple(e.block_variable.saved_output for e in c_rep.ufl_operands))
             dFdm = -self.backend.derivative(F_form, c_rep, trial_function)
 
