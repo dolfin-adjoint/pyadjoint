@@ -152,8 +152,7 @@ class GenericSolveBlock(Block):
                 dFdNi = self.backend.derivative(F_form, e, e_hat)
                 dFdNi_form = self.backend.adjoint(dFdNi)
                 j_ops = list(j for j, op in enumerate(e.ufl_operands) if op == u_rep)[0]
-                dNidu = e._adjoint(j_ops)
-                dNidu = self.backend.inner(dNidu, u_hat)
+                dNidu = e.evaluate_adj_component_state(u_hat, j_ops)
                 dFdu_form += self.backend.replace(dFdNi_form, {e_hat: dNidu})
 
         dJdu = dJdu.copy()

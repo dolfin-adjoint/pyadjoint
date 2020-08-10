@@ -15,11 +15,53 @@ def mesh():
     return IntervalMesh(10, 0, 1)
 
 
+class PointexprActionOperator(PointexprOperator):
+
+    _external_operator_type = 'GLOBAL'
+
+    def __init__(self, *args, **kwargs):
+        PointexprOperator.__init__(self, *args, **kwargs)
+
+    def _evaluate_action(self, args):
+        if len(args) == 0:
+            # Evaluate the operator
+            return self._evaluate()
+
+        # Evaluate the Jacobian/Hessian action
+        operands = self.ufl_operands
+        operator = self._compute_derivatives()
+        expr = as_ufl(operator(*operands))
+        if expr.ufl_shape == () and expr != 0:
+            var = VariableRuleset(self.ufl_operands[0])
+            expr = expr*var._Id
+        elif expr == 0:
+            return self.assign(expr)
+
+        for arg in args:
+            mi = indices(len(expr.ufl_shape))
+            aa = mi
+            bb = mi[-len(arg.ufl_shape):]
+            expr = arg[bb] * expr[aa]
+            mi_tensor = tuple(e for e in mi if not (e in aa and e in bb))
+            if len(expr.ufl_free_indices):
+                expr = as_tensor(expr, mi_tensor)
+        return self.interpolate(expr)
+
+    def _evaluate_adjoint_action(self, x):
+        return self._evaluate_action(x)
+
+
+def action_point_expr(point_expr, function_space):
+    return partial(PointexprActionOperator, operator_data=point_expr, function_space=function_space)
+
+
 model = torch.nn.Linear(1, 1)
-point_op_list = [point_expr, point_solve, neuralnet]
+point_op_list = [point_expr, action_point_expr, point_solve, neuralnet]
 params_list = [{'operator_data': lambda x:x, 'kwargs': {}},
+               {'operator_data': lambda x:x, 'kwargs': {}},
                {'operator_data': lambda x, y: x - y, 'kwargs': {'solver_params':{'tol':1e-7, 'maxiter':30}}},
                {'operator_data': model, 'kwargs': {}}]
+solver_kwargs = {"mat_type": "matfree"}
 
 
 @pytest.mark.parametrize(('point_op', 'params'), tuple(zip(point_op_list, params_list)))
@@ -35,14 +77,14 @@ def test_solve(point_op, params, mesh):
 
     arg = params['operator_data']
     kwargs = params['kwargs']
-    print(point_op, arg, kwargs)
+    solver_parameters = {} if point_op != action_point_expr else solver_kwargs
     p = point_op(arg, function_space=V, **kwargs)
 
     """The ExternalOperator is function of the state only: `N(u)`"""
     p2 = p(u)
     def J_u(f):
         F = (-inner(p2, v) + inner(grad(u), grad(v)))*dx - f*v*dx
-        solve(F == 0, u)
+        solve(F == 0, u, solver_parameters=solver_parameters)
         return assemble(u**2*dx)
 
     _test_taylor(J_u, f, V)
@@ -52,7 +94,7 @@ def test_solve(point_op, params, mesh):
     def J_f(f):
         p2 = p(f)
         F = (-inner(u, v) + inner(grad(u), grad(v)))*dx - p2*v*dx
-        solve(F == 0, u)
+        solve(F == 0, u, solver_parameters=solver_parameters)
         return assemble(u**2*dx)
 
     _test_taylor(J_f, f, V)
@@ -66,7 +108,7 @@ def test_solve(point_op, params, mesh):
         def J_u_f(f):
             g2 = g(u,f)
             F = (-inner(g2, v) + inner(grad(u), grad(v)))*dx
-            solve(F == 0, u)
+            solve(F == 0, u, solver_parameters=solver_parameters)
             return assemble(u**2*dx)
         
         _test_taylor(J_u_f, f, V)
