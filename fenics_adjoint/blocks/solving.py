@@ -115,14 +115,14 @@ class SolveVarFormBlock(GenericSolveBlock):
         solver_method = "default" if solver_method == "lu" else solver_method
 
         if solver_method in lu_solver_methods:
-            solver = self.backend.LUSolver(dFdu, method=solver_method)
+            solver = self.backend.LUSolver(solver_method)
             solver_parameters = self.adj_kwargs.get("lu_solver", {})
         else:
-            solver = self.backend.KrylovSolver(dFdu, *self.adj_args)
+            solver = self.backend.KrylovSolver( *self.adj_args)
             solver_parameters = self.adj_kwargs.get("krylov_solver", {})
 
         solver.parameters.update(solver_parameters)
-        solver.solve(adj_sol.vector(), dJdu)
+        solver.solve(dFdu, adj_sol.vector(), dJdu)
 
         adj_sol_bdy = None
         if compute_bdy:
