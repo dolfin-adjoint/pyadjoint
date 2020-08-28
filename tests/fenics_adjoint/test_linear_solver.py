@@ -279,3 +279,53 @@ def test_krylov_solver_preconditioner_function_ctrl():
     dJdm = h._ad_dot(Jhat.derivative())
     Hm = h._ad_dot(Jhat.hessian(h))
     assert taylor_test(Jhat, f, h, dJdm=dJdm, Hm=Hm) > 2.9
+
+
+class top_half(SubDomain):
+    def inside(self, x, on_boundary):
+        return x[1] > 0.5
+
+
+class top_boundary(SubDomain):
+    def inside(self, x, on_boundary):
+        return abs(1 - x[1]) < 1e-10
+
+
+def test_LU_solver_ident_zeros():
+    """
+    Test using ident zeros to restrict half of the domain
+    """
+    mesh = UnitSquareMesh(10, 10)
+    cf = MeshFunction("size_t", mesh, mesh.topology().dim(), 0)
+    top_half().mark(cf, 1)
+
+    ff = MeshFunction("size_t", mesh, mesh.topology().dim() - 1, 0)
+    top_boundary().mark(ff, 1)
+
+    dx = Measure("dx", domain=mesh, subdomain_data=cf)
+
+    V = FunctionSpace(mesh, "CG", 1)
+    u, v = TrialFunction(V), TestFunction(V)
+    a = inner(grad(u), grad(v)) * dx(1)
+    w = Function(V)
+    with stop_annotating():
+        w.assign(project(Expression("x[0]", degree=1), V))
+    rhs = w**3 * v * dx(1)
+    A = assemble(a, keep_diagonal=True)
+    A.ident_zeros()
+    b = assemble(rhs)
+    bc = DirichletBC(V, Constant(1), ff, 1)
+    bc.apply(A, b)
+    solver = LUSolver("mumps")
+    uh = Function(V)
+    solver.solve(A, uh.vector(), b)
+
+    J = assemble(inner(uh, uh) * dx(1))
+
+    Jhat = ReducedFunctional(J, Control(w))
+    with stop_annotating():
+        w1 = project(Expression("x[0]*x[1]", degree=2), V)
+    results = taylor_to_dict(Jhat, w, w1)
+    assert(min(results["R0"]["Rate"]) > 0.95)
+    assert(min(results["R1"]["Rate"]) > 1.95)
+    assert(min(results["R2"]["Rate"]) > 2.95)

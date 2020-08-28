@@ -10,7 +10,7 @@ class SolveLinearSystemBlock(GenericSolveBlock):
         super().__init__(lhs, rhs, func, bcs, *args, **kwargs)
 
         # Set up parameters initialization
-        self.assemble_kwargs["keep_diagonal"] =  A.keep_diagonal if hasattr(A, "keep_diagonal") else False
+        self.assemble_kwargs["keep_diagonal"] = A.keep_diagonal if hasattr(A, "keep_diagonal") else False
         self.ident_zeros_tol = A.ident_zeros_tol if hasattr(A, "ident_zeros_tol") else None
         self.assemble_system = A.assemble_system if hasattr(A, "assemble_system") else False
 
@@ -120,7 +120,6 @@ class SolveVarFormBlock(GenericSolveBlock):
         else:
             solver = self.backend.KrylovSolver(*self.adj_args)
             solver_parameters = self.adj_kwargs.get("krylov_solver", {})
-
         solver.parameters.update(solver_parameters)
         solver.solve(dFdu, adj_sol.vector(), dJdu)
 

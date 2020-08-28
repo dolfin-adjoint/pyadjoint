@@ -32,7 +32,7 @@ class LUSolveBlock(SolveLinearSystemBlock):
                                              dFdu_adj_form.arguments()[0]) * backend.dx
                 A, _ = backend.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs, **self.assemble_kwargs)
             else:
-                A = compat.assemble_adjoint_value(dFdu_adj_form, **assemble_kwargs)
+                A = compat.assemble_adjoint_value(dFdu_adj_form, **self.assemble_kwargs)
                 [bc.apply(A) for bc in bcs]
             if self.ident_zeros_tol is not None:
                 A.ident_zeros(self.ident_zeros_tol)
@@ -56,9 +56,9 @@ class LUSolveBlock(SolveLinearSystemBlock):
         solver = self.block_helper.forward_solver
         if solver is None:
             if self.assemble_system:
-                A, _ = backend.assemble_system(lhs, rhs, bcs, **self.assemble_kwargs )
+                A, _ = backend.assemble_system(lhs, rhs, bcs, **self.assemble_kwargs)
             else:
-                A = compat.assemble_adjoint_value(lhs, **assemble_kwargs)
+                A = compat.assemble_adjoint_value(lhs, **self.assemble_kwargs)
                 [bc.apply(A) for bc in bcs]
 
             solver = backend.LUSolver(A, self.method)
