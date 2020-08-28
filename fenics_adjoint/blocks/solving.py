@@ -118,7 +118,7 @@ class SolveVarFormBlock(GenericSolveBlock):
             solver = self.backend.LUSolver(solver_method)
             solver_parameters = self.adj_kwargs.get("lu_solver", {})
         else:
-            solver = self.backend.KrylovSolver( *self.adj_args)
+            solver = self.backend.KrylovSolver(*self.adj_args)
             solver_parameters = self.adj_kwargs.get("krylov_solver", {})
 
         solver.parameters.update(solver_parameters)

@@ -27,11 +27,10 @@ class LUSolveBlock(SolveLinearSystemBlock):
 
         solver = self.block_helper.adjoint_solver
         if solver is None:
-            assemble_kwargs = self.assemble_kwargs.copy()
             if self.assemble_system:
                 rhs_bcs_form = backend.inner(backend.Function(self.function_space),
                                              dFdu_adj_form.arguments()[0]) * backend.dx
-                A, _ = backend.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs, **assemble_kwargs)
+                A, _ = backend.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs, **self.assemble_kwargs)
             else:
                 A = compat.assemble_adjoint_value(dFdu_adj_form, **assemble_kwargs)
                 [bc.apply(A) for bc in bcs]
@@ -56,9 +55,8 @@ class LUSolveBlock(SolveLinearSystemBlock):
     def _forward_solve(self, lhs, rhs, func, bcs, **kwargs):
         solver = self.block_helper.forward_solver
         if solver is None:
-            assemble_kwargs = self.assemble_kwargs.copy()
             if self.assemble_system:
-                A, _ = backend.assemble_system(lhs, rhs, bcs, **assemble_kwargs )
+                A, _ = backend.assemble_system(lhs, rhs, bcs, **self.assemble_kwargs )
             else:
                 A = compat.assemble_adjoint_value(lhs, **assemble_kwargs)
                 [bc.apply(A) for bc in bcs]
