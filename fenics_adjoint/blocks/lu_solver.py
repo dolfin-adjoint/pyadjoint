@@ -28,13 +28,15 @@ class LUSolveBlock(SolveLinearSystemBlock):
         solver = self.block_helper.adjoint_solver
         if solver is None:
             if self.assemble_system:
+                self.keep_diagonal=False
                 rhs_bcs_form = backend.inner(backend.Function(self.function_space),
                                              dFdu_adj_form.arguments()[0]) * backend.dx
-                A, _ = backend.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs)
+                A, _ = backend.assemble_system(dFdu_adj_form, rhs_bcs_form, bcs, keep_diagonal=self.keep_diagonal)
             else:
-                A = compat.assemble_adjoint_value(dFdu_adj_form)
+                A = compat.assemble_adjoint_value(dFdu_adj_form, keep_diagonal=self.keep_diagonal)
                 [bc.apply(A) for bc in bcs]
-
+            if self.ident_zeros_tol is not None:
+                A.ident_zeros(self.ident_zeros_tol)
             solver = backend.LUSolver(A, self.method)
             self.block_helper.adjoint_solver = solver
 
@@ -55,9 +57,9 @@ class LUSolveBlock(SolveLinearSystemBlock):
         solver = self.block_helper.forward_solver
         if solver is None:
             if self.assemble_system:
-                A, _ = backend.assemble_system(lhs, rhs, bcs)
+                A, _ = backend.assemble_system(lhs, rhs, bcs, keep_diagonal=self.keep_diagonal)
             else:
-                A = compat.assemble_adjoint_value(lhs)
+                A = compat.assemble_adjoint_value(lhs, keep_diagonal=self.keep_diagonal)
                 [bc.apply(A) for bc in bcs]
 
             solver = backend.LUSolver(A, self.method)
@@ -70,6 +72,9 @@ class LUSolveBlock(SolveLinearSystemBlock):
         else:
             b = compat.assemble_adjoint_value(rhs)
             [bc.apply(b) for bc in bcs]
+
+        if self.ident_zeros_tol is not None:
+            A.ident_zeros(self.ident_zeros_tol)
 
         solver.parameters.update(self.lu_solver_parameters)
         solver.solve(func.vector(), b)

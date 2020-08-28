@@ -13,6 +13,8 @@ def assemble(*args, **kwargs):
     annotate = annotate_tape(kwargs)
     with stop_annotating():
         output = backend.assemble(*args, **kwargs)
+    if "keep_diagonal" in kwargs:
+        output.keep_diagonal = kwargs["keep_diagonal"]
 
     form = args[0]
     if isinstance(output, float):
@@ -42,7 +44,8 @@ def assemble_system(*args, **kwargs):
     b_form = args[1]
 
     A, b = backend.assemble_system(*args, **kwargs)
-
+    if "keep_diagonal" in kwargs:
+        A.keep_diagonal = kwargs["keep_diagonal"]
     if "bcs" in kwargs:
         bcs = kwargs["bcs"]
     elif len(args) > 2:
