@@ -1,9 +1,9 @@
-from fenics_adjoint import *
-from fenics import *
-
 import pytest
 pytest.importorskip("fenics")
 
+
+from fenics import *
+from fenics_adjoint import *
 
 def test_linear_problem():
     mesh = IntervalMesh(10, 0, 1)
