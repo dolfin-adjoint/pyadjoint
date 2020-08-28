@@ -10,7 +10,7 @@ class SolveLinearSystemBlock(GenericSolveBlock):
         super().__init__(lhs, rhs, func, bcs, *args, **kwargs)
 
         # Set up parameters initialization
-        self.keep_diagonal =  A.keep_diagonal if hasattr(A, "keep_diagonal") else False
+        self.assemble_kwargs["keep_diagonal"] =  A.keep_diagonal if hasattr(A, "keep_diagonal") else False
         self.ident_zeros_tol = A.ident_zeros_tol if hasattr(A, "ident_zeros_tol") else None
         self.assemble_system = A.assemble_system if hasattr(A, "assemble_system") else False
 
