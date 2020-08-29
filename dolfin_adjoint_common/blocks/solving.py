@@ -272,7 +272,8 @@ class GenericSolveBlock(Block):
         dFdm = ufl.algorithms.expand_derivatives(dFdm)
         dFdm = self.compat.assemble_adjoint_value(dFdm)
         dudm = self.backend.Function(V)
-        return self._assemble_and_solve_tlm_eq(self.compat.assemble_adjoint_value(dFdu, bcs=bcs), dFdm, dudm, bcs)
+        return self._assemble_and_solve_tlm_eq(
+            self.compat.assemble_adjoint_value(dFdu, bcs=bcs, **self.assemble_kwargs), dFdm, dudm, bcs)
 
     def _assemble_and_solve_tlm_eq(self, dFdu, dFdm, dudm, bcs):
         return self._assembled_solve(dFdu, dFdm, dudm, bcs)
