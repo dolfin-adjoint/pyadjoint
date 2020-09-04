@@ -33,7 +33,8 @@ class SolveLinearSystemBlock(GenericSolveBlock):
             kwargs = self.assemble_kwargs.copy()
             kwargs["bcs"] = bcs
             A = self.compat.assemble_adjoint_value(dFdu_adj_form, **kwargs)
-
+        if self.ident_zeros_tol is not None:
+            A.ident_zeros(self.ident_zeros_tol)
         [bc.apply(dJdu) for bc in bcs]
 
         adj_sol = self.compat.create_function(self.function_space)
