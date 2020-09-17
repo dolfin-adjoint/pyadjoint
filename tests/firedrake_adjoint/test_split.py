@@ -111,3 +111,20 @@ def test_split_subvariables_update(Z):
     u = z.split()[0]
     u.project(Constant(1.))
     assert np.allclose(z.sub(0).vector().dat.data, u.vector().dat.data)
+
+def test_merge_blocks():
+    mesh = UnitSquareMesh(1,1)
+    V = FunctionSpace(mesh, 'CG', 1)
+    W = V * V
+    w = Function(W)
+    w1, w2 = w.split()
+    w1_const = Constant(0.1)
+    w2_const = Constant(0.2)
+    w1.project(w1_const)
+    w2.project(w2_const)
+    J = assemble(w1*w1*dx)
+    c = Control(w1_const)
+    rf = ReducedFunctional(J, c)
+    assert taylor_test(rf, Constant(0.3), Constant(0.01)) > 1.95
+
+
