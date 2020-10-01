@@ -1,6 +1,8 @@
 import ufl
 from ufl.corealg.traversal import traverse_unique_terminals
 from pyadjoint import Block, OverloadedType, AdjFloat
+import math
+import numpy
 
 
 class FunctionAssignBlock(Block):
@@ -8,12 +10,10 @@ class FunctionAssignBlock(Block):
         super().__init__()
         self.other = None
         self.expr = None
-        if isinstance(other, float) or isinstance(other, int):
-            other = AdjFloat(other)
         if isinstance(other, OverloadedType):
             self.add_dependency(other, no_duplicates=True)
         elif not(isinstance(other, float) or isinstance(other, int)):
-            # Assume that this is a point-wise evaluated UFL expression (firedrake only)
+            # Assume that this is a point-wise evaluated UFL expression
             for op in traverse_unique_terminals(other):
                 if isinstance(op, OverloadedType):
                     self.add_dependency(op, no_duplicates=True)
@@ -40,27 +40,61 @@ class FunctionAssignBlock(Block):
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx,
                                prepared=None):
-        if self.expr is None:
-            if isinstance(block_variable.output, (AdjFloat, self.backend.Constant)):
-                return adj_inputs[0].sum()
+        if isinstance(block_variable.output, self.backend.Constant):
+            mesh = self.get_outputs()[0].output.ufl_domain()
+            rspace = block_variable.output._ad_function_space(mesh)
+            result = self.backend.Function(rspace)
+            V = self.get_outputs()[0].output.function_space()
+            dudm_func = self.backend.Function(V)
+            shape = block_variable.output.ufl_shape
+            if len(shape) > 0:
+                if self.expr is not None:
+                    # in fenics, none of the allowed UFL-expressions
+                    # (only linear combinations of Functions in the same FunctionSpaces)
+                    # allow for vector constants
+                    # in firedrake, vector constants do not work with firedrake_adjoint
+                    # in general
+                    raise NotImplementedError("Vector constants in UFL expression assignment not implemented.")
+
+                cvec = numpy.zeros(math.prod(shape))
+                c = Constant(cvec.reshape(shape))
+                rvec = numpy.zeros(math.prod(shape))
+                for i in range(math.prod(shape)):
+                    vec[i] = 1
+                    c.assign(vec.reshape(shape))
+                    dudm_func.assign(c)
+                    rvec[i] = adj_inputs[0].inner(dudm_func.vector())
+                    vec[i] = 0
+
+                result.assign(rvec.reshape(shape))
             else:
-                adj_output = self.backend.Function(
-                    block_variable.output.function_space())
-                adj_output.assign(prepared)
-                return adj_output.vector()
+                if self.expr is None:
+                    dudm_func.assign(1)
+                else:
+                    expr, _ = prepared
+                    dudm = ufl.algorithms.expand_derivatives(ufl.diff(expr, block_variable.saved_output))
+                    dudm_func.assign(dudm)
+                result.assign(adj_inputs[0].inner(dudm_func.vector()))
+
+            return result.vector()
+        elif isinstance(block_variable.output, AdjFloat):
+            assert self.expr is None, "AdjFloat not expected to occur in UFL expressions"
+            adj_input_func = prepared
+            dudm_func = self.backed.Function(adj_input_func.function_space())
+            dudm_func.assign(1)
+            return adj_inputs[0].inner(dudm_func.vector())
         else:
-            # Linear combination
-            expr, adj_input_func = prepared
-            diff_expr = ufl.algorithms.expand_derivatives(
-                ufl.derivative(expr, block_variable.saved_output,
-                               adj_input_func)
-            )
-            adj_output = self.backend.Function(adj_input_func.function_space())
-            adj_output.assign(diff_expr)
-            if isinstance(block_variable.output, (AdjFloat, self.backend.Constant)):
-                return adj_output.vector().sum()
+            if self.expr is None:
+                adj_input_func = prepared
+                dJdm = adj_input_func
             else:
-                return adj_output.vector()
+                expr, adj_input_func = prepared
+                dudm = ufl.algorithms.expand_derivatives(ufl.diff(expr, block_variable.saved_output))
+                dJdm = ufl.dot(adj_input_func, dudm)
+
+            result = self.backend.Function(adj_input_func.function_space())
+            result.assign(dJdm)
+            return result.vector()
 
     def prepare_evaluate_tlm(self, inputs, tlm_inputs, relevant_outputs):
         if self.expr is None:

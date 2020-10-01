@@ -1,4 +1,4 @@
-from pyadjoint import Block
+from pyadjoint import Block, AdjFloat
 import numpy
 
 
@@ -26,7 +26,10 @@ class ConstantAssignBlock(Block):
         self.add_dependency(other)
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        return adj_inputs[0]
+        if isinstance(block_variable.output, AdjFloat):
+            return adj_inputs[0].sum()
+        else:
+            return adj_inputs[0]
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
         return tlm_inputs[0]
