@@ -1,7 +1,7 @@
 import ufl
 from ufl.corealg.traversal import traverse_unique_terminals
 from pyadjoint import Block, OverloadedType, AdjFloat
-import math
+from functools import reduce
 import numpy
 
 
@@ -41,7 +41,7 @@ class FunctionAssignBlock(Block):
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx,
                                prepared=None):
         if isinstance(block_variable.output, self.backend.Constant):
-            mesh = self.get_outputs()[0].output.ufl_domain()
+            mesh = self.get_outputs()[0].output.ufl_domain().ufl_cargo()
             rspace = block_variable.output._ad_function_space(mesh)
             result = self.backend.Function(rspace)
             V = self.get_outputs()[0].output.function_space()
@@ -49,32 +49,29 @@ class FunctionAssignBlock(Block):
             shape = block_variable.output.ufl_shape
             if len(shape) > 0:
                 if self.expr is not None:
-                    # in fenics, none of the allowed UFL-expressions
-                    # (only linear combinations of Functions in the same FunctionSpaces)
+                    # in fenics, none of the allowed UFL-expressions (linear combinations)
                     # allow for vector constants
-                    # in firedrake, vector constants do not work with firedrake_adjoint
-                    # in general
-                    raise NotImplementedError("Vector constants in UFL expression assignment not implemented.")
+                    # in firedrake, vector constants do not work with firedrake_adjoint at all
+                    raise NotImplementedError("Vector constants in UFL expression assignment to function not implemented.")
 
-                cvec = numpy.zeros(math.prod(shape))
-                c = Constant(cvec.reshape(shape))
-                rvec = numpy.zeros(math.prod(shape))
-                for i in range(math.prod(shape)):
-                    vec[i] = 1
-                    c.assign(vec.reshape(shape))
-                    dudm_func.assign(c)
+                n = reduce(int.__mul__, shape)
+                cvec = numpy.zeros(n)
+                rvec = numpy.zeros(n)
+                for i in range(n):
+                    cvec[i] = 1
+                    dudm_func.assign(self.backend.Constant(cvec.reshape(shape)))
                     rvec[i] = adj_inputs[0].inner(dudm_func.vector())
-                    vec[i] = 0
+                    cvec[i] = 0
 
-                result.assign(rvec.reshape(shape))
+                result.assign(self.backend.Constant(rvec.reshape(shape)))
             else:
                 if self.expr is None:
-                    dudm_func.assign(1)
+                    dudm_func.assign(self.backend.Constant(1))
                 else:
                     expr, _ = prepared
                     dudm = ufl.algorithms.expand_derivatives(ufl.diff(expr, block_variable.saved_output))
                     dudm_func.assign(dudm)
-                result.assign(adj_inputs[0].inner(dudm_func.vector()))
+                result.assign(self.backend.Constant(adj_inputs[0].inner(dudm_func.vector())))
 
             return result.vector()
         elif isinstance(block_variable.output, AdjFloat):
@@ -89,8 +86,13 @@ class FunctionAssignBlock(Block):
                 dJdm = adj_input_func
             else:
                 expr, adj_input_func = prepared
-                dudm = ufl.algorithms.expand_derivatives(ufl.diff(expr, block_variable.saved_output))
-                dJdm = ufl.dot(adj_input_func, dudm)
+                if self.backend.__name__ != "firedrake":
+                    # in fenics only simple linear combinations (i.e. scalar constant times vector function)
+                    # are allowed, and thus the following should be safe
+                    dJdm = ufl.algorithms.expand_derivatives(ufl.derivative(expr, block_variable.saved_output, adj_input_func))
+                else:
+                    dudm = ufl.algorithms.expand_derivatives(ufl.diff(expr, block_variable.saved_output))
+                    dJdm = ufl.dot(adj_input_func, dudm)
 
             result = self.backend.Function(adj_input_func.function_space())
             result.assign(dJdm)
