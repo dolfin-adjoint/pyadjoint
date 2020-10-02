@@ -52,7 +52,7 @@ class FunctionAssignBlock(Block):
                     # in fenics, none of the allowed UFL-expressions (linear combinations)
                     # allow for vector constants
                     # in firedrake, vector constants do not work with firedrake_adjoint at all
-                    raise NotImplementedError("Vector constants in UFL expression assignment to function not implemented.")
+                    raise NotImplementedError("Vector constants in UFL expression assignment not implemented.")
 
                 n = reduce(int.__mul__, shape)
                 cvec = numpy.zeros(n)
@@ -89,7 +89,8 @@ class FunctionAssignBlock(Block):
                 if self.backend.__name__ != "firedrake":
                     # in fenics only simple linear combinations (i.e. scalar constant times vector function)
                     # are allowed, and thus the following should be safe
-                    dJdm = ufl.algorithms.expand_derivatives(ufl.derivative(expr, block_variable.saved_output, adj_input_func))
+                    dJdm = ufl.algorithms.expand_derivatives(ufl.derivative(
+                        expr, block_variable.saved_output, adj_input_func))
                 else:
                     dudm = ufl.algorithms.expand_derivatives(ufl.diff(expr, block_variable.saved_output))
                     dJdm = ufl.dot(adj_input_func, dudm)
