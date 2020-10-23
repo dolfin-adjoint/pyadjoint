@@ -105,9 +105,8 @@ set_log_level(LogLevel.ERROR)
 mesh = Mesh()
 with XDMFFile("mesh.xdmf") as infile:
     infile.read(mesh)
-    mvc = MeshValueCollection("size_t", mesh, 2)
-    infile.read(mvc, "name_to_read")
-mvc = MeshValueCollection("size_t", mesh, 2)
+
+mvc = MeshValueCollection("size_t", mesh, 1)
 with XDMFFile("mf.xdmf") as infile:
     infile.read(mvc, "name_to_read")
     mf = cpp.mesh.MeshFunctionSizet(mesh, mvc)
