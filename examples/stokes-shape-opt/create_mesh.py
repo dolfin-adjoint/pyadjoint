@@ -80,7 +80,7 @@ def create_stokes_mesh(res):
     gmsh.model.mesh.field.add("Threshold", 2)
     gmsh.model.mesh.field.setNumber(2, "IField", 1)
     gmsh.model.mesh.field.setNumber(2, "LcMin", res)
-    gmsh.model.mesh.field.setNumber(2, "LcMax", 3 * res)
+    gmsh.model.mesh.field.setNumber(2, "LcMax", 4 * res)
     gmsh.model.mesh.field.setNumber(2, "DistMin", 0.5 * r_x)
     gmsh.model.mesh.field.setNumber(2, "DistMax", 2 * r_x)
     gmsh.model.mesh.field.add("Min", 5)
@@ -127,7 +127,7 @@ def create_stokes_mesh(res):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--res", default=0.025, type=np.float64, dest="res",
+    parser.add_argument("--res", default=0.01, type=np.float64, dest="res",
                         help="Resolution near circular obstacle")
     args = parser.parse_args()
     create_stokes_mesh(args.res)
