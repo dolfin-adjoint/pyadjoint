@@ -22,7 +22,7 @@
 #   :scale: 15
 #   :align: center
 #
-# Shape optimization 
+# Shape optimization
 # ******************
 #
 #
@@ -35,8 +35,8 @@
 #       \mathrm{div}(\sigma) &= 0 \qquad \text{in } \Omega_0 \\
 #       s&=0 \qquad \text{on} \ \Lambda_1\cup\Lambda_2\cup\Lambda_3,\\
 #       \frac{\partial s}{\partial n} &= h \qquad \text{on} \ \Gamma.\\
-#    :label: deformation 
-#    
+#    :label: deformation
+#
 # where
 #
 # .. math::
@@ -89,6 +89,8 @@
 #
 # First, the :py:mod:`dolfin` and :py:mod:`dolfin_adjoint` modules are imported:
 
+import matplotlib.pyplot as plt
+from create_mesh import inflow_marker, outflow_marker, wall_marker, obstacle_marker, c_x, c_y, L, H
 from dolfin import *
 from dolfin_adjoint import *
 set_log_level(LogLevel.ERROR)
@@ -96,7 +98,6 @@ set_log_level(LogLevel.ERROR)
 # Next, we load the facet marker values used in the mesh, as well as some
 # geometrical quantities mesh-generator file.
 
-from create_mesh import inflow, outflow, walls, obstacle, c_x, c_y, L, H
 
 # The initial (unperturbed) mesh and corresponding facet function from their respective
 # xdmf-files.
@@ -104,15 +105,17 @@ from create_mesh import inflow, outflow, walls, obstacle, c_x, c_y, L, H
 mesh = Mesh()
 with XDMFFile("mesh.xdmf") as infile:
     infile.read(mesh)
-    mvc = MeshValueCollection("size_t", mesh, 1)
+    mvc = MeshValueCollection("size_t", mesh, 2)
+    infile.read(mvc, "name_to_read")
+mvc = MeshValueCollection("size_t", mesh, 2)
 with XDMFFile("mf.xdmf") as infile:
     infile.read(mvc, "name_to_read")
     mf = cpp.mesh.MeshFunctionSizet(mesh, mvc)
 
-# We compute the initial volume of the obstacle 
+# We compute the initial volume of the obstacle
 
 one = Constant(1)
-Vol0 = L*H - assemble(one*dx(domain=mesh))
+Vol0 = L * H - assemble(one * dx(domain=mesh))
 
 # We create a Boundary-mesh and function space for our control :math:`h`
 
@@ -120,7 +123,7 @@ b_mesh = BoundaryMesh(mesh, "exterior")
 S_b = VectorFunctionSpace(b_mesh, "CG", 1)
 h = Function(S_b, name="Design")
 
-zero = Constant([0]*mesh.geometric_dimension())
+zero = Constant([0] * mesh.geometric_dimension())
 
 # We create a corresponding function space on :math:`\Omega`, and
 # transfer the corresponding boundary values to the function
@@ -134,47 +137,50 @@ h_V.rename("Volume extension of h", "")
 
 # We can now transfer our mesh according to :eq:`deformation`.
 
+
 def mesh_deformation(h):
     # Compute variable :math:`\mu`
     V = FunctionSpace(mesh, "CG", 1)
     u, v = TrialFunction(V), TestFunction(V)
 
-    a = -inner(grad(u),grad(v))*dx
-    l = Constant(0)*v*dx
+    a = -inner(grad(u), grad(v)) * dx
+    l = Constant(0) * v * dx
 
-    mu_min=Constant(1, name="mu_min")
-    mu_max=Constant(500, name="mu_max")
+    mu_min = Constant(1, name="mu_min")
+    mu_max = Constant(500, name="mu_max")
     bcs = []
-    for marker in [inflow, outflow, walls]:
+    for marker in [inflow_marker, outflow_marker, wall_marker]:
         bcs.append(DirichletBC(V, mu_min, mf, marker))
-    bcs.append(DirichletBC(V, mu_max, mf, obstacle))
+    bcs.append(DirichletBC(V, mu_max, mf, obstacle_marker))
 
     mu = Function(V, name="mesh deformation mu")
-    solve(a==l, mu, bcs=bcs)
+    solve(a == l, mu, bcs=bcs)
 
     # Compute the mesh deformation
     S = VectorFunctionSpace(mesh, "CG", 1)
     u, v = TrialFunction(S), TestFunction(S)
-    dObstacle = Measure("ds", subdomain_data=mf, subdomain_id=obstacle)
-    
+    dObstacle = Measure("ds", subdomain_data=mf, subdomain_id=obstacle_marker)
+
     def epsilon(u):
         return sym(grad(u))
-    def sigma(u,mu=500, lmb=0):
-        return 2*mu*epsilon(u) + lmb*tr(epsilon(u))*Identity(2)
 
-    a = inner(sigma(u,mu=mu), grad(v))*dx
-    L = inner(h, v)*dObstacle
+    def sigma(u, mu=500, lmb=0):
+        return 2 * mu * epsilon(u) + lmb * tr(epsilon(u)) * Identity(2)
+
+    a = inner(sigma(u, mu=mu), grad(v)) * dx
+    L = inner(h, v) * dObstacle
 
     bcs = []
-    for marker in [inflow, outflow, walls]:
-        bcs.append(DirichletBC(S, zero, mf, marker))     
+    for marker in [inflow_marker, outflow_marker, wall_marker]:
+        bcs.append(DirichletBC(S, zero, mf, marker))
 
     s = Function(S, name="mesh deformation")
-    solve(a==L, s, bcs=bcs)
+    solve(a == L, s, bcs=bcs)
     return s
 
 # We compute the mesh deformation with the volume extension of the control
 # variable :math:`h` and move the domain.
+
 
 s = mesh_deformation(h_V)
 ALE.move(mesh, s)
@@ -184,40 +190,39 @@ ALE.move(mesh, s)
 
 V2 = VectorElement("CG", mesh.ufl_cell(), 2)
 S1 = FiniteElement("CG", mesh.ufl_cell(), 1)
-VQ = FunctionSpace(mesh, V2*S1)
+VQ = FunctionSpace(mesh, V2 * S1)
 
 # Then, we define the test and trial functions, as well as the variational form
 
 (u, p) = TrialFunctions(VQ)
 (v, q) = TestFunctions(VQ)
-a = inner(grad(u), grad(v))*dx - div(u)*q*dx - div(v)*p*dx
-l = inner(zero, v)*dx
+a = inner(grad(u), grad(v)) * dx - div(u) * q * dx - div(v) * p * dx
+l = inner(zero, v) * dx
 
 # The Dirichlet boundary conditions on :math:`\Gamma` is defined as follows
 
-(x,y) = SpatialCoordinate(mesh)
-g = Expression(("sin(pi*x[1])","0"),degree=2)
-bc_inlet = DirichletBC(VQ.sub(0), g, mf, inflow)
-bc_obstacle = DirichletBC(VQ.sub(0), zero , mf, obstacle)
-bc_walls = DirichletBC(VQ.sub(0), zero, mf, walls)
+(x, y) = SpatialCoordinate(mesh)
+g = Expression(("sin(pi*x[1])", "0"), degree=2)
+bc_inlet = DirichletBC(VQ.sub(0), g, mf, inflow_marker)
+bc_obstacle = DirichletBC(VQ.sub(0), zero, mf, obstacle_marker)
+bc_walls = DirichletBC(VQ.sub(0), zero, mf, wall_marker)
 bcs = [bc_inlet, bc_obstacle, bc_walls]
 
 # We solve the mixed equations and split the solution into the velocity-field
 # :math:`u` and pressure-field :math:`p`.
 
 w = Function(VQ, name="Mixed State Solution")
-solve(a==l, w, bcs=bcs)
+solve(a == l, w, bcs=bcs)
 u, p = w.split()
 
 # Plotting the initial velocity and pressure
 
-import matplotlib.pyplot as plt
 plt.figure()
-plt.subplot(1,2,1)
+plt.subplot(1, 2, 1)
 plot(mesh, color="k", linewidth=0.2, zorder=0)
 plot(u, zorder=1, scale=20)
 plt.axis("off")
-plt.subplot(1,2,2)
+plt.subplot(1, 2, 2)
 plot(p, zorder=1)
 plt.axis("off")
 plt.savefig("intial.png", dpi=800, bbox_inches="tight", pad_inches=0)
@@ -225,27 +230,27 @@ plt.savefig("intial.png", dpi=800, bbox_inches="tight", pad_inches=0)
 # We compute the dissipated energy in the fluid volume,
 # :math:`\int_{\Omega(s)} \sum_{i,j=1}^2 \left(\frac{\partial u_i}{\partial x_j}\right)^2~\mathrm{d} x`
 
-J = assemble(inner(grad(u), grad(u))*dx)
+J = assemble(inner(grad(u), grad(u)) * dx)
 
 # Then, we add a weak enforcement of the volume contraint,
 # :math:`\alpha\big(\mathrm{Vol}(\Omega(s))-\mathrm{Vol}(\Omega_0)\big)^2`.
 
 alpha = 1e4
-Vol = assemble(one*dx(domain=mesh))
-J += alpha*((L*H - Vol) - Vol0)**2
+Vol = assemble(one * dx(domain=mesh))
+J += alpha * ((L * H - Vol) - Vol0)**2
 
 # Similarly, we add a weak enforcement of the barycenter contraint,
 # :math:`\beta\big(\mathrm{Bc}_j(\Omega(s))-\mathrm{Bc}_j(\Omega_0)\big)^2`.
 
-Bc1 = (L**2*H/2 - assemble(x*dx(domain=mesh))) / (L*H - Vol)
-Bc2 = (L*H**2/2 - assemble(y*dx(domain=mesh))) / (L*H - Vol)
+Bc1 = (L**2 * H / 2 - assemble(x * dx(domain=mesh))) / (L * H - Vol)
+Bc2 = (L * H**2 / 2 - assemble(y * dx(domain=mesh))) / (L * H - Vol)
 beta = 1e4
-J+= beta*((Bc1 - c_x)**2 + (Bc2 - c_y)**2)
+J += beta * ((Bc1 - c_x)**2 + (Bc2 - c_y)**2)
 
 # We define the reduced functional, where :math:`h` is the design parameter# and use scipy to minimize the objective.
 
 Jhat = ReducedFunctional(J, Control(h))
-s_opt = minimize(Jhat,tol=1e-6, options={"gtol": 1e-6, "maxiter": 50, "disp":True})
+s_opt = minimize(Jhat, tol=1e-6, options={"gtol": 1e-6, "maxiter": 50, "disp": True})
 
 # We evaluate the functional with the optimal solution and plot
 # the initial and final mesh
@@ -267,11 +272,11 @@ plt.savefig("meshes.png", dpi=800, bbox_inches="tight", pad_inches=0)
 # to the expected values.
 
 perturbation = interpolate(Expression(("-A*x[0]", "A*x[1]"),
-                                      A=5000,degree=2), S_b)
+                                      A=5000, degree=2), S_b)
 results = taylor_to_dict(Jhat, Function(S_b), perturbation)
-assert(min(results["R0"]["Rate"])>0.9)
-assert(min(results["R1"]["Rate"])>1.95)
-assert(min(results["R2"]["Rate"])>2.95)
+assert(min(results["R0"]["Rate"]) > 0.9)
+assert(min(results["R1"]["Rate"]) > 1.95)
+assert(min(results["R2"]["Rate"]) > 2.95)
 
 # .. bibliography:: /documentation/stokes-shape-opt/stokes-shape-opt.bib
 #    :cited:
