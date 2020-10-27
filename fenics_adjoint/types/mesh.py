@@ -159,7 +159,7 @@ class ALEMoveBlock(Block):
             if tlm_output is None:
                 tlm_output = tlm_input.copy(deepcopy=True)
             else:
-                tlm_output.vector()[:] += tlm_input.vector()
+                tlm_output.vector().axpy(1, tlm_input.vector())
 
         if tlm_output is not None:
             self.get_outputs()[0].add_tlm_output(tlm_output)

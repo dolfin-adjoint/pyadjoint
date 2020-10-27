@@ -10,6 +10,7 @@ class SolveLinearSystemBlock(GenericSolveBlock):
         super().__init__(lhs, rhs, func, bcs, *args, **kwargs)
 
         # Set up parameters initialization
+        self.assemble_kwargs["keep_diagonal"] = A.keep_diagonal if hasattr(A, "keep_diagonal") else False
         self.ident_zeros_tol = A.ident_zeros_tol if hasattr(A, "ident_zeros_tol") else None
         self.assemble_system = A.assemble_system if hasattr(A, "assemble_system") else False
 
@@ -32,7 +33,8 @@ class SolveLinearSystemBlock(GenericSolveBlock):
             kwargs = self.assemble_kwargs.copy()
             kwargs["bcs"] = bcs
             A = self.compat.assemble_adjoint_value(dFdu_adj_form, **kwargs)
-
+        if self.ident_zeros_tol is not None:
+            A.ident_zeros(self.ident_zeros_tol)
         [bc.apply(dJdu) for bc in bcs]
 
         adj_sol = self.compat.create_function(self.function_space)

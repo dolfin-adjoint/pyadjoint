@@ -5,29 +5,9 @@ from firedrake import *
 from firedrake_adjoint import *
 
 from numpy.random import rand
-from numpy.testing import assert_approx_equal, assert_allclose
 
 
-def test_assign_linear_combination():
-    mesh = IntervalMesh(10, 0, 1)
-    V = FunctionSpace(mesh, "CG", 1)
-
-    x, = SpatialCoordinate(mesh)
-    f = interpolate(x, V)
-    g = interpolate(sin(x), V)
-    u = Function(V)
-
-    u.assign(3*f + g)
-
-    J = assemble(u**2*dx)
-    rf = ReducedFunctional(J, Control(f))
-
-    h = Function(V)
-    h.vector()[:] = rand(V.dim())
-    assert taylor_test(rf, f, h) > 1.9
-
-
-def test_assign_vector_valued():
+def test_project_vector_valued():
     mesh = UnitSquareMesh(10, 10)
     element = VectorElement("CG", mesh.ufl_cell(), degree=1, dim=2)
     V = FunctionSpace(mesh, element)
@@ -37,7 +17,7 @@ def test_assign_vector_valued():
     g = interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V)
     u = Function(V)
 
-    u.assign(f - 0.5*g)
+    u.project(f - 0.5*g)
 
     J = assemble(inner(f, g)*u**2*dx)
     rf = ReducedFunctional(J, Control(f))
@@ -47,7 +27,7 @@ def test_assign_vector_valued():
     assert taylor_test(rf, f, h) > 1.9
 
 
-def test_assign_tlm():
+def test_project_tlm():
     mesh = UnitSquareMesh(10, 10)
     element = VectorElement("CG", mesh.ufl_cell(), degree=1, dim=2)
     V = FunctionSpace(mesh, element)
@@ -57,47 +37,22 @@ def test_assign_tlm():
     g = interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V)
     u = Function(V)
 
-    u.assign(f - 0.5*g)
+    u.project(f - 0.5*g)
 
     J = assemble(inner(f, g)*u**2*dx)
     rf = ReducedFunctional(J, Control(f))
 
     h = Function(V)
     h.vector()[:] = 1
-    f.block_variable.tlm_value = h
+    f.tlm_value = h
 
     tape = get_working_tape()
     tape.evaluate_tlm()
 
-    assert J.tlm_value is not None
-    assert taylor_test(rf, f, h, dJdm=J.block_variable.tlm_value) > 1.9
+    assert taylor_test(rf, f, h, dJdm=J.tlm_value) > 1.9
 
 
-def test_assign_tlm_wit_constant():
-    mesh = IntervalMesh(10, 0, 1)
-    V = FunctionSpace(mesh, "CG", 1)
-
-    x = SpatialCoordinate(mesh)
-    f = interpolate(x[0], V)
-    g = interpolate(sin(x[0]), V)
-    c = Constant(5.0)
-
-    u = Function(V)
-    u.assign(c * f ** 2)
-
-    c.tlm_value = Constant(0.3)
-    tape = get_working_tape()
-    tape.evaluate_tlm()
-    assert_allclose(u.block_variable.tlm_value.dat.data, 0.3 * f.dat.data ** 2)
-
-    tape.reset_tlm_values()
-    c.tlm_value = Constant(0.4)
-    f.tlm_value = g
-    tape.evaluate_tlm()
-    assert_allclose(u.block_variable.tlm_value.dat.data, 0.4 * f.dat.data ** 2 + 10. * f.dat.data * g.dat.data)
-
-
-def test_assign_hessian():
+def test_project_hessian():
     mesh = UnitSquareMesh(10, 10)
     element = VectorElement("CG", mesh.ufl_cell(), degree=1, dim=2)
     V = FunctionSpace(mesh, element)
@@ -107,7 +62,7 @@ def test_assign_hessian():
     g = interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V)
     u = Function(V)
 
-    u.assign(f - 0.5*g)
+    u.project(f - 0.5*g)
 
     J = assemble(inner(f, g)*u**2*dx)
     rf = ReducedFunctional(J, Control(f))
@@ -120,49 +75,31 @@ def test_assign_hessian():
     assert taylor_test(rf, f, h, dJdm=h._ad_dot(dJdm), Hm=h._ad_dot(Hm)) > 2.9
 
 
-def test_assign_nonlincom():
+def test_project_nonlincom():
     mesh = IntervalMesh(10, 0, 1)
-    V = FunctionSpace(mesh, "CG", 1)
+    element = FiniteElement("CG", mesh.ufl_cell(), degree=1)
+    V1 = FunctionSpace(mesh, element)
+    element = FiniteElement("CG", mesh.ufl_cell(), degree=2)
+    V2 = FunctionSpace(mesh, element)
+    element = FiniteElement("DG", mesh.ufl_cell(), degree=1)
+    V3 = FunctionSpace(mesh, element)
 
     x = SpatialCoordinate(mesh)
-    f = interpolate(x[0], V)
-    g = interpolate(sin(x[0]), V)
-    u = Function(V)
+    f = interpolate(x[0], V1)
+    g = interpolate(sin(x[0]), V2)
+    u = Function(V3)
 
-    u.assign(f*g)
+    u.project(f*g)
 
     J = assemble(u ** 2 * dx)
     rf = ReducedFunctional(J, Control(f))
 
-    h = Function(V)
-    h.vector()[:] = rand(V.dim())
+    h = Function(V1)
+    h.vector()[:] = rand(V1.dim())
     assert taylor_test(rf, f, h) > 1.9
 
 
-def test_assign_with_constant():
-    mesh = IntervalMesh(10, 0, 1)
-    V = FunctionSpace(mesh, "CG", 1)
-
-    x = SpatialCoordinate(mesh)
-    f = interpolate(x[0], V)
-    c = Constant(3.0)
-    d = Constant(2.0)
-    u = Function(V)
-
-    u.assign(c*f+d**3)
-
-    # J = c**2/3 + cd**3 + d**6
-    J = assemble(u ** 2 * dx)
-
-    rf = ReducedFunctional(J, Control(c))
-    dJdc = rf.derivative()
-    assert_approx_equal(float(dJdc), 10.)
-
-    rf = ReducedFunctional(J, Control(d))
-    dJdd = rf.derivative()
-    assert_approx_equal(float(dJdd), 228.)
-
-def test_assign_nonlin_changing():
+def test_project_nonlin_changing():
     mesh = IntervalMesh(10, 0, 1)
     V = FunctionSpace(mesh, "CG", 1)
 
@@ -182,7 +119,7 @@ def test_assign_nonlin_changing():
 
     u = Function(V)
 
-    u.assign(f*sol*g)
+    u.project(f*sol*g)
 
     J = assemble(u ** 2 * dx)
     rf = ReducedFunctional(J, control)
@@ -193,3 +130,40 @@ def test_assign_nonlin_changing():
     h = Function(V)
     h.vector()[:] = rand(V.dim())
     assert taylor_test(rf, g, h) > 1.9
+
+def test_self_project():
+    mesh = UnitSquareMesh(1,1)
+    V = FunctionSpace(mesh, "CG", 1)
+    u = Function(V)
+    c = Constant(1.)
+    u.project(u+c)
+    J = assemble(u**2*dx)
+    rf = ReducedFunctional(J, Control(c))
+    h = Constant(0.1)
+    assert taylor_test(rf, Constant(2.), h)
+
+def test_self_project_function():
+    mesh = UnitSquareMesh(1,1)
+    V = FunctionSpace(mesh, "CG", 1)
+    u = Function(V)
+    c = Constant(1.)
+    project(u+c, u)
+    project(u+c*u**2, u)
+    J = assemble(u**2*dx)
+    rf = ReducedFunctional(J, Control(c))
+    h = Constant(0.1)
+    assert taylor_test(rf, Constant(3.), h)
+
+def test_project_to_function_space():
+    mesh = UnitSquareMesh(1,1)
+    V = FunctionSpace(mesh, "CG", 1)
+    W = FunctionSpace(mesh, "DG", 1)
+    u = Function(V)
+    x = SpatialCoordinate(mesh)
+    u.interpolate(x[0])
+    c = Constant(1.)
+    w = project((u+c)*u, W)
+    J = assemble(w**2*dx)
+    rf = ReducedFunctional(J, Control(c))
+    h = Constant(0.1)
+    assert taylor_test(rf, Constant(1.), h)

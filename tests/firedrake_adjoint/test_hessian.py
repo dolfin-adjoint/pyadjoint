@@ -193,7 +193,7 @@ def test_dirichlet():
     bc = DirichletBC(V, c, "on_boundary")
 
     F = inner(grad(u), grad(v)) * dx + u**4*v*dx - f**2 * v * dx
-    solve(F == 0, u, bc)
+    solve(F == 0, u, bc, solver_parameters={"snes_rtol": 1e-10})
 
     J = assemble(u ** 4 * dx)
     Jhat = ReducedFunctional(J, Control(c))
