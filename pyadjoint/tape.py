@@ -343,8 +343,8 @@ class Tape(object):
         self._tf_add_blocks()
 
         # Write graph to file
-        with tf.Session() as sess:
-            writer = tf.summary.FileWriter(output, sess.graph)
+        with tf.compat.v1.Session() as sess:
+            writer = tf.compat.v1.summary.FileWriter(output, sess.graph)
             writer.close()
 
         if not launch_tensorboard or not open_in_browser:
