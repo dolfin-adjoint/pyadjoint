@@ -1,12 +1,1 @@
-<Xdmf Version="3.0">
-  <Domain>
-    <Grid Name="Grid">
-      <Geometry GeometryType="XY">
-        <DataItem DataType="Float" Dimensions="2610 2" Format="HDF" Precision="8">mesh.h5:/data0</DataItem>
-      </Geometry>
-      <Topology NumberOfElements="5008" TopologyType="Triangle">
-        <DataItem DataType="Int" Dimensions="5008 3" Format="HDF" Precision="8">mesh.h5:/data1</DataItem>
-      </Topology>
-    </Grid>
-  </Domain>
-</Xdmf>
+<Xdmf Version="3.0"><Domain><Grid Name="Grid"><Geometry GeometryType="XY"><DataItem DataType="Float" Dimensions="2344 2" Format="HDF" Precision="8">mesh.h5:/data0</DataItem></Geometry><Topology NodesPerElement="3" NumberOfElements="4508" TopologyType="Triangle"><DataItem DataType="Int" Dimensions="4508 3" Format="HDF" Precision="8">mesh.h5:/data1</DataItem></Topology><Attribute AttributeType="Scalar" Center="Cell" Name="name_to_read"><DataItem DataType="Int" Dimensions="4508" Format="HDF" Precision="8">mesh.h5:/data2</DataItem></Attribute></Grid></Domain></Xdmf>
