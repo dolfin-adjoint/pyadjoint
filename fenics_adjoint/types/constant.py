@@ -22,6 +22,8 @@ class Constant(OverloadedType, backend.Constant):
             tape.add_block(block)
             block.add_output(self.create_block_variable())
 
+        self._fs_cache = {}
+
     def assign(self, *args, **kwargs):
         annotate = annotate_tape(kwargs)
         if annotate:
@@ -55,9 +57,11 @@ class Constant(OverloadedType, backend.Constant):
         return self._constant_from_values(value)
 
     def _ad_function_space(self, mesh):
-        element = self.ufl_element()
-        fs_element = element.reconstruct(cell=mesh.ufl_cell())
-        return backend.FunctionSpace(mesh, fs_element)
+        if mesh not in self._fs_cache:
+            element = self.ufl_element()
+            fs_element = element.reconstruct(cell=mesh.ufl_cell())
+            self._fs_cache[mesh] = backend.FunctionSpace(mesh, fs_element)
+        return self._fs_cache[mesh]
 
     def _ad_create_checkpoint(self):
         return self._constant_from_values()
