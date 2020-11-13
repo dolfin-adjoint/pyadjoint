@@ -2,6 +2,18 @@ from dolfin import *
 from dolfin_adjoint import *
 import numpy as np
 
+def test_function_assigner_subfunctions():
+    mesh = UnitSquareMesh(3, 3)
+    V = VectorFunctionSpace(mesh, "R", 0, dim=2)
+    v = Function(V)
+    assert hasattr(v, "_ad_will_add_as_dependency")
+    assert hasattr(v.sub(0), "_ad_will_add_as_dependency")
+
+    W = V.sub(0).collapse()
+    w = Function(W)
+    fa = FunctionAssigner(W, V.sub(0))
+    fa.assign(w, v.sub(0))
+
 
 def test_function_assigner_poisson():
     mesh = UnitSquareMesh(15,15)
