@@ -12,7 +12,7 @@ else:
 
 from pyadjoint.tape import (Tape, set_working_tape, get_working_tape,
                             pause_annotation, continue_annotation,
-                            stop_annotating)
+                            stop_annotating, annotate_tape)
 from pyadjoint.reduced_functional import ReducedFunctional
 from pyadjoint.verification import taylor_test, taylor_to_dict
 from pyadjoint.drivers import compute_gradient, compute_hessian
