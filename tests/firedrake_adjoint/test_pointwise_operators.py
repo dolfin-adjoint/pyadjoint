@@ -17,10 +17,18 @@ def mesh():
 
 class PointexprActionOperator(PointexprOperator):
 
-    _external_operator_type = 'GLOBAL'
+    #def __init__(self, *args, **kwargs):
+    #    PointexprOperator.__init__(self, *args, **kwargs)
+    def __init__(self, *operands, function_space, derivatives=None, val=None, name=None, coefficient=None, arguments=(), dtype=ScalarType, operator_data):
 
-    def __init__(self, *args, **kwargs):
-        PointexprOperator.__init__(self, *args, **kwargs)
+        AbstractExternalOperator.__init__(self, *operands, function_space=function_space, derivatives=derivatives, val=val, name=name, coefficient=coefficient, arguments=arguments, dtype=dtype, operator_data=operator_data)
+
+        # Check
+        if not isinstance(operator_data, types.FunctionType):
+            error("Expecting a FunctionType pointwise expression")
+        expr_shape = operator_data(*operands).ufl_shape
+        if expr_shape != function_space.ufl_element().value_shape():
+            error("The dimension does not match with the dimension of the function space %s" % function_space)
 
     def _evaluate_action(self, args):
         if len(args) == 0:
