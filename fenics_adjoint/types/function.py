@@ -58,9 +58,6 @@ class Function(FloatingType, backend.Function):
 
         return func
 
-    def sub(self, i, *args, **kwargs):
-        return self.split(*args, **kwargs)[i]
-
     def assign(self, other, *args, **kwargs):
         """To disable the annotation, just pass :py:data:`annotate=False` to this routine, and it acts exactly like the
         Dolfin assign call."""
@@ -81,23 +78,47 @@ class Function(FloatingType, backend.Function):
 
         return ret
 
-    def split(self, *args, **kwargs):
+    def sub(self, i, deepcopy=False, **kwargs):
         from .function_assigner import FunctionAssigner, FunctionAssignerBlock
-        deepcopy = kwargs.get("deepcopy", False)
+        annotate = annotate_tape(kwargs)
+        if deepcopy:
+            ret = create_overloaded_object(backend.Function.sub(self, i, deepcopy, **kwargs))
+            if annotate:
+                fa = FunctionAssigner(ret.function_space(), self.function_space())
+                block = FunctionAssignerBlock(fa, Enlist(self))
+                tape = get_working_tape()
+                tape.add_block(block)
+                block.add_output(ret.block_variable)
+        else:
+            extra_kwargs = {}
+            if annotate:
+                extra_kwargs = {
+                    "block_class": FunctionSplitBlock,
+                    "_ad_floating_active": True,
+                    "_ad_args": [self, i],
+                    "_ad_output_args": [i],
+                    "output_block_class": FunctionMergeBlock,
+                    "_ad_outputs": [self],
+                }
+            ret = compat.create_function(self, i, **extra_kwargs)
+        return ret
+
+    def split(self, deepcopy=False, **kwargs):
+        from .function_assigner import FunctionAssigner, FunctionAssignerBlock
         annotate = annotate_tape(kwargs)
         num_sub_spaces = backend.Function.function_space(self).num_sub_spaces()
         if not annotate:
             if deepcopy:
-                ret = tuple(create_overloaded_object(f)
-                            for f in backend.Function.split(self, *args, **kwargs))
+                ret = tuple(create_overloaded_object(backend.Function.sub(self, i, deepcopy, **kwargs))
+                            for i in range(num_sub_spaces))
             else:
                 ret = tuple(compat.create_function(self, i)
                             for i in range(num_sub_spaces))
         elif deepcopy:
             ret = []
             fs = []
-            for idx, f in enumerate(backend.Function.split(self, *args, **kwargs)):
-                f = create_overloaded_object(f)
+            for i in range(num_sub_spaces):
+                f = create_overloaded_object(backend.Function.sub(self, i, deepcopy, **kwargs))
                 fs.append(f.function_space())
                 ret.append(f)
             fa = FunctionAssigner(fs, self.function_space())
