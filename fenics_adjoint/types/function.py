@@ -58,6 +58,9 @@ class Function(FloatingType, backend.Function):
 
         return func
 
+    def sub(self, i, *args, **kwargs):
+        return self.split(*args, **kwargs)[i]
+
     def assign(self, other, *args, **kwargs):
         """To disable the annotation, just pass :py:data:`annotate=False` to this routine, and it acts exactly like the
         Dolfin assign call."""
