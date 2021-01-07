@@ -172,6 +172,87 @@ def test_nonlinear():
     assert taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9
 
 
+def test_assign_linear_expr():
+    tape = Tape()
+    set_working_tape(tape)
+
+    mesh = UnitSquareMesh(10, 10)
+    V = FunctionSpace(mesh, "Lagrange", 1)
+
+    f = Function(V)
+    f.vector()[:] = 5
+    f_assigned = Function(V).assign(2*f)
+
+    u = Function(V)
+    v = TestFunction(V)
+    bc = DirichletBC(V, Constant(1), "on_boundary")
+
+    F = inner(grad(u), grad(v)) * dx - u**2*v*dx - f_assigned * v * dx
+    solve(F == 0, u, bc)
+
+    J = assemble(u ** 4 * dx)
+    Jhat = ReducedFunctional(J, Control(f))
+
+    h = Function(V)
+    h.vector()[:] = 10*rand(V.dim())
+
+    J.adj_value = 1.0
+    f.tlm_value = h
+
+    tape.evaluate_adj()
+    tape.evaluate_tlm()
+
+    J.block_variable.hessian_value = 0
+    tape.evaluate_hessian()
+
+    g = f.copy(deepcopy=True)
+
+    dJdm = J.block_variable.tlm_value
+    Hm = f.original_block_variable.hessian_value.vector().inner(h.vector())
+    assert taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9
+
+
+@pytest.mark.xfail
+def test_assign_nonlinear_expr():
+    tape = Tape()
+    set_working_tape(tape)
+
+    mesh = UnitSquareMesh(10, 10)
+    V = FunctionSpace(mesh, "Lagrange", 1)
+
+    f = Function(V)
+    f.vector()[:] = 5
+    f_assigned = Function(V).assign(f**2)
+
+    u = Function(V)
+    v = TestFunction(V)
+    bc = DirichletBC(V, Constant(1), "on_boundary")
+
+    F = inner(grad(u), grad(v)) * dx - u**2*v*dx - f_assigned * v * dx
+    solve(F == 0, u, bc)
+
+    J = assemble(u ** 4 * dx)
+    Jhat = ReducedFunctional(J, Control(f))
+
+    h = Function(V)
+    h.vector()[:] = 10*rand(V.dim())
+
+    J.adj_value = 1.0
+    f.tlm_value = h
+
+    tape.evaluate_adj()
+    tape.evaluate_tlm()
+
+    J.block_variable.hessian_value = 0
+    tape.evaluate_hessian()
+
+    g = f.copy(deepcopy=True)
+
+    dJdm = J.block_variable.tlm_value
+    Hm = f.original_block_variable.hessian_value.vector().inner(h.vector())
+    assert taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9
+
+
 def test_dirichlet():
     tape = Tape()
     set_working_tape(tape)
