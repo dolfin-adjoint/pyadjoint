@@ -12,4 +12,8 @@ class ProjectBlock(SolveVarFormBlock):
         a = self.backend.inner(w, Pv) * dx
         L = self.backend.inner(w, v) * dx
 
+        # Pop "function" kwarg if present.
+        # This relies on the return value of project == function if given.
+        kwargs.pop("function", None)
+
         super(ProjectBlock, self).__init__(a == L, output, bcs, *args, **kwargs)
