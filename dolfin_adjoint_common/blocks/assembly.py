@@ -73,11 +73,7 @@ class AssembleBlock(Block):
             form_Nk_rep = self.backend.replace(form, dict(zip(Nk.values(), Nk_rep)))
             dform = self.backend.derivative(form_Nk_rep, c_rep, dc)
         else:
-            # Reconstruct c_rep operands with saved outputs
-            c_rep = Nk[c_rep]
-            new_ops = tuple(e.block_variable.saved_output for e in c_rep.ufl_operands)
-            c_rep = ufl.replace(c_rep, dict(zip(c_rep.ufl_operands, new_ops)))
-            dform = self.backend.derivative(form, c_rep, dc)
+            dform = self.backend.derivative(form, Nk[c_rep], dc)
 
         output = self.compat.assemble_adjoint_value(dform)
         return adj_input * output

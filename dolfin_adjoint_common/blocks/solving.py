@@ -240,11 +240,7 @@ class GenericSolveBlock(Block):
             if len(ufl.algorithms.expand_derivatives(dFdm).arguments()) != 2:
                 return self.backend.Function(c_fs).vector()
         else:
-            # Reconstruct c_rep operands with saved outputs
-            c_rep = Nk[c_rep]
-            new_ops = tuple(e.block_variable.saved_output for e in c_rep.ufl_operands)
-            c_rep = ufl.replace(c_rep, dict(zip(c_rep.ufl_operands, new_ops)))
-            dFdm = -self.backend.derivative(F_form, c_rep, trial_function)
+            dFdm = -self.backend.derivative(F_form, Nk[c_rep], trial_function)
 
         dFdm = self.backend.adjoint(dFdm)
         dFdm = dFdm * adj_sol
