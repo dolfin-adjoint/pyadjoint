@@ -23,3 +23,20 @@ def test_preserved_ufl_shape():
 
     assert dJdc.ufl_shape == c.ufl_shape
 
+
+def test_assign_float():
+    af = AdjFloat(0.1)
+    uc = Constant(0.0)
+    uc.assign(af)
+    mesh = UnitSquareMesh(1, 1)
+    V = FunctionSpace(mesh, "CG", 1)
+    u = project(uc, V)
+    J = assemble(u ** 4 * dx)
+    rf = ReducedFunctional(J, Control(af))
+
+    h = AdjFloat(0.1)
+    rates = taylor_to_dict(rf, af, h)
+
+    assert min(rates["R0"]["Rate"]) > 0.95
+    assert min(rates["R1"]["Rate"]) > 1.95
+    assert min(rates["R2"]["Rate"]) > 2.95

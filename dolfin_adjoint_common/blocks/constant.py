@@ -1,6 +1,8 @@
 from pyadjoint import Block
 import numpy
 
+from pyadjoint.reduced_functional_numpy import gather
+
 
 def constant_from_values(constant, values=None):
     """Returns a new Constant with `constant.values()` while preserving `constant.ufl_shape`.
@@ -24,16 +26,22 @@ class ConstantAssignBlock(Block):
     def __init__(self, other):
         super(ConstantAssignBlock, self).__init__()
         self.add_dependency(other)
+        self.assigned_float = isinstance(other, float)
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        return adj_inputs[0]
+        adj_output = adj_inputs[0]
+        if self.assigned_float:
+            # Convert to float
+            adj_output = gather(adj_output)
+            adj_output = float(adj_output)
+        return adj_output
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
-        return tlm_inputs[0]
+        return constant_from_values(block_variable.output, tlm_inputs[0])
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
-        return hessian_inputs[0]
+        return self.evaluate_adj_component(inputs, hessian_inputs, block_variable, idx, prepared)
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
         return constant_from_values(block_variable.output, inputs[0])
