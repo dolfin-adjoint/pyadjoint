@@ -214,4 +214,27 @@ def test_dirichlet_bc_on_subspace():
     assert(taylor_test(Jhat, c, h, dJdm=dJdm, Hm=Hm) > 2.9)
 
 
+def test_function_assign():
+    tape = Tape()
+    set_working_tape(tape)
 
+    mesh = UnitSquareMesh(10, 10)
+    V = VectorFunctionSpace(mesh, "CG", 1)
+    f = Function(V)
+    c = Constant((3.0, 4.0))
+
+    f.assign(c)
+
+    u = TrialFunction(V)
+    v = TestFunction(V)
+    sol = Function(V)
+
+    a = inner(u, v)*dx
+    L = inner(f, v)*dx
+
+    solve(a == L, sol)
+
+    J = assemble(sol**2*dx)
+    Jhat = ReducedFunctional(J, Control(c))
+
+    assert(taylor_test(Jhat, c, Constant((1, 1))) > 1.9)

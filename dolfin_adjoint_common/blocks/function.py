@@ -41,8 +41,11 @@ class FunctionAssignBlock(Block):
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx,
                                prepared=None):
         if self.expr is None:
-            if isinstance(block_variable.output, (AdjFloat, self.backend.Constant)):
+            if isinstance(block_variable.output, AdjFloat):
                 return adj_inputs[0].sum()
+            elif isinstance(block_variable.output, self.backend.Constant):
+                R = block_variable.output._ad_function_space(prepared.function_space().mesh())
+                return self._adj_assign_constant(prepared, R)
             else:
                 adj_output = self.backend.Function(
                     block_variable.output.function_space())
@@ -57,10 +60,27 @@ class FunctionAssignBlock(Block):
             )
             adj_output = self.backend.Function(adj_input_func.function_space())
             adj_output.assign(diff_expr)
-            if isinstance(block_variable.output, (AdjFloat, self.backend.Constant)):
+            if isinstance(block_variable.output, AdjFloat):
                 return adj_output.vector().sum()
+            elif isinstance(block_variable.output, self.backend.Constant):
+                R = block_variable.output._ad_function_space(adj_output.function_space().mesh())
+                return self._adj_assign_constant(adj_output, R)
             else:
                 return adj_output.vector()
+
+    def _adj_assign_constant(self, adj_output, constant_fs):
+        # We assume the shape of the constant == shape of the output function.
+        r = self.backend.Function(constant_fs)
+        shape = r.ufl_shape
+        if shape == () or shape[0] == 1:
+            # Scalar Constant
+            r.vector()[:] = adj_output.vector().sum()
+        else:
+            values = []
+            for i in range(shape[0]):
+                values.append(adj_output.sub(i, deepcopy=True).vector().sum())
+            r.assign(self.backend.Constant(values))
+        return r.vector()
 
     def prepare_evaluate_tlm(self, inputs, tlm_inputs, relevant_outputs):
         if self.expr is None:
