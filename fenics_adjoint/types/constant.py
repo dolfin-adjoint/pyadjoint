@@ -1,6 +1,6 @@
 import backend
 from dolfin_adjoint_common import compat
-from pyadjoint.tape import get_working_tape, stop_annotating
+from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
 from pyadjoint.overloaded_type import OverloadedType, create_overloaded_object, register_overloaded_type
 from pyadjoint.reduced_functional_numpy import gather
 
@@ -16,8 +16,20 @@ compat = compat.compat(backend)
 @register_overloaded_type
 class Constant(OverloadedType, backend.Constant):
     def __init__(self, *args, **kwargs):
+        annotate = annotate_tape(kwargs)
         super(Constant, self).__init__(*args, **kwargs)
         backend.Constant.__init__(self, *args, **kwargs)
+
+        if annotate:
+            if len(args) > 0 and isinstance(args[0], OverloadedType):
+                other = args[0]
+                if not isinstance(other, OverloadedType):
+                    other = create_overloaded_object(other)
+
+                block = ConstantAssignBlock(other)
+                tape = get_working_tape()
+                tape.add_block(block)
+                block.add_output(self.block_variable)
 
     def assign(self, *args, **kwargs):
         annotate_tape = kwargs.pop("annotate_tape", True)

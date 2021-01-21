@@ -40,3 +40,20 @@ def test_assign_float():
     assert min(rates["R0"]["Rate"]) > 0.95
     assert min(rates["R1"]["Rate"]) > 1.95
     assert min(rates["R2"]["Rate"]) > 2.95
+
+
+def test_annotate_init():
+    mesh = UnitSquareMesh(1, 1)
+    c = Constant(1.0)
+    A = assemble(c * dx(domain=mesh))
+    A_const = Constant(A)
+    J = assemble(A_const ** 4 * dx(domain=mesh))
+    rf = ReducedFunctional(J, Control(c))
+
+    h = Constant(0.1)
+    rates = taylor_to_dict(rf, c, h)
+
+    assert min(rates["R0"]["Rate"]) > 0.95
+    assert min(rates["R1"]["Rate"]) > 1.95
+    assert min(rates["R2"]["Rate"]) > 2.95
+
