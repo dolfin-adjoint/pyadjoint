@@ -23,12 +23,12 @@ def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
     tape.reset_variables()
     J.adj_value = adj_value
     m = Enlist(m)
-
-    with stop_annotating():
+    import dolfin
+    with stop_annotating(), dolfin.Timer("~Evaluate Adjoint"):
         with tape.marked_nodes(m):
             tape.evaluate_adj(markings=True)
-
-    grads = [i.get_derivative(options=options) for i in m]
+    with dolfin.Timer("~Riesz"):
+        grads = [i.get_derivative(options=options) for i in m]
     return m.delist(grads)
 
 

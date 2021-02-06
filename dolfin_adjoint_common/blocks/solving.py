@@ -129,6 +129,8 @@ class GenericSolveBlock(Block):
         return bdy
 
     def prepare_evaluate_adj(self, inputs, adj_inputs, relevant_dependencies):
+        import dolfin 
+        t4 = dolfin.Timer("~ADJOINT: Prepare_evaluate_adjoint")
         fwd_block_variable = self.get_outputs()[0]
         u = fwd_block_variable.output
 
@@ -141,9 +143,13 @@ class GenericSolveBlock(Block):
                                        self.backend.TrialFunction(u.function_space()))
         dFdu_form = self.backend.adjoint(dFdu)
         dJdu = dJdu.copy()
-
+        t4.stop()
+        t3 = dolfin.Timer("~~ADJOINT: Compute boundary adjoint")
         compute_bdy = self._should_compute_boundary_adjoint(relevant_dependencies)
+        t3.stop()
+        t2 = dolfin.Timer("~~ADJOINT: Solve adjoint equation")
         adj_sol, adj_sol_bdy = self._assemble_and_solve_adj_eq(dFdu_form, dJdu, compute_bdy)
+        t2.stop()
         self.adj_sol = adj_sol
         if self.adj_cb is not None:
             self.adj_cb(adj_sol)
@@ -179,6 +185,7 @@ class GenericSolveBlock(Block):
         return adj_sol, adj_sol_bdy
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        import dolfin 
         if not self.linear and self.func == block_variable.output:
             # We are not able to calculate derivatives wrt initial guess.
             return None
@@ -203,21 +210,29 @@ class GenericSolveBlock(Block):
         elif isinstance(c, self.compat.MeshType):
             # Using CoordianteDerivative requires us to do action before
             # differentiating, might change in the future.
+            t10 =dolfin.Timer("~ADJOINT: eval_adj_component")
+
             F_form_tmp = self.backend.action(F_form, adj_sol)
             X = self.backend.SpatialCoordinate(c_rep)
+
             dFdm = self.backend.derivative(-F_form_tmp, X, self.backend.TestFunction(c._ad_function_space()))
 
             dFdm = self.compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
+    
+            t10.stop()
             return dFdm
-
+        t12 =dolfin.Timer("~ADJOINT: eval_adj_component other")
         dFdm = -self.backend.derivative(F_form, c_rep, trial_function)
         dFdm = self.backend.adjoint(dFdm)
         dFdm = dFdm * adj_sol
         dFdm = self.compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
+        t12.stop()
+
         if isinstance(c, self.compat.ExpressionType):
             return [[dFdm, c_fs]]
         else:
             return dFdm
+
 
     def prepare_evaluate_tlm(self, inputs, tlm_inputs, relevant_outputs):
         fwd_block_variable = self.get_outputs()[0]
@@ -450,7 +465,10 @@ class GenericSolveBlock(Block):
         return lhs, rhs, func, bcs
 
     def _forward_solve(self, lhs, rhs, func, bcs):
+        import dolfin 
+        t = dolfin.Timer("~FORWARD: Solve")
         self.backend.solve(lhs == rhs, func, bcs, *self.forward_args, **self.forward_kwargs)
+        t.stop()
         return func
 
     def _assembled_solve(self, lhs, rhs, func, bcs, **kwargs):
