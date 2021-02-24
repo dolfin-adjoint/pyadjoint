@@ -91,10 +91,10 @@ of the concentration of the newly formed species C.
 FEniCS implementation
 *********************
 
-For the computation of the background velocity field and
-the the advection-diffusion-reaction system, we refer to
-the FEniCS tutorial and implement a function
-`solve_reaction_system` 
+For the details of the implementation of the background velocity field and
+the advection-diffusion-reaction system, we refer to
+the `FEniCS tutorial <https://fenicsproject.org/pub/tutorial/html/._ftut1010.html#ftut1:reactionsystem>`_.
+Here, we implement a function `solve_reaction_system` 
 that solves the reaction system for a given reaction funtion (`reaction_func`)
 and computes the loss for each time step, if a loss function (`loss_func`) is provided:
 
@@ -236,7 +236,10 @@ Now, we specify the loss function and compute the loss with the initial weights 
   loss, learned_data = solve_reaction_system(mesh,T, num_steps, R_net,
                                              loss_func=loss_func)
   
-Then, we can already start the training process using the scipy L-BFGS-optimizer:
+Then, we start the training process using the scipy L-BFGS-optimizer for 100 iterations.
+Note that the training process can take a significant amout of time,
+since at least one solve of the forward and adjoint equation is required
+per training iteration.
 
 ::
 
@@ -248,8 +251,8 @@ Then, we can already start the training process using the scipy L-BFGS-optimizer
                          options = {'disp': True, "maxiter":100})
   net.set_weights(opt_weights)
   
-For comparison, we compute the concentrations with the learned reaction rates
-at final time:
+For evaluation, we compute the concentrations with the learned reaction rates
+at final time and observe a good agreement:
 
 ::
 

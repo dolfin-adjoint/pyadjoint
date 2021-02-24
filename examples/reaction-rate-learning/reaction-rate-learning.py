@@ -91,10 +91,10 @@
 # FEniCS implementation
 # *********************
 
-# For the computation of the background velocity field and
-# the the advection-diffusion-reaction system, we refer to
-# the FEniCS tutorial and implement a function
-# `solve_reaction_system` 
+# For the details of the implementation of the background velocity field and
+# the advection-diffusion-reaction system, we refer to
+# the `FEniCS tutorial <https://fenicsproject.org/pub/tutorial/html/._ftut1010.html#ftut1:reactionsystem>`_.
+# Here, we implement a function `solve_reaction_system` 
 # that solves the reaction system for a given reaction funtion (`reaction_func`)
 # and computes the loss for each time step, if a loss function (`loss_func`) is provided:
 
@@ -228,7 +228,10 @@ def loss_func(n, data):
 loss, learned_data = solve_reaction_system(mesh,T, num_steps, R_net,
                                            loss_func=loss_func)
 
-# Then, we can already start the training process using the scipy L-BFGS-optimizer:
+# Then, we start the training process using the scipy L-BFGS-optimizer for 100 iterations.
+# Note that the training process can take a significant amout of time,
+# since at least one solve of the forward and adjoint equation is required
+# per training iteration.
 
 #define reduced functional
 J_hat = ReducedFunctional(loss, net.weights_ctrls())
@@ -238,8 +241,8 @@ opt_weights = minimize(J_hat, method ="L-BFGS-B", tol = 1e-6,
                        options = {'disp': True, "maxiter":100})
 net.set_weights(opt_weights)
 
-# For comparison, we compute the concentrations with the learned reaction rates
-# at final time:
+# For evaluation, we compute the concentrations with the learned reaction rates
+# at final time and observe a good agreement:
 
 # compute final learned state
 final_loss, learned_data = solve_reaction_system(mesh,T, num_steps, R_net,
