@@ -19,6 +19,7 @@ from pyadjoint.drivers import compute_gradient, compute_hessian
 from pyadjoint.adjfloat import AdjFloat
 from pyadjoint.control import Control
 from pyadjoint import IPOPTSolver, ROLSolver, MinimizationProblem, InequalityConstraint, minimize
+from pyadjoint.ufl_constraints import UFLInequalityConstraint, UFLEqualityConstraint
 import numpy_adjoint
 
 continue_annotation()
