@@ -14,7 +14,7 @@
 # in the FEniCS tutorial 
 # and uses a feed-forward neural network defined in the UFL language 
 # to model the reaction rate. Instead of relying on UFL,  it also possible to
-# coupling dolfin-adjoint with a machine learning framework such as Pytorch for 
+# couple dolfin-adjoint with a machine learning framework such as Pytorch for 
 # more complex architectures (see e.g. :cite:`bm`, https://github.com/barkm/grey-box).
 
 # .. figure:: reaction_system.png
@@ -99,7 +99,8 @@
 # and computes the loss for each time step, if a loss function (`loss_func`) is provided:
 
 from fenics import *
-set_log_level(50)
+from fenics_adjoint import *
+set_log_level(LogLevel.CRITICAL)
 
 def solve_reaction_system(mesh, T, num_steps, reaction_func, loss_func=lambda n,x: 0):
 
@@ -183,7 +184,7 @@ def solve_reaction_system(mesh, T, num_steps, reaction_func, loss_func=lambda n,
 # training problem in a few lines of code. First, we generate the ground
 # truth training data with the reaction rate :math:`R(u_1, u_2)= K u_1 u_2`:
 
-from neural_network import *
+from neural_network import ANN
 import numpy as np
 import matplotlib.pyplot as plt
 
