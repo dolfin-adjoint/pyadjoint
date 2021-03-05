@@ -118,7 +118,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.napole
 #imgmath_image_format = 'svg'
 
 #  -- Options for sphinxcontrib.bibtex ------------------------------------
-bibtex_bibfiles = ['documentation/stokes-topology/stokes-topology.bib', 'documentation/mpec/mpec.bib', 'documentation/poisson-topology/poisson-topology.bib', 'documentation/klein/klein.bib', 'documentation/poisson-mother/poisson-mother.bib', 'documentation/stokes-shape-opt/stokes-shape-opt.bib', 'documentation/maths/2-problem.bib', 'documentation/maths/5-applications.bib', 'documentation/maths/1-foreword.bib', 'documentation/maths/4-adjoint.bib', 'documentation/maths/A-gst.bib', 'documentation/maths/3-gradients.bib', 'documentation/salt-fingering/salt-fingering.bib', 'documentation/stokes-bc-control/stokes-bc-control.bib']
+bibtex_bibfiles = ['documentation/stokes-topology/stokes-topology.bib', 'documentation/mpec/mpec.bib', 'documentation/poisson-topology/poisson-topology.bib', 'documentation/klein/klein.bib', 'documentation/poisson-mother/poisson-mother.bib', 'documentation/stokes-shape-opt/stokes-shape-opt.bib', 'documentation/maths/2-problem.bib', 'documentation/maths/5-applications.bib', 'documentation/maths/1-foreword.bib', 'documentation/maths/4-adjoint.bib', 'documentation/maths/A-gst.bib', 'documentation/maths/3-gradients.bib', 'documentation/salt-fingering/salt-fingering.bib', 'documentation/stokes-bc-control/stokes-bc-control.bib', 'documentation/reaction-rate-learning/reaction-rate-learning.bib']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
