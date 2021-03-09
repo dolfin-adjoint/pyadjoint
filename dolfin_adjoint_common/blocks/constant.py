@@ -33,7 +33,7 @@ class ConstantAssignBlock(Block):
         if self.assigned_float:
             # Convert to float
             adj_output = gather(adj_output)
-            adj_output = float(adj_output)
+            adj_output = float(adj_output[0])
         return adj_output
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
