@@ -20,7 +20,6 @@ from pyadjoint.adjfloat import AdjFloat
 from pyadjoint.control import Control
 from pyadjoint import IPOPTSolver, ROLSolver, MinimizationProblem, InequalityConstraint, minimize
 
-#from pyadjoint.ufl_constraints import UFLInequalityConstraint, UFLEqualityConstraint
 from dolfin_adjoint_common.ufl_constraints import UFLInequalityConstraint, UFLEqualityConstraint
 import numpy_adjoint
 
