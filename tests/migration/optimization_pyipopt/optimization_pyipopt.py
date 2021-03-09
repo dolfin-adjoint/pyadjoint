@@ -1,5 +1,5 @@
 """ Solves an optimisation problem with the Burgers equation as constraint, using
-the pyipopt Python bindings to IPOPT"""
+the Python bindings to IPOPT"""
 
 import sys
 
@@ -8,9 +8,9 @@ from fenics_adjoint import *
 import numpy
 
 try:
-    import pyipopt
+    import cyipopt  # noqa
 except ImportError:
-    info_blue("pyipopt bindings unavailable, skipping test")
+    print("ipopt bindings unavailable, skipping test")
     sys.exit(0)
 
 set_log_level(LogLevel.ERROR)

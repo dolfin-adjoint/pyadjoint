@@ -18,8 +18,8 @@ def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
         OverloadedType: The derivative with respect to the control. Should be an instance of the same type as
             the control.
     """
-    options = {} if options is None else options
-    tape = get_working_tape() if tape is None else tape
+    options = options or {}
+    tape = tape or get_working_tape()
     tape.reset_variables()
     J.adj_value = adj_value
     m = Enlist(m)
@@ -48,8 +48,8 @@ def compute_hessian(J, m, m_dot, options=None, tape=None):
         OverloadedType: The second derivative with respect to the control in direction m_dot. Should be an instance of
             the same type as the control.
     """
-    tape = get_working_tape() if tape is None else tape
-    options = {} if options is None else options
+    tape = tape or get_working_tape()
+    options = options or {}
 
     tape.reset_tlm_values()
     tape.reset_hessian_values()
@@ -69,3 +69,25 @@ def compute_hessian(J, m, m_dot, options=None, tape=None):
 
     r = [v.get_hessian(options=options) for v in m]
     return m.delist(r)
+
+
+def solve_adjoint(J, tape=None, adj_value=1.0):
+    """
+    Solve the adjoint problem for a functional J.
+
+    This traverses the entire tape backwards, unlike `compute_gradient` which only works out those
+    parts of the adjoint necessary to compute the sensitivity with respect to the specified control.
+    As a result sensitivities with respect to all intermediate states are accumulated in the
+    `adj_value` attribute of the associated block-variables. The adjoint solution of each solution
+    step is stored in the `adj_sol` attribute of the corresponding solve block.
+
+    Args:
+        J (AdjFloat):  The objective functional.
+        tape: The tape to use. Default is the current tape.
+    """
+    tape = tape or get_working_tape()
+    tape.reset_variables()
+    J.adj_value = adj_value
+
+    with stop_annotating():
+        tape.evaluate_adj(markings=False)

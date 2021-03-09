@@ -1,11 +1,16 @@
 import backend
-from pyadjoint.tape import get_working_tape
+from dolfin_adjoint_common import compat
+from pyadjoint.tape import get_working_tape, stop_annotating
 from pyadjoint.overloaded_type import OverloadedType, create_overloaded_object, register_overloaded_type
-from .compat import constant_function_firedrake_compat
-from pyadjoint.block import Block
 from pyadjoint.reduced_functional_numpy import gather
 
+from dolfin_adjoint_common.blocks.constant import constant_from_values
+
+from fenics_adjoint.blocks import ConstantAssignBlock
+
 import numpy
+
+compat = compat.compat(backend)
 
 
 @register_overloaded_type
@@ -21,11 +26,12 @@ class Constant(OverloadedType, backend.Constant):
             if not isinstance(other, OverloadedType):
                 other = create_overloaded_object(other)
 
-            block = AssignBlock(self, other)
+            block = ConstantAssignBlock(other)
             tape = get_working_tape()
             tape.add_block(block)
 
-        ret = backend.Constant.assign(self, *args, **kwargs)
+        with stop_annotating():
+            ret = backend.Constant.assign(self, *args, **kwargs)
 
         if annotate_tape:
             block.add_output(self.create_block_variable())
@@ -43,8 +49,8 @@ class Constant(OverloadedType, backend.Constant):
             # TODO: Should the default be 0 constant here or return just None?
             return Constant(numpy.zeros(self.ufl_shape))
         value = gather(value)
-        value = constant_function_firedrake_compat(value)
-        return self._constant_from_values(value)
+        value = compat.constant_function_firedrake_compat(value)
+        return constant_from_values(self, value)
 
     def _ad_function_space(self, mesh):
         element = self.ufl_element()
@@ -52,16 +58,16 @@ class Constant(OverloadedType, backend.Constant):
         return backend.FunctionSpace(mesh, fs_element)
 
     def _ad_create_checkpoint(self):
-        return self._constant_from_values()
+        return constant_from_values(self)
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
 
     def _ad_mul(self, other):
-        return self._constant_from_values(self.values() * other)
+        return constant_from_values(self, self.values() * other)
 
     def _ad_add(self, other):
-        return self._constant_from_values(self.values() + other.values())
+        return constant_from_values(self, self.values() + other.values())
 
     def _ad_dot(self, other, options=None):
         return sum(self.values() * other.values())
@@ -80,16 +86,16 @@ class Constant(OverloadedType, backend.Constant):
         return a.tolist()
 
     def _ad_copy(self):
-        return self._constant_from_values()
+        return constant_from_values(self)
 
     def _ad_dim(self):
         return numpy.prod(self.values().shape)
 
     def _ad_imul(self, other):
-        self.assign(self._constant_from_values(self.values() * other))
+        self.assign(constant_from_values(self, self.values() * other))
 
     def _ad_iadd(self, other):
-        self.assign(self._constant_from_values(self.values() + other.values()))
+        self.assign(constant_from_values(self, self.values() + other.values()))
 
     def _ad_name(self):
         return str(self)
@@ -105,7 +111,7 @@ class Constant(OverloadedType, backend.Constant):
         npdatacopy = npdata.copy()
         for i in range(len(npdata)):
             npdatacopy[i] = f(npdata[i])
-        self.assign(self._constant_from_values(npdatacopy))
+        self.assign(constant_from_values(self, npdatacopy))
 
     def _applyBinary(self, f, y):
         npdata = self.values()
@@ -113,42 +119,7 @@ class Constant(OverloadedType, backend.Constant):
         npdatay = y.values()
         for i in range(len(npdata)):
             npdatacopy[i] = f(npdata[i], npdatay[i])
-        self.assign(self._constant_from_values(npdatacopy))
+        self.assign(constant_from_values(self, npdatacopy))
 
     def __deepcopy__(self, memodict={}):
-        return self._constant_from_values()
-
-    def _constant_from_values(self, values=None):
-        """Returns a new Constant with self.values() while preserving self.ufl_shape.
-
-        If the optional argument `values` is provided, then `values` will be the values of the
-        new Constant instead, still preserving the ufl_shape of self.
-
-        Args:
-            values (numpy.array): An optional argument to use instead of self.values().
-
-        Returns:
-            Constant: The created Constant
-
-        """
-        values = self.values() if values is None else values
-        return Constant(numpy.reshape(values, self.ufl_shape))
-
-
-class AssignBlock(Block):
-    def __init__(self, func, other):
-        super(AssignBlock, self).__init__()
-        self.add_dependency(other)
-
-    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        return adj_inputs[0]
-
-    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
-        return tlm_inputs[0]
-
-    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
-                                   relevant_dependencies, prepared=None):
-        return hessian_inputs[0]
-
-    def recompute_component(self, inputs, block_variable, idx, prepared):
-        return Constant._constant_from_values(block_variable.output, inputs[0])
+        return constant_from_values(self)

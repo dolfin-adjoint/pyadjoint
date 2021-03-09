@@ -55,9 +55,9 @@ def test_projection():
 
     results = taylor_to_dict(Jhat, c, AdjFloat(1.0))
 
-    assert min(results["FD"]["Rate"]) > 0.9
-    assert min(results["dJdm"]["Rate"]) > 1.9
-    assert min(results["Hm"]["Rate"]) > 2.9
+    assert min(results["R0"]["Rate"]) > 0.9
+    assert min(results["R1"]["Rate"]) > 1.9
+    assert min(results["R2"]["Rate"]) > 2.9
 
 
 def test_multiple_meshes():
@@ -82,6 +82,26 @@ def test_multiple_meshes():
     h = Constant(1)
     results = taylor_to_dict(Jhat, t, h)
 
-    assert min(results["FD"]["Rate"]) > 0.9
-    assert min(results["dJdm"]["Rate"]) > 1.9
-    assert min(results["Hm"]["Rate"]) > 2.9
+    assert min(results["R0"]["Rate"]) > 0.9
+    assert min(results["R1"]["Rate"]) > 1.9
+    assert min(results["R2"]["Rate"]) > 2.9
+
+
+def test_implicit_output():
+    mesh = UnitSquareMesh(5, 5)
+    V = FunctionSpace(mesh, "CG", 1)
+
+    t = Constant(2.0)
+    y_expr = exp(-t)
+    y = Function(V)
+    project(y_expr, V, function=y)
+
+    J = assemble(y**4*dx)
+    Jhat = ReducedFunctional(J, Control(t))
+
+    h = Constant(1)
+    results = taylor_to_dict(Jhat, t, h)
+
+    assert min(results["R0"]["Rate"]) > 0.9
+    assert min(results["R1"]["Rate"]) > 1.9
+    assert min(results["R2"]["Rate"]) > 2.9

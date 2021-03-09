@@ -752,6 +752,6 @@ def test_scaling_negative():
     h.vector()[:] = rand(V.dim())
     r = taylor_to_dict(Jhat, g, h)
 
-    assert min(r["FD"]["Rate"]) > 0.9
-    assert min(r["dJdm"]["Rate"]) > 1.9
-    assert min(r["Hm"]["Rate"]) > 2.9
+    assert min(r["R0"]["Rate"]) > 0.9
+    assert min(r["R1"]["Rate"]) > 1.9
+    assert min(r["R2"]["Rate"]) > 2.9

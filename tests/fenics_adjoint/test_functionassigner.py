@@ -2,6 +2,18 @@ from dolfin import *
 from dolfin_adjoint import *
 import numpy as np
 
+def test_function_assigner_subfunctions():
+    mesh = UnitSquareMesh(3, 3)
+    V = VectorFunctionSpace(mesh, "R", 0, dim=2)
+    v = Function(V)
+    assert hasattr(v, "_ad_will_add_as_dependency")
+    assert hasattr(v.sub(0), "_ad_will_add_as_dependency")
+
+    W = V.sub(0).collapse()
+    w = Function(W)
+    fa = FunctionAssigner(W, V.sub(0))
+    fa.assign(w, v.sub(0))
+
 
 def test_function_assigner_poisson():
     mesh = UnitSquareMesh(15,15)
@@ -43,9 +55,9 @@ def test_function_assigner_poisson():
         A = 1
         pert = project(A*Expression(("x[0]","cos(pi*x[1])"),degree=3), S)
         results = taylor_to_dict(Jhat, s_, pert)
-        assert min(results["FD"]["Rate"]) > 0.95
-        assert min(results["dJdm"]["Rate"]) > 1.95
-        assert min(results["Hm"]["Rate"]) > 2.95
+        assert min(results["R0"]["Rate"]) > 0.95
+        assert min(results["R1"]["Rate"]) > 1.95
+        assert min(results["R2"]["Rate"]) > 2.95
 
     tape = get_working_tape()
     tape.reset_tlm_values()

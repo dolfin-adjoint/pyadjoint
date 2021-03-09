@@ -1,6 +1,6 @@
 import backend
 from pyadjoint.tape import annotate_tape, get_working_tape
-from .solving import SolveBlock
+from .blocks import SolveVarFormBlock
 
 
 class NewtonSolver(backend.NewtonSolver):
@@ -20,10 +20,10 @@ class NewtonSolver(backend.NewtonSolver):
 
             u = vec.function
 
-            sb_kwargs = SolveBlock.pop_kwargs(kwargs)
-            block = SolveBlock(F == 0, u, bcs,
-                               solver_parameters={"newton_solver": self.parameters.to_dict()},
-                               **sb_kwargs)
+            sb_kwargs = SolveVarFormBlock.pop_kwargs(kwargs)
+            block = SolveVarFormBlock(F == 0, u, bcs,
+                                      solver_parameters={"newton_solver": self.parameters.copy()},
+                                      **sb_kwargs)
             tape.add_block(block)
 
         newargs = [self] + list(args)

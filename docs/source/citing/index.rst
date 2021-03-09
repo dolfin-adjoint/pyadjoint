@@ -7,7 +7,19 @@ How to cite us
 If you use dolfin-adjoint in your research, the developers would be
 grateful if you would cite the relevant publications.
 
-If you use dolfin-adjoint, please cite:
+If you use dolfin-adjoint 2018.1 or newer, please cite:
+
+* **Sebastian K. Mitusch, Simon W. Funke, and Jørgen S. Dokken (2019)**.
+  *dolfin-adjoint 2018.1: automated adjoints for FEniCSand Firedrake*,
+  Journal of Open Source Software, 4(38), 1292, `doi:10.21105/joss.01292 <https://doi.org/10.21105/joss.01292>`__.
+
+If you use dolfin-adjoint to compute shape sensitivities or perform shape optimization, please also cite:
+
+* **Jørgen S. Dokken, Sebastian K. Mitusch and Simon W. Funke (2020)**.
+  *Automatic shape derivatives for transient PDEs in FEniCS and Firedrake*,
+  `arXiv:2001.10058 <http://arxiv.org/abs/2001.10058>`__ [math.OC].
+
+If you use an older version of dolfin-adjoint, please cite:
 
 * **Patrick E. Farrell, David A. Ham, Simon W. Funke and Marie E. Rognes (2013)**.
   *Automated derivation of the adjoint of high-level transient finite element programs*,
@@ -40,4 +52,3 @@ please also cite the generalised stability analysis paper:
 
 
 .. _revolve library: http://www2.math.uni-paderborn.de/index.php?id=12067&L=1
-

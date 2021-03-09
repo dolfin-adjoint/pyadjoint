@@ -126,27 +126,6 @@ def xtest_wrt_constant_dirichlet_boundary():
     _test_adjoint_constant_boundary(J, bc)
 
 
-def _test_wrt_function_dirichlet_boundary():
-    mesh = IntervalMesh(10, 0, 1)
-    V = FunctionSpace(mesh, "Lagrange", 1)
-
-    c = Constant(1)
-
-    u = TrialFunction(V)
-    u_ = Function(V)
-    v = TestFunction(V)
-    f = project(Expression("1", degree=1), V)
-    bc = DirichletBC(V, f, "on_boundary")
-
-    def J(bc):
-        a = inner(grad(u), grad(v))*dx
-        L = c*v*dx
-        solve(a == L, u_, bc)
-        return assemble(u_**2*dx)
-
-    _test_adjoint_function_boundary(J, bc, f)
-
-
 def xtest_wrt_function_dirichlet_boundary():
     mesh = UnitSquareMesh(10,10)
 
@@ -292,6 +271,28 @@ def test_time_dependent():
         return assemble(u_1**2*dx)
 
     _test_adjoint_constant(J, f)
+
+
+def test_two_nonlinear_solves():
+    # regression test for firedrake issue #1841
+    mesh = UnitSquareMesh(1,1)
+    V = FunctionSpace(mesh, "CG", 1)
+    v = TestFunction(V)
+    u0 = Function(V)
+    u1 = Function(V)
+
+    ui = Constant(2.0)
+    c = Control(ui)
+    u0.assign(ui)
+    F = dot(v, (u1-u0))*dx - dot(v, u0*u1)*dx
+    problem = NonlinearVariationalProblem(F, u1)
+    solver = NonlinearVariationalSolver(problem)
+    solver.solve()
+    u0.assign(u1)
+    solver.solve()
+    J = assemble(dot(u1, u1)*dx)
+    rf = ReducedFunctional(J, c)
+    assert taylor_test(rf, ui, Constant(0.1)) > 1.95
 
 
 def convergence_rates(E_values, eps_values):

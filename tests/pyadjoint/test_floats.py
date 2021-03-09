@@ -1,6 +1,7 @@
 import pytest
 from math import log
 from numpy.testing import assert_approx_equal
+from numpy.random import rand
 from pyadjoint import *
 
 
@@ -174,3 +175,71 @@ def test_float_exponentiation():
     assert_approx_equal(rf.derivative(), 4.0 * (log(2.0)+1.0))
 
     # TODO: __rpow__ is not yet implemented
+
+
+@pytest.mark.parametrize("B", [3,4])
+@pytest.mark.parametrize("E", [6,5])
+@pytest.mark.parametrize("f", ["b**e", "e**b"])
+def test_pow_hessian(B, E, f):
+    # Testing issue 126
+    set_working_tape(Tape())
+    e = AdjFloat(E)
+    b = AdjFloat(B)
+    f = eval(f)
+    J = ReducedFunctional(f, Control(e))
+    results = taylor_to_dict(J, e, AdjFloat(10))
+    for (i, Ri) in enumerate(["R0","R1","R2"]):
+        assert(min(results[Ri]["Rate"]) >= i + 0.95)
+
+
+def test_min_max():
+    from pyadjoint.adjfloat import min, max
+    set_working_tape(Tape())
+    a = AdjFloat(3.0)
+    b = AdjFloat(2.0)
+    controls = [Control(a), Control(b)]
+
+    J = 5*max(a, b)**2 + 3*min(a, b)**3
+    Ja = 5*a**2 + 3*b**3
+    Jb = 5*b**2 + 3*a**3
+    Jhat = ReducedFunctional(J, controls)
+    Jhat_a = ReducedFunctional(Ja, controls)
+    Jhat_b = ReducedFunctional(Jb, controls)
+
+    assert Jhat([3.0, 2.0]) == J
+    dJ = Jhat.derivative()
+    assert dJ[0] == 30.
+    assert dJ[1] == 36.
+    assert Jhat([2.0, 3.0]) == J
+    dJ = Jhat.derivative()
+    assert dJ[0] == 36.
+    assert dJ[1] == 30.
+
+    x = list(rand(2))
+    h = list(rand(2))
+    if x[0] > x[1]:
+        other = Jhat_a
+    else:
+        other = Jhat_b
+    assert Jhat(x) == other(x)
+    a, b = Jhat.derivative()
+    a2, b2 = Jhat.hessian(h)
+    oa, ob = other.derivative()
+    oa2, ob2 = other.hessian(h)
+    assert a == oa
+    assert b == ob
+    assert a2 == oa2
+    assert b2 == ob2
+
+    a, b = 3., 3.
+    x = [a, b]
+    assert Jhat(x) == Jhat_a(x)
+    a, b = Jhat.derivative()
+    a2, b2 = Jhat.hessian(h)
+    oa, ob = other.derivative()
+    oa2, ob2 = other.hessian(h)
+    # For min/max of (a, b) with a == b, we return a.
+    assert a == oa + ob
+    assert b == 0.
+    assert a2 == oa2 + h[0]*ob2/h[1]
+    assert b2 == 0.

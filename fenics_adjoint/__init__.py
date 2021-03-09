@@ -43,6 +43,7 @@ if backend.__name__ != "firedrake":
     from .petsc_krylov_solver import PETScKrylovSolver
     from .types import *
     from .refine import refine
+    from .system_assembly import *
 
 
 from .variational_solver import (NonlinearVariationalProblem, NonlinearVariationalSolver,

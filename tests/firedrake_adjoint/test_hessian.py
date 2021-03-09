@@ -190,7 +190,7 @@ def test_dirichlet():
     bc = DirichletBC(V, c, "on_boundary")
 
     F = inner(grad(u), grad(v)) * dx + u**4*v*dx - f**2 * v * dx
-    solve(F == 0, u, bc)
+    solve(F == 0, u, bc, solver_parameters={"snes_rtol": 1e-10})
 
     J = assemble(u ** 4 * dx)
     Jhat = ReducedFunctional(J, Control(c))
@@ -212,49 +212,6 @@ def test_dirichlet():
     dJdm = J.block_variable.tlm_value
 
     Hm = c.original_block_variable.hessian_value.vector().inner(h.vector())
-    assert taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9
-
-
-@pytest.mark.xfail(reason="Expression annotation not supported")
-def test_expression():
-    tape = Tape()
-    set_working_tape(tape)
-
-    mesh = UnitSquareMesh(10, 10)
-    V = FunctionSpace(mesh, "Lagrange", 1)
-
-    u = Function(V)
-    v = TestFunction(V)
-    c = Constant(1)
-    f = Expression("c*c*c", c=c, degree=1)
-    first_deriv = Expression("3*c*c", c=c, degree=1, annotate=False)
-    second_deriv = Expression("6*c", c=c, degree=1, annotate=False)
-    f.user_defined_derivatives = {c: first_deriv}
-    first_deriv.user_defined_derivatives = {c: second_deriv}
-    bc = DirichletBC(V, Constant(1), "on_boundary")
-
-    F = inner(grad(u), grad(v)) * dx - f * v * dx
-    solve(F == 0, u, bc)
-
-    J = assemble(u ** 4 * dx)
-    Jhat = ReducedFunctional(J, c)
-
-    h = Constant(1)
-
-    J.adj_value = 1.0
-    c.tlm_value = h
-
-    tape.evaluate_adj()
-    tape.evaluate_tlm()
-
-    J.block_variable.hessian_value = 0
-    tape.evaluate_hessian()
-
-    g = Constant(1)
-
-    dJdm = J.block_variable.tlm_value
-
-    Hm = c.original_block_variable.hessian_value
     assert taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9
 
 

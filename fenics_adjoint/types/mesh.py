@@ -14,15 +14,17 @@ __all__ = ['Mesh', 'BoundaryMesh', 'SubMesh'] + overloaded_meshes
 @register_overloaded_type
 class Mesh(OverloadedType, backend.Mesh):
     def __init__(self, *args, **kwargs):
-        # Calling constructer
+        # Calling constructor
         super(Mesh, self).__init__(*args, **kwargs)
         backend.Mesh.__init__(self, *args, **kwargs)
 
-        if not len(args) == 0:
-            # If the mesh is not empty, save the original coordiantes
+        if self.num_vertices() >= 1:
+            # If the mesh is not empty, save the original coordinates
             self.org_mesh_coords = self.coordinates().copy()
         else:
             self.org_mesh_coords = None
+
+        self._ad_coordinate_space = None
 
     def _ad_create_checkpoint(self):
         return self.coordinates().copy()
@@ -34,11 +36,16 @@ class Mesh(OverloadedType, backend.Mesh):
     def _ad_name(self):
         return str(self)
 
+    def _ad_function_space(self):
+        if self._ad_coordinate_space is None:
+            self._ad_coordinate_space = backend.FunctionSpace(self, self.ufl_coordinate_element())
+        return self._ad_coordinate_space
+
 
 @register_overloaded_type
 class BoundaryMesh(OverloadedType, backend.BoundaryMesh):
     def __init__(self, *args, **kwargs):
-        # Calling constructer
+        # Calling constructor
         super(BoundaryMesh, self).__init__(*args,
                                            _ad_block_class=BoundaryMeshBlock,
                                            _ad_args=args,
@@ -46,6 +53,7 @@ class BoundaryMesh(OverloadedType, backend.BoundaryMesh):
                                            annotate=kwargs.pop("annotate", True),
                                            **kwargs)
         backend.BoundaryMesh.__init__(self, *args, **kwargs)
+        self._ad_coordinate_space = None
 
     def _ad_create_checkpoint(self):
         return self.coordinates().copy()
@@ -57,15 +65,21 @@ class BoundaryMesh(OverloadedType, backend.BoundaryMesh):
     def _ad_name(self):
         return str(self)
 
+    def _ad_function_space(self):
+        if self._ad_coordinate_space is None:
+            self._ad_coordinate_space = backend.FunctionSpace(self, self.ufl_coordinate_element())
+        return self._ad_coordinate_space
+
 
 def overloaded_mesh(mesh_class):
     @register_overloaded_type
     class OverloadedMesh(OverloadedType, mesh_class):
         def __init__(self, *args, **kwargs):
-            # Calling constructer
+            # Calling constructor
             super(OverloadedMesh, self).__init__(*args, **kwargs)
             mesh_class.__init__(self, *args, **kwargs)
             self.org_mesh_coords = self.coordinates().copy()
+            self._ad_coordinate_space = None
 
         def _ad_create_checkpoint(self):
             return self.coordinates().copy()
@@ -76,6 +90,12 @@ def overloaded_mesh(mesh_class):
 
         def _ad_name(self):
             return str(self)
+
+        def _ad_function_space(self):
+            if self._ad_coordinate_space is None:
+                self._ad_coordinate_space = backend.FunctionSpace(self, self.ufl_coordinate_element())
+            return self._ad_coordinate_space
+
     return OverloadedMesh
 
 
@@ -103,7 +123,7 @@ def overloaded_create(mesh_class):
     return create
 
 
-custom_meshes = ["UnitDiscMesh", "SphericalShellMesh", "UnitTriangleMesh", "BoxMesh"]
+custom_meshes = ["UnitDiscMesh", "SphericalShellMesh", "UnitTriangleMesh", "BoxMesh", "RectangleMesh"]
 for name in custom_meshes:
     mesh_type = getattr(backend, name)
     mesh_type.create = overloaded_create(mesh_type)
@@ -160,7 +180,7 @@ class ALEMoveBlock(Block):
             if tlm_output is None:
                 tlm_output = tlm_input.copy(deepcopy=True)
             else:
-                tlm_output.vector()[:] += tlm_input.vector()
+                tlm_output.vector().axpy(1, tlm_input.vector())
 
         if tlm_output is not None:
             self.get_outputs()[0].add_tlm_output(tlm_output)

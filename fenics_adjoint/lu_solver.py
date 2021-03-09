@@ -1,7 +1,10 @@
 import backend
 from pyadjoint.tape import annotate_tape, get_working_tape
-from .types import compat
-from .solving import SolveBlock
+from dolfin_adjoint_common import compat
+
+from .blocks import LUSolveBlock, LUSolveBlockHelper
+
+compat = compat.compat(backend)
 
 
 class LUSolver(backend.LUSolver):
@@ -51,7 +54,7 @@ class LUSolver(backend.LUSolver):
             parameters = self.parameters.copy()
 
             tape = get_working_tape()
-            sb_kwargs = SolveBlock.pop_kwargs(kwargs)
+            sb_kwargs = LUSolveBlock.pop_kwargs(kwargs)
             block = LUSolveBlock(A, x, b,
                                  lu_solver_parameters=parameters,
                                  block_helper=block_helper,
@@ -65,73 +68,3 @@ class LUSolver(backend.LUSolver):
             block.add_output(u.create_block_variable())
 
         return out
-
-
-class LUSolveBlockHelper(object):
-    def __init__(self):
-        self.forward_solver = None
-        self.adjoint_solver = None
-
-    def reset(self):
-        self.forward_solver = None
-        self.adjoint_solver = None
-
-
-class LUSolveBlock(SolveBlock):
-    def __init__(self, *args, **kwargs):
-        super(LUSolveBlock, self).__init__(*args, **kwargs)
-        self.lu_solver_parameters = kwargs.pop("lu_solver_parameters")
-        self.block_helper = kwargs.pop("block_helper")
-        self.method = kwargs.pop("lu_solver_method")
-
-    def _assemble_and_solve_adj_eq(self, dFdu_form, dJdu):
-        dJdu_copy = dJdu.copy()
-        bcs = self._homogenize_bcs()
-
-        solver = self.block_helper.adjoint_solver
-        if solver is None:
-            if self.assemble_system:
-                rhs_bcs_form = backend.inner(backend.Function(self.function_space),
-                                             dFdu_form.arguments()[0]) * backend.dx
-                A, _ = backend.assemble_system(dFdu_form, rhs_bcs_form, bcs)
-            else:
-                A = compat.assemble_adjoint_value(dFdu_form)
-                [bc.apply(A) for bc in bcs]
-
-            solver = backend.LUSolver(A, self.method)
-            self.block_helper.adjoint_solver = solver
-
-        solver.parameters.update(self.lu_solver_parameters)
-        [bc.apply(dJdu) for bc in bcs]
-
-        adj_sol = backend.Function(self.function_space)
-        solver.solve(adj_sol.vector(), dJdu)
-
-        adj_sol_bdy = compat.function_from_vector(self.function_space, dJdu_copy - compat.assemble_adjoint_value(
-            backend.action(dFdu_form, adj_sol)))
-
-        return adj_sol, adj_sol_bdy
-
-    def _forward_solve(self, lhs, rhs, func, bcs, **kwargs):
-        solver = self.block_helper.forward_solver
-        if solver is None:
-            if self.assemble_system:
-                A, _ = backend.assemble_system(lhs, rhs, bcs)
-            else:
-                A = compat.assemble_adjoint_value(lhs)
-                [bc.apply(A) for bc in bcs]
-
-            solver = backend.LUSolver(A, self.method)
-            self.block_helper.forward_solver = solver
-
-        if self.assemble_system:
-            system_assembler = backend.SystemAssembler(lhs, rhs, bcs)
-            b = backend.Function(self.function_space).vector()
-            system_assembler.assemble(b)
-        else:
-            b = compat.assemble_adjoint_value(rhs)
-            [bc.apply(b) for bc in bcs]
-
-        solver.parameters.update(self.lu_solver_parameters)
-        solver.solve(func.vector(), b)
-        return func

@@ -36,8 +36,10 @@ def test_function_mul_float():
     h.vector()[:] = rand(V.dim())
     hmul = AdjFloat(1.0)
     r = taylor_to_dict(Jhat, [f, mul], [h, hmul])
-    print(r)
-    assert min(r["Hm"]["Rate"]) > 2.9
+
+    assert min(r["R0"]["Rate"]) > 0.9
+    assert min(r["R1"]["Rate"]) > 1.9
+    assert min(r["R2"]["Rate"]) > 2.9
 
 
 if __name__ == "__main__":

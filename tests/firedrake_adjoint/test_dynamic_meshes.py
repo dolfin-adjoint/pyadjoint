@@ -6,7 +6,7 @@ import numpy as np
 
 @pytest.mark.parametrize("mesh", [UnitSquareMesh(10,10)])
 def test_dynamic_meshes_2D(mesh):
-    S = VectorFunctionSpace(mesh, "CG", 1)
+    S = mesh.coordinates.function_space()
     s = [Function(S), Function(S), Function(S)]
     mesh.coordinates.assign(mesh.coordinates + s[0])
 
@@ -46,9 +46,10 @@ def test_dynamic_meshes_2D(mesh):
                   project(C*as_vector((-x[0]**2, x[1])), S)]
         zero = [Function(S),Function(S), Function(S)]
         results = taylor_to_dict(Jhat, zero, taylor)
-    assert(np.mean(results["FD"]["Rate"])>0.9)
-    assert(np.mean(results["dJdm"]["Rate"])>1.9)
-    assert(np.mean(results["Hm"]["Rate"])>0.9)
+    print(results)
+    assert(np.mean(results["R0"]["Rate"])>0.9)
+    assert(np.mean(results["R1"]["Rate"])>1.9)
+    assert(np.mean(results["R2"]["Rate"])>2.9)
 
 
 @pytest.mark.parametrize("mesh", [UnitCubeMesh(4,4,5),
@@ -58,7 +59,7 @@ def test_dynamic_meshes_2D(mesh):
                                   TorusMesh(25,10, 1, 0.5),
                                   CylinderMesh(10,25, radius=0.5, depth=0.8)])
 def test_dynamic_meshes_3D(mesh):
-    S = VectorFunctionSpace(mesh, "CG", 1)
+    S = mesh.coordinates.function_space()
     s = [Function(S), Function(S), Function(S)]
     mesh.coordinates.assign(mesh.coordinates + s[0])
 
@@ -106,7 +107,7 @@ def test_dynamic_meshes_3D(mesh):
         zero = [Function(S),Function(S), Function(S)]
         results = taylor_to_dict(Jhat, zero, taylor)
     print(results)
-    assert(np.mean(results["FD"]["Rate"])>0.9)
-    assert(np.mean(results["dJdm"]["Rate"])>1.9)
-    assert(np.mean(results["Hm"]["Rate"])>0.9)
+    assert(np.mean(results["R0"]["Rate"])>0.9)
+    assert(np.mean(results["R1"]["Rate"])>1.9)
+    assert(np.mean(results["R2"]["Rate"])>2.9)
 

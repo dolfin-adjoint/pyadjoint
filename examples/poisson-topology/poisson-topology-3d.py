@@ -72,11 +72,11 @@ PETScOptions.set("pc_gamg_agg_nsmooths", 1)
 # optimisation algorithm.
 
 try:
-    import pyipopt
+    from pyadjoint import ipopt
 except ImportError:
     from ufl.log import info_red
 
-    info_red("""This example depends on IPOPT and pyipopt. \
+    info_red("""This example depends on IPOPT and Python ipopt bindings. \
   When compiling IPOPT, make sure to link against HSL, as it \
   is a necessity for practical problems.""")
     raise
@@ -260,7 +260,7 @@ if __name__ == "__main__":
     # Now that all the ingredients are in place, we can perform the
     # optimisation.  The :py:class:`MinimizationProblem` class
     # represents the optimisation problem to be solved. We instantiate
-    # this and pass it to :py:mod:`pyipopt` to solve:
+    # this and pass it to :py:mod:`ipopt` to solve:
 
     problem = MinimizationProblem(Jhat, bounds=(lb, ub), constraints=VolumeConstraint(V))
     parameters = None

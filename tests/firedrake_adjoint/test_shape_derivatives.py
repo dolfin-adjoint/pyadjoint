@@ -9,7 +9,7 @@ def test_sin_weak_spatial():
     mesh = UnitOctahedralSphereMesh(2)
     x = SpatialCoordinate(mesh)
     mesh.init_cell_orientations(x)
-    S = VectorFunctionSpace(mesh, "CG", 1)
+    S = mesh.coordinates.function_space()
     s = Function(S)
     mesh.coordinates.assign(mesh.coordinates + s)
     
@@ -28,7 +28,7 @@ def test_tlm_assemble():
     tape.clear_tape()
     mesh = UnitCubeMesh(4,4,4)
     x = SpatialCoordinate(mesh)
-    S =  VectorFunctionSpace(mesh, "CG", 1)
+    S = mesh.coordinates.function_space()
     h = Function(S)
     A = 10
     h.interpolate(as_vector((A*cos(x[1]), A*x[1], x[2]*x[1])))
@@ -64,7 +64,7 @@ def test_shape_hessian():
     mesh = UnitIcosahedralSphereMesh(3)
     x = SpatialCoordinate(mesh)
     mesh.init_cell_orientations(x)
-    S = VectorFunctionSpace(mesh, "CG", 1)
+    S = mesh.coordinates.function_space()
     s = Function(S,name="deform")
 
     mesh.coordinates.assign(mesh.coordinates + s)
@@ -95,7 +95,7 @@ def test_PDE_hessian_neumann():
     x = SpatialCoordinate(mesh)
     mesh.init_cell_orientations(x)
 
-    S = VectorFunctionSpace(mesh, "CG", 1)
+    S = mesh.coordinates.function_space()
     s = Function(S,name="deform")
     mesh.coordinates.assign(mesh.coordinates + s)
     f = x[0]*x[1]*x[2]
@@ -147,7 +147,7 @@ def test_PDE_hessian_dirichlet():
 
     x = SpatialCoordinate(mesh)
 
-    S = VectorFunctionSpace(mesh, "CG", 1)
+    S = mesh.coordinates.function_space()
     s = Function(S,name="deform")
     mesh.coordinates.assign(mesh.coordinates + s)
     f = x[0]*x[1]*x[2]
@@ -198,7 +198,7 @@ def test_multiple_assignments():
     tape.clear_tape()
 
     mesh = UnitSquareMesh(5, 5)
-    S = VectorFunctionSpace(mesh, "CG", 1)
+    S = mesh.coordinates.function_space()
     s = Function(S)
 
     mesh.coordinates.assign(mesh.coordinates + s)
@@ -222,15 +222,15 @@ def test_multiple_assignments():
     pert = interpolate(pert, S)
     results = taylor_to_dict(Jhat, s, pert)
 
-    assert min(results["FD"]["Rate"]) > 0.9
-    assert min(results["dJdm"]["Rate"]) > 1.9
-    assert min(results["Hm"]["Rate"]) > 2.9
+    assert min(results["R0"]["Rate"]) > 0.9
+    assert min(results["R1"]["Rate"]) > 1.9
+    assert min(results["R2"]["Rate"]) > 2.9
 
     tape = get_working_tape()
     tape.clear_tape()
 
     mesh = UnitSquareMesh(5, 5)
-    S = VectorFunctionSpace(mesh, "CG", 1)
+    S = mesh.coordinates.function_space()
     s = Function(S)
     mesh.coordinates.assign(mesh.coordinates + 2*s)
 
@@ -253,6 +253,6 @@ def test_multiple_assignments():
     pert = interpolate(pert, S)
     results = taylor_to_dict(Jhat, s, pert)
 
-    assert min(results["FD"]["Rate"]) > 0.9
-    assert min(results["dJdm"]["Rate"]) > 1.9
-    assert min(results["Hm"]["Rate"]) > 2.9
+    assert min(results["R0"]["Rate"]) > 0.9
+    assert min(results["R1"]["Rate"]) > 1.9
+    assert min(results["R2"]["Rate"]) > 2.9

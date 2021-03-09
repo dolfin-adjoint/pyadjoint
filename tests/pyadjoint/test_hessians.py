@@ -14,19 +14,19 @@ def test_mul():
 
     res = taylor_to_dict(Jhat1, a, AdjFloat(1.0))
     print(res)
-    assert min(res["FD"]["Rate"]) > 0.9
-    assert min(res["dJdm"]["Rate"]) > 1.9
-    assert min(res["Hm"]["Rate"]) > 2.9
+    assert min(res["R0"]["Rate"]) > 0.9
+    assert min(res["R1"]["Rate"]) > 1.9
+    assert min(res["R2"]["Rate"]) > 2.9
 
     res = taylor_to_dict(Jhat2, b, AdjFloat(1.0))
-    assert min(res["FD"]["Rate"]) > 0.9
-    assert min(res["dJdm"]["Rate"]) > 1.9
-    assert min(res["Hm"]["Rate"]) > 2.9
+    assert min(res["R0"]["Rate"]) > 0.9
+    assert min(res["R1"]["Rate"]) > 1.9
+    assert min(res["R2"]["Rate"]) > 2.9
 
     res = taylor_to_dict(Jhat3, [a, b], [AdjFloat(0.3), AdjFloat(0.2)])
-    assert min(res["FD"]["Rate"]) > 0.9
-    assert min(res["dJdm"]["Rate"]) > 1.9
-    assert min(res["Hm"]["Rate"]) > 2.9
+    assert min(res["R0"]["Rate"]) > 0.9
+    assert min(res["R1"]["Rate"]) > 1.9
+    assert min(res["R2"]["Rate"]) > 2.9
 
 
 def test_pow():
@@ -40,19 +40,19 @@ def test_pow():
 
     res = taylor_to_dict(Jhat1, a, AdjFloat(1.0))
     print(res)
-    assert min(res["FD"]["Rate"]) > 0.9
-    assert min(res["dJdm"]["Rate"]) > 1.9
-    assert min(res["Hm"]["Rate"]) > 2.9
+    assert min(res["R0"]["Rate"]) > 0.9
+    assert min(res["R1"]["Rate"]) > 1.9
+    assert min(res["R2"]["Rate"]) > 2.9
 
     res = taylor_to_dict(Jhat2, b, AdjFloat(1.0))
-    assert min(res["FD"]["Rate"]) > 0.9
-    assert min(res["dJdm"]["Rate"]) > 1.9
-    assert min(res["Hm"]["Rate"]) > 2.9
+    assert min(res["R0"]["Rate"]) > 0.9
+    assert min(res["R1"]["Rate"]) > 1.9
+    assert min(res["R2"]["Rate"]) > 2.9
 
     res = taylor_to_dict(Jhat3, [a, b], [AdjFloat(0.3), AdjFloat(0.2)])
-    assert min(res["FD"]["Rate"]) > 0.9
-    assert min(res["dJdm"]["Rate"]) > 1.9
-    assert min(res["Hm"]["Rate"]) > 2.9
+    assert min(res["R0"]["Rate"]) > 0.9
+    assert min(res["R1"]["Rate"]) > 1.9
+    assert min(res["R2"]["Rate"]) > 2.9
 
 
 def test_div():
@@ -66,16 +66,16 @@ def test_div():
 
     res = taylor_to_dict(Jhat1, a, AdjFloat(1.0))
     print(res)
-    assert min(res["FD"]["Rate"]) > 0.9
-    assert min(res["dJdm"]["Rate"]) > 1.9
-    assert min(res["Hm"]["Rate"]) > 2.9
+    assert min(res["R0"]["Rate"]) > 0.9
+    assert min(res["R1"]["Rate"]) > 1.9
+    assert min(res["R2"]["Rate"]) > 2.9
 
     res = taylor_to_dict(Jhat2, b, AdjFloat(1.0))
-    assert min(res["FD"]["Rate"]) > 0.9
-    assert min(res["dJdm"]["Rate"]) > 1.9
-    assert min(res["Hm"]["Rate"]) > 2.9
+    assert min(res["R0"]["Rate"]) > 0.9
+    assert min(res["R1"]["Rate"]) > 1.9
+    assert min(res["R2"]["Rate"]) > 2.9
 
     res = taylor_to_dict(Jhat3, [a, b], [AdjFloat(0.3), AdjFloat(0.2)])
-    assert min(res["FD"]["Rate"]) > 0.9
-    assert min(res["dJdm"]["Rate"]) > 1.9
-    assert min(res["Hm"]["Rate"]) > 2.9
+    assert min(res["R0"]["Rate"]) > 0.9
+    assert min(res["R1"]["Rate"]) > 1.9
+    assert min(res["R2"]["Rate"]) > 2.9
