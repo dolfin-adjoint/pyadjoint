@@ -23,8 +23,6 @@ class Constant(OverloadedType, backend.Constant):
         if annotate:
             if len(args) > 0 and isinstance(args[0], OverloadedType):
                 other = args[0]
-                if not isinstance(other, OverloadedType):
-                    other = create_overloaded_object(other)
 
                 block = ConstantAssignBlock(other)
                 tape = get_working_tape()
