@@ -54,28 +54,38 @@ class FunctionAssignBlock(Block):
         else:
             # Linear combination
             expr, adj_input_func = prepared
-            diff_expr = ufl.algorithms.expand_derivatives(
-                ufl.derivative(expr, block_variable.saved_output,
-                               adj_input_func)
-            )
             adj_output = self.backend.Function(adj_input_func.function_space())
-            adj_output.assign(diff_expr)
-            if isinstance(block_variable.output, AdjFloat):
-                return adj_output.vector().sum()
-            elif isinstance(block_variable.output, self.backend.Constant):
+            if block_variable.saved_output.ufl_shape == adj_input_func.ufl_shape:
+                diff_expr = ufl.algorithms.expand_derivatives(
+                    ufl.derivative(expr, block_variable.saved_output, adj_input_func)
+                )
+                adj_output.assign(diff_expr)
+            else:
+                # Assume current variable is scalar constant.
+                # This assumption might be wrong for firedrake.
+                assert isinstance(block_variable.output, self.backend.Constant)
+
+                diff_expr = ufl.algorithms.expand_derivatives(
+                    ufl.derivative(expr, block_variable.saved_output, self.backend.Constant(1.))
+                )
+                adj_output.assign(diff_expr)
+                adj_output.vector()[:] *= adj_input_func.vector()
+
+            if isinstance(block_variable.output, self.backend.Constant):
                 R = block_variable.output._ad_function_space(adj_output.function_space().mesh())
                 return self._adj_assign_constant(adj_output, R)
             else:
                 return adj_output.vector()
 
     def _adj_assign_constant(self, adj_output, constant_fs):
-        # We assume the shape of the constant == shape of the output function.
         r = self.backend.Function(constant_fs)
         shape = r.ufl_shape
         if shape == () or shape[0] == 1:
             # Scalar Constant
             r.vector()[:] = adj_output.vector().sum()
         else:
+            # We assume the shape of the constant == shape of the output function if not scalar.
+            # This assumption is due to FEniCS not supporting products with non-scalar constants in assign.
             values = []
             for i in range(shape[0]):
                 values.append(adj_output.sub(i, deepcopy=True).vector().sum())
