@@ -6,6 +6,11 @@ import numpy
 from pyadjoint.optimization.constraints import Constraint, EqualityConstraint, InequalityConstraint
 
 
+if backend.__name__ in ["dolfin", "fenics"]:
+    import fenics_adjoint.types as backend_types
+else:
+    backend_types = backend
+
 
 def as_vec(x):
     if backend.__name__ in ["dolfin", "fenics"]:
@@ -16,13 +21,13 @@ def as_vec(x):
 
         if len(out) == 1:
             out = out[0]
-        returnnd.Constant(out)
+        return backend_types.Constant(out)
     elif backend.__name__ == "firedrake":
         with x.dat.vec_ro as vec:
-            copy = numpy.array
+            copy = numpy.array(vec)
         if len(copy) == 1:
             copy = copy[0]
-        return backend.Constant(copy)
+        return backend_types.Constant(copy)
     else:
         raise NotImplementedError("Unknown backend")
 
@@ -48,7 +53,7 @@ class UFLConstraint(Constraint):
         # We want to make a copy of the control purely for use
         # in the constraint, so that our writing it isn't
         # bothering anyone else
-        self.u = backend.Function(self.V)
+        self.u = backend_types.Function(self.V)
         self.form = ufl.replace(form, {u: self.u})
 
         self.trial = backend.TrialFunction(self.V)
@@ -76,7 +81,7 @@ class UFLConstraint(Constraint):
     def function(self, m):
         self.update_control(m)
         b = backend.assemble(self.form)
-        return backend.Constant(b)
+        return backend_types.Constant(b)
 
     def jacobian(self, m):
         if isinstance(m, list):
@@ -144,7 +149,7 @@ class UFLConstraint(Constraint):
     def output_workspace(self):
         """Return an object like the output of c(m) for calculations."""
 
-        return backend.Constant(backend.assemble(self.form))
+        return backend_types.Constant(backend.assemble(self.form))
 
     def _get_constraint_dim(self):
         """Returns the number of constraint components."""
