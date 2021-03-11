@@ -59,7 +59,7 @@ def minimize_scipy_generic(rf_np, method, bounds=None, **kwargs):
 
     project = kwargs.pop("project", False)
 
-    m = [p.data() for p in rf_np.controls]
+    m = [p._ad_restore_at_checkpoint(p.data()) for p in rf_np.controls]
     m_global = rf_np.obj_to_array(m)
     J = rf_np.__call__
 
