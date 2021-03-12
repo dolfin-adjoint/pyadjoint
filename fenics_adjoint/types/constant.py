@@ -56,6 +56,9 @@ class Constant(OverloadedType, backend.Constant):
         value = constant_function_firedrake_compat(value)
         return self._constant_from_values(value)
 
+    def _ad_to_adj_value(self, value):
+        return value.values()
+
     def _ad_function_space(self, mesh):
         if mesh not in self._fs_cache:
             element = self.ufl_element()

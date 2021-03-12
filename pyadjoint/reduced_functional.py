@@ -128,15 +128,20 @@ class ReducedFunctional(object):
         for i, value in enumerate(values):
             self.controls[i].update(value)
 
+        func_value = self.replay()
+
+        # Call callback
+        self.eval_cb_post(func_value, self.controls.delist(values))
+
+        return func_value
+
+    def replay(self):
         self.tape.reset_blocks()
         with self.marked_controls():
             with stop_annotating():
                 self.tape.recompute()
 
         func_value = self.scale * self.functional.block_variable.checkpoint
-
-        # Call callback
-        self.eval_cb_post(func_value, self.controls.delist(values))
 
         return func_value
 

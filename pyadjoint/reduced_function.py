@@ -2,6 +2,8 @@ from .enlisting import Enlist
 from .tape import stop_annotating, get_working_tape, no_annotations
 from .drivers import compute_gradient
 
+from .overloaded_type import create_overloaded_object
+
 
 class ReducedFunction(object):
     def __init__(self, outputs, controls):
@@ -56,16 +58,22 @@ class ReducedFunction(object):
         for i, value in enumerate(inputs):
             self.controls[i].update(value)
 
+        outputs = self.replay()
+
+        # Call callback
+        self.eval_cb_post(outputs, self.controls.delist(inputs))
+
+        return outputs
+
+    @no_annotations
+    def replay(self):
         self.tape.reset_blocks()
         with self.marked_controls():
             with stop_annotating():
                 self.tape.recompute()
 
-        outputs = [output.saved_output for output in self.outputs]
+        outputs = [create_overloaded_object(output.saved_output) for output in self.outputs]
         outputs = self.outputs.delist(outputs)
-
-        # Call callback
-        self.eval_cb_post(outputs, self.controls.delist(inputs))
 
         return outputs
 

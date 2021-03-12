@@ -145,6 +145,9 @@ class Function(FloatingType, backend.Function):
             raise NotImplementedError(
                 "Unknown Riesz representation %s" % riesz_representation)
 
+    def _ad_to_adj_value(self, value):
+        return value.vector()
+
     def _ad_create_checkpoint(self):
         if self.block is None:
             # TODO: This might crash if annotate=False, but still using a sub-function.
