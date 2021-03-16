@@ -34,7 +34,7 @@ def create_overloaded_object(obj, suppress_warning=False):
     else:
         if not suppress_warning:
             import warnings
-            warnings.warn("Could not find overloaded class of type '{}'.".format(obj_type))
+            warnings.warn("Could not find overloaded class of type '{}'.".format(obj_type), stacklevel=2)
         return obj
 
 
