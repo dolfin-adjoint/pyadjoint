@@ -104,11 +104,11 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         return self.get_global(obj)
 
     def get_controls(self):
-        m = [p.data() for p in self.controls]
+        m = [p.tape_value() for p in self.controls]
         return self.obj_to_array(m)
 
     def set_controls(self, array):
-        m = [p.data() for p in self.controls]
+        m = [p.tape_value() for p in self.controls]
         return self.set_local(m, array)
 
 

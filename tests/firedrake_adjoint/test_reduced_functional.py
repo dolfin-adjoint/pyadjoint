@@ -130,7 +130,7 @@ def test_time_dependent():
     
     h = Function(V)
     h.vector()[:] = 1
-    assert taylor_test(Jhat, control.data(), h) > 1.9
+    assert taylor_test(Jhat, control.tape_value(), h) > 1.9
 
 
 def test_mixed_boundary():

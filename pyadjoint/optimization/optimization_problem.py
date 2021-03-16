@@ -49,7 +49,7 @@ class OptimizationProblem(object):
                     raise TypeError("Each bound should be a tuple of length 2 (lb, ub)")
 
                 for b in bound:
-                    klass = control.data().__class__
+                    klass = control.tape_value().__class__
                     if not (isinstance(b, (int, float, type(None), klass))):
                         raise TypeError("This pair (lb, ub) should be None, a float, or a %s." % klass)
 

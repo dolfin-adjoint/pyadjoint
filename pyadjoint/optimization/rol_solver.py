@@ -123,7 +123,7 @@ try:
 
             OptimizationSolver.__init__(self, problem, parameters)
             self.rolobjective = ROLObjective(problem.reduced_functional)
-            x = [p.data() for p in self.problem.reduced_functional.controls]
+            x = [p.tape_value() for p in self.problem.reduced_functional.controls]
             self.rolvector = ROLVector(x, inner_product=inner_product)
             self.params_dict = parameters
 
