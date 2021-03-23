@@ -110,7 +110,7 @@ class ReducedFunctionalNumPy(ReducedFunctional):
     def set_controls(self, array):
         m = [p.tape_value() for p in self.controls]
         m = self.set_local(m, array)
-        for control,m_i in zip(self.controls, m):
+        for control, m_i in zip(self.controls, m):
             control.update(m_i)
         return m
 
