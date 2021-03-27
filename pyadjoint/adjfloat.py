@@ -115,7 +115,7 @@ class AdjFloat(OverloadedType, float):
 
     @staticmethod
     def _ad_assign_numpy(dst, src, offset):
-        dst = float(src[offset:offset + 1])
+        dst = type(dst)(src[offset:offset + 1])
         offset += 1
         return dst, offset
 

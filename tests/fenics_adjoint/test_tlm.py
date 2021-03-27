@@ -154,7 +154,7 @@ def test_time_dependent(solve_type):
     h.vector()[:] = rand(V.dim())
     u_1.tlm_value = h
     tape.evaluate_tlm()
-    assert (taylor_test(Jhat, control.data(), h, dJdm=J.block_variable.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, control.tape_value(), h, dJdm=J.block_variable.tlm_value) > 1.9)
 
 
 def test_burgers():

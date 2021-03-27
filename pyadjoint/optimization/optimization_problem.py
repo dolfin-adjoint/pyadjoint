@@ -1,7 +1,7 @@
 import collections
 
 from .constraints import Constraint, canonicalise
-from ..overloaded_type import OverloadedType
+from ..overloaded_type import OverloadedType, create_overloaded_object
 from ..reduced_functional import ReducedFunctional
 
 __all__ = ['MinimizationProblem', 'MaximizationProblem']
@@ -49,7 +49,8 @@ class OptimizationProblem(object):
                     raise TypeError("Each bound should be a tuple of length 2 (lb, ub)")
 
                 for b in bound:
-                    klass = control.data().__class__
+                    b = create_overloaded_object(b, suppress_warning=True)
+                    klass = control.tape_value().__class__
                     if not (isinstance(b, (int, float, type(None), klass))):
                         raise TypeError("This pair (lb, ub) should be None, a float, or a %s." % klass)
 

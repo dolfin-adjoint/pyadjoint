@@ -63,7 +63,7 @@ if __name__ == "__main__":
     dtm = TimeMeasure()
     J = Functional(inner(u[1], u[1])*dx*dtm[FINISH_TIME])
     m = Control(u)
-    assert m.data().vector()[0] == u0.vector()[0]
+    assert m.tape_value().vector()[0] == u0.vector()[0]
     Jm = assemble(inner(u[1], u[1])*dx)
 
     def Jhat(ic):
