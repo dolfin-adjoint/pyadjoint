@@ -81,10 +81,11 @@ subject to:
    &= f_2 - R_{\theta}(u_1, u_2)  &\text{ in } \Omega \times (0,T) \\ 
    \frac{\partial u_3}{\partial t} + w \cdot \nabla u_3 - \nabla\cdot(\epsilon\nabla u_3)
    &= f_3 + R_{\theta}(u_1, u_2) &\text{ in } \Omega \times (0,T) \\
-   \frac{\partial u_i}{\partial n} &= 0 &\text{ on } \partial\Omega \times (0,T) \\ 
+   \frac{\partial u_i}{\partial n} &= 0 &\text{ on } \partial\Omega_{walls} \cup \partial\Omega_{outflow}  \times (0,T) \\ 
+   u_i &= 0 &\text{ on } \partial\Omega_{inflow}  \times (0,T) \\ 
    \end{aligned} 
 
-with initial conditions :math:`u_i=0` for :math:`i=1,2,3`. The weights :math:`\lambda_i`
+with initial conditions :math:`u_{i}=0` for :math:`i=1,2,3`. The weights :math:`\lambda_i`
 of the minimization functional are introduced to account for the smaller magnitude
 of the concentration of the newly formed species C.
 
@@ -149,6 +150,9 @@ and computes the loss for each time step, if a loss function (`loss_func`) is pr
         + eps*dot(grad(u_3), grad(v_3))*dx - reaction_func(u_1, u_2)*v_3*dx 
         - f_1*v_1*dx - f_2*v_2*dx - f_3*v_3*dx)
   
+      inflow   = 'near(x[0], 0)'
+      bc_inflow = DirichletBC(V, Constant((0,0,0)), inflow)
+  
       # Create time series for reading velocity data
       timeseries_w = TimeSeries('navier_stokes_cylinder/velocity_series')
       timeseries_w.retrieve(w.vector(), 2.0)
@@ -163,7 +167,7 @@ and computes the loss for each time step, if a loss function (`loss_func`) is pr
           t += dt
   
           # Solve variational problem for time step
-          solve(F == 0, u)
+          solve(F == 0, u, bcs=bc_inflow)
   
           # Save solution to file (VTK)
           _u_1, _u_2, _u_3 = u.split()
