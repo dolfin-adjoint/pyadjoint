@@ -30,8 +30,8 @@ class Constant(OverloadedType, backend.Constant):
                 block.add_output(self.block_variable)
 
     def assign(self, *args, **kwargs):
-        annotate_tape = kwargs.pop("annotate_tape", True)
-        if annotate_tape:
+        annotate = annotate_tape(kwargs)
+        if annotate:
             other = args[0]
             if not isinstance(other, OverloadedType):
                 other = create_overloaded_object(other)
@@ -43,7 +43,7 @@ class Constant(OverloadedType, backend.Constant):
         with stop_annotating():
             ret = backend.Constant.assign(self, *args, **kwargs)
 
-        if annotate_tape:
+        if annotate:
             block.add_output(self.create_block_variable())
 
         return ret
