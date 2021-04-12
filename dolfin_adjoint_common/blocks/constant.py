@@ -37,11 +37,17 @@ class ConstantAssignBlock(Block):
         return adj_output
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
-        return constant_from_values(block_variable.output, tlm_inputs[0])
+        values = tlm_inputs[0]
+        if isinstance(values, self.backend.Constant):
+            values = values.values()
+        return constant_from_values(block_variable.output, values)
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
         return self.evaluate_adj_component(inputs, hessian_inputs, block_variable, idx, prepared)
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        return constant_from_values(block_variable.output, inputs[0])
+        values = inputs[0]
+        if isinstance(values, self.backend.Constant):
+            values = values.values()
+        return constant_from_values(block_variable.output, values)

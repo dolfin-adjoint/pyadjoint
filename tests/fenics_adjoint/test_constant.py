@@ -1,6 +1,8 @@
 from fenics import *
 from fenics_adjoint import *
 
+from numpy.random import randn
+
 
 def test_preserved_ufl_shape():
     mesh = IntervalMesh(10, 0, 1)
@@ -53,6 +55,40 @@ def test_annotate_init():
     h = Constant(0.1)
     rates = taylor_to_dict(rf, c, h)
 
+    assert min(rates["R0"]["Rate"]) > 0.95
+    assert min(rates["R1"]["Rate"]) > 1.95
+    assert min(rates["R2"]["Rate"]) > 2.95
+
+
+def test_assign_matrix_constant():
+    domain = UnitSquareMesh(1, 1)
+    c = Constant([[1., 2.], [3., 4.]])
+    c2 = Constant([[0., 0.], [0., 0.]])
+
+    c2.assign(c)
+
+    J = assemble(inner(c2, c2) ** 2 * dx(domain=domain))
+    Jhat = ReducedFunctional(J, Control(c))
+
+    h = Constant(randn(2, 2))
+    rates = taylor_to_dict(Jhat, c, h)
+    assert min(rates["R0"]["Rate"]) > 0.95
+    assert min(rates["R1"]["Rate"]) > 1.95
+    assert min(rates["R2"]["Rate"]) > 2.95
+
+
+def test_assign_vector_constant():
+    domain = UnitSquareMesh(1, 1)
+    c = Constant([1, 1.])
+    c2 = Constant([0, 0])
+
+    c2.assign(c)
+
+    J = assemble(inner(c2, c2) ** 2 * dx(domain=domain))
+    Jhat = ReducedFunctional(J, Control(c))
+
+    h = Constant([0.1, 0.1])
+    rates = taylor_to_dict(Jhat, c, h)
     assert min(rates["R0"]["Rate"]) > 0.95
     assert min(rates["R1"]["Rate"]) > 1.95
     assert min(rates["R2"]["Rate"]) > 2.95
