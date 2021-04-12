@@ -54,6 +54,13 @@ class Constant(OverloadedType, backend.Constant):
     def adj_update_value(self, value):
         self.original_block_variable.checkpoint = value._ad_create_checkpoint()
 
+    @classmethod
+    def _ad_init_object(cls, obj):
+        # In FEniCS, passing a Constant to the Constant constructor is not possible when the Constant is nonscalar.
+        values = obj.values()
+        shape = obj.ufl_shape
+        return cls(numpy.reshape(values, shape))
+
     def _ad_convert_type(self, value, options={}):
         if value is None:
             # TODO: Should the default be 0 constant here or return just None?
