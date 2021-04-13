@@ -93,3 +93,18 @@ def test_assign_vector_constant():
     assert min(rates["R1"]["Rate"]) > 1.95
     assert min(rates["R2"]["Rate"]) > 2.95
 
+
+def test_annotate_list():
+    domain = UnitSquareMesh(1, 1)
+    m = AdjFloat(1.0)
+    c = Constant([m, 2.])
+
+    J = assemble(inner(c, c) ** 2 * dx(domain=domain))
+    Jhat = ReducedFunctional(J, Control(m))
+
+    h = AdjFloat(0.1)
+    rates = taylor_to_dict(Jhat, m, h)
+    assert min(rates["R0"]["Rate"]) > 0.95
+    assert min(rates["R1"]["Rate"]) > 1.95
+    assert min(rates["R2"]["Rate"]) > 2.95
+

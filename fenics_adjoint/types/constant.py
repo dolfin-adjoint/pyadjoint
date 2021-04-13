@@ -20,14 +20,20 @@ class Constant(OverloadedType, backend.Constant):
         super(Constant, self).__init__(*args, **kwargs)
         backend.Constant.__init__(self, *args, **kwargs)
 
-        if annotate:
-            if len(args) > 0 and isinstance(args[0], OverloadedType):
-                other = args[0]
-
-                block = ConstantAssignBlock(other)
+        if annotate and len(args) > 0:
+            value = args[0]
+            if isinstance(value, OverloadedType):
+                block = ConstantAssignBlock(value)
                 tape = get_working_tape()
                 tape.add_block(block)
                 block.add_output(self.block_variable)
+            elif isinstance(value, (tuple, list)):
+                value = numpy.array(value, dtype="O")
+                if any(isinstance(v, OverloadedType) for v in value.flat):
+                    block = ConstantAssignBlock(value)
+                    tape = get_working_tape()
+                    tape.add_block(block)
+                    block.add_output(self.block_variable)
 
     def assign(self, *args, **kwargs):
         annotate = annotate_tape(kwargs)
