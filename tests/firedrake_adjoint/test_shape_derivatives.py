@@ -47,7 +47,7 @@ def test_tlm_assemble():
     Jhat(s)
 
     # Tangent linear model
-    s.tlm_value = h
+    s.block_variable.tlm_value = h
     tape = get_working_tape()
     tape.evaluate_tlm()
     r1_tlm = taylor_test(Jhat, s, h, dJdm=J.block_variable.tlm_value)
@@ -125,7 +125,7 @@ def test_PDE_hessian_neumann():
     assert(r1>1.95)
 
     # First order taylor
-    s.tlm_value = h
+    s.block_variable.tlm_value = h
     tape = get_working_tape()
     tape.evaluate_tlm()
     r1 = taylor_test(Jhat, s, h, dJdm=J.block_variable.tlm_value)
@@ -179,7 +179,7 @@ def test_PDE_hessian_dirichlet():
     assert(r1>1.95)
 
     # First order taylor
-    s.tlm_value = h
+    s.block_variable.tlm_value = h
     tape = get_working_tape()
     tape.evaluate_tlm()
     r1 = taylor_test(Jhat, s, h, dJdm=J.block_variable.tlm_value)

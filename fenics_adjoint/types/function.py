@@ -209,10 +209,6 @@ class Function(FloatingType, backend.Function):
         return checkpoint
 
     @no_annotations
-    def adj_update_value(self, value):
-        self.original_block_variable.checkpoint = value._ad_create_checkpoint()
-
-    @no_annotations
     def _ad_mul(self, other):
         r = get_overloaded_class(backend.Function)(self.function_space())
         backend.Function.assign(r, self * other)

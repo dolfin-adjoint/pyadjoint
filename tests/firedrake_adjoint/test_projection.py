@@ -49,7 +49,7 @@ def test_project_tlm():
     tape = get_working_tape()
     tape.evaluate_tlm()
 
-    assert taylor_test(rf, f, h, dJdm=J.tlm_value) > 1.9
+    assert taylor_test(rf, f, h, dJdm=J.block_variable.tlm_value) > 1.9
 
 
 def test_project_hessian():

@@ -94,9 +94,6 @@ class AdjFloat(OverloadedType, float):
     def _ad_convert_type(self, value, options={}):
         return AdjFloat(value)
 
-    def adj_update_value(self, value):
-        self.original_block_variable.checkpoint = value
-
     def _ad_create_checkpoint(self):
         # Floats are immutable.
         return self

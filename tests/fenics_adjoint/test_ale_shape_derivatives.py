@@ -69,7 +69,7 @@ def test_tlm_assemble():
     assert(r0 >0.95)
     Jhat(s)
     # Tangent linear model
-    s.tlm_value = h
+    s.block_variable.tlm_value = h
     tape = get_working_tape()
     tape.evaluate_tlm()
     r1_tlm = taylor_test(Jhat, s, h, dJdm=J.block_variable.tlm_value)
@@ -137,7 +137,7 @@ def test_PDE_hessian():
     Jhat(s)
     assert(r0>0.95)
     # First order taylor
-    s.tlm_value = h
+    s.block_variable.tlm_value = h
     tape = get_working_tape()
     tape.evaluate_tlm()
     r1 = taylor_test(Jhat, s, h, dJdm=J.block_variable.tlm_value)
@@ -156,7 +156,7 @@ def test_repeated_movement():
     S = VectorFunctionSpace(mesh, "CG", 1)
     s0 = Function(S)
     ALE.move(mesh, s0)
-    ALE.move(mesh, s0, reset_mesh=False)
+    ALE.move(mesh, s0)
 
     x = SpatialCoordinate(mesh)
     V = FunctionSpace(mesh, "CG", 1)
