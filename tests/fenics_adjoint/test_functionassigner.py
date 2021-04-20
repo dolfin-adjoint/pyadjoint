@@ -75,5 +75,15 @@ def test_function_assigner_poisson():
     assert np.allclose(dJ_fa.vector().get_local(), dJ_split.vector().get_local())
 
 
+def test_function_assigner_no_annotation():
+    mesh = UnitSquareMesh(3, 3)
+    V = VectorFunctionSpace(mesh, "R", 0, dim=2)
+    v = Function(V)
+    W = V.sub(0).collapse()
+    w = Function(W)
+    fa = FunctionAssigner(W, V.sub(0))
+    fa.assign(w, v.sub(0), annotate=False)
+
+
 if __name__ == "__main__":
     test_function_assigner_poisson()
