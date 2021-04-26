@@ -68,7 +68,7 @@ point_op_list = [point_expr, action_point_expr, point_solve, neuralnet]
 params_list = [{'operator_data': lambda x:x, 'kwargs': {}},
                {'operator_data': lambda x:x, 'kwargs': {}},
                {'operator_data': lambda x, y: x - y, 'kwargs': {'solver_params':{'tol':1e-7, 'maxiter':30}}},
-               {'operator_data': model, 'kwargs': {}}]
+               {'operator_data': model, 'kwargs': {'inputs_format':1}}]
 solver_kwargs = {"mat_type": "matfree"}
 
 
@@ -97,7 +97,6 @@ def test_solve(point_op, params, mesh):
 
     _test_taylor(J_u, f, V)
 
-
     """The ExternalOperator is function of the control only: `N(m)`"""
     def J_f(f):
         p2 = p(f)
@@ -107,7 +106,6 @@ def test_solve(point_op, params, mesh):
 
     _test_taylor(J_f, f, V)
 
-    
     if point_op != neuralnet:
         """The ExternalOperator is function of the state and the control: `N(u, m)`"""
         g = point_expr(lambda x,y: x + y, function_space=V)
@@ -118,7 +116,7 @@ def test_solve(point_op, params, mesh):
             F = (-inner(g2, v) + inner(grad(u), grad(v)))*dx
             solve(F == 0, u, solver_parameters=solver_parameters)
             return assemble(u**2*dx)
-        
+
         _test_taylor(J_u_f, f, V)
 
 
@@ -183,15 +181,15 @@ def test_weights_optimization():
     v = TestFunction(V)
     model = torch.nn.Linear(1, 1)
 
-    p = neuralnet(model, function_space=V)
+    p = neuralnet(model, function_space=V, inputs_format=1)
     p2 = p(f)
 
-    m = weights(p2)
-    bias = Constant(np.array(p2.model.bias.data[0]))
+    # Get model parameters (weight and bias)
+    m, bias = p2.operator_params()
 
     def J(m):
-        # If last argument is a Constant we don't automatically add weights in the operands list
-        p2 = p(f, m)
+        # If last argument is a Constant we don't automatically add model params in the operands list
+        p2 = p(f, m, bias)
         F = (-inner(u, v) + inner(grad(u), grad(v)))*dx - p2*v*dx
         solve(F == 0, u)
         return assemble(u**2*dx)
