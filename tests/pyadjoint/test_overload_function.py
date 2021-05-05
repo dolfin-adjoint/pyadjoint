@@ -42,7 +42,7 @@ def ad_sin(y):
 
 @overloaded_function(CosBlock)
 def cos(x):
-    return AdjFloat(np.sin(x))
+    return AdjFloat(np.cos(x))
 
 
 def test_overload_function():
