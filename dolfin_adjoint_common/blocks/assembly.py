@@ -64,12 +64,8 @@ class AssembleBlock(Block):
             fct_space = c._ad_function_space()
             dc = self.backend.TestFunction(fct_space)
 
-
         if c_rep not in Nk.keys():
-            c_substitute = self.backend.Function(fct_space)
-            if isinstance(c_rep, self.backend.Constant):
-                c_substitute = self.backend.Constant(0.)
-            Nk_rep = tuple(self.backend.replace(e, {c_rep: c_substitute}) for e in Nk.values())
+            Nk_rep = tuple(self.backend.replace(e, {c_rep: c_rep.__deepcopy__()}) for e in Nk.values())
             form_Nk_rep = self.backend.replace(form, dict(zip(Nk.values(), Nk_rep)))
             dform = self.backend.derivative(form_Nk_rep, c_rep, dc)
         else:

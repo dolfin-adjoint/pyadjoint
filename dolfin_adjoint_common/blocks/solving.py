@@ -141,7 +141,7 @@ class GenericSolveBlock(Block):
         extops_coeff = [e.get_coefficient() for e in F_form.external_operators()]
         Nk = dict(zip(extops_coeff, F_form.external_operators()))
 
-        Nk_rep = tuple(self.backend.replace(e, {u_rep: self.backend.Function(u_rep.function_space())}) for e in Nk.values())
+        Nk_rep = tuple(self.backend.replace(e, {u_rep: u_rep.__deepcopy__()}) for e in Nk.values())
         F_form_Nk_rep = self.backend.replace(F_form, dict(zip(Nk.values(), Nk_rep)))
         dFdu = self.backend.derivative(F_form_Nk_rep, u_rep, u_hat)
         dFdu_form = self.backend.adjoint(dFdu)
@@ -226,19 +226,12 @@ class GenericSolveBlock(Block):
             F_form_tmp = self.backend.action(F_form, adj_sol)
             X = self.backend.SpatialCoordinate(c_rep)
             dFdm = self.backend.derivative(-F_form_tmp, X, self.backend.TestFunction(c._ad_function_space()))
-
             dFdm = self.compat.assemble_adjoint_value(dFdm, **self.assemble_kwargs)
             return dFdm
 
         # If we don't differentiate wrt to an external operator
         if c_rep not in Nk.keys():
-            c_substitute = self.backend.Function(c_fs)
-            if isinstance(c_rep, self.backend.Constant):
-                # TODO: FIXME probably better way to do that
-                c_substitute = c_rep._ad_copy()
-                c_substitute.dat.zero()
-                # c_substitute =self.backend.Constant(c_rep.ufl_shape)
-            Nk_rep = tuple(self.backend.replace(e, {c_rep: c_substitute}) for e in Nk.values())
+            Nk_rep = tuple(self.backend.replace(e, {c_rep: c_rep.__deepcopy__()}) for e in Nk.values())
             F_form_Nk_rep = self.backend.replace(F_form, dict(zip(Nk.values(), Nk_rep)))
             try:
                 dFdm = -self.backend.derivative(F_form_Nk_rep, c_rep, trial_function)
