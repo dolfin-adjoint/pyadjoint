@@ -92,7 +92,10 @@ class AdjFloat(OverloadedType, float):
         return PowBlock(self, power)
 
     def _ad_convert_type(self, value, options={}):
-        return AdjFloat(value)
+        try:
+            return AdjFloat(value)
+        except Exception:
+            return AdjFloat(value.dat.data[0])
 
     def _ad_create_checkpoint(self):
         # Floats are immutable.
