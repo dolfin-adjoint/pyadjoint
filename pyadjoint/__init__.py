@@ -1,6 +1,6 @@
 # flake8: noqa
 
-__version__ = '2019.1.0'
+__version__ = '2019.1.1'
 __author__  = 'Sebastian Kenji Mitusch'
 __credits__ = []
 __license__ = 'LGPL-3'

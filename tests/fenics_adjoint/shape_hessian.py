@@ -33,7 +33,7 @@ r0 = taylor_test(Jhat, s, h, dJdm=0)
 Jhat(s)
 assert(r0>0.95)
 # First order taylor
-s.tlm_value = h
+s.block_variable.tlm_value = h
 tape.evaluate_tlm()
 r1 = taylor_test(Jhat, s, h, dJdm=J.block_variable.tlm_value)
 assert(r1>1.95)
@@ -75,7 +75,7 @@ Jhat(s)
 # Jhat(s)
 
 # # First order taylor
-# s.tlm_value = h
+# s.block_variable.tlm_value = h
 # tape.evaluate_tlm()
 # taylor_test(Jhat, s, h, dJdm=J.block_variable.tlm_value)
 # Jhat(s)

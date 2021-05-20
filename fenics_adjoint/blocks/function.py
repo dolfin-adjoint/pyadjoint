@@ -48,7 +48,7 @@ class FunctionSplitBlock(Block):
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx,
                                prepared=None):
-        return backend.Function.sub(tlm_inputs[0], self.idx, deepcopy=True)
+        return backend.Function.sub(tlm_inputs[0], self.idx, deepcopy=False)
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs,
                                    block_variable, idx,
@@ -56,7 +56,7 @@ class FunctionSplitBlock(Block):
         return hessian_inputs[0]
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        return backend.Function.sub(inputs[0], self.idx, deepcopy=True)
+        return backend.Function.sub(inputs[0], self.idx, deepcopy=False)
 
 
 # TODO: This block is not valid in fenics and not correctly implemented. It should never be used.

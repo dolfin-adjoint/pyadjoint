@@ -57,9 +57,6 @@ class Constant(OverloadedType, backend.Constant):
     def get_derivative(self, options={}):
         return self._ad_convert_type(self.adj_value, options=options)
 
-    def adj_update_value(self, value):
-        self.original_block_variable.checkpoint = value._ad_create_checkpoint()
-
     @classmethod
     def _ad_init_object(cls, obj):
         # In FEniCS, passing a Constant to the Constant constructor is not possible when the Constant is nonscalar.

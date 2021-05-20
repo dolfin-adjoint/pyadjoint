@@ -56,9 +56,11 @@ def test_mixed_derivatives():
 
     f = Function(V)
     f.vector()[:] = 2
+    control_f = Control(f)
 
     g = Function(V)
     g.vector()[:] = 3
+    control_g = Control(g)
 
     u = TrialFunction(V)
     v = TestFunction(V)
@@ -70,11 +72,11 @@ def test_mixed_derivatives():
     solve(a == L, u_)
 
     J = assemble(u_**2*dx)
-    J.adj_value = 1.0
+    J.block_variable.adj_value = 1.0
     h = Function(V)
     h.vector()[:] = rand(V.dim())
-    f.tlm_value = h
-    g.tlm_value = h
+    control_f.tlm_value = h
+    control_g.tlm_value = h
 
     tape.evaluate_adj()
     tape.evaluate_tlm()
@@ -83,12 +85,12 @@ def test_mixed_derivatives():
     tape.evaluate_hessian()
 
     dJdm = J.block_variable.tlm_value
-    Hm = f.original_block_variable.hessian_value.vector().inner(h.vector()) + g.original_block_variable.hessian_value.vector().inner(h.vector())
+    Hm = control_f.hessian_value.vector().inner(h.vector()) + control_g.hessian_value.vector().inner(h.vector())
 
     m_1 = f.copy(deepcopy=True)
     m_2 = g.copy(deepcopy=True)
 
-    assert conv_mixed(J, f, g, m_1, m_2, h, h, dJdm, Hm) > 2.9
+    assert conv_mixed(J, control_f, control_g, m_1, m_2, h, h, dJdm, Hm) > 2.9
 
 
 def test_function():
@@ -99,8 +101,10 @@ def test_function():
     V = FunctionSpace(mesh, "Lagrange", 2)
 
     c = Constant(4)
+    control_c = Control(c)
     f = Function(V)
     f.vector()[:] = 3
+    control_f = Control(f)
 
     u = Function(V)
     v = TestFunction(V)
@@ -115,9 +119,9 @@ def test_function():
     h = Function(V)
     h.vector()[4] = 1
 
-    J.adj_value = 1.0
-    f.tlm_value = h
-    c.tlm_value = Constant(1)
+    J.block_variable.adj_value = 1.0
+    f.block_variable.tlm_value = h
+    c.block_variable.tlm_value = Constant(1)
 
     tape.evaluate_adj()
     tape.evaluate_tlm()
@@ -128,9 +132,9 @@ def test_function():
     g = f.copy(deepcopy=True)
 
     dJdm = J.block_variable.tlm_value
-    Hm = f.original_block_variable.hessian_value.vector().inner(h.vector()) + c.original_block_variable.hessian_value
+    Hm = control_f.hessian_value.vector().inner(h.vector()) + control_c.hessian_value
 
-    assert conv_mixed(J, f, c, g, Constant(4), h, Constant(1), dJdm=dJdm, Hm=Hm) > 2.9
+    assert conv_mixed(J, control_f, control_c, g, Constant(4), h, Constant(1), dJdm=dJdm, Hm=Hm) > 2.9
 
 
 def test_nonlinear():
@@ -156,8 +160,8 @@ def test_nonlinear():
     h = Function(V)
     h.vector()[:] = 10*rand(V.dim())
 
-    J.adj_value = 1.0
-    f.tlm_value = h
+    J.block_variable.adj_value = 1.0
+    f.block_variable.tlm_value = h
 
     tape.evaluate_adj()
     tape.evaluate_tlm()
@@ -168,7 +172,7 @@ def test_nonlinear():
     g = f.copy(deepcopy=True)
 
     dJdm = J.block_variable.tlm_value
-    Hm = f.original_block_variable.hessian_value.vector().inner(h.vector())
+    Hm = f.block_variable.hessian_value.vector().inner(h.vector())
     assert taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9
 
 
@@ -197,8 +201,8 @@ def test_dirichlet():
     h = Function(V)
     h.vector()[:] = rand(V.dim())
 
-    J.adj_value = 1.0
-    c.tlm_value = h
+    J.block_variable.adj_value = 1.0
+    c.block_variable.tlm_value = h
 
     tape.evaluate_adj()
     tape.evaluate_tlm()
@@ -210,7 +214,7 @@ def test_dirichlet():
 
     dJdm = J.block_variable.tlm_value
 
-    Hm = c.original_block_variable.hessian_value.vector().inner(h.vector())
+    Hm = c.block_variable.hessian_value.vector().inner(h.vector())
     assert taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9
 
 
@@ -262,8 +266,8 @@ def test_burgers():
     h = Function(V)
     h.vector()[:] = rand(V.dim())
     g = ic.copy(deepcopy=True)
-    J.adj_value = 1.0
-    ic.tlm_value = h
+    J.block_variable.adj_value = 1.0
+    ic.block_variable.tlm_value = h
     tape.evaluate_adj()
     tape.evaluate_tlm()
 
@@ -271,16 +275,16 @@ def test_burgers():
     tape.evaluate_hessian()
 
     dJdm = J.block_variable.tlm_value
-    Hm = ic.original_block_variable.hessian_value.vector().inner(h.vector())
+    Hm = ic.block_variable.hessian_value.vector().inner(h.vector())
     assert taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9
 
 
 # Temporary mixed controls taylor test until pyadjoint natively supports it.
-def conv_mixed(J, f, g, m_1, m_2, h_1, h_2, dJdm, Hm):
+def conv_mixed(J, c_1, c_2, m_1, m_2, h_1, h_2, dJdm, Hm):
     tape = get_working_tape()
     def J_eval(m_1, m_2):
-        f.adj_update_value(m_1)
-        g.adj_update_value(m_2)
+        c_1.update(m_1)
+        c_2.update(m_2)
 
         blocks = tape.get_blocks()
         for i in range(len(blocks)):

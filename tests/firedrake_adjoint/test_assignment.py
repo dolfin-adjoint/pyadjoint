@@ -64,13 +64,13 @@ def test_assign_tlm():
 
     h = Function(V)
     h.vector()[:] = 1
-    f.tlm_value = h
+    f.block_variable.tlm_value = h
 
     tape = get_working_tape()
     tape.evaluate_tlm()
 
-    assert J.tlm_value is not None
-    assert taylor_test(rf, f, h, dJdm=J.tlm_value) > 1.9
+    assert J.block_variable.tlm_value is not None
+    assert taylor_test(rf, f, h, dJdm=J.block_variable.tlm_value) > 1.9
 
 
 def test_assign_tlm_wit_constant():
@@ -85,14 +85,14 @@ def test_assign_tlm_wit_constant():
     u = Function(V)
     u.assign(c * f ** 2)
 
-    c.tlm_value = Constant(0.3)
+    c.block_variable.tlm_value = Constant(0.3)
     tape = get_working_tape()
     tape.evaluate_tlm()
     assert_allclose(u.block_variable.tlm_value.dat.data, 0.3 * f.dat.data ** 2)
 
     tape.reset_tlm_values()
-    c.tlm_value = Constant(0.4)
-    f.tlm_value = g
+    c.block_variable.tlm_value = Constant(0.4)
+    f.block_variable.tlm_value = g
     tape.evaluate_tlm()
     assert_allclose(u.block_variable.tlm_value.dat.data, 0.4 * f.dat.data ** 2 + 10. * f.dat.data * g.dat.data)
 

@@ -3,15 +3,13 @@ import ufl
 import ufl.algorithms
 import numpy
 
-import fenics_adjoint.types as fenics_types
 from pyadjoint.optimization.constraints import Constraint, EqualityConstraint, InequalityConstraint
+
 
 if backend.__name__ in ["dolfin", "fenics"]:
     import fenics_adjoint.types as backend_types
-elif backend.__name__ == "firedrake":
-    import firedrake_adjoint.types as backend_types
 else:
-    raise NotImplementedError("Unknown backend")
+    backend_types = backend
 
 
 def as_vec(x):
@@ -27,10 +25,9 @@ def as_vec(x):
     elif backend.__name__ == "firedrake":
         with x.dat.vec_ro as vec:
             copy = numpy.array(vec)
-
         if len(copy) == 1:
             copy = copy[0]
-        return fenics_types.Constant(copy)
+        return backend_types.Constant(copy)
     else:
         raise NotImplementedError("Unknown backend")
 
@@ -84,7 +81,7 @@ class UFLConstraint(Constraint):
     def function(self, m):
         self.update_control(m)
         b = backend.assemble(self.form)
-        return fenics_types.Constant(b)
+        return backend_types.Constant(b)
 
     def jacobian(self, m):
         if isinstance(m, list):
@@ -145,13 +142,14 @@ class UFLConstraint(Constraint):
                     result.assign(0)
                 else:
                     result.assign(backend.assemble(H))
+
         else:
             raise NotImplementedError("Do I need to untangle all controls?")
 
     def output_workspace(self):
         """Return an object like the output of c(m) for calculations."""
 
-        return fenics_types.Constant(backend.assemble(self.form))
+        return backend_types.Constant(backend.assemble(self.form))
 
     def _get_constraint_dim(self):
         """Returns the number of constraint components."""

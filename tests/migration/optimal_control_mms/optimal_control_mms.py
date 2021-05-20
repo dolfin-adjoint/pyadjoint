@@ -50,14 +50,14 @@ def solve_optimal_control(n):
     rf = ReducedFunctional(J, control)
 
     minimize(rf, method = "Newton-CG", tol = 1e-16, options = {'disp': True})
-    solve_pde(u, V, control.data())
+    solve_pde(u, V, control.tape_value())
 
     # Define the analytical expressions
     m_analytic = Expression("sin(pi*x[0])*sin(pi*x[1])", degree=4)
     u_analytic = Expression("1/(2*pi*pi)*sin(pi*x[0])*sin(pi*x[1])", degree=4)
 
     # Compute the error
-    control_error = errornorm(m_analytic, control.data())
+    control_error = errornorm(m_analytic, control.tape_value())
     state_error = errornorm(u_analytic, u)
     return control_error, state_error
 

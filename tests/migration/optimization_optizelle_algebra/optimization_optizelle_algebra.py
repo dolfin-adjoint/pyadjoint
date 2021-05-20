@@ -82,9 +82,9 @@ class VolumeConstraint(EqualityConstraint):
 
 # Instantiate and rescale the bound constraints manually,
 # so that the finite difference test reaches the region of convergence
-lower_bound = OptizelleBoundConstraint(m.data(), 0., 'lower')
+lower_bound = OptizelleBoundConstraint(m.tape_value(), 0., 'lower')
 lower_bound.scale *= 1000.
-upper_bound = OptizelleBoundConstraint(m.data(), 1., 'upper')
+upper_bound = OptizelleBoundConstraint(m.tape_value(), 1., 'upper')
 upper_bound.scale *= 1000.
 
 problem = MinimizationProblem(Jhat,

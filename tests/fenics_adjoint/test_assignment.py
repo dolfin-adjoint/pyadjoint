@@ -60,12 +60,12 @@ def test_assign_tlm():
 
     h = Function(V)
     h.vector()[:] = rand(V.dim())
-    f.tlm_value = h
+    f.block_variable.tlm_value = h
 
     tape = get_working_tape()
     tape.evaluate_tlm()
 
-    assert taylor_test(rf, f, h, dJdm=J.tlm_value) > 1.9
+    assert taylor_test(rf, f, h, dJdm=J.block_variable.tlm_value) > 1.9
 
 
 def test_assign_hessian():

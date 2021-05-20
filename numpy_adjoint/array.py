@@ -19,9 +19,6 @@ class ndarray(OverloadedType, numpy.ndarray):
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
 
-    def adj_update_value(self, value):
-        self[:] = value
-
     def __getitem__(self, item):
         annotate = annotate_tape()
         if annotate:

@@ -55,7 +55,7 @@ class ReducedFunctional(object):
 
         """
         # Call callback
-        values = [c.data() for c in self.controls]
+        values = [c.tape_value() for c in self.controls]
         self.derivative_cb_pre(self.controls.delist(values))
 
         derivatives = compute_gradient(self.functional,
@@ -90,7 +90,7 @@ class ReducedFunctional(object):
                 Should be an instance of the same type as the control.
         """
         # Call callback
-        values = [c.data() for c in self.controls]
+        values = [c.tape_value() for c in self.controls]
         self.hessian_cb_pre(self.controls.delist(values))
 
         r = compute_hessian(self.functional, self.controls, m_dot, options=options, tape=self.tape)

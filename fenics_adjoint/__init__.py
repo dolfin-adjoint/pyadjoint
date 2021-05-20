@@ -33,9 +33,11 @@ from .assembly import assemble, assemble_system
 from .solving import solve
 from .projection import project
 from .interpolation import interpolate
-from .ufl_constraints import UFLEqualityConstraint, UFLInequalityConstraint
 from .shapead_transformations import (transfer_from_boundary,
                                       transfer_to_boundary)
+
+from dolfin_adjoint_common.ufl_constraints import UFLInequalityConstraint, UFLEqualityConstraint
+
 if backend.__name__ != "firedrake":
     from .newton_solver import NewtonSolver
     from .lu_solver import LUSolver

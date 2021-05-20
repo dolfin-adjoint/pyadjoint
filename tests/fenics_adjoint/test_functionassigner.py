@@ -61,7 +61,7 @@ def test_function_assigner_poisson():
 
     tape = get_working_tape()
     tape.reset_tlm_values()
-    s_.tlm_value = pert
+    s_.block_variable.tlm_value = pert
     tape.evaluate_tlm()
     r1_tlm = taylor_test(Jhat, s_, pert, dJdm=J.block_variable.tlm_value)
     assert r1_tlm > 1.95
@@ -73,6 +73,16 @@ def test_function_assigner_poisson():
     Jhat = ReducedFunctional(J, Control(s_))
     dJ_split = Jhat.derivative()
     assert np.allclose(dJ_fa.vector().get_local(), dJ_split.vector().get_local())
+
+
+def test_function_assigner_no_annotation():
+    mesh = UnitSquareMesh(3, 3)
+    V = VectorFunctionSpace(mesh, "R", 0, dim=2)
+    v = Function(V)
+    W = V.sub(0).collapse()
+    w = Function(W)
+    fa = FunctionAssigner(W, V.sub(0))
+    fa.assign(w, v.sub(0), annotate=False)
 
 
 if __name__ == "__main__":

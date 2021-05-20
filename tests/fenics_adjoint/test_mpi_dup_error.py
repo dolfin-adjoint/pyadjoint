@@ -92,3 +92,26 @@ def test_dirichletbc_subspace():
 
     gc.collect()
     assert original - get_free_comms() <= 1
+
+
+def test_function_split():
+    """This test checks if there is any MPI communicator leakage for Function.split without deepcopy.
+    This was a bug because the Block associated with `Function.split()` created a deepcopy on replay,
+    which created a new function space.
+    """
+    mesh = UnitSquareMesh(3, 3)
+    V = VectorFunctionSpace(mesh, "CG", 1)
+    sol = Function(V)
+
+    gc.collect()
+    original = get_free_comms()
+
+    J = 0.
+    for i in range(100):
+        J += assemble(sol.split()[0]*dx)
+
+    Jhat = ReducedFunctional(J, Control(sol))
+    Jhat(sol)
+
+    gc.collect()
+    assert original - get_free_comms() <= 0

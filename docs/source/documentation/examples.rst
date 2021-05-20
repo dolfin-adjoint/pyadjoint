@@ -23,6 +23,7 @@ Optimization examples
    time-distributed-control/time-distributed-control
    time-dependent-wave/time-dependent-wave
    mpec/mpec
+   reaction-rate-learning/reaction-rate-learning
 
 Shape optimization examples
 ---------------------------

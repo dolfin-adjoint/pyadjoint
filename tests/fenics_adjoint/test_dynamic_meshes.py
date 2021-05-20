@@ -4,11 +4,10 @@ from dolfin_adjoint import *
 import numpy as np
 
 
-@pytest.mark.parametrize("reset", [True, False])
 @pytest.mark.parametrize("mesh", [UnitSquareMesh(10,10),
                                   UnitDiscMesh.create(MPI.comm_world,
                                                       10, 1, 2)])
-def test_dynamic_meshes_2D(mesh, reset):
+def test_dynamic_meshes_2D(mesh):
     S = VectorFunctionSpace(mesh, "CG", 1)
     s = [Function(S), Function(S), Function(S)]
     ALE.move(mesh, s[0])
@@ -17,7 +16,7 @@ def test_dynamic_meshes_2D(mesh, reset):
     V = FunctionSpace(mesh, "CG", 1)
     u0 = project(cos(pi*x[0])*sin(pi*x[1]), V)
     
-    ALE.move(mesh, s[1], reset_mesh=reset)
+    ALE.move(mesh, s[1])
     
     u, v = TrialFunction(V), TestFunction(V)
     f = cos(x[0]) + x[1] * sin(2 * pi * x[1])
@@ -30,7 +29,7 @@ def test_dynamic_meshes_2D(mesh, reset):
     solve(lhs(F) == rhs(F), u1)
     J = float(dt)*assemble(u1**2*dx)
 
-    ALE.move(mesh, s[2],reset_mesh=reset)
+    ALE.move(mesh, s[2])
     F = k*inner(u-u1, v)*dx + inner(grad(u), grad(v))*dx - f*v*dx
     u2 = Function(V)
     solve(lhs(F) == rhs(F), u2)
@@ -54,10 +53,9 @@ def test_dynamic_meshes_2D(mesh, reset):
     assert(np.mean(results["R2"]["Rate"])>2.9)
 
 
-@pytest.mark.parametrize("reset", [True, False])
 @pytest.mark.parametrize("mesh", [UnitCubeMesh(4,4,4),
                                   BoxMesh(Point(0,1,2),Point(1.5,2,2.5), 4,3,5)])
-def test_dynamic_meshes_3D(mesh, reset):
+def test_dynamic_meshes_3D(mesh):
     S = VectorFunctionSpace(mesh, "CG", 1)
     s = [Function(S), Function(S), Function(S)]
     ALE.move(mesh, s[0])
@@ -66,7 +64,7 @@ def test_dynamic_meshes_3D(mesh, reset):
     V = FunctionSpace(mesh, "CG", 1)
     u0 = project(cos(pi*x[0])*sin(pi*x[1])*x[2]**2, V)
     
-    ALE.move(mesh, s[1], reset_mesh=reset)
+    ALE.move(mesh, s[1])
     
     u, v = TrialFunction(V), TestFunction(V)
     f = x[2]*cos(x[0]) + x[1] * sin(2 * pi * x[1])
@@ -79,7 +77,7 @@ def test_dynamic_meshes_3D(mesh, reset):
     solve(lhs(F) == rhs(F), u1)
     J = float(dt)*assemble(u1**2*dx)
 
-    ALE.move(mesh, s[2],reset_mesh=reset)
+    ALE.move(mesh, s[2])
     F = k*inner(u-u1, v)*dx + inner(grad(u), grad(v))*dx - f*v*dx
     u2 = Function(V)
     solve(lhs(F) == rhs(F), u2)

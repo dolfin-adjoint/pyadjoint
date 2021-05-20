@@ -36,7 +36,7 @@ def test_tlm_assemble():
     h = Function(V)
     h.vector()[:] = rand(h.dof_dset.size)
     g = f.copy(deepcopy=True)
-    f.tlm_value = h
+    f.block_variable.tlm_value = h
     tape.evaluate_tlm()
     assert (taylor_test(Jhat, g, h, dJdm=J.block_variable.tlm_value) > 1.9)
 
@@ -61,7 +61,7 @@ def test_tlm_bc():
     J = assemble(c ** 2 * u * dx)
     Jhat = ReducedFunctional(J, Control(c))
 
-    c.tlm_value = Constant(1)
+    c.block_variable.tlm_value = Constant(1)
     tape.evaluate_tlm()
 
     assert (taylor_test(Jhat, Constant(c), Constant(1), dJdm=J.block_variable.tlm_value) > 1.9)
@@ -91,7 +91,7 @@ def test_tlm_func():
     h = Function(V)
     h.vector()[:] = rand(h.dof_dset.size)
     g = c.copy(deepcopy=True)
-    c.tlm_value = h
+    c.block_variable.tlm_value = h
     tape.evaluate_tlm()
 
     assert (taylor_test(Jhat, g, h, dJdm=J.block_variable.tlm_value) > 1.9)
@@ -149,7 +149,7 @@ def test_time_dependent(solve_type):
     h.vector()[:] = rand(h.dof_dset.size)
     u_1.tlm_value = h
     tape.evaluate_tlm()
-    assert (taylor_test(Jhat, control.data(), h, dJdm=J.block_variable.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, control.tape_value(), h, dJdm=J.block_variable.tlm_value) > 1.9)
 
 
 def test_burgers():
@@ -200,7 +200,7 @@ def test_burgers():
     h = Function(V)
     h.vector()[:] = rand(h.dof_dset.size)
     g = ic.copy(deepcopy=True)
-    ic.tlm_value = h
+    ic.block_variable.tlm_value = h
     tape.evaluate_tlm()
     assert (taylor_test(Jhat, g, h, dJdm=J.block_variable.tlm_value) > 1.9)
 
@@ -229,7 +229,7 @@ def test_projection():
     J = assemble(u_**2*dx)
     Jhat = ReducedFunctional(J, Control(k))
 
-    k.tlm_value = Constant(1)
+    k.block_variable.tlm_value = Constant(1)
     tape.evaluate_tlm()
     assert(taylor_test(Jhat, Constant(k), Constant(1), dJdm=J.block_variable.tlm_value) > 1.9)
 
@@ -262,6 +262,6 @@ def test_projection_function():
     h = Function(V)
     h.vector()[:] = rand(h.dof_dset.size)
     m = g.copy(deepcopy=True)
-    g.tlm_value = h
+    g.block_variable.tlm_value = h
     tape.evaluate_tlm()
     assert (taylor_test(Jhat, m, h, dJdm=J.block_variable.tlm_value) > 1.9)

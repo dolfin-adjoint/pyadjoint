@@ -21,9 +21,9 @@ def serialise_bounds(rf_np, bounds):
     for i in range(2):
         for j in range(len(bounds[i])):
             bound = bounds[i][j]
-            if type(bound) in [int, float, np.int32, np.int64, np.float32, np.float64]:
+            if bound is None or isinstance(bound, (int, float)):
                 bound_len = len(rf_np.get_global(rf_np.controls[j]))
-                const_bound = bound * np.ones(bound_len)
+                const_bound = np.array([bound] * bound_len)
 
                 bounds_arr[i] += const_bound.tolist()
             else:
@@ -59,7 +59,7 @@ def minimize_scipy_generic(rf_np, method, bounds=None, **kwargs):
 
     project = kwargs.pop("project", False)
 
-    m = [p.data() for p in rf_np.controls]
+    m = [p.tape_value() for p in rf_np.controls]
     m_global = rf_np.obj_to_array(m)
     J = rf_np.__call__
 
@@ -134,8 +134,7 @@ def minimize_scipy_generic(rf_np, method, bounds=None, **kwargs):
     else:
         res = scipy_minimize(J, m_global, method=method, **kwargs)
 
-    rf_np.set_controls(np.array(res["x"]))
-    m = [p.data() for p in rf_np.controls]
+    m = rf_np.set_controls(np.array(res["x"]))
     return m
 
 
@@ -151,7 +150,7 @@ def minimize_custom(rf_np, bounds=None, **kwargs):
             'the "algorithm" parameter. Make sure that this function accepts the same arguments as '
             'scipy.optimize.minimize.')
 
-    m = [p.data() for p in rf_np.controls]
+    m = [p.tape_value() for p in rf_np.controls]
     m_global = rf_np.obj_to_array(m)
     J = rf_np.__call__
 
@@ -164,13 +163,12 @@ def minimize_custom(rf_np, bounds=None, **kwargs):
     res = algo(J, m_global, dJ, H, bounds, **kwargs)
 
     try:
-        rf_np.set_controls(np.array(res))
+        m = rf_np.set_controls(np.array(res))
     except Exception as e:
         # TODO: Is this possible?
         raise e(
             "Failed to update the optimised control values. "
             "Are you sure your custom optimisation algorithm returns an array containing the optimised values?")
-    m = [p.data() for p in rf_np.controls]
     return m
 
 

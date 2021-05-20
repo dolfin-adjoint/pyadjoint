@@ -34,7 +34,7 @@ def create_overloaded_object(obj, suppress_warning=False):
     else:
         if not suppress_warning:
             import warnings
-            warnings.warn("Could not find overloaded class of type '{}'.".format(obj_type))
+            warnings.warn("Could not find overloaded class of type '{}'.".format(obj_type), stacklevel=2)
         return obj
 
 
@@ -71,13 +71,11 @@ class OverloadedType(object):
     it can be referenced by blocks as well as overload basic mathematical
     operations such as __mul__, __add__, where they are needed.
 
-    Abstract methods:
-        :func:`adj_update_value`
-
     """
 
     def __init__(self, *args, **kwargs):
-        self.original_block_variable = self.create_block_variable()
+        self.block_variable = None
+        self.create_block_variable()
 
     @classmethod
     def _ad_init_object(cls, obj):
@@ -98,22 +96,6 @@ class OverloadedType(object):
     def create_block_variable(self):
         self.block_variable = BlockVariable(self)
         return self.block_variable
-
-    @property
-    def adj_value(self):
-        return self.original_block_variable.adj_value
-
-    @adj_value.setter
-    def adj_value(self, value):
-        self.block_variable.adj_value = value
-
-    @property
-    def tlm_value(self):
-        return self.original_block_variable.tlm_value
-
-    @tlm_value.setter
-    def tlm_value(self, value):
-        self.original_block_variable.tlm_value = value
 
     def _ad_convert_type(self, value, options={}):
         """This method must be overridden.
@@ -156,18 +138,6 @@ class OverloadedType(object):
 
         Returns:
             :obj:`OverloadedType`: The object with same state as at the supplied checkpoint.
-
-        """
-        raise NotImplementedError
-
-    def adj_update_value(self, value):
-        """This method must be overridden.
-
-        The method should implement a routine for assigning a new value
-        to the overloaded object.
-
-        Args:
-            value (:obj:`object`): Should be an instance of the OverloadedType.
 
         """
         raise NotImplementedError
