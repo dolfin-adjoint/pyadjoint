@@ -69,7 +69,7 @@ class FunctionAssignBlock(Block):
                     ufl.derivative(expr, block_variable.saved_output, self.backend.Constant(1.))
                 )
                 adj_output.assign(diff_expr)
-                adj_output.vector()[:] *= adj_input_func.vector()
+                return adj_output.vector().inner(adj_input_func.vector())
 
             if isinstance(block_variable.output, self.backend.Constant):
                 R = block_variable.output._ad_function_space(adj_output.function_space().mesh())
