@@ -41,8 +41,11 @@ class FunctionAssignBlock(Block):
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx,
                                prepared=None):
         if self.expr is None:
-            if isinstance(block_variable.output, (AdjFloat, self.backend.Constant)):
+            if isinstance(block_variable.output, AdjFloat):
                 return adj_inputs[0].sum()
+            elif isinstance(block_variable.output, self.backend.Constant):
+                R = block_variable.output._ad_function_space(prepared.function_space().mesh())
+                return self._adj_assign_constant(prepared, R)
             else:
                 adj_output = self.backend.Function(
                     block_variable.output.function_space())
@@ -51,16 +54,43 @@ class FunctionAssignBlock(Block):
         else:
             # Linear combination
             expr, adj_input_func = prepared
-            diff_expr = ufl.algorithms.expand_derivatives(
-                ufl.derivative(expr, block_variable.saved_output,
-                               adj_input_func)
-            )
             adj_output = self.backend.Function(adj_input_func.function_space())
-            adj_output.assign(diff_expr)
-            if isinstance(block_variable.output, (AdjFloat, self.backend.Constant)):
-                return adj_output.vector().sum()
+            if block_variable.saved_output.ufl_shape == adj_input_func.ufl_shape:
+                diff_expr = ufl.algorithms.expand_derivatives(
+                    ufl.derivative(expr, block_variable.saved_output, adj_input_func)
+                )
+                adj_output.assign(diff_expr)
+            else:
+                # Assume current variable is scalar constant.
+                # This assumption might be wrong for firedrake.
+                assert isinstance(block_variable.output, self.backend.Constant)
+
+                diff_expr = ufl.algorithms.expand_derivatives(
+                    ufl.derivative(expr, block_variable.saved_output, self.backend.Constant(1.))
+                )
+                adj_output.assign(diff_expr)
+                return adj_output.vector().inner(adj_input_func.vector())
+
+            if isinstance(block_variable.output, self.backend.Constant):
+                R = block_variable.output._ad_function_space(adj_output.function_space().mesh())
+                return self._adj_assign_constant(adj_output, R)
             else:
                 return adj_output.vector()
+
+    def _adj_assign_constant(self, adj_output, constant_fs):
+        r = self.backend.Function(constant_fs)
+        shape = r.ufl_shape
+        if shape == () or shape[0] == 1:
+            # Scalar Constant
+            r.vector()[:] = adj_output.vector().sum()
+        else:
+            # We assume the shape of the constant == shape of the output function if not scalar.
+            # This assumption is due to FEniCS not supporting products with non-scalar constants in assign.
+            values = []
+            for i in range(shape[0]):
+                values.append(adj_output.sub(i, deepcopy=True).vector().sum())
+            r.assign(self.backend.Constant(values))
+        return r.vector()
 
     def prepare_evaluate_tlm(self, inputs, tlm_inputs, relevant_outputs):
         if self.expr is None:

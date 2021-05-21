@@ -100,3 +100,24 @@ def test_assign_nonlincom_error():
 
     with pytest.raises(RuntimeError): u.assign(f*g)
 
+
+def test_assign_constant_scale():
+    mesh = UnitSquareMesh(10, 10)
+    V = VectorFunctionSpace(mesh, "CG", 1)
+
+    f = Function(V)
+    c = Constant(2.0)
+    g = interpolate(Expression(("sin(x[1])+x[0]", "cos(x[0])*x[1]"), degree=1), V)
+
+    f.assign(c * g)
+
+    J = assemble(inner(f, f) ** 2  * dx)
+
+    rf = ReducedFunctional(J, Control(c))
+    h = Constant(0.1)
+    r = taylor_to_dict(rf, c, h)
+
+    assert min(r["R0"]["Rate"]) > 0.9
+    assert min(r["R1"]["Rate"]) > 1.9
+    assert min(r["R2"]["Rate"]) > 2.9
+

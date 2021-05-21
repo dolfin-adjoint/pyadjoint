@@ -7,7 +7,7 @@ __all__ = []
 
 @staticmethod
 def _ad_to_list(self):
-    return compat.gather(self)
+    return compat.gather(self).tolist()
 
 
 backend.GenericVector._ad_to_list = _ad_to_list
