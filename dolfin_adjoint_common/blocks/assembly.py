@@ -26,7 +26,7 @@ class AssembleBlock(Block):
                 replaced_coeffs[coeff] = c_rep
 
         form = ufl.replace(self.form, replaced_coeffs)
-        extops_coeff = [e.get_coefficient() for e in form.external_operators()]
+        extops_coeff = [e.result_coefficient() for e in form.external_operators()]
         Nk = dict(zip(extops_coeff, form.external_operators()))
 
         prepared = {}

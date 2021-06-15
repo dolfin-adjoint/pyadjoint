@@ -138,7 +138,7 @@ class GenericSolveBlock(Block):
 
         u_hat = self.backend.TrialFunction(u.function_space())
         u_rep = fwd_block_variable.saved_output
-        extops_coeff = [e.get_coefficient() for e in F_form.external_operators()]
+        extops_coeff = [e.result_coefficient() for e in F_form.external_operators()]
         Nk = dict(zip(extops_coeff, F_form.external_operators()))
 
         Nk_rep = tuple(self.backend.replace(e, {u_rep: u_rep.__deepcopy__()}) for e in Nk.values())
