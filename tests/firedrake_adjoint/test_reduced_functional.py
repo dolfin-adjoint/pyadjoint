@@ -163,7 +163,6 @@ def test_mixed_boundary():
     assert taylor_test(Jhat, f, h) > 1.9
 
 
-@pytest.mark.xfail(reason="Constant annotation not yet quite right")
 def test_assemble_recompute():
     mesh = UnitSquareMesh(10, 10)
     V = FunctionSpace(mesh, "CG", 1)
