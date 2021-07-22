@@ -93,7 +93,14 @@ class PETScVector(GenericVector, backend.PETScVector):
         backend.PETScVector.__init__(self, *args, **kwargs)
 
 
+class Vector(GenericVector, backend.Vector):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        backend.Vector.__init__(self, *args, **kwargs)
+
+
 register_overloaded_type(PETScVector, backend.PETScVector)
+register_overloaded_type(Vector, backend.Vector)
 
 
 class SliceBlock(Block):

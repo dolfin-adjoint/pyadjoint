@@ -1,6 +1,7 @@
 # flake8: noqa
 
 from .common import *
+from .assembly import AssembleVectorBlock
 from .solving import SolveLinearSystemBlock, SolveVarFormBlock
 from .projection import ProjectBlock
 from .variational_solver import LinearVariationalSolveBlock, NonlinearVariationalSolveBlock

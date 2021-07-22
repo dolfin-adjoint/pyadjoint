@@ -1,7 +1,7 @@
 import backend
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
 from pyadjoint.overloaded_type import create_overloaded_object
-from .blocks import AssembleBlock
+from .blocks import AssembleBlock, AssembleVectorBlock
 
 
 def assemble(*args, **kwargs):
@@ -11,6 +11,7 @@ def assemble(*args, **kwargs):
     even when the user calls the lower-level :py:data:`solve(A, x, b)`.
     """
     annotate = annotate_tape(kwargs)
+    overload_vector = kwargs.pop("_ad_overload_vector", False)
     with stop_annotating():
         output = backend.assemble(*args, **kwargs)
     if "keep_diagonal" in kwargs:
@@ -28,8 +29,18 @@ def assemble(*args, **kwargs):
 
             block.add_output(output.block_variable)
     else:
-        # Assembled a vector or matrix
-        output.form = form
+        if isinstance(output, backend.GenericVector) and overload_vector:
+            output = create_overloaded_object(output)
+
+            block = AssembleVectorBlock(form)
+
+            tape = get_working_tape()
+            tape.add_block(block)
+
+            block.add_output(output.block_variable)
+        else:
+            # Assembled a vector or matrix
+            output.form = form
 
     return output
 
