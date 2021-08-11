@@ -14,6 +14,7 @@ class Block(object):
     """
     __slots__ = ['_dependencies', '_outputs', 'block_helper']
     pop_kwargs_keys = []
+    tag = None
 
     def __init__(self):
         self._dependencies = []
