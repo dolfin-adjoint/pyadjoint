@@ -23,8 +23,8 @@ def constant_from_values(constant, values=None):
 
 
 class ConstantAssignBlock(Block):
-    def __init__(self, other):
-        super(ConstantAssignBlock, self).__init__()
+    def __init__(self, other, ad_block_tag=None):
+        super(ConstantAssignBlock, self).__init__(ad_block_tag=ad_block_tag)
         self.assigned_float = False
         self.assigned_list = False
         if isinstance(other, OverloadedType):

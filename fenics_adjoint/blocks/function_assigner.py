@@ -7,8 +7,8 @@ compat = compat(backend)
 
 
 class FunctionAssignerBlock(Block):
-    def __init__(self, assigner, inputs):
-        super(FunctionAssignerBlock, self).__init__()
+    def __init__(self, assigner, inputs, ad_block_tag=None):
+        super(FunctionAssignerBlock, self).__init__(ad_block_tag=ad_block_tag)
         for i in inputs:
             self.add_dependency(i)
         self.assigner = assigner

@@ -10,7 +10,7 @@ class GenericSolveBlock(Block):
                        "forward_args", "forward_kwargs", "adj_args", "adj_kwargs"]
 
     def __init__(self, lhs, rhs, func, bcs, *args, **kwargs):
-        super().__init__()
+        super().__init__(ad_block_tag=kwargs.pop('ad_block_tag', None))
         self.adj_cb = kwargs.pop("adj_cb", None)
         self.adj_bdy_cb = kwargs.pop("adj_bdy_cb", None)
         self.adj2_cb = kwargs.pop("adj2_cb", None)

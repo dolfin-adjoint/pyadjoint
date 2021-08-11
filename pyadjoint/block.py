@@ -14,12 +14,12 @@ class Block(object):
     """
     __slots__ = ['_dependencies', '_outputs', 'block_helper']
     pop_kwargs_keys = []
-    tag = None
 
-    def __init__(self):
+    def __init__(self, ad_block_tag=None):
         self._dependencies = []
         self._outputs = []
         self.block_helper = None
+        self.tag = ad_block_tag
 
     @classmethod
     def pop_kwargs(cls, kwargs):
