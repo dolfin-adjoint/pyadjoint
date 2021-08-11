@@ -26,6 +26,7 @@ class NonlinearVariationalSolver(backend.NonlinearVariationalSolver):
     @no_annotations
     def __init__(self, problem, *args, **kwargs):
         super(NonlinearVariationalSolver, self).__init__(problem, *args, **kwargs)
+        self.ad_block_tag = kwargs.pop("ad_block_tag", None)
         self._ad_problem = problem
         self._ad_args = args
         self._ad_kwargs = kwargs
@@ -53,6 +54,7 @@ class NonlinearVariationalSolver(backend.NonlinearVariationalSolver):
                                                    solver_kwargs=self._ad_kwargs,
                                                    solve_args=args,
                                                    solve_kwargs=kwargs,
+                                                   ad_block_tag=self.ad_block_tag,
                                                    **sb_kwargs)
             tape.add_block(block)
 
@@ -88,6 +90,7 @@ class LinearVariationalSolver(backend.LinearVariationalSolver):
     @no_annotations
     def __init__(self, problem, *args, **kwargs):
         super(LinearVariationalSolver, self).__init__(problem, *args, **kwargs)
+        self.ad_block_tag = kwargs.pop("ad_block_tag", None)
         self._ad_problem = problem
         self._ad_args = args
         self._ad_kwargs = kwargs
@@ -114,6 +117,7 @@ class LinearVariationalSolver(backend.LinearVariationalSolver):
                                                 solver_kwargs=self._ad_kwargs,
                                                 solve_args=args,
                                                 solve_kwargs=kwargs,
+                                                ad_block_tag=self.ad_block_tag,
                                                 **sb_kwargs)
             tape.add_block(block)
 

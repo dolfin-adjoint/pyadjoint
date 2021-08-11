@@ -33,6 +33,7 @@ def solve(*args, **kwargs):
             the boundary. The interior values are not guaranteed to be zero.
 
     """
+    ad_block_tag = kwargs.pop("ad_block_tag", None)
     annotate = annotate_tape(kwargs)
     if annotate:
         tape = get_working_tape()
@@ -43,7 +44,7 @@ def solve(*args, **kwargs):
 
         sb_kwargs = solve_block_type.pop_kwargs(kwargs)
         sb_kwargs.update(kwargs)
-        block = solve_block_type(*args, **sb_kwargs)
+        block = solve_block_type(*args, ad_block_tag=ad_block_tag **sb_kwargs)
         tape.add_block(block)
 
     with stop_annotating():

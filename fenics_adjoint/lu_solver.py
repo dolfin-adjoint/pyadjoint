@@ -9,6 +9,7 @@ compat = compat.compat(backend)
 
 class LUSolver(backend.LUSolver):
     def __init__(self, *args, **kwargs):
+        self.ad_block_tag = kwargs.pop("ad_block_tag", None)
         backend.LUSolver.__init__(self, *args, **kwargs)
 
         A = kwargs.pop("A", None)
@@ -59,6 +60,7 @@ class LUSolver(backend.LUSolver):
                                  lu_solver_parameters=parameters,
                                  block_helper=block_helper,
                                  lu_solver_method=self.method,
+                                 ad_block_tag=self.ad_block_tag,
                                  **sb_kwargs)
             tape.add_block(block)
 

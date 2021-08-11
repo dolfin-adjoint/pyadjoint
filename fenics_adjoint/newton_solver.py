@@ -5,6 +5,7 @@ from .blocks import SolveVarFormBlock
 
 class NewtonSolver(backend.NewtonSolver):
     def solve(self, *args, **kwargs):
+        ad_block_tag = kwargs.pop("ad_block_tag", None)
         annotate = annotate_tape(kwargs)
 
         if annotate:
@@ -23,6 +24,7 @@ class NewtonSolver(backend.NewtonSolver):
             sb_kwargs = SolveVarFormBlock.pop_kwargs(kwargs)
             block = SolveVarFormBlock(F == 0, u, bcs,
                                       solver_parameters={"newton_solver": self.parameters.copy()},
+                                      ad_block_tag=ad_block_tag,
                                       **sb_kwargs)
             tape.add_block(block)
 

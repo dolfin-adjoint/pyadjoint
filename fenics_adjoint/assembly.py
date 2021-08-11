@@ -10,6 +10,7 @@ def assemble(*args, **kwargs):
     function to *attach the form to the assembled object*. This lets the automatic annotation work,
     even when the user calls the lower-level :py:data:`solve(A, x, b)`.
     """
+    ad_block_tag = kwargs.pop("ad_block_tag", None)
     annotate = annotate_tape(kwargs)
     with stop_annotating():
         output = backend.assemble(*args, **kwargs)
@@ -21,7 +22,7 @@ def assemble(*args, **kwargs):
         output = create_overloaded_object(output)
 
         if annotate:
-            block = AssembleBlock(form)
+            block = AssembleBlock(form, ad_block_tag=ad_block_tag)
 
             tape = get_working_tape()
             tape.add_block(block)

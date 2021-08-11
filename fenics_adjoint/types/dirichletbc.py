@@ -23,6 +23,7 @@ class DirichletBC(FloatingType, backend.DirichletBC):
                               _ad_kwargs=kwargs,
                               _ad_floating_active=True,
                               annotate=kwargs.pop("annotate", True),
+                              ad_block_tag=kwargs.pop("ad_block_tag", None),
                               **kwargs)
 
         # Call backend constructor after popped AD specific keyword args.

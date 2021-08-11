@@ -7,5 +7,6 @@ def interpolate(*args, **kwargs):
     We are not able to annotate the interpolation call at the moment.
 
     """
+    kwargs.pop("ad_block_tag", None)
     output = backend.interpolate(*args, **kwargs)
     return create_overloaded_object(output)
