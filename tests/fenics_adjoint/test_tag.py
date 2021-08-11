@@ -1,19 +1,15 @@
 import pytest
-pytest.importorskip("firedrake")
+pytest.importorskip("fenics")
 
-from firedrake import *
-from firedrake_adjoint import *
+from fenics import *
+from fenics_adjoint import *
 
 
 @pytest.fixture(params=[
     "constant assign",
     "function assign",
-    "interpolate",
     "project",
-    "supermesh project",
-    "interpolate method",
     "project method",
-    "supermesh project method",
 ])
 def tag(request):
     return request.param
@@ -25,24 +21,16 @@ def test_tags(tag):
         c2 = Constant(1.0)
         c1.assign(c2, ad_block_tag=tag)
     else:
-        mesh = UnitSquareMesh(1, 1, diagonal='left')
+        mesh = UnitSquareMesh(1, 1)
         V = FunctionSpace(mesh, "CG", 1)
         f1 = Function(V)
-        if "supermesh" in tag:
-            mesh2 = UnitSquareMesh(1, 1, diagonal='right')
-            f2 = Function(FunctionSpace(mesh, "CG", 1))
-        else:
-            f2 = Function(V)
+        f2 = Function(V)
         f2.assign(1.0)
         if tag == "function assign":
             f1.assign(f2, ad_block_tag=tag)
-        elif tag == "interpolate":
-            f1 = interpolate(f2, V, ad_block_tag=tag)
-        elif tag == "interpolate method":
-            f1.interpolate(f2, ad_block_tag=tag)
-        elif "project method" in tag:
+        elif tag == "project method":
             f1.project(f2, ad_block_tag=tag)
-        elif "project" in tag:
+        elif tag == "project":
             f1 = project(f2, V, ad_block_tag=tag)
         else:
             raise ValueError
