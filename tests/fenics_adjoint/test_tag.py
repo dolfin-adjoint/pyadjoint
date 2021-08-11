@@ -25,7 +25,7 @@ def test_tags(tag):
         V = FunctionSpace(mesh, "CG", 1)
         f1 = Function(V)
         f2 = Function(V)
-        f2.assign(1.0)
+        f2.vector()[:] = 1.0
         if tag == "function assign":
             f1.assign(f2, ad_block_tag=tag)
         elif tag == "project method":
