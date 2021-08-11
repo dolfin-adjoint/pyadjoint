@@ -42,13 +42,14 @@ class Function(FloatingType, backend.Function):
         return compat.type_cast_function(obj, cls)
 
     def copy(self, *args, **kwargs):
+        ad_block_tag = kwargs.pop("ad_block_tag", None)
         annotate = annotate_tape(kwargs)
         c = backend.Function.copy(self, *args, **kwargs)
         func = create_overloaded_object(c)
 
         if annotate:
             if kwargs.pop("deepcopy", False):
-                block = FunctionAssignBlock(func, self)
+                block = FunctionAssignBlock(func, self, ad_block_tag=ad_block_tag)
                 tape = get_working_tape()
                 tape.add_block(block)
                 block.add_output(func.create_block_variable())
@@ -62,11 +63,12 @@ class Function(FloatingType, backend.Function):
         """To disable the annotation, just pass :py:data:`annotate=False` to this routine, and it acts exactly like the
         Dolfin assign call."""
         # do not annotate in case of self assignment
+        ad_block_tag = kwargs.pop("ad_block_tag", None)
         annotate = annotate_tape(kwargs) and self != other
         if annotate:
             if not isinstance(other, ufl.core.operator.Operator):
                 other = create_overloaded_object(other)
-            block = FunctionAssignBlock(self, other)
+            block = FunctionAssignBlock(self, other, ad_block_tag=ad_block_tag)
             tape = get_working_tape()
             tape.add_block(block)
 
@@ -80,12 +82,13 @@ class Function(FloatingType, backend.Function):
 
     def sub(self, i, deepcopy=False, **kwargs):
         from .function_assigner import FunctionAssigner, FunctionAssignerBlock
+        ad_block_tag = kwargs.pop("ad_block_tag", None)
         annotate = annotate_tape(kwargs)
         if deepcopy:
             ret = create_overloaded_object(backend.Function.sub(self, i, deepcopy, **kwargs))
             if annotate:
                 fa = FunctionAssigner(ret.function_space(), self.function_space())
-                block = FunctionAssignerBlock(fa, Enlist(self))
+                block = FunctionAssignerBlock(fa, Enlist(self), ad_block_tag=ad_block_tag)
                 tape = get_working_tape()
                 tape.add_block(block)
                 block.add_output(ret.block_variable)
@@ -105,6 +108,7 @@ class Function(FloatingType, backend.Function):
 
     def split(self, deepcopy=False, **kwargs):
         from .function_assigner import FunctionAssigner, FunctionAssignerBlock
+        ad_block_tag = kwargs.pop("ad_block_tag", None)
         annotate = annotate_tape(kwargs)
         num_sub_spaces = backend.Function.function_space(self).num_sub_spaces()
         if not annotate:
@@ -122,7 +126,7 @@ class Function(FloatingType, backend.Function):
                 fs.append(f.function_space())
                 ret.append(f)
             fa = FunctionAssigner(fs, self.function_space())
-            block = FunctionAssignerBlock(fa, Enlist(self))
+            block = FunctionAssignerBlock(fa, Enlist(self), ad_block_tag=ad_block_tag)
             tape = get_working_tape()
             tape.add_block(block)
             for output in ret:
@@ -141,12 +145,13 @@ class Function(FloatingType, backend.Function):
         return ret
 
     def __call__(self, *args, **kwargs):
+        ad_block_tag = kwargs.pop("ad_block_tag", None)
         annotate = False
         if len(args) == 1 and isinstance(args[0], (numpy.ndarray,)):
             annotate = annotate_tape(kwargs)
 
         if annotate:
-            block = FunctionEvalBlock(self, args[0])
+            block = FunctionEvalBlock(self, args[0], ad_block_tag=ad_block_tag)
             tape = get_working_tape()
             tape.add_block(block)
 

@@ -9,7 +9,6 @@ from fenics_adjoint import *
     "constant assign",
     "function assign",
     "project",
-    "project method",
 ])
 def tag(request):
     return request.param
@@ -28,8 +27,6 @@ def test_tags(tag):
         f2.vector()[:] = 1.0
         if tag == "function assign":
             f1.assign(f2, ad_block_tag=tag)
-        elif tag == "project method":
-            f1.project(f2, ad_block_tag=tag)
         elif tag == "project":
             f1 = project(f2, V, ad_block_tag=tag)
         else:
