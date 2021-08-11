@@ -145,11 +145,11 @@ class Tape(object):
         """
         Returns a list of the unique tags used in blocks on the tape.
         """
-        self._tags = []
+        tags = []
         for block in self._blocks:
-            if block.tag is not None and block.tag not in self._tags:
-                self._tags.append(block.tag)
-        return self._tags
+            if block.tag is not None and block.tag not in tags:
+                tags.append(block.tag)
+        return tags
 
     def evaluate_adj(self, last_block=0, markings=False):
         for i in range(len(self._blocks) - 1, last_block - 1, -1):
