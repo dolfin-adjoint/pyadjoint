@@ -346,7 +346,8 @@ class FloatingType(OverloadedType):
             return
 
         tape = get_working_tape()
-        block = self.block_class(*self._ad_args, ad_block_tag=self.ad_block_tag, **self._ad_kwargs)
+        block = self.block_class(*self._ad_args, **self._ad_kwargs)
+        block.ad_block_tag = self.ad_block_tag
         self.block = block
         tape.add_block(block)
         block.add_output(self.create_block_variable())
