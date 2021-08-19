@@ -16,6 +16,7 @@ compat = compat.compat(backend)
 @register_overloaded_type
 class Constant(OverloadedType, backend.Constant):
     def __init__(self, *args, **kwargs):
+        ad_block_tag = kwargs.pop("ad_block_tag", None)
         annotate = annotate_tape(kwargs)
         super(Constant, self).__init__(*args, **kwargs)
         backend.Constant.__init__(self, *args, **kwargs)
@@ -23,26 +24,27 @@ class Constant(OverloadedType, backend.Constant):
         if annotate and len(args) > 0:
             value = args[0]
             if isinstance(value, OverloadedType):
-                block = ConstantAssignBlock(value)
+                block = ConstantAssignBlock(value, ad_block_tag=ad_block_tag)
                 tape = get_working_tape()
                 tape.add_block(block)
                 block.add_output(self.block_variable)
             elif isinstance(value, (tuple, list)):
                 value = numpy.array(value, dtype="O")
                 if any(isinstance(v, OverloadedType) for v in value.flat):
-                    block = ConstantAssignBlock(value)
+                    block = ConstantAssignBlock(value, ad_block_tag=ad_block_tag)
                     tape = get_working_tape()
                     tape.add_block(block)
                     block.add_output(self.block_variable)
 
     def assign(self, *args, **kwargs):
+        ad_block_tag = kwargs.pop("ad_block_tag", None)
         annotate = annotate_tape(kwargs)
         if annotate:
             other = args[0]
             if not isinstance(other, OverloadedType):
                 other = create_overloaded_object(other)
 
-            block = ConstantAssignBlock(other)
+            block = ConstantAssignBlock(other, ad_block_tag=ad_block_tag)
             tape = get_working_tape()
             tape.add_block(block)
 

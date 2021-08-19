@@ -126,14 +126,30 @@ class Tape(object):
         # len() is computed in constant time, so this should be fine.
         return len(self._blocks) - 1
 
-    def get_blocks(self):
+    def get_blocks(self, tag=None):
         """Returns a list of the blocks on the tape.
+
+        Use the kwarg `tag` to optionally get all
+        blocks with a specified tag.
 
         Returns:
             list[block.Block]: A list of :class:`Block` instances.
 
         """
-        return self._blocks
+        if tag is None:
+            return self._blocks
+        else:
+            return [block for block in self._blocks if block.tag == tag]
+
+    def get_tags(self):
+        """
+        Returns a list of the unique tags used in blocks on the tape.
+        """
+        tags = []
+        for block in self._blocks:
+            if block.tag is not None and block.tag not in tags:
+                tags.append(block.tag)
+        return tags
 
     def evaluate_adj(self, last_block=0, markings=False):
         for i in range(len(self._blocks) - 1, last_block - 1, -1):

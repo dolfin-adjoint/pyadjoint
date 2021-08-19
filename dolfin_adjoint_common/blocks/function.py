@@ -4,8 +4,8 @@ from pyadjoint import Block, OverloadedType, AdjFloat
 
 
 class FunctionAssignBlock(Block):
-    def __init__(self, func, other):
-        super().__init__()
+    def __init__(self, func, other, ad_block_tag=None):
+        super().__init__(ad_block_tag=ad_block_tag)
         self.other = None
         self.expr = None
         if isinstance(other, float) or isinstance(other, int):

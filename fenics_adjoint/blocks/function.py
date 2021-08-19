@@ -4,8 +4,8 @@ import numpy
 
 
 class FunctionEvalBlock(Block):
-    def __init__(self, func, coords):
-        super().__init__()
+    def __init__(self, func, coords, ad_block_tag=None):
+        super().__init__(ad_block_tag=ad_block_tag)
         self.add_dependency(func)
         self.coords = coords
 
@@ -37,8 +37,8 @@ class FunctionEvalBlock(Block):
 
 
 class FunctionSplitBlock(Block):
-    def __init__(self, func, idx):
-        super().__init__()
+    def __init__(self, func, idx, ad_block_tag=None):
+        super().__init__(ad_block_tag=ad_block_tag)
         self.add_dependency(func)
         self.idx = idx
 
@@ -61,8 +61,8 @@ class FunctionSplitBlock(Block):
 
 # TODO: This block is not valid in fenics and not correctly implemented. It should never be used.
 class FunctionMergeBlock(Block):
-    def __init__(self, func, idx):
-        super().__init__()
+    def __init__(self, func, idx, ad_block_tag=None):
+        super().__init__(ad_block_tag=ad_block_tag)
         self.add_dependency(func)
         self.idx = idx
 

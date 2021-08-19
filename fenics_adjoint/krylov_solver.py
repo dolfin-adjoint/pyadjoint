@@ -10,6 +10,7 @@ compat = compat.compat(backend)
 
 class KrylovSolver(backend.KrylovSolver):
     def __init__(self, *args, **kwargs):
+        self.ad_block_tag = kwargs.pop("ad_block_tag", None)
         backend.KrylovSolver.__init__(self, *args, **kwargs)
 
         A = kwargs.pop("A", None)
@@ -76,6 +77,7 @@ class KrylovSolver(backend.KrylovSolver):
                                      pc_operator=self.pc_operator,
                                      krylov_method=self.method,
                                      krylov_preconditioner=self.preconditioner,
+                                     ad_block_tag=self.ad_block_tag,
                                      **sb_kwargs)
             tape.add_block(block)
 

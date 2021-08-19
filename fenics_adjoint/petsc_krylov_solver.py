@@ -10,6 +10,7 @@ compat = compat.compat(backend)
 
 class PETScKrylovSolver(backend.PETScKrylovSolver):
     def __init__(self, *args, **kwargs):
+        self.ad_block_tag = kwargs.pop("ad_block_tag", None)
         backend.PETScKrylovSolver.__init__(self, *args, **kwargs)
 
         A = kwargs.pop("A", None)
@@ -87,6 +88,7 @@ class PETScKrylovSolver(backend.PETScKrylovSolver):
                                           krylov_preconditioner=self.preconditioner,
                                           ksp_options_prefix=ksp_options_prefix,
                                           _ad_nullspace=self._ad_nullspace,
+                                          ad_block_tag=self.ad_block_tag,
                                           **sb_kwargs)
             tape.add_block(block)
 

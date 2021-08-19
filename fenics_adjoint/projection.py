@@ -13,6 +13,7 @@ def project(*args, **kwargs):
     computation (such as projecting fields to other function spaces for the purposes of
     visualisation)."""
 
+    ad_block_tag = kwargs.pop("ad_block_tag", None)
     annotate = annotate_tape(kwargs)
     with stop_annotating():
         output = backend.project(*args, **kwargs)
@@ -22,7 +23,8 @@ def project(*args, **kwargs):
         bcs = kwargs.pop("bcs", [])
         sb_kwargs = ProjectBlock.pop_kwargs(kwargs)
         sb_kwargs.update(kwargs)
-        block = ProjectBlock(args[0], args[1], output, bcs, **sb_kwargs)
+        block = ProjectBlock(args[0], args[1], output, bcs,
+                             ad_block_tag=ad_block_tag, **sb_kwargs)
 
         tape = get_working_tape()
         tape.add_block(block)

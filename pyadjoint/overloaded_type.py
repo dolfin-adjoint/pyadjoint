@@ -314,10 +314,10 @@ class FloatingType(OverloadedType):
         self.block_class = kwargs.pop("block_class", None)
         self._ad_args = kwargs.pop("_ad_args", [])
         self._ad_kwargs = kwargs.pop("_ad_kwargs", {})
+        self.ad_block_tag = kwargs.pop("ad_block_tag", None)
         self._ad_floating_active = kwargs.pop("_ad_floating_active", False)
         self.block = None
 
-        self.output_block = None
         self._ad_output_args = kwargs.pop("_ad_output_args", [])
         self._ad_output_kwargs = kwargs.pop("_ad_output_kwargs", {})
         self.output_block_class = kwargs.pop("output_block_class", None)
@@ -347,6 +347,7 @@ class FloatingType(OverloadedType):
 
         tape = get_working_tape()
         block = self.block_class(*self._ad_args, **self._ad_kwargs)
+        block.tag = self.ad_block_tag
         self.block = block
         tape.add_block(block)
         block.add_output(self.create_block_variable())

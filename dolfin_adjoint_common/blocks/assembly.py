@@ -3,8 +3,8 @@ from pyadjoint import Block, create_overloaded_object
 
 
 class AssembleBlock(Block):
-    def __init__(self, form):
-        super(AssembleBlock, self).__init__()
+    def __init__(self, form, ad_block_tag=None):
+        super(AssembleBlock, self).__init__(ad_block_tag=ad_block_tag)
         self.form = form
         if self.backend.__name__ != "firedrake":
             mesh = self.form.ufl_domain().ufl_cargo()

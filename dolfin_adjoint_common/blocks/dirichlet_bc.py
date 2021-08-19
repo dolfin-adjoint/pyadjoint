@@ -4,7 +4,7 @@ from pyadjoint import Block, OverloadedType, no_annotations
 
 class DirichletBCBlock(Block):
     def __init__(self, *args, **kwargs):
-        Block.__init__(self)
+        Block.__init__(self, ad_block_tag=kwargs.pop('ad_block_tag', None))
         self.function_space = args[0]
         self.parent_space = self.function_space
         while hasattr(self.parent_space, "_ad_parent_space") and self.parent_space._ad_parent_space is not None:
