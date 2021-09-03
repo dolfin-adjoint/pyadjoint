@@ -12,8 +12,6 @@ def compat(backend):
         compat.FunctionSpaceType = (backend.functionspaceimpl.FunctionSpace,
                                     backend.functionspaceimpl.WithGeometry,
                                     backend.functionspaceimpl.MixedFunctionSpace)
-        compat.ExpressionType = backend.Expression
-
         compat.FunctionSpace = backend.FunctionSpace
 
         compat.MeshType = backend.mesh.MeshGeometry
@@ -134,7 +132,11 @@ def compat(backend):
         compat.linalg_solve = backend.solve
 
         class Expression(object):
-            pass
+            def __init__(self, *args, **kwargs):
+                raise NotImplementedError("Firedrake does not have Expression objects")
+
+        compat.ExpressionType = Expression
+
         compat.Expression = Expression
 
         def type_cast_function(obj, cls):
