@@ -4,6 +4,7 @@ import re
 import threading
 from contextlib import contextmanager
 from functools import wraps
+from itertools import chain
 
 _working_tape = None
 _stop_annotating = 0
@@ -192,6 +193,18 @@ class Tape(object):
         """
         # TODO: Offer deepcopying. But is it feasible memory wise to copy all checkpoints?
         return Tape(blocks=self._blocks[:])
+
+    def block_vars(self, tag=None):
+        """Return a dictionary mapping all block variables on the tape to their checkpointed values"""
+
+        return {
+            var: var.checkpoint
+            for var in chain.from_iterable(
+                chain(
+                    b.get_dependencies(),
+                    b.get_outputs()
+                ) for b in self.get_blocks(tag))
+        }
 
     def optimize(self, controls=None, functionals=None):
         if controls is not None:
