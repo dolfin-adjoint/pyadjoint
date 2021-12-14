@@ -454,8 +454,14 @@ class GenericSolveBlock(Block):
         return func
 
     def _assembled_solve(self, lhs, rhs, func, bcs, **kwargs):
-        for bc in bcs:
-            bc.apply(rhs)
+        if self.backend.__name__ == "firedrake":
+            rhs_func = self.backend.Function(rhs.function_space().dual(), val=rhs.vector())
+            for bc in bcs:
+                bc.apply(rhs_func)
+            rhs.assign(self.backend.Cofunction(rhs.function_space(), val=rhs_func.vector()))
+        else:
+            for bc in bcs:
+                bc.apply(rhs)
         self.backend.solve(lhs, func.vector(), rhs, **kwargs)
         return func
 
