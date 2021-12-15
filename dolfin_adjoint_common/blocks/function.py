@@ -60,12 +60,14 @@ class FunctionAssignBlock(Block):
             adj_output = self.backend.Function(adj_input_func.function_space())
             if block_variable.saved_output.ufl_shape == adj_input_func.ufl_shape:
                 diff_expr = ufl.algorithms.expand_derivatives(
-                    ufl.conj(ufl.derivative(expr, block_variable.saved_output, adj_input_func))
+                    ufl.derivative(expr, block_variable.saved_output, adj_input_func)
                 )
-                adj_output.assign(diff_expr)
                 if self.backend.__name__ == "firedrake":
+                    adj_output.assign(ufl.conj(diff_expr))
                     adj_output = self.backend.Cofunction(adj_output.function_space().dual(),
                                                          val=adj_output.vector())
+                else:
+                    adj_output.assign(diff_expr)
             else:
                 # Assume current variable is scalar constant.
                 # This assumption might be wrong for firedrake.
