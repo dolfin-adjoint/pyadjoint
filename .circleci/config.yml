@@ -96,6 +96,10 @@ jobs:
       - run:
           name: install dependencies
           command: |
+            cd /home/firedrake/src/ufl
+            git checkout dualspace_update
+            cd /home/firedrake/src/firedrake
+            git checkout dualspace_update
             source /home/firedrake/firedrake/bin/activate
             pip3 install -e .[test]
 
