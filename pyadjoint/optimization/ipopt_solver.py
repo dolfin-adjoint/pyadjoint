@@ -44,7 +44,7 @@ class IPOPTSolver(OptimizationSolver):
         # A callback that evaluates the functional and derivative.
         J = self.rfn.__call__
         dJ = partial(self.rfn.derivative, forget=False)
-        nlp = cyipopt.problem(
+        nlp = cyipopt.Problem(
             n=len(ub),  # length of control vector
             lb=lb,  # lower bounds on control vector
             ub=ub,  # upper bounds on control vector
@@ -67,12 +67,12 @@ class IPOPTSolver(OptimizationSolver):
         """
         # TODO: Earlier the commented out code above was present.
         # Figure out how to solve parallel output cases like these in pyadjoint.
-        nlp.addOption("print_level", 6)
+        nlp.add_option("print_level", 6)
 
         if isinstance(self.problem, MaximizationProblem):
             # multiply objective function by -1 internally in
             # ipopt to maximise instead of minimise
-            nlp.addOption('obj_scaling_factor', -1.0)
+            nlp.add_option('obj_scaling_factor', -1.0)
 
         self.ipopt_problem = nlp
 
@@ -191,7 +191,7 @@ class IPOPTSolver(OptimizationSolver):
             for param, value in self.parameters.items():
                 # some parameters have a different name in ipopt
                 param = self._param_map.get(param, param)
-                self.ipopt_problem.addOption(param, value)
+                self.ipopt_problem.add_option(param, value)
 
     def solve(self):
         """Solve the optimization problem and return the optimized controls."""
