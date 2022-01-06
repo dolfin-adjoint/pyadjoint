@@ -95,6 +95,7 @@ from dolfin import *
 from dolfin_adjoint import *
 set_log_level(LogLevel.ERROR)
 
+parameters["form_compiler"]["quadrature_degree"] = 4
 # Next, we load the facet marker values used in the mesh, as well as some
 # geometrical quantities mesh-generator file.
 
