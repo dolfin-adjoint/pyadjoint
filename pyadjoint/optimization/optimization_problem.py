@@ -64,7 +64,7 @@ class OptimizationProblem(object):
         if bounds is None:
             return None
 
-        if not isinstance(bounds, collections.Iterable):
+        if not isinstance(bounds, collections.abc.Iterable):
             raise TypeError("bounds must be iterable.")
 
         should_i_make_a_damn_list = True
@@ -74,7 +74,7 @@ class OptimizationProblem(object):
 
         if len(bounds) == 2:  # support 'bounds=(lb, ub)' as well as 'bounds=[(lb, ub)]'
             for bound in bounds:
-                if isinstance(bound, collections.Iterable) and not isinstance(bound, OverloadedType):
+                if isinstance(bound, collections.abc.Iterable) and not isinstance(bound, OverloadedType):
                     should_i_make_a_damn_list = False
 
         if should_i_make_a_damn_list:
