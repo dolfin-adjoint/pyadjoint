@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 from .optimization_solver import OptimizationSolver
 from ..enlisting import Enlist
 from ..overloaded_type import OverloadedType
@@ -14,9 +12,11 @@ try:
             self.rf = rf
             self.scale = scale
 
+            self._val = None
+            self._cache = None
+
         def value(self, x, tol):
-            # FIXME: should check if we have evaluated here before
-            return self.val
+            return self._val
 
         def gradient(self, g, x, tol):
             # self.rf(x.dat)
@@ -28,8 +28,24 @@ try:
             hv.dat = hv.riesz_map(hessian_action)
 
         def update(self, x, flag, iteration):
-            self.val = self.rf(x.dat)
-            # pass
+            if hasattr(ROL, "UpdateType") and isinstance(flag, ROL.UpdateType):
+                # Initial: has not been called before
+                # Accept: this is the new iterate, trial has been called
+                # Revert: revert to previous, trial has been called
+                # Trial: candidate for next
+                # Temp: temporary
+                if flag == ROL.UpdateType.Initial or flag == ROL.UpdateType.Trial or flag == ROL.UpdateType.Temp:
+                    self._val = self.rf(x.dat)
+                elif flag == ROL.UpdateType.Accept:
+                    # just cache the trial value
+                    self._cache = self._val
+                elif flag == ROL.UpdateType.Revert:
+                    # revert back to the cached value
+                    self._val = self._cache
+
+                self._flag = flag
+            else:
+                self._val = self.rf(x.dat)
 
     class ROLVector(ROL.Vector):
         def __init__(self, dat, inner_product="L2"):
