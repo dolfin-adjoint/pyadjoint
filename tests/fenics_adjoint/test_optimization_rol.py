@@ -9,7 +9,7 @@ from fenics import *
 from fenics_adjoint import *
 
 
-def setup(n=20):
+def setup_problem(n=20):
     set_log_level(LogLevel.ERROR)
 
     mesh = UnitSquareMesh(n, n)
@@ -52,7 +52,7 @@ def setup(n=20):
 
 
 def test_finds_analytical_solution():
-    rf, params, w, alpha = setup()
+    rf, params, w, alpha = setup_problem()
     problem = MinimizationProblem(rf)
     solver = ROLSolver(problem, params, inner_product="L2")
     sol = solver.solve()
@@ -63,7 +63,7 @@ def test_finds_analytical_solution():
 
 
 def test_bounds_work_sensibly():
-    rf, params, w, alpha = setup()
+    rf, params, w, alpha = setup_problem()
     lower = 0
     upper = 0.5
 
@@ -85,7 +85,7 @@ def test_bounds_work_sensibly():
 
 @pytest.mark.parametrize("contype", ["eq", "ineq"])
 def test_constraint_works_sensibly(contype):
-    rf, params, w, alpha = setup(n=7)
+    rf, params, w, alpha = setup_problem(n=7)
 
     class EqVolumeConstraint(EqualityConstraint):
         """A class that enforces the volume constraint g(a) = volume - a*dx = 0."""
@@ -231,7 +231,7 @@ def test_constraint_works_sensibly(contype):
 
 @pytest.mark.parametrize("contype", ["eq", "ineq"])
 def test_ufl_constraint_works_sensibly(contype):
-    rf, params, w, alpha = setup(n=7)
+    rf, params, w, alpha = setup_problem(n=7)
 
     params = {
         'General': {
