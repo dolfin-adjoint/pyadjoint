@@ -100,13 +100,13 @@ def test_constraint_works_sensibly(contype):
             return Constant(self.volume - integral)
 
         def jacobian_action(self, m, dm, result):
-            result.assign(self.smass.inner(-dm.vector()))
+            result.assign(self.smass.inner(-dm[0].vector()))
 
         def jacobian_adjoint_action(self, m, dp, result):
-            result.vector()[:] = self.smass * (-1.*dp.values()[0])
+            result[0].vector()[:] = self.smass * (-1.*dp.values()[0])
 
         def hessian_action(self, m, dm, dp, result):
-            result.vector()[:] = 0.0
+            result[0].vector()[:] = 0.0
 
         def output_workspace(self):
             return Constant(0.0)

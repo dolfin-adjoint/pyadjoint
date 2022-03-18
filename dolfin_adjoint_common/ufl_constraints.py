@@ -3,6 +3,7 @@ import ufl
 import ufl.algorithms
 import numpy
 
+from pyadjoint.enlisting import Enlist
 from pyadjoint.optimization.constraints import Constraint, EqualityConstraint, InequalityConstraint
 
 
@@ -39,44 +40,46 @@ class UFLConstraint(Constraint):
     The form must be a 0-form that depends on a Function control.
     """
 
-    def __init__(self, form, control):
+    def __init__(self, form, controls):
 
-        if not isinstance(control.control, backend.Function):
-            raise NotImplementedError("Only implemented for Function controls")
+        controls = Enlist(controls)
+        for control in controls:
+            if not isinstance(control.control, backend.Function):
+                raise NotImplementedError("Only implemented for Function controls")
 
         args = ufl.algorithms.extract_arguments(form)
         if len(args) != 0:
             raise ValueError("Must be a rank-zero form, i.e. a functional")
 
-        u = control.control
-        self.V = u.function_space()
-        # We want to make a copy of the control purely for use
-        # in the constraint, so that our writing it isn't
-        # bothering anyone else
-        self.u = backend_types.Function(self.V)
-        self.form = ufl.replace(form, {u: self.u})
+        replace_dict = {}
+        functions = []
+        for control in controls:
+            u = control.control
+            V = u.function_space()
+            u_placeholder = backend_types.Function(V)
 
-        self.trial = backend.TrialFunction(self.V)
-        self.dform = backend.derivative(self.form, self.u, self.trial)
-        if len(ufl.algorithms.extract_arguments(ufl.algorithms.expand_derivatives(self.dform))) == 0:
-            raise ValueError("Form must depend on control")
+            functions.append(u_placeholder)
+            replace_dict[u] = u_placeholder
 
-        self.test = backend.TestFunction(self.V)
-        self.hess = ufl.algorithms.expand_derivatives(backend.derivative(self.dform, self.u, self.test))
-        if len(ufl.algorithms.extract_arguments(self.hess)) == 0:
-            self.zero_hess = True
-        else:
-            self.zero_hess = False
+        self.form = ufl.replace(form, replace_dict)
+        self.functions = functions
+        self.dforms = [ufl.algorithms.expand_derivatives(backend.derivative(self.form, u)) for u in functions]
+        self.hess = [[ufl.algorithms.expand_derivatives(backend.derivative(dform, u)) for dform in self.dforms] for u in functions]
+        # TODO: Add check for at least one control dependency.
 
     def update_control(self, m):
-        if isinstance(m, list):
-            assert len(m) == 1
-            m = m[0]
+        m = Enlist(m)
+        global_numpy = len(m) != len(self.functions)
 
-        if isinstance(m, backend.Function):
-            self.u.assign(m)
-        else:
-            self.u._ad_assign_numpy(self.u, m, 0)
+        assert not global_numpy or len(m) == 1, "Assumption of a single global numpy array is wrong."
+
+        offset = 0
+        for i, ui in enumerate(self.functions):
+            mi = m[0 if global_numpy else i]
+            if isinstance(mi, backend.Function):
+                ui.assign(mi)
+            else:
+                _, offset = ui._ad_assign_numpy(ui, mi, offset)
 
     def function(self, m):
         self.update_control(m)
@@ -84,67 +87,68 @@ class UFLConstraint(Constraint):
         return backend_types.Constant(b)
 
     def jacobian(self, m):
-        if isinstance(m, list):
-            assert len(m) == 1
-            m = m[0]
-
+        m = Enlist(m)
         self.update_control(m)
-        out = [backend.assemble(self.dform)]
+        out = []
+        for mi, dform in zip(self.functions, self.dforms):
+            if dform.empty():
+                out.append(backend.assemble(backend.inner(backend.Constant(numpy.zeros(mi.ufl_shape)), backend.TestFunction(mi.function_space()))*backend.dx))
+            else:
+                out.append(backend.assemble(dform))
         return out
 
     def jacobian_action(self, m, dm, result):
         """Computes the Jacobian action of c(m) in direction dm and stores the result in result. """
-
-        if isinstance(m, list):
-            assert len(m) == 1
-            m = m[0]
+        m = Enlist(m)
+        dm = Enlist(dm)
         self.update_control(m)
 
-        form = backend.action(self.dform, dm)
+        form = sum([backend.action(dform, dmi) for dform, dmi in zip(self.dforms, dm) if not dform.empty()])
         result.assign(backend.assemble(form))
 
     def jacobian_adjoint_action(self, m, dp, result):
         """Computes the Jacobian adjoint action of c(m) in direction dp and stores the result in result. """
-
-        if isinstance(m, list):
-            assert len(m) == 1
-            m = m[0]
+        m = Enlist(m)
+        result = Enlist(result)
         self.update_control(m)
 
-        asm = backend.assemble(dp * ufl.replace(self.dform, {self.trial: self.test}))
-        if isinstance(result, backend.Function):
-            if backend.__name__ in ["dolfin", "fenics"]:
-                result.vector().zero()
-                result.vector().axpy(1.0, asm)
+        for dform, res in zip(self.dforms, result):
+            if isinstance(res, backend.Function):
+                asm = backend.assemble(dp * dform) if not dform.empty() else None
+                if backend.__name__ in ["dolfin", "fenics"]:
+                    res.vector().zero()
+                    if asm is not None:
+                        res.vector().axpy(1.0, asm)
+                else:
+                    # TODO: Is it safe to assuming default is zero?
+                    if asm is not None:
+                        res.assign(asm)
             else:
-                result.assign(asm)
-        else:
-            raise NotImplementedError("Do I need to untangle all controls?")
+                raise NotImplementedError(f"Unsupported result type in constraint jacobian adjoint action: {type(res)}.")
 
     def hessian_action(self, m, dm, dp, result):
         """Computes the Hessian action of c(m) in direction dm and dp and stores the result in result. """
-
-        if isinstance(m, list):
-            assert len(m) == 1
-            m = m[0]
+        m = Enlist(m)
+        dm = Enlist(dm)
         self.update_control(m)
 
-        H = dm * ufl.replace(self.hess, {self.trial: dp})
-        if isinstance(result, backend.Function):
-            if backend.__name__ in ["dolfin", "fenics"]:
-                if self.zero_hess:
-                    result.vector().zero()
+        for hess, res in zip(self.hess, result):
+            H = sum([dp * backend.action(hessi, dmi) for hessi, dmi in zip(hess, dm) if not hessi.empty()])
+            empty = isinstance(H, (int, float)) or H.empty()
+            if isinstance(res, backend.Function):
+                if backend.__name__ in ["dolfin", "fenics"]:
+                    if empty:
+                        res.vector().zero()
+                    else:
+                        res.vector().zero()
+                        res.vector().axpy(1.0, backend.assemble(H))
                 else:
-                    result.vector().zero()
-                    result.vector().axpy(1.0, backend.assemble(H))
+                    if empty:
+                        res.assign(0)
+                    else:
+                        res.assign(backend.assemble(H))
             else:
-                if self.zero_hess:
-                    result.assign(0)
-                else:
-                    result.assign(backend.assemble(H))
-
-        else:
-            raise NotImplementedError("Do I need to untangle all controls?")
+                raise NotImplementedError(f"Unsupported result type in constraint hessian action: {type(res)}.")
 
     def output_workspace(self):
         """Return an object like the output of c(m) for calculations."""

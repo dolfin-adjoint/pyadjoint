@@ -4,6 +4,7 @@ that can be used with different optimisation algorithms."""
 import copy
 
 import numpy
+from pyadjoint.enlisting import Enlist
 
 
 class Constraint(object):
@@ -88,20 +89,22 @@ class MergedConstraints(Constraint):
         [c.jacobian_action(m, dm, result[i]) for (i, c) in enumerate(self.constraints)]
 
     def jacobian_adjoint_action(self, m, dp, result):
-        result._ad_imul(0.0)
+        result = Enlist(result)
+        [ri._ad_imul(0.0) for ri in result]
         tmp = copy.deepcopy(result)
 
         for (i, c) in enumerate(self.constraints):
             c.jacobian_adjoint_action(m, dp[i], tmp)
-            result._ad_iadd(tmp)
+            [ri._ad_iadd(ti) for ri, ti in zip(result, tmp)]
 
     def hessian_action(self, m, dm, dp, result):
-        result._ad_imul(0.0)
+        result = Enlist(result)
+        [ri._ad_imul(0.0) for ri in result]
         tmp = copy.deepcopy(result)
 
         for (i, c) in enumerate(self.constraints):
             c.hessian_action(m, dm, dp[i], tmp)
-            result._ad_iadd(tmp)
+            [ri._ad_iadd(ti) for ri, ti in zip(result, tmp)]
 
     def __iter__(self):
         return iter(self.constraints)
