@@ -1,4 +1,60 @@
 from .tape import no_annotations
+from functools import wraps
+_stop_saving = 0
+
+
+def pause_saving():
+    global _stop_saving
+    _stop_saving += 1
+
+
+def continue_saving():
+    global _stop_saving
+    _stop_saving -= 1
+    return _stop_saving <= 0
+
+
+class stop_saving(object):
+    def __enter__(self):
+        pause_saving()
+
+    def __exit__(self, *args):
+        continue_saving()
+
+
+def no_saving(function):
+    """Decorator to turn off saving outputs for the decorated function."""
+
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        with stop_saving():
+            return function(*args, **kwargs)
+
+    return wrapper
+
+
+def save_outputs(kwargs=None):
+    """Returns True if saving flag is on, and False if not.
+
+    If kwargs is given, the function will try to extract the
+    save_outputs keyword. If the save_outputs keyword is not present it defaults to True.
+    If saving has been paused, then it will always return False.
+
+    Args:
+        kwargs (dict): A dictionary of keyword arguments to extract from.
+            Note that this should be passed as a dictionary and not actual keyword arguments.
+
+    Returns: bool
+
+    """
+    saving = kwargs is None or kwargs.pop("save_outputs", True)
+
+    # TODO: Consider if there is any scenario where one would want the keyword to have
+    # precedence over the global flag.
+    if _stop_saving > 0:
+        return False
+
+    return saving
 
 
 class BlockVariable(object):
@@ -47,7 +103,7 @@ class BlockVariable(object):
 
     @no_annotations
     def save_output(self, overwrite=True):
-        if overwrite or self.checkpoint is None:
+        if save_outputs() and (overwrite or self.checkpoint is None):
             self._checkpoint = self.output._ad_create_checkpoint()
 
     @property

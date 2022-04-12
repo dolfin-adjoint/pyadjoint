@@ -18,6 +18,8 @@ from pyadjoint.verification import taylor_test, taylor_to_dict
 from pyadjoint.drivers import compute_gradient, compute_hessian
 from pyadjoint.adjfloat import AdjFloat
 from pyadjoint.control import Control
+from pyadjoint.block_variable import  (pause_saving, continue_saving, 
+                                       stop_saving, no_saving)
 from pyadjoint import IPOPTSolver, ROLSolver, MinimizationProblem, \
     InequalityConstraint, minimize, adjoint_step
 

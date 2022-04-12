@@ -11,6 +11,7 @@ from .block import Block
 from .tape import (Tape,
                    set_working_tape, get_working_tape, no_annotations,
                    annotate_tape, stop_annotating, pause_annotation, continue_annotation)
+from .block_variable import (pause_saving, continue_saving, stop_saving, no_saving)
 from .adjfloat import AdjFloat
 from .reduced_functional import ReducedFunctional
 from .drivers import compute_gradient, compute_hessian, solve_adjoint
