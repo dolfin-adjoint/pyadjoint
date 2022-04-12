@@ -97,7 +97,7 @@ class Tape(object):
 
     """
     __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks", "_nodes",
-                 "_tf_registered_blocks", "_last_step"]
+                 "_tf_registered_blocks", "_last_step", "_steps"]
 
     def __init__(self, blocks=None):
         # Initialize the list of blocks on the tape.
@@ -153,6 +153,25 @@ class Tape(object):
             if block.tag is not None and block.tag not in tags:
                 tags.append(block.tag)
         return tags
+
+    def find_steps(self):
+        """Find the StepBlocks and their dependencies.
+
+        A :class:`BlockVariable` is a dependency of a :class:`StepBlock` if it
+        is created before the :class:`StepBlock` and is a dependency of a block
+        occuring after the :class:`StepBlock`.
+        """
+        from .checkpointing import StepBlock
+        steps = []
+        dependencies = set()
+        for block in self._blocks[::-1]:
+            if isinstance(block, StepBlock):
+                steps.append(StepBlock)
+                block._dependencies = list(dependencies)
+            else:
+                dependencies.update(block.get_dependencies())
+                dependencies.difference_update(block.get_outputs())
+        self._steps = reversed(steps)
 
     def evaluate_adj(self, last_block=0, markings=False):
         for i in range(len(self._blocks) - 1, last_block - 1, -1):
