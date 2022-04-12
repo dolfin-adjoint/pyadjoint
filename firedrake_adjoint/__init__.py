@@ -18,7 +18,8 @@ from pyadjoint.verification import taylor_test, taylor_to_dict
 from pyadjoint.drivers import compute_gradient, compute_hessian
 from pyadjoint.adjfloat import AdjFloat
 from pyadjoint.control import Control
-from pyadjoint import IPOPTSolver, ROLSolver, MinimizationProblem, InequalityConstraint, minimize
+from pyadjoint import IPOPTSolver, ROLSolver, MinimizationProblem, \
+    InequalityConstraint, minimize, adjoint_step
 
 from dolfin_adjoint_common.ufl_constraints import UFLInequalityConstraint, UFLEqualityConstraint
 import numpy_adjoint

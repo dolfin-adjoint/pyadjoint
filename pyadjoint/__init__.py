@@ -23,3 +23,4 @@ from .optimization.ipopt_solver import IPOPTSolver
 from .optimization.rol_solver import ROLSolver
 from .optimization.constraints import InequalityConstraint, EqualityConstraint
 from .optimization.moola_problem import MoolaOptimizationProblem
+from .checkpointing import adjoint_step

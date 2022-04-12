@@ -96,7 +96,8 @@ class Tape(object):
     Each block represents one operation in the forward model.
 
     """
-    __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks", "_nodes", "_tf_registered_blocks"]
+    __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks", "_nodes",
+                 "_tf_registered_blocks", "_last_step"]
 
     def __init__(self, blocks=None):
         # Initialize the list of blocks on the tape.
@@ -106,6 +107,8 @@ class Tape(object):
         # Keep a list of blocks that has been added to the TensorFlow graph
         self._tf_added_blocks = []
         self._tf_registered_blocks = []
+        # The last adjoint step (think time step) on the tape.
+        self._last_step = 0
 
     def clear_tape(self):
         self.reset_variables()

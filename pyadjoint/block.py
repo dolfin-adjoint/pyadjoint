@@ -408,6 +408,10 @@ class Block(object):
                 G.nodes[id(out)]['node_color'] = "r"
                 G.nodes[id(out)]['position'] = (0.1 * xpos, -pos - 0.5)
 
+        # Handle blocks with no dependencies.
+        if id(self) not in G:
+            G.add_node(id(self))
+
         # Set properties for Block node
         G.nodes[id(self)]['label'] = escape(str(self))
         G.nodes[id(self)]['node_color'] = "b"
