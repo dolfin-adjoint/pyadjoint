@@ -97,7 +97,7 @@ class Tape(object):
 
     """
     __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks", "_nodes",
-                 "_tf_registered_blocks", "_last_step", "_steps"]
+                 "_tf_registered_blocks", "_last_step", "steps"]
 
     def __init__(self, blocks=None):
         # Initialize the list of blocks on the tape.
@@ -107,8 +107,8 @@ class Tape(object):
         # Keep a list of blocks that has been added to the TensorFlow graph
         self._tf_added_blocks = []
         self._tf_registered_blocks = []
-        # The last adjoint step (think time step) on the tape.
-        self._last_step = 0
+        # The indices of the step blocks (think timesteps) in the tape.
+        self.steps = []
 
     def clear_tape(self):
         self.reset_variables()
@@ -154,24 +154,21 @@ class Tape(object):
                 tags.append(block.tag)
         return tags
 
-    def find_steps(self):
-        """Find the StepBlocks and their dependencies.
+    def find_step_dependencies(self):
+        """Find the dependencies of the :class:`StepBlock`s.
 
         A :class:`BlockVariable` is a dependency of a :class:`StepBlock` if it
         is created before the :class:`StepBlock` and is a dependency of a block
         occuring after the :class:`StepBlock`.
         """
         from .checkpointing import StepBlock
-        steps = []
         dependencies = set()
         for block in self._blocks[::-1]:
             if isinstance(block, StepBlock):
-                steps.append(StepBlock)
                 block._dependencies = list(dependencies)
             else:
                 dependencies.update(block.get_dependencies())
                 dependencies.difference_update(block.get_outputs())
-        self._steps = reversed(steps)
 
     def evaluate_adj(self, last_block=0, markings=False):
         for i in range(len(self._blocks) - 1, last_block - 1, -1):

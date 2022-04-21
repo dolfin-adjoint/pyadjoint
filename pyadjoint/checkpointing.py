@@ -11,8 +11,8 @@ def adjoint_step():
 
     tape = get_working_tape()
 
-    tape.add_block(StepBlock(tape._last_step))
-    tape._last_step += 1
+    idx = tape.add_block(StepBlock(len(tape.steps)))
+    tape.steps.append(idx)
 
 
 class StepBlock(Block):
@@ -29,3 +29,34 @@ class StepBlock(Block):
 
     def __str__(self):
         return f"Step {self.step_number}"
+
+
+class CheckpointManager:
+    """An object controlling the execution of a Tape using checkpointing."""
+    def __init__(self, tape):
+        self.tape = tape
+        self.state = None
+        if not self.tape.steps:
+            self.tape.find_steps()
+        if not self.tape.steps:
+            raise ValueError(
+                "You must specify adjoint_steps in order to use checkpointing."
+            )
+        self.next_step = 0
+    
+    def advance(self, finish, store=False):
+        pass
+
+    def take_shot(self):
+        pass
+
+    def erase(self, step):
+        """Remove from memory the stored dependencies at the end of step."""
+        pass
+
+    def adjoint(self):
+        # Compute the adjoint to the last step.
+        pass
+
+
+
