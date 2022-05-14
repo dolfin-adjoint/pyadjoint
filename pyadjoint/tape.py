@@ -107,8 +107,8 @@ class Tape(object):
         # Keep a list of blocks that has been added to the TensorFlow graph
         self._tf_added_blocks = []
         self._tf_registered_blocks = []
-        # Overwrite this with a :class:`progress.Bar` to see the progress of
-        # tape evaluation operations.
+        # Overwrite this with a :class:`progress.Bar` to see the progress of
+        # tape evaluation operations.
         self.bar = _NullProgressBar
 
     def clear_tape(self):
