@@ -415,7 +415,8 @@ class Tape(object):
 
         For example, the following code::
 
-            from progress import FillingSquaresBar tape = get_working_tape()
+            from progress import FillingSquaresBar
+            tape = get_working_tape()
             tape.progress_bar = FillingSquaresBar
 
         will cause tape evaluations to print progress bars similar to the
