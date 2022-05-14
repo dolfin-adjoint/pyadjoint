@@ -131,7 +131,7 @@ class ReducedFunctional(object):
         blocks = self.tape.get_blocks()
         with self.marked_controls():
             with stop_annotating():
-                for i in self.tape.bar("Evaluating functional").iter(
+                for i in self.tape._bar("Evaluating functional").iter(
                     range(len(blocks))
                 ):
                     blocks[i].recompute()

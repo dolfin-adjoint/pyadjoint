@@ -97,7 +97,7 @@ class Tape(object):
 
     """
     __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks", "_nodes",
-                 "_tf_registered_blocks", "bar"]
+                 "_tf_registered_blocks", "_bar"]
 
     def __init__(self, blocks=None):
         # Initialize the list of blocks on the tape.
@@ -107,9 +107,7 @@ class Tape(object):
         # Keep a list of blocks that has been added to the TensorFlow graph
         self._tf_added_blocks = []
         self._tf_registered_blocks = []
-        # Overwrite this with a :class:`progress.Bar` to see the progress of
-        # tape evaluation operations.
-        self.bar = _NullProgressBar
+        self._bar = _NullProgressBar
 
     def clear_tape(self):
         self.reset_variables()
@@ -156,19 +154,19 @@ class Tape(object):
         return tags
 
     def evaluate_adj(self, last_block=0, markings=False):
-        for i in self.bar("Evaluating adjoint").iter(
+        for i in self._bar("Evaluating adjoint").iter(
             range(len(self._blocks) - 1, last_block - 1, -1)
         ):
             self._blocks[i].evaluate_adj(markings=markings)
 
     def evaluate_tlm(self):
-        for i in self.bar("Evaluating TLM").iter(
+        for i in self._bar("Evaluating TLM").iter(
             range(len(self._blocks))
         ):
             self._blocks[i].evaluate_tlm()
 
     def evaluate_hessian(self, markings=False):
-        for i in self.bar("Evaluating Hessian").iter(
+        for i in self._bar("Evaluating Hessian").iter(
             range(len(self._blocks) - 1, -1, -1)
         ):
             self._blocks[i].evaluate_hessian(markings=markings)
@@ -406,6 +404,37 @@ class Tape(object):
         G = self.create_graph()
         from networkx.drawing.nx_agraph import write_dot
         write_dot(G, filename)
+
+    @property
+    def progress_bar(self):
+        """Specify progress bar class for tape evaluation.
+
+        Setting this attribute to a sublclass of :class:`progress.Bar` will
+        cause every evaluation of a reduced functional, adjoint, TLM or Hessian
+        to print a progress bar.
+
+        For example, the following code::
+
+            from progress import FillingSquaresBar
+            tape = get_working_tape()
+            tape.progress_bar = FillingSquaresBar
+
+        Will cause tape evaluations to print progress bars similar to the
+        following::
+
+            Evaluating functional ▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣ 100%
+            Evaluating adjoint ▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣ 100%
+
+        .. note::
+
+            When running in parallel, you probably only want to set a progress
+            bar on one MPI rank.
+        """
+        return self._bar
+
+    @progress_bar.setter
+    def progress_bar(self, bar):
+        self._bar = bar
 
 
 class _NullProgressBar:
