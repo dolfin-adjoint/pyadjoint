@@ -418,7 +418,7 @@ class Tape(object):
             from progress import FillingSquaresBar tape = get_working_tape()
             tape.progress_bar = FillingSquaresBar
 
-        Will cause tape evaluations to print progress bars similar to the
+        will cause tape evaluations to print progress bars similar to the
         following::
 
             Evaluating functional ▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣ 100%
