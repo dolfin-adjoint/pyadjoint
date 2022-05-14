@@ -407,16 +407,15 @@ class Tape(object):
 
     @property
     def progress_bar(self):
-        """Specify progress bar class for tape evaluation.
+        """Specify a progress bar class to print during tape evaluation.
 
-        Setting this attribute to a sublclass of :class:`progress.Bar` will
+        Setting this attribute to a subclass of :class:`progress.Bar` will
         cause every evaluation of a reduced functional, adjoint, TLM or Hessian
         to print a progress bar.
 
         For example, the following code::
 
-            from progress import FillingSquaresBar
-            tape = get_working_tape()
+            from progress import FillingSquaresBar tape = get_working_tape()
             tape.progress_bar = FillingSquaresBar
 
         Will cause tape evaluations to print progress bars similar to the
@@ -424,6 +423,10 @@ class Tape(object):
 
             Evaluating functional ▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣ 100%
             Evaluating adjoint ▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣ 100%
+
+        For information on available progress bar styles and their
+        configuration, see the `progress package documentation
+        <https://pypi.org/project/progress/>`_.
 
         .. note::
 
