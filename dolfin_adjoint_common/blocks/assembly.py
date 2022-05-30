@@ -1,4 +1,5 @@
 import ufl
+from ufl.formatting.ufl2unicode import ufl2unicode
 from pyadjoint import Block, create_overloaded_object
 
 
@@ -15,7 +16,7 @@ class AssembleBlock(Block):
             self.add_dependency(c, no_duplicates=True)
 
     def __str__(self):
-        return str(self.form)
+        return f"assemble({ufl2unicode(self.form)})"
 
     def prepare_evaluate_adj(self, inputs, adj_inputs, relevant_dependencies):
         replaced_coeffs = {}

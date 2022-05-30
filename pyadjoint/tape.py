@@ -351,16 +351,19 @@ class Tape(object):
 
     def visualise(self, output="log", launch_tensorboard=False, open_in_browser=False):
         """Makes a visualisation of the tape as a graph using TensorFlow
-        or GraphViz. (Default: Tensorflow). If `output` endswith `.dot`,
-        Graphviz is used.
+        or GraphViz. (Default: Tensorflow). If `output` endswith `.dot` or
+        `.pdf`, Graphviz is used.
 
         Args:
-            output (str): Directory where event files for TensorBoard is stored. Default log.
-            launch_tensorboard (bool): Launch TensorBoard in the background. Default False.
-            open_in_browser (bool): Opens http://localhost:6006/ in a web browser. Default False.
+            output (str): Directory where event files for TensorBoard is
+            stored. Default log. launch_tensorboard (bool): Launch TensorBoard
+            in the background. Default False. open_in_browser (bool): Opens
+            http://localhost:6006/ in a web browser. Default False.
         """
         if output.endswith(".dot"):
             return self.visualise_dot(output)
+        elif output.endswith(".pdf"):
+            return self.visualise_pdf(output)
 
         import tensorflow as tf
         tf.compat.v1.reset_default_graph()
@@ -404,6 +407,29 @@ class Tape(object):
         G = self.create_graph()
         from networkx.drawing.nx_agraph import write_dot
         write_dot(G, filename)
+
+    def visualise_pdf(self, filename):
+        """Create a PDF visualisation of the tape.
+
+        This depends on the Python package networkx and the external Graphviz
+        package. The latter can be installed using e.g.::
+
+            sudo apt install graphviz
+
+        on Ubuntu or::
+
+            brew install graphviz
+
+        on Mac.
+
+        Args:
+            filename (str): File to save the visualisation. Must end in .pdf.
+        """
+        if not filename.endswith(".pdf"):
+            raise ValueError("Filename for PDF output must end in .pdf")
+        from networkx.drawing.nx_agraph import to_agraph
+        A = to_agraph(self.create_graph())
+        A.draw(filename, prog="dot")
 
     @property
     def progress_bar(self):
