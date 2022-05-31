@@ -356,9 +356,11 @@ class Tape(object):
 
         Args:
             output (str): Directory where event files for TensorBoard is
-            stored. Default log. launch_tensorboard (bool): Launch TensorBoard
-            in the background. Default False. open_in_browser (bool): Opens
-            http://localhost:6006/ in a web browser. Default False.
+                stored. Default log.
+            launch_tensorboard (bool): Launch TensorBoard in the background.
+                Default False.
+            open_in_browser (bool): Opens http://localhost:6006/ in a web
+                browser. Default False.
         """
         if output.endswith(".dot"):
             return self.visualise_dot(output)
@@ -435,13 +437,13 @@ class Tape(object):
     def progress_bar(self):
         """Specify a progress bar class to print during tape evaluation.
 
-        Setting this attribute to a subclass of :class:`progress.Bar` will
+        Setting this attribute to a subclass of :class:`progress.bar.Bar` will
         cause every evaluation of a reduced functional, adjoint, TLM or Hessian
         to print a progress bar.
 
         For example, the following code::
 
-            from progress import FillingSquaresBar
+            from progress.bar import FillingSquaresBar
             tape = get_working_tape()
             tape.progress_bar = FillingSquaresBar
 
@@ -454,11 +456,6 @@ class Tape(object):
         For information on available progress bar styles and their
         configuration, see the `progress package documentation
         <https://pypi.org/project/progress/>`_.
-
-        .. note::
-
-            When running in parallel, you probably only want to set a progress
-            bar on one MPI rank.
         """
         return self._bar
 
