@@ -36,17 +36,11 @@ try:
                 # Temp: temporary
                 if flag in [ROL.UpdateType.Initial, ROL.UpdateType.Trial, ROL.UpdateType.Temp]:
                     self._val = self.rf(x.dat)
-                    self._tape_trial = self.rf.tape.block_vars(self.rf.controls)
+                    self._tape_trial = self.rf.tape.checkpoint_block_vars(self.rf.controls)
                 elif flag == ROL.UpdateType.Revert:
                     # revert back to the cached value
                     self._val = self._cache
-                    for k, v in self._tape_cache.items():
-                        # we use the private _checkpoint attribute
-                        # here because the public attribute is a no-op
-                        # if the control values are "active", but we
-                        # need to make sure they are reset to the
-                        # cached value as well
-                        k._checkpoint = v
+                    self.rf.tape.restore_block_vars(self._tape_cache)
 
                 self._flag = flag
 
