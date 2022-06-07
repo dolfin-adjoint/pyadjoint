@@ -36,7 +36,7 @@ try:
                 # Temp: temporary
                 if flag in [ROL.UpdateType.Initial, ROL.UpdateType.Trial, ROL.UpdateType.Temp]:
                     self._val = self.rf(x.dat)
-                    self._tape_trial = self.rf.tape.block_vars()
+                    self._tape_trial = self.rf.tape.block_vars(self.rf.controls)
                 elif flag == ROL.UpdateType.Revert:
                     # revert back to the cached value
                     self._val = self._cache

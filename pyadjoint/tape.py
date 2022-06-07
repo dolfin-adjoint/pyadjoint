@@ -194,16 +194,16 @@ class Tape(object):
         # TODO: Offer deepcopying. But is it feasible memory wise to copy all checkpoints?
         return Tape(blocks=self._blocks[:])
 
-    def block_vars(self, tag=None):
-        """Return a dictionary mapping all block variables on the tape to their checkpointed values"""
+    def block_vars(self, controls=[], tag=None):
+        """Return a dictionary mapping all block variables on the tape to their checkpointed values.
+
+        May optionally take a list of controls for which the block variables should also be extracted."""
 
         return {
             var: var.checkpoint
-            for var in chain.from_iterable(
-                chain(
-                    b.get_dependencies(),
-                    b.get_outputs()
-                ) for b in self.get_blocks(tag))
+            for var in chain(
+                chain.from_iterable(b.get_outputs() for b in self.get_blocks(tag)),
+                (control.block_variable for control in controls))
         }
 
     def optimize(self, controls=None, functionals=None):
