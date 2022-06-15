@@ -4,6 +4,7 @@ import re
 import threading
 from contextlib import contextmanager
 from functools import wraps
+from itertools import chain
 
 _working_tape = None
 _stop_annotating = 0
@@ -192,6 +193,40 @@ class Tape(object):
         """
         # TODO: Offer deepcopying. But is it feasible memory wise to copy all checkpoints?
         return Tape(blocks=self._blocks[:])
+
+    def checkpoint_block_vars(self, controls=[], tag=None):
+        """Returns an object to checkpoint the current state of all block variables on the tape.
+
+        Args:
+            controls (list): A list of controls for which the block variables should also be extracted.
+
+        Returns:
+            dict[BlockVariable, object]: The checkpointed block variables of the tape.
+
+        """
+
+        return {
+            var: var.checkpoint
+            for var in chain(
+                chain.from_iterable(b.get_outputs() for b in self.get_blocks(tag)),
+                (control.block_variable for control in controls))
+        }
+
+    def restore_block_vars(self, block_vars):
+        """Set the checkpoints of the tape according to a checkpoint dictionary.
+
+        Args:
+            block_vars (dict[BlockVariable, object]): A checkpoint object from checkpoint_block_vars.
+
+        """
+
+        for k, v in block_vars.items():
+            # we use the private _checkpoint attribute
+            # here because the public attribute is a no-op
+            # if the control values are "active", but we
+            # need to make sure they are reset to the
+            # cached value as well
+            k._checkpoint = v
 
     def optimize(self, controls=None, functionals=None):
         if controls is not None:
