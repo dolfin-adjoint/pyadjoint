@@ -5,6 +5,8 @@ import threading
 from contextlib import contextmanager
 from functools import wraps
 from itertools import chain
+from abc import ABC, abstractmethod
+
 
 _working_tape = None
 _stop_annotating = 0
@@ -98,9 +100,9 @@ class Tape(object):
 
     """
     __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks", "_nodes",
-                 "_tf_registered_blocks", "_bar"]
+                 "_tf_registered_blocks", "_bar", "_package_data"]
 
-    def __init__(self, blocks=None):
+    def __init__(self, blocks=None, package_data=None):
         # Initialize the list of blocks on the tape.
         self._blocks = [] if blocks is None else blocks
         # Dictionary of TensorFlow tensors. Key is id(block).
@@ -109,16 +111,25 @@ class Tape(object):
         self._tf_added_blocks = []
         self._tf_registered_blocks = []
         self._bar = _NullProgressBar
+        # Hook location for packages which need to store additional data on the
+        # tape. Packages should store the data under a "packagename" key.
+        self._package_data = package_data or {}
 
     def clear_tape(self):
         self.reset_variables()
         self._blocks = []
+        for data in self._package_data.values():
+            data.clear()
 
     def reset_blocks(self):
         """Calls the Block.reset method of all blocks on the tape.
+
+        Also resets any package-dependent data stored on the tape.
         """
         for block in self._blocks:
             block.reset()
+        for data in self._package_data.values():
+            data.reset()
 
     def add_block(self, block):
         """
@@ -192,7 +203,10 @@ class Tape(object):
 
         """
         # TODO: Offer deepcopying. But is it feasible memory wise to copy all checkpoints?
-        return Tape(blocks=self._blocks[:])
+        return Tape(
+            blocks=self._blocks[:],
+            package_data={k: v.copy() for k, v in self._package_data.items()}
+        )
 
     def checkpoint_block_vars(self, controls=[], tag=None):
         """Returns an object to checkpoint the current state of all block variables on the tape.
@@ -205,12 +219,14 @@ class Tape(object):
 
         """
 
-        return {
+        state_dict = {
             var: var.checkpoint
             for var in chain(
                 chain.from_iterable(b.get_outputs() for b in self.get_blocks(tag)),
                 (control.block_variable for control in controls))
         }
+        state_dict["package_data"] = {k: v.checkpoint() for k, v in self._package_data.items()}
+        return state_dict
 
     def restore_block_vars(self, block_vars):
         """Set the checkpoints of the tape according to a checkpoint dictionary.
@@ -219,6 +235,8 @@ class Tape(object):
             block_vars (dict[BlockVariable, object]): A checkpoint object from checkpoint_block_vars.
 
         """
+        block_vars = block_vars.copy()
+        package_data = block_vars.pop("package_data")
 
         for k, v in block_vars.items():
             # we use the private _checkpoint attribute
@@ -227,6 +245,9 @@ class Tape(object):
             # need to make sure they are reset to the
             # cached value as well
             k._checkpoint = v
+
+        for k, v in self._package_data.items():
+            v.restore_from_checkpoint(package_data[k])
 
     def optimize(self, controls=None, functionals=None):
         if controls is not None:
@@ -512,3 +533,42 @@ class _NullProgressBar:
 
     def iter(self, iterator):
         return iterator
+
+
+class TapePackageData(ABC):
+    """Abstract base class for additional data that packages store on the tape.
+
+    If a package that uses Pyadjoint needs to store additional tape state, such
+    as the location of checkpoint files, it should store an instance of a
+    subclass of `TapePackageData` in the :attr:`_package_data` dictionary of
+    the tape. E.g::
+
+        get_working_tape()._package_data["firedrake"] = checkpoint_data
+    """
+
+    @abstractmethod
+    def clear(self):
+        """Delete the current state of the object.
+
+        This is called when the tape is cleared."""
+        pass
+
+    @abstractmethod
+    def reset(self):
+        """Reset the current state before a new forward evaluation."""
+        pass
+
+    @abstractmethod
+    def checkpoint(self):
+        """Record the information required to return to the current state."""
+        pass
+
+    @abstractmethod
+    def restore_from_checkpoint(self, state):
+        """Restore state from a previously stored checkpioint."""
+        pass
+
+    @abstractmethod
+    def copy(self):
+        """Produce a new copy of state to be passed to a copy of the tape."""
+        pass
