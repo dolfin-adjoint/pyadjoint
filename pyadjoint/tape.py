@@ -33,11 +33,31 @@ def continue_annotation():
 
 
 class stop_annotating(object):
+    """A context manager within which annotation is stopped.
+
+    Args:
+        modifies (OverloadedType or list[OverloadedType]): One or more
+            variables which appear in the tape and whose values are to be
+            changed inside the context manager.
+
+    The `modifies` argument is intended to be used by user code which
+    changes the value of inputs to the adjoint calculation such as time varying
+    forcings. Its effect is to create a new block variable for each of the
+    modified variables at the end of the context manager. """
+    def __init__(self, modifies=None):
+        self.modifies = modifies
+
     def __enter__(self):
         pause_annotation()
 
     def __exit__(self, *args):
         continue_annotation()
+        if self.modifies is not None:
+            try:
+                self.modifies.create_block_variable()
+            except AttributeError:
+                for var in self.modifies:
+                    var.create_block_variable()
 
 
 def no_annotations(function):
@@ -52,7 +72,7 @@ def no_annotations(function):
 
 
 def annotate_tape(kwargs=None):
-    """Returns True if annotation flag is on, and False if not.
+    """Return True if annotation flag is on, and False if not.
 
     If kwargs is given, the function will try to extract the
     annotate keyword. If the annotate keyword is not present it defaults to True.
