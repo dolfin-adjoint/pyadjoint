@@ -194,7 +194,7 @@ class Tape(object):
     def add_to_checkpointable_state(self, block_var, last_used):
         if not self.timesteps:
             self._blocks.append_step()
-        for step in self.timesteps[last_used+1:]:
+        for step in self.timesteps[last_used + 1:]:
             step.checkpointable_state.add(block_var)
 
     def get_blocks(self, tag=None):

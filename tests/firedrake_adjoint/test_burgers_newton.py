@@ -7,6 +7,7 @@ pytest.importorskip("firedrake")
 
 from firedrake import *
 from firedrake_adjoint import *
+import numpy as np
 
 set_log_level(CRITICAL)
 
@@ -14,8 +15,10 @@ n = 30
 mesh = UnitIntervalMesh(n)
 V = FunctionSpace(mesh, "CG", 2)
 
+
 def Dt(u, u_, timestep):
     return (u - u_)/timestep
+
 
 def J(ic, solve_type):
     u_ = Function(V)
@@ -44,15 +47,15 @@ def J(ic, solve_type):
          + u*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*dx
 
     end = 0.2
-    while (t <= end):
+    tape = get_working_tape()
+    for t in tape.timestepper(np.arange(t, end, float(timestep))):
         if solve_type == "NLVS":
             solver.solve()
         else:
             solve(F == 0, u, bc)
         u_.assign(u)
 
-        t += float(timestep)
-
+    assert len(tape.timesteps) == 7
     return assemble(u_*u_*dx + ic*ic*dx)
 
 
