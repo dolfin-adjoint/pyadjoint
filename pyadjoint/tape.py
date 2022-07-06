@@ -154,7 +154,22 @@ class Tape(object):
         self._blocks.append_step()
 
     def timestepper(self, iterable):
-        """Wrap an iterable to advance the timestep after each iteration."""
+        """Return an iterator that advances the tape timestep.
+
+        Args:
+            iterable (iterable): The iterable definining the sequence of timesteps.
+
+        This method facilitates taping timestepping simulations so that recompute
+        checkpointing can be used on the tape. For example, a simulation with
+        10 timesteps might use a timestepping loop of this form::
+
+            tape = get_working_tape
+
+            for timestep in tape.timestepper(range(10)):
+                ...
+
+        This has the effect of calling `tape.end_timestep()` after each iteration.
+        """
         return TapeTimeStepper(self, iterable)
 
     def reset_blocks(self):
