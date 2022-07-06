@@ -689,6 +689,7 @@ class TimeStep(list):
     def copy(self, blocks=None):
         out = TimeStep(self) if blocks is None else TimeStep(blocks)
         out.checkpointable_state = self.checkpointable_state
+        return out
 
 
 class TapePackageData(ABC):
