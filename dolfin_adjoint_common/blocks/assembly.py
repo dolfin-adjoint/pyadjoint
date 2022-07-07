@@ -9,8 +9,11 @@ class AssembleBlock(Block):
         if self.backend.__name__ != "firedrake":
             mesh = self.form.ufl_domain().ufl_cargo()
         else:
-            mesh = self.form.ufl_domain()
-        self.add_dependency(mesh)
+            mesh = self.form.ufl_domain() if hasattr(self.form, 'ufl_domain') else None
+
+        if mesh:
+            self.add_dependency(mesh)
+
         for c in self.form.coefficients():
             self.add_dependency(c, no_duplicates=True)
 
@@ -34,6 +37,9 @@ class AssembleBlock(Block):
         c = block_variable.output
         c_rep = block_variable.saved_output
 
+        from ufl.algorithms.analysis import extract_arguments
+        arity_form = len(extract_arguments(form))
+
         if isinstance(c, self.compat.ExpressionType):
             # Create a FunctionSpace from self.form and Expression.
             # And then make a TestFunction from this space.
@@ -41,22 +47,45 @@ class AssembleBlock(Block):
             V = c._ad_function_space(mesh)
             dc = self.backend.TestFunction(V)
 
+            import ipdb; ipdb.set_trace()
             dform = self.backend.derivative(form, c_rep, dc)
             output = self.compat.assemble_adjoint_value(dform)
             return [[adj_input * output, V]]
 
         if isinstance(c, self.backend.Function):
-            dc = self.backend.TestFunction(c.function_space())
+            # dc = self.backend.TestFunction(c.function_space())
+            space = c.function_space()
         elif isinstance(c, self.backend.Constant):
             mesh = self.compat.extract_mesh_from_form(self.form)
-            dc = self.backend.TestFunction(c._ad_function_space(mesh))
+            # dc = self.backend.TestFunction(c._ad_function_space(mesh))
+            space = c._ad_function_space(mesh)
         elif isinstance(c, self.compat.MeshType):
             c_rep = self.backend.SpatialCoordinate(c_rep)
-            dc = self.backend.TestFunction(c._ad_function_space())
+            # dc = self.backend.TestFunction(c._ad_function_space())
+            space = c._ad_function_space()
 
-        dform = self.backend.derivative(form, c_rep, dc)
-        output = self.compat.assemble_adjoint_value(dform)
-        return adj_input * output
+        if arity_form == 0:
+            dc = self.backend.TestFunction(space)
+            dform = self.backend.derivative(form, c_rep, dc)
+            output = self.compat.assemble_adjoint_value(dform)
+            return adj_input * output
+        elif arity_form == 1:
+            dc = self.backend.TrialFunction(space)
+            dform = self.backend.derivative(form, c_rep, dc)
+            # Get the Cofunction
+            adj_input = adj_input.function
+            # Symbolically compute: (dform/dc)^* * adj_input
+            adj_output = ufl.action(ufl.adjoint(dform), adj_input)
+            # UFL currently doesn't support zero in the dual space
+            # -> If adj_output = 0, we just return 0 in the appropriate space.
+            if adj_output == 0:
+                # Avoid handling zero in the dual space
+                adj_output = self.backend.Function(space)
+            return self.compat.assemble_adjoint_value(adj_output)
+
+        #dform = self.backend.derivative(form, c_rep, dc)
+        #output = self.compat.assemble_adjoint_value(dform)
+        #return adj_input * output
 
     def prepare_evaluate_tlm(self, inputs, tlm_inputs, relevant_outputs):
         return self.prepare_evaluate_adj(inputs, tlm_inputs, self.get_dependencies())
@@ -64,6 +93,9 @@ class AssembleBlock(Block):
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
         form = prepared
         dform = 0.
+        from ufl.algorithms.analysis import extract_arguments
+        arity_form = len(extract_arguments(form))
+
         for bv in self.get_dependencies():
             c_rep = bv.saved_output
             tlm_value = bv.tlm_value
@@ -76,8 +108,14 @@ class AssembleBlock(Block):
             else:
                 dform += self.backend.derivative(form, c_rep, tlm_value)
         if not isinstance(dform, float):
+            #if isinstance(dform
             dform = ufl.algorithms.expand_derivatives(dform)
             dform = self.compat.assemble_adjoint_value(dform)
+            if arity_form == 1:
+                # Then dform is a Vector
+                dform = dform.function
+            #dform = dform.function
+            #import ipdb; ipdb.set_trace()
         return dform
 
     def prepare_evaluate_hessian(self, inputs, hessian_inputs, adj_inputs, relevant_dependencies):
@@ -108,8 +146,8 @@ class AssembleBlock(Block):
             return None
 
         dform = self.backend.derivative(form, c1_rep, dc)
-        dform = ufl.algorithms.expand_derivatives(dform)
-        hessian_outputs = hessian_input * self.compat.assemble_adjoint_value(dform)
+        dform2 = ufl.algorithms.expand_derivatives(dform)
+        hessian_outputs = hessian_input * self.compat.assemble_adjoint_value(dform2)
 
         ddform = 0
         for other_idx, bv in relevant_dependencies:
