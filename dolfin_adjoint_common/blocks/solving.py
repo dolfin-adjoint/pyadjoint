@@ -64,8 +64,11 @@ class GenericSolveBlock(Block):
         self.assemble_kwargs = {}
 
     def __str__(self):
-        return "solve({} = {})".format(ufl2unicode(self.lhs),
-                                       ufl2unicode(self.rhs))
+        return "solve({} = {})".format(
+            ufl2unicode(self.lhs),
+            (ufl2unicode(self.rhs)
+                if isinstance(self.rhs, ufl.core.expr.Expr) else str(self.rhs))
+        )
 
     def _create_F_form(self):
         # Process the equation forms, replacing values with checkpoints,
