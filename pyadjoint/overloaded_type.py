@@ -229,7 +229,7 @@ class OverloadedType(object):
         """Method called when the object is added as a Block dependency.
 
         """
-        self.block_variable.save_output(overwrite=False)
+        return False
 
     def _ad_will_add_as_output(self):
         """Method called when the object is added as a Block output.
@@ -333,7 +333,7 @@ class FloatingType(OverloadedType):
         if self._ad_floating_active:
             with FloatingType.stop_floating(self):
                 self._ad_annotate_block()
-        self.block_variable.save_output(overwrite=False)
+        return False
 
     def _ad_will_add_as_output(self):
         if self._ad_floating_active:

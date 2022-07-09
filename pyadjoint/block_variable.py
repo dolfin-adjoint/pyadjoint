@@ -72,6 +72,7 @@ class BlockVariable(object):
 
     def will_add_as_output(self):
         self.creation_timestep = get_working_tape().latest_timestep
+        self.last_use = self.creation_timestep
         overwrite = self.output._ad_will_add_as_output()
         overwrite = True if overwrite is None else overwrite
         if overwrite:
