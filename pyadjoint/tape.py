@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from functools import wraps
 from itertools import chain
 from abc import ABC, abstractmethod
+from .checkpointing import CheckpointManager, CheckpointError
 
 
 _working_tape = None
@@ -121,7 +122,7 @@ class Tape(object):
     """
     __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks", "_nodes",
                  "_tf_registered_blocks", "_bar", "_package_data",
-                 "latest_checkpoint"]
+                 "latest_checkpoint", "_checkpoint_manager"]
 
     def __init__(self, blocks=(), package_data=None):
         # Initialize the list of blocks on the tape.
@@ -137,12 +138,17 @@ class Tape(object):
         self._package_data = package_data or {}
         # Default to checkpointing all block variables.
         self.latest_checkpoint = float("inf")
+        self._checkpoint_manager = None
+
+    def __len__(self):
+        return len(self._blocks)
 
     def clear_tape(self):
         self.reset_variables()
         self._blocks = TimeStepSequence()
         for data in self._package_data.values():
             data.clear()
+        self._checkpoint_manager = None
 
     @property
     def latest_timestep(self):
@@ -151,6 +157,11 @@ class Tape(object):
 
     def end_timestep(self):
         """Mark the end of a timestep when taping."""
+        if not self.timesteps:
+            # Ensure that timestep 0 has actually started.
+            self._blocks.append_step()
+        if self._checkpoint_manager:
+            self._checkpoint_manager.end_timestep(self.latest_timestep)
         self._blocks.append_step()
 
     def timestepper(self, iterable):
@@ -196,6 +207,13 @@ class Tape(object):
             self._blocks.append_step()
         for step in self.timesteps[last_used + 1:]:
             step.checkpointable_state.add(block_var)
+
+    def enable_checkpointing(self, schedule):
+        if self:
+            raise CheckpointError(
+                "Checkpointing must be enabled before any blocks are added to the tape."
+            )
+        self._checkpoint_manager = CheckpointManager(schedule, self)
 
     def get_blocks(self, tag=None):
         """Returns a list of the blocks on the tape.

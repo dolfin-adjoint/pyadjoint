@@ -7,6 +7,7 @@ pytest.importorskip("firedrake")
 
 from firedrake import *
 from firedrake_adjoint import *
+from hrevolve import revolve
 import numpy as np
 
 set_log_level(CRITICAL)
@@ -55,20 +56,30 @@ def J(ic, solve_type):
             solve(F == 0, u, bc)
         u_.assign(u)
 
-    assert len(tape.timesteps) == 7
     return assemble(u_*u_*dx + ic*ic*dx)
 
 
 @pytest.mark.parametrize("solve_type",
                          ["solve", "NLVS"])
 def test_burgers_newton(solve_type):
+    tape = get_working_tape()
+    tape.enable_checkpointing(revolve(6, 2, uf=1, ub=1, print_table=False))
+
     x, = SpatialCoordinate(mesh)
-    ic = project(sin(2*pi*x),  V)
+    ic = project(sin(2.*pi*x), V)
 
     val = J(ic, solve_type)
-
+    assert len(tape.timesteps) == 7
+    breakpoint()
     Jhat = ReducedFunctional(val, Control(ic))
+    dJ = Jhat.derivative()
+    Jhat(ic)
+    dJbar = Jhat.derivative()
+    assert np.allclose(dJ.dat.data_ro[:], dJbar.dat.data_ro[:])
 
     h = Function(V)
     h.assign(1, annotate=False)
     assert taylor_test(Jhat, ic, h) > 1.9
+
+
+test_burgers_newton("solve")
