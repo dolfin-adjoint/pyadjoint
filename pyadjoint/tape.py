@@ -241,10 +241,13 @@ class Tape(object):
         return tags
 
     def evaluate_adj(self, last_block=0, markings=False):
-        for i in self._bar("Evaluating adjoint").iter(
-            range(len(self._blocks) - 1, last_block - 1, -1)
-        ):
-            self._blocks[i].evaluate_adj(markings=markings)
+        if self._checkpoint_manager:
+            self._checkpoint_manager.evaluate_adj(last_block, markings)
+        else:
+            for i in self._bar("Evaluating adjoint").iter(
+                range(len(self._blocks) - 1, last_block - 1, -1)
+            ):
+                self._blocks[i].evaluate_adj(markings=markings)
 
     def evaluate_tlm(self):
         for i in self._bar("Evaluating TLM").iter(

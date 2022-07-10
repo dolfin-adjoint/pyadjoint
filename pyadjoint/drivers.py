@@ -26,7 +26,8 @@ def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
 
     with stop_annotating():
         with tape.marked_nodes(m):
-            tape.evaluate_adj(markings=True)
+            with marked_controls(m):
+                tape.evaluate_adj(markings=True)
 
     grads = [i.get_derivative(options=options) for i in m]
     return m.delist(grads)
@@ -91,3 +92,16 @@ def solve_adjoint(J, tape=None, adj_value=1.0):
 
     with stop_annotating():
         tape.evaluate_adj(markings=False)
+
+
+class marked_controls(object):
+    def __init__(self, controls):
+        self.controls = controls
+
+    def __enter__(self):
+        for control in self.controls:
+            control.mark_as_control()
+
+    def __exit__(self, *args):
+        for control in self.controls:
+            control.unmark_as_control()

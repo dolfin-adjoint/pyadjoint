@@ -70,7 +70,6 @@ def test_burgers_newton(solve_type):
 
     val = J(ic, solve_type)
     assert len(tape.timesteps) == 7
-    breakpoint()
     Jhat = ReducedFunctional(val, Control(ic))
     dJ = Jhat.derivative()
     Jhat(ic)
