@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 from .optimization_solver import OptimizationSolver
 from ..enlisting import Enlist
 from ..overloaded_type import OverloadedType
@@ -14,13 +12,15 @@ try:
             self.rf = rf
             self.scale = scale
 
+            self._val = None
+            self._cache = None
+            self._flag = None
+
         def value(self, x, tol):
-            # FIXME: should check if we have evaluated here before
-            return self.val
+            return self._val
 
         def gradient(self, g, x, tol):
-            # self.rf(x.dat)
-            self.deriv = self.rf.derivative()  # forget=False, project=False)
+            self.deriv = self.rf.derivative()
             g.dat = g.riesz_map(self.deriv)
 
         def hessVec(self, hv, v, x, tol):
@@ -28,8 +28,29 @@ try:
             hv.dat = hv.riesz_map(hessian_action)
 
         def update(self, x, flag, iteration):
-            self.val = self.rf(x.dat)
-            # pass
+            if hasattr(ROL, "UpdateType") and isinstance(flag, ROL.UpdateType):
+                # Initial: has not been called before
+                # Accept: this is the new iterate, trial has been called
+                # Revert: revert to previous, trial has been called
+                # Trial: candidate for next
+                # Temp: temporary
+                if flag in [ROL.UpdateType.Initial, ROL.UpdateType.Trial, ROL.UpdateType.Temp]:
+                    self._val = self.rf(x.dat)
+                    self._tape_trial = self.rf.tape.checkpoint_block_vars(self.rf.controls)
+                elif flag == ROL.UpdateType.Revert:
+                    # revert back to the cached value
+                    self._val = self._cache
+                    self.rf.tape.restore_block_vars(self._tape_cache)
+
+                self._flag = flag
+
+                # cache value/tape in the first instance or when accepted
+                if flag in [ROL.UpdateType.Initial, ROL.UpdateType.Accept]:
+                    self._cache = self._val
+                    self._tape_cache = self._tape_trial
+
+            else:
+                self._val = self.rf(x.dat)
 
     class ROLVector(ROL.Vector):
         def __init__(self, dat, inner_product="L2"):

@@ -16,6 +16,7 @@ Core classes
 
     .. automethod:: add_block
     .. automethod:: visualise
+    .. autoproperty:: progress_bar
 
 .. autoclass:: Block
 

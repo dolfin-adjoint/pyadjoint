@@ -1,5 +1,6 @@
 import ufl
 from ufl.corealg.traversal import traverse_unique_terminals
+from ufl.formatting.ufl2unicode import ufl2unicode
 from pyadjoint import Block, OverloadedType, AdjFloat
 
 
@@ -147,3 +148,11 @@ class FunctionAssignBlock(Block):
         output = self.backend.Function(block_variable.output.function_space())
         self.backend.Function.assign(output, prepared)
         return output
+
+    def __str__(self):
+        rhs = self.expr or self.other or self.get_dependencies()[0].output
+        if isinstance(rhs, ufl.core.expr.Expr):
+            rhs_str = ufl2unicode(rhs)
+        else:
+            rhs_str = str(rhs)
+        return f"assign({rhs_str})"

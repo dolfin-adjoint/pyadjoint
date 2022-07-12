@@ -1,5 +1,6 @@
 import numpy
 import ufl
+from ufl.formatting.ufl2unicode import ufl2unicode
 
 from pyadjoint import Block
 from pyadjoint.enlisting import Enlist
@@ -63,7 +64,8 @@ class GenericSolveBlock(Block):
         self.assemble_kwargs = {}
 
     def __str__(self):
-        return "{} = {}".format(str(self.lhs), str(self.rhs))
+        return "solve({} = {})".format(ufl2unicode(self.lhs),
+                                       ufl2unicode(self.rhs))
 
     def _create_F_form(self):
         # Process the equation forms, replacing values with checkpoints,

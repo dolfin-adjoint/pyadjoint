@@ -1,6 +1,7 @@
 from .drivers import compute_gradient, compute_hessian
 from .enlisting import Enlist
 from .tape import get_working_tape, stop_annotating, no_annotations
+from .overloaded_type import OverloadedType
 
 
 class ReducedFunctional(object):
@@ -27,6 +28,8 @@ class ReducedFunctional(object):
                  derivative_cb_post=lambda *args: None,
                  hessian_cb_pre=lambda *args: None,
                  hessian_cb_post=lambda *args: None):
+        if not isinstance(functional, OverloadedType):
+            raise TypeError("Functional must be an OveroadedType.")
         self.functional = functional
         self.tape = get_working_tape() if tape is None else tape
         self.controls = Enlist(controls)
@@ -131,7 +134,9 @@ class ReducedFunctional(object):
         blocks = self.tape.get_blocks()
         with self.marked_controls():
             with stop_annotating():
-                for i in range(len(blocks)):
+                for i in self.tape._bar("Evaluating functional").iter(
+                    range(len(blocks))
+                ):
                     blocks[i].recompute()
 
         func_value = self.scale * self.functional.block_variable.checkpoint

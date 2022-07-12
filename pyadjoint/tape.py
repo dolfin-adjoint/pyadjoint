@@ -4,6 +4,9 @@ import re
 import threading
 from contextlib import contextmanager
 from functools import wraps
+from itertools import chain
+from abc import ABC, abstractmethod
+
 
 _working_tape = None
 _stop_annotating = 0
@@ -30,11 +33,31 @@ def continue_annotation():
 
 
 class stop_annotating(object):
+    """A context manager within which annotation is stopped.
+
+    Args:
+        modifies (OverloadedType or list[OverloadedType]): One or more
+            variables which appear in the tape and whose values are to be
+            changed inside the context manager.
+
+    The `modifies` argument is intended to be used by user code which
+    changes the value of inputs to the adjoint calculation such as time varying
+    forcings. Its effect is to create a new block variable for each of the
+    modified variables at the end of the context manager. """
+    def __init__(self, modifies=None):
+        self.modifies = modifies
+
     def __enter__(self):
         pause_annotation()
 
     def __exit__(self, *args):
         continue_annotation()
+        if self.modifies is not None:
+            try:
+                self.modifies.create_block_variable()
+            except AttributeError:
+                for var in self.modifies:
+                    var.create_block_variable()
 
 
 def no_annotations(function):
@@ -49,7 +72,7 @@ def no_annotations(function):
 
 
 def annotate_tape(kwargs=None):
-    """Returns True if annotation flag is on, and False if not.
+    """Return True if annotation flag is on, and False if not.
 
     If kwargs is given, the function will try to extract the
     annotate keyword. If the annotate keyword is not present it defaults to True.
@@ -96,9 +119,10 @@ class Tape(object):
     Each block represents one operation in the forward model.
 
     """
-    __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks", "_nodes", "_tf_registered_blocks"]
+    __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks", "_nodes",
+                 "_tf_registered_blocks", "_bar", "_package_data"]
 
-    def __init__(self, blocks=None):
+    def __init__(self, blocks=None, package_data=None):
         # Initialize the list of blocks on the tape.
         self._blocks = [] if blocks is None else blocks
         # Dictionary of TensorFlow tensors. Key is id(block).
@@ -106,16 +130,26 @@ class Tape(object):
         # Keep a list of blocks that has been added to the TensorFlow graph
         self._tf_added_blocks = []
         self._tf_registered_blocks = []
+        self._bar = _NullProgressBar
+        # Hook location for packages which need to store additional data on the
+        # tape. Packages should store the data under a "packagename" key.
+        self._package_data = package_data or {}
 
     def clear_tape(self):
         self.reset_variables()
         self._blocks = []
+        for data in self._package_data.values():
+            data.clear()
 
     def reset_blocks(self):
         """Calls the Block.reset method of all blocks on the tape.
+
+        Also resets any package-dependent data stored on the tape.
         """
         for block in self._blocks:
             block.reset()
+        for data in self._package_data.values():
+            data.reset()
 
     def add_block(self, block):
         """
@@ -152,15 +186,21 @@ class Tape(object):
         return tags
 
     def evaluate_adj(self, last_block=0, markings=False):
-        for i in range(len(self._blocks) - 1, last_block - 1, -1):
+        for i in self._bar("Evaluating adjoint").iter(
+            range(len(self._blocks) - 1, last_block - 1, -1)
+        ):
             self._blocks[i].evaluate_adj(markings=markings)
 
     def evaluate_tlm(self):
-        for i in range(len(self._blocks)):
+        for i in self._bar("Evaluating TLM").iter(
+            range(len(self._blocks))
+        ):
             self._blocks[i].evaluate_tlm()
 
     def evaluate_hessian(self, markings=False):
-        for i in range(len(self._blocks) - 1, -1, -1):
+        for i in self._bar("Evaluating Hessian").iter(
+            range(len(self._blocks) - 1, -1, -1)
+        ):
             self._blocks[i].evaluate_hessian(markings=markings)
 
     def reset_variables(self, types=None):
@@ -183,7 +223,51 @@ class Tape(object):
 
         """
         # TODO: Offer deepcopying. But is it feasible memory wise to copy all checkpoints?
-        return Tape(blocks=self._blocks[:])
+        return Tape(
+            blocks=self._blocks[:],
+            package_data={k: v.copy() for k, v in self._package_data.items()}
+        )
+
+    def checkpoint_block_vars(self, controls=[], tag=None):
+        """Returns an object to checkpoint the current state of all block variables on the tape.
+
+        Args:
+            controls (list): A list of controls for which the block variables should also be extracted.
+
+        Returns:
+            dict[BlockVariable, object]: The checkpointed block variables of the tape.
+
+        """
+
+        state_dict = {
+            var: var.checkpoint
+            for var in chain(
+                chain.from_iterable(b.get_outputs() for b in self.get_blocks(tag)),
+                (control.block_variable for control in controls))
+        }
+        state_dict["package_data"] = {k: v.checkpoint() for k, v in self._package_data.items()}
+        return state_dict
+
+    def restore_block_vars(self, block_vars):
+        """Set the checkpoints of the tape according to a checkpoint dictionary.
+
+        Args:
+            block_vars (dict[BlockVariable, object]): A checkpoint object from checkpoint_block_vars.
+
+        """
+        block_vars = block_vars.copy()
+        package_data = block_vars.pop("package_data")
+
+        for k, v in block_vars.items():
+            # we use the private _checkpoint attribute
+            # here because the public attribute is a no-op
+            # if the control values are "active", but we
+            # need to make sure they are reset to the
+            # cached value as well
+            k._checkpoint = v
+
+        for k, v in self._package_data.items():
+            v.restore_from_checkpoint(package_data[k])
 
     def optimize(self, controls=None, functionals=None):
         if controls is not None:
@@ -343,16 +427,21 @@ class Tape(object):
 
     def visualise(self, output="log", launch_tensorboard=False, open_in_browser=False):
         """Makes a visualisation of the tape as a graph using TensorFlow
-        or GraphViz. (Default: Tensorflow). If `output` endswith `.dot`,
-        Graphviz is used.
+        or GraphViz. (Default: Tensorflow). If `output` endswith `.dot` or
+        `.pdf`, Graphviz is used.
 
         Args:
-            output (str): Directory where event files for TensorBoard is stored. Default log.
-            launch_tensorboard (bool): Launch TensorBoard in the background. Default False.
-            open_in_browser (bool): Opens http://localhost:6006/ in a web browser. Default False.
+            output (str): Directory where event files for TensorBoard is
+                stored. Default log.
+            launch_tensorboard (bool): Launch TensorBoard in the background.
+                Default False.
+            open_in_browser (bool): Opens http://localhost:6006/ in a web
+                browser. Default False.
         """
         if output.endswith(".dot"):
             return self.visualise_dot(output)
+        elif output.endswith(".pdf"):
+            return self.visualise_pdf(output)
 
         import tensorflow as tf
         tf.compat.v1.reset_default_graph()
@@ -396,3 +485,110 @@ class Tape(object):
         G = self.create_graph()
         from networkx.drawing.nx_agraph import write_dot
         write_dot(G, filename)
+
+    def visualise_pdf(self, filename):
+        """Create a PDF visualisation of the tape.
+
+        This depends on the Python package networkx and the external Graphviz
+        package. The latter can be installed using e.g.::
+
+            sudo apt install graphviz
+
+        on Ubuntu or::
+
+            brew install graphviz
+
+        on Mac.
+
+        Args:
+            filename (str): File to save the visualisation. Must end in .pdf.
+        """
+        if not filename.endswith(".pdf"):
+            raise ValueError("Filename for PDF output must end in .pdf")
+        from networkx.drawing.nx_agraph import to_agraph
+        A = to_agraph(self.create_graph())
+        A.draw(filename, prog="dot")
+
+    @property
+    def progress_bar(self):
+        """Specify a progress bar class to print during tape evaluation.
+
+        Setting this attribute to a subclass of :class:`progress.bar.Bar` will
+        cause every evaluation of a reduced functional, adjoint, TLM or Hessian
+        to print a progress bar.
+
+        For example, the following code::
+
+            from progress.bar import FillingSquaresBar
+            tape = get_working_tape()
+            tape.progress_bar = FillingSquaresBar
+
+        will cause tape evaluations to print progress bars similar to the
+        following::
+
+            Evaluating functional ▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣ 100%
+            Evaluating adjoint ▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣▣ 100%
+
+        For information on available progress bar styles and their
+        configuration, see the `progress package documentation
+        <https://pypi.org/project/progress/>`_.
+        """
+        return self._bar
+
+    @progress_bar.setter
+    def progress_bar(self, bar):
+        self._bar = bar
+
+
+class _NullProgressBar:
+    """A placeholder class with the same interface as a progress bar."""
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self):
+        pass
+
+    def iter(self, iterator):
+        return iterator
+
+
+class TapePackageData(ABC):
+    """Abstract base class for additional data that packages store on the tape.
+
+    If a package that uses Pyadjoint needs to store additional tape state, such
+    as the location of checkpoint files, it should store an instance of a
+    subclass of `TapePackageData` in the :attr:`_package_data` dictionary of
+    the tape. E.g::
+
+        get_working_tape()._package_data["firedrake"] = checkpoint_data
+    """
+
+    @abstractmethod
+    def clear(self):
+        """Delete the current state of the object.
+
+        This is called when the tape is cleared."""
+        pass
+
+    @abstractmethod
+    def reset(self):
+        """Reset the current state before a new forward evaluation."""
+        pass
+
+    @abstractmethod
+    def checkpoint(self):
+        """Record the information required to return to the current state."""
+        pass
+
+    @abstractmethod
+    def restore_from_checkpoint(self, state):
+        """Restore state from a previously stored checkpioint."""
+        pass
+
+    @abstractmethod
+    def copy(self):
+        """Produce a new copy of state to be passed to a copy of the tape."""
+        pass
