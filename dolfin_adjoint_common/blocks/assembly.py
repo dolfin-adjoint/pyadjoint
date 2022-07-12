@@ -48,7 +48,6 @@ class AssembleBlock(Block):
             V = c._ad_function_space(mesh)
             dc = self.backend.TestFunction(V)
 
-            import ipdb; ipdb.set_trace()
             dform = self.backend.derivative(form, c_rep, dc)
             output = self.compat.assemble_adjoint_value(dform)
             return [[adj_input * output, V]]
@@ -116,7 +115,6 @@ class AssembleBlock(Block):
                 # Then dform is a Vector
                 dform = dform.function
             #dform = dform.function
-            #import ipdb; ipdb.set_trace()
         return dform
 
     def prepare_evaluate_hessian(self, inputs, hessian_inputs, adj_inputs, relevant_dependencies):
