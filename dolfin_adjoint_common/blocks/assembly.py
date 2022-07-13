@@ -83,10 +83,6 @@ class AssembleBlock(Block):
                 adj_output = self.backend.Function(space)
             return self.compat.assemble_adjoint_value(adj_output)
 
-        #dform = self.backend.derivative(form, c_rep, dc)
-        #output = self.compat.assemble_adjoint_value(dform)
-        #return adj_input * output
-
     def prepare_evaluate_tlm(self, inputs, tlm_inputs, relevant_outputs):
         return self.prepare_evaluate_adj(inputs, tlm_inputs, self.get_dependencies())
 
@@ -108,13 +104,11 @@ class AssembleBlock(Block):
             else:
                 dform += self.backend.derivative(form, c_rep, tlm_value)
         if not isinstance(dform, float):
-            #if isinstance(dform
             dform = ufl.algorithms.expand_derivatives(dform)
             dform = self.compat.assemble_adjoint_value(dform)
             if arity_form == 1:
                 # Then dform is a Vector
                 dform = dform.function
-            #dform = dform.function
         return dform
 
     def prepare_evaluate_hessian(self, inputs, hessian_inputs, adj_inputs, relevant_dependencies):
