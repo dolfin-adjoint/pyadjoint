@@ -63,6 +63,7 @@ def J(ic, solve_type):
                          ["solve", "NLVS"])
 def test_burgers_newton(solve_type):
     tape = get_working_tape()
+    tape.progress_bar = ProgressBar
     tape.enable_checkpointing(revolve(6, 2, uf=1, ub=1, print_table=False))
 
     x, = SpatialCoordinate(mesh)
@@ -72,7 +73,7 @@ def test_burgers_newton(solve_type):
     assert len(tape.timesteps) == 7
     Jhat = ReducedFunctional(val, Control(ic))
     dJ = Jhat.derivative()
-    Jhat(ic)
+    assert(np.allclose(Jhat(ic), val))
     dJbar = Jhat.derivative()
     assert np.allclose(dJ.dat.data_ro[:], dJbar.dat.data_ro[:])
 
