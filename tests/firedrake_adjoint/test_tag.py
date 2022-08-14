@@ -8,10 +8,8 @@ from firedrake_adjoint import *
 @pytest.fixture(params=[
     "constant assign",
     "function assign",
-    "interpolate",
     "project",
     "supermesh project",
-    "interpolate method",
     "project method",
     "supermesh project method",
 ])
@@ -36,10 +34,6 @@ def test_tags(tag):
         f2.assign(1.0)
         if tag == "function assign":
             f1.assign(f2, ad_block_tag=tag)
-        elif tag == "interpolate":
-            f1 = interpolate(f2, V, ad_block_tag=tag)
-        elif tag == "interpolate method":
-            f1.interpolate(f2, ad_block_tag=tag)
         elif "project method" in tag:
             f1.project(f2, ad_block_tag=tag)
         elif "project" in tag:
