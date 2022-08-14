@@ -21,6 +21,25 @@ class AssembleBlock(Block):
     def __str__(self):
         return f"assemble({ufl2unicode(self.form)})"
 
+    def compute_action_adjoint(self, adj_input, arity_form, form=None, c_rep=None, space=None, dform=None):
+        if arity_form == 0:
+            if dform is None:
+                dc = self.backend.TestFunction(space)
+                dform = self.backend.derivative(form, c_rep, dc)
+            dform_vector = self.compat.assemble_adjoint_value(dform)
+            return adj_input * dform_vector, dform
+        elif arity_form == 1:
+            if dform is None:
+                dc = self.backend.TrialFunction(space)
+                dform = self.backend.derivative(form, c_rep, dc)
+            # Get the Cofunction
+            adj_input = adj_input.function
+            # Symbolically compute: (dform/dc_rep)^* * adj_input
+            adj_output = ufl.action(ufl.adjoint(dform), adj_input)
+            return self.compat.assemble_adjoint_value(adj_output), dform
+        else:
+            raise ValueError('Forms with arity > 1 are not handled yet!')
+
     def prepare_evaluate_adj(self, inputs, adj_inputs, relevant_dependencies):
         replaced_coeffs = {}
         for block_variable in self.get_dependencies():
@@ -53,35 +72,15 @@ class AssembleBlock(Block):
             return [[adj_input * output, V]]
 
         if isinstance(c, self.backend.Function):
-            # dc = self.backend.TestFunction(c.function_space())
             space = c.function_space()
         elif isinstance(c, self.backend.Constant):
             mesh = self.compat.extract_mesh_from_form(self.form)
-            # dc = self.backend.TestFunction(c._ad_function_space(mesh))
             space = c._ad_function_space(mesh)
         elif isinstance(c, self.compat.MeshType):
             c_rep = self.backend.SpatialCoordinate(c_rep)
-            # dc = self.backend.TestFunction(c._ad_function_space())
             space = c._ad_function_space()
 
-        if arity_form == 0:
-            dc = self.backend.TestFunction(space)
-            dform = self.backend.derivative(form, c_rep, dc)
-            output = self.compat.assemble_adjoint_value(dform)
-            return adj_input * output
-        elif arity_form == 1:
-            dc = self.backend.TrialFunction(space)
-            dform = self.backend.derivative(form, c_rep, dc)
-            # Get the Cofunction
-            adj_input = adj_input.function
-            # Symbolically compute: (dform/dc)^* * adj_input
-            adj_output = ufl.action(ufl.adjoint(dform), adj_input)
-            # UFL currently doesn't support zero in the dual space
-            # -> If adj_output = 0, we just return 0 in the appropriate space.
-            if adj_output == 0:
-                # Avoid handling zero in the dual space
-                adj_output = self.backend.Function(space)
-            return self.compat.assemble_adjoint_value(adj_output)
+        return self.compute_action_adjoint(adj_input, arity_form, form, c_rep, space)[0]
 
     def prepare_evaluate_tlm(self, inputs, tlm_inputs, relevant_outputs):
         return self.prepare_evaluate_adj(inputs, tlm_inputs, self.get_dependencies())
@@ -106,8 +105,8 @@ class AssembleBlock(Block):
         if not isinstance(dform, float):
             dform = ufl.algorithms.expand_derivatives(dform)
             dform = self.compat.assemble_adjoint_value(dform)
-            if arity_form == 1:
-                # Then dform is a Vector
+            if arity_form == 1 and dform != 0:
+                # Then dform is a Vector (and not a ZeroBaseForm since dform != 0)
                 dform = dform.function
         return dform
 
@@ -120,29 +119,29 @@ class AssembleBlock(Block):
         hessian_input = hessian_inputs[0]
         adj_input = adj_inputs[0]
 
+        from ufl.algorithms.analysis import extract_arguments
+        arity_form = len(extract_arguments(form))
+
         c1 = block_variable.output
         c1_rep = block_variable.saved_output
 
         if isinstance(c1, self.backend.Function):
-            dc = self.backend.TestFunction(c1.function_space())
+            space = c1.function_space()
         elif isinstance(c1, self.compat.ExpressionType):
             mesh = form.ufl_domain().ufl_cargo()
-            W = c1._ad_function_space(mesh)
-            dc = self.backend.TestFunction(W)
+            space = c1._ad_function_space(mesh)
         elif isinstance(c1, self.backend.Constant):
             mesh = self.compat.extract_mesh_from_form(form)
-            dc = self.backend.TestFunction(c1._ad_function_space(mesh))
+            space = c1._ad_function_space(mesh)
         elif isinstance(c1, self.compat.MeshType):
             c1_rep = self.backend.SpatialCoordinate(c1)
-            dc = self.backend.TestFunction(c1._ad_function_space())
+            space = c1._ad_function_space()
         else:
             return None
 
-        dform = self.backend.derivative(form, c1_rep, dc)
-        dform2 = ufl.algorithms.expand_derivatives(dform)
-        hessian_outputs = hessian_input * self.compat.assemble_adjoint_value(dform2)
+        hessian_outputs, dform = self.compute_action_adjoint(hessian_input, arity_form, form, c1_rep, space)
 
-        ddform = 0
+        ddform = 0.
         for other_idx, bv in relevant_dependencies:
             c2_rep = bv.saved_output
             tlm_input = bv.tlm_value
@@ -158,11 +157,11 @@ class AssembleBlock(Block):
 
         if not isinstance(ddform, float):
             ddform = ufl.algorithms.expand_derivatives(ddform)
-            if not ddform.empty():
-                hessian_outputs += adj_input * self.compat.assemble_adjoint_value(ddform)
+            if not (isinstance(ddform, ufl.ZeroBaseForm) or (isinstance(ddform, ufl.Form) and ddform.empty())):
+                hessian_outputs += self.compute_action_adjoint(adj_input, arity_form, dform=ddform)[0]
 
         if isinstance(c1, self.compat.ExpressionType):
-            return [(hessian_outputs, W)]
+            return [(hessian_outputs, space)]
         else:
             return hessian_outputs
 
