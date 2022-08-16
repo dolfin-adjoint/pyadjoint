@@ -29,7 +29,7 @@ class ReducedFunctional(object):
                  hessian_cb_pre=lambda *args: None,
                  hessian_cb_post=lambda *args: None):
         if not isinstance(functional, OverloadedType):
-            raise TypeError("Functional must be an OveroadedType.")
+            raise TypeError("Functional must be an OverloadedType.")
         self.functional = functional
         self.tape = get_working_tape() if tape is None else tape
         self.controls = Enlist(controls)
@@ -135,7 +135,7 @@ class ReducedFunctional(object):
         with self.marked_controls():
             with stop_annotating():
                 if self.tape._checkpoint_manager:
-                    self.tape._checkpoint_manager.recompute()
+                    self.tape._checkpoint_manager.recompute(self.functional)
                 else:
                     for i in self.tape._bar("Evaluating functional").iter(
                         range(len(blocks))

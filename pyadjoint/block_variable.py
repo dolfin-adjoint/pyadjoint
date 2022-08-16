@@ -71,12 +71,15 @@ class BlockVariable(object):
         self.last_use = tape.latest_timestep
 
     def will_add_as_output(self):
-        self.creation_timestep = get_working_tape().latest_timestep
+        tape = get_working_tape()
+        self.creation_timestep = tape.latest_timestep
         self.last_use = self.creation_timestep
         overwrite = self.output._ad_will_add_as_output()
         overwrite = True if overwrite is None else overwrite
         if overwrite:
             self._checkpoint = None
+        if tape._eagerly_checkpoint_outputs:
+            self.save_output()
 
     def __str__(self):
         return str(self.output)

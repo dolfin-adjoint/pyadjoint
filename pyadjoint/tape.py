@@ -122,7 +122,8 @@ class Tape(object):
     """
     __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks", "_nodes",
                  "_tf_registered_blocks", "_bar", "_package_data",
-                 "latest_checkpoint", "_checkpoint_manager"]
+                 "latest_checkpoint", "_checkpoint_manager",
+                 "_eagerly_checkpoint_outputs"]
 
     def __init__(self, blocks=(), package_data=None):
         # Initialize the list of blocks on the tape.
@@ -139,6 +140,7 @@ class Tape(object):
         # Default to checkpointing all block variables.
         self.latest_checkpoint = float("inf")
         self._checkpoint_manager = None
+        self._eagerly_checkpoint_outputs = False
 
     def __len__(self):
         return len(self._blocks)
@@ -157,12 +159,10 @@ class Tape(object):
 
     def end_timestep(self):
         """Mark the end of a timestep when taping."""
-        if not self.timesteps:
-            # Ensure that timestep 0 has actually started.
-            self._blocks.append_step()
         if self._checkpoint_manager:
             self._checkpoint_manager.end_timestep(self.latest_timestep)
-        self._blocks.append_step()
+        else:
+            self._blocks.append_step()
 
     def timestepper(self, iterable):
         """Return an iterator that advances the tape timestep.
@@ -706,11 +706,32 @@ class TimeStep(list):
         # The set of block variables which are needed to restart from the start
         # of this timestep.
         self.checkpointable_state = set()
+        # A dictionary mapping the block variables in the checkpointable state
+        # to their checkpoint values.
+        self._checkpoint = {}
 
     def copy(self, blocks=None):
         out = TimeStep(self) if blocks is None else TimeStep(blocks)
         out.checkpointable_state = self.checkpointable_state
         return out
+
+    def checkpoint(self, location):
+        """Store a reference to the checkpoints in the checkpointable state."""
+        self._checkpoint = {
+            var: var._checkpoint for var in self.checkpointable_state
+        }
+        assert location == "RAM"
+
+    def restore_from_checkpoint(self):
+        """Restore the block var checkpoints from the timestep checkpoint."""
+        assert set(self._checkpoint) == self.checkpointable_state
+
+        for var in self.checkpointable_state:
+            var.checkpoint = self._checkpoint[var]
+
+    def delete_checkpoint(self):
+        """Delete the stored checkpoint references."""
+        self._checkpoint = {}
 
 
 class TapePackageData(ABC):

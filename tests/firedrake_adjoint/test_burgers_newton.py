@@ -7,7 +7,7 @@ pytest.importorskip("firedrake")
 
 from firedrake import *
 from firedrake_adjoint import *
-from hrevolve import revolve
+from tlm_adjoint.checkpoint_schedules import HRevolveCheckpointSchedule
 import numpy as np
 
 set_log_level(CRITICAL)
@@ -42,13 +42,14 @@ def J(ic, solve_type):
     else:
         solve(F == 0, u, bc)
     u_.assign(u)
+    tape = get_working_tape()
+    tape.end_timestep()
     t += float(timestep)
 
     F = (Dt(u, u_, timestep)*v
          + u*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*dx
 
     end = 0.2
-    tape = get_working_tape()
     for t in tape.timestepper(np.arange(t, end, float(timestep))):
         if solve_type == "NLVS":
             solver.solve()
@@ -64,7 +65,8 @@ def J(ic, solve_type):
 def test_burgers_newton(solve_type):
     tape = get_working_tape()
     tape.progress_bar = ProgressBar
-    tape.enable_checkpointing(revolve(6, 2, uf=1, ub=1, print_table=False))
+    tape.enable_checkpointing(
+        HRevolveCheckpointSchedule(7, 2, 0))
 
     x, = SpatialCoordinate(mesh)
     ic = project(sin(2.*pi*x), V)
