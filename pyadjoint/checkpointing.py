@@ -42,6 +42,10 @@ def process_schedule(schedule):
 class CheckpointManager:
     def __init__(self, schedule, tape):
         self.forward, self.reverse = process_schedule(schedule)
+        if schedule.uses_disk_storage and not tape._package_data:
+            raise CheckpointError(
+                "The schedule employs disk checkpointing but it is not configured."
+            )
         self.tape = tape
         self.timesteps = schedule.max_n()
         self.mode = Mode.RECORD
@@ -119,10 +123,6 @@ class CheckpointManager:
 
         return False
 
-    @process_taping.register(Write)
-    def _(self, operation, timestep):
-        self.tape.timesteps[operation.n].checkpoint(operation.storage)
-
     @process_taping.register(EndForward)
     def _(self, operation, timestep):
         self.mode = Mode.EVALUATED
@@ -156,6 +156,17 @@ class CheckpointManager:
     def process_operation(self, operation, bar, **kwargs):
         """Perform the operations required by the schedule."""
         raise CheckpointError(f"Unable to process {operation}.")
+
+    @process_taping.register(Write)
+    @process_operation.register(Write)
+    def _(self, operation, bar, **kwargs):
+        for data in self.tape._package_data.values():
+            data.configure_checkpointing(operation.storage)
+
+        self.tape.timesteps[operation.n].checkpoint()
+
+        for data in self.tape._package_data.values():
+            data.configure_checkpointing("RAM")
 
     @process_operation.register(Forward)
     def _(self, operation, bar, functional=None, **kwargs):
@@ -202,10 +213,6 @@ class CheckpointManager:
         self._checkpointable_state = current_step.checkpointable_state
         if operation.delete:
             current_step.delete_checkpoint()
-
-    @process_operation.register(Write)
-    def _(self, operation, bar, **kwargs):
-        self.tape.timesteps[operation.n].checkpoint(operation.storage)
 
     @process_operation.register(EndForward)
     def _(self, operation, bar, **kwargs):

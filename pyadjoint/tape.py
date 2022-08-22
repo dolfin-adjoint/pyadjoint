@@ -303,7 +303,9 @@ class Tape(object):
                 chain.from_iterable(b.get_outputs() for b in self.get_blocks(tag)),
                 (control.block_variable for control in controls))
         }
-        state_dict["package_data"] = {k: v.checkpoint() for k, v in self._package_data.items()}
+        state_dict["package_data"] = {
+            k: v.checkpoint_tape() for k, v in self._package_data.items()
+        }
         return state_dict
 
     def restore_block_vars(self, block_vars):
@@ -325,7 +327,7 @@ class Tape(object):
             k._checkpoint = v
 
         for k, v in self._package_data.items():
-            v.restore_from_checkpoint(package_data[k])
+            v.restore_tape_from_checkpoint(package_data[k])
 
     def optimize(self, controls=None, functionals=None):
         if controls is not None:
@@ -715,12 +717,12 @@ class TimeStep(list):
         out.checkpointable_state = self.checkpointable_state
         return out
 
-    def checkpoint(self, location):
-        """Store a reference to the checkpoints in the checkpointable state."""
+    def checkpoint(self):
+        """Store a copy of the checkpoints in the checkpointable state."""
+
         self._checkpoint = {
-            var: var._checkpoint for var in self.checkpointable_state
+            var: var.output._ad_create_checkpoint() for var in self.checkpointable_state
         }
-        assert location == "RAM"
 
     def restore_from_checkpoint(self):
         """Restore the block var checkpoints from the timestep checkpoint."""
@@ -757,12 +759,21 @@ class TapePackageData(ABC):
         pass
 
     @abstractmethod
-    def checkpoint(self):
+    def configure_checkpointing(self, location):
+        """Configure checkpointing for the next batch of checkpointed data.
+
+        Args:
+            location (str): checkpoint location, "RAM" or "Disk".
+        """
+        pass
+
+    @abstractmethod
+    def checkpoint_tape(self):
         """Record the information required to return to the current state."""
         pass
 
     @abstractmethod
-    def restore_from_checkpoint(self, state):
+    def restore_tape_from_checkpoint(self, state):
         """Restore state from a previously stored checkpioint."""
         pass
 
