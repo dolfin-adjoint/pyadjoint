@@ -62,7 +62,9 @@ class CheckpointManager:
 
     def end_timestep(self, timestep):
         """Process the end of a timestep while recording."""
-        if self.mode != Mode.RECORD:
+        if self.mode == Mode.EVALUATED:
+            raise CheckpointError("Not enough timesteps in schedule.")
+        elif self.mode != Mode.RECORD:
             raise CheckpointError(f"Cannot end timestep in {self.mode}")
 
         while not self.process_taping(self._current, timestep + 1):
