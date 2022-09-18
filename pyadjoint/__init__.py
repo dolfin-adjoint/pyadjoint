@@ -12,7 +12,7 @@ from .tape import (Tape,
                    set_working_tape, get_working_tape, no_annotations,
                    annotate_tape, stop_annotating, pause_annotation, continue_annotation)
 from .adjfloat import AdjFloat
-from .reduced_functional import ReducedFunctional
+from .reduced_functional import ReducedFunction, ReducedFunctional
 from .drivers import compute_gradient, compute_hessian, solve_adjoint
 from .verification import taylor_test, taylor_to_dict
 from .overloaded_type import OverloadedType, create_overloaded_object

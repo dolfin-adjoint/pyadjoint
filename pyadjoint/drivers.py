@@ -27,8 +27,8 @@ def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
     m = Enlist(m)
     adj_value = Enlist(adj_value)
 
-    for i in range(len(adj_value)):
-        J[i].block_variable.adj_value = adj_value[i]
+    for i, adj in enumerate(adj_value):
+        J[i].block_variable.adj_value = adj
 
     with stop_annotating():
         with tape.marked_nodes(m):
@@ -36,6 +36,38 @@ def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
 
     grads = [v.get_derivative(options=options) for v in m]
     return m.delist(grads)
+
+
+def compute_jacobian_action(J, m, m_dot, tape=None):
+    """
+    Compute the action of the Jacobian of J on m_dot with respect to the
+    initialisation value of m, that is the value of m at its creation.
+
+    Args:
+        J (OverloadedType):  The outputs of the function.
+        m (Control, list[Control]): The (list of) controls.
+        tape: The tape to use. Default is the current tape.
+        m_dot(OverloadedType): variation of same overloaded type as m.
+
+    Returns:
+        OverloadedType: The action on m_dot of the Jacobian of J with respect to
+            the control. Should be an instance of the same type as the output of J.
+    """
+    tape = get_working_tape() if tape is None else tape
+    tape.reset_tlm_values()
+
+    m_dot = Enlist(m_dot)
+    J = Enlist(J)
+    m = Enlist(m)
+
+    for i, tlm in enumerate(m_dot):
+        m[i].tlm_value = tlm
+
+    with stop_annotating():
+        tape.evaluate_tlm()
+        grads = [Ji.block_variable.tlm_value for Ji in J]
+
+    return J.delist(grads)
 
 
 def compute_hessian(J, m, m_dot, options=None, tape=None, hessian_value=0.0):

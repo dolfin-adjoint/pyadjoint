@@ -1,5 +1,5 @@
 from functools import wraps
-from .drivers import compute_gradient, compute_hessian
+from .drivers import compute_gradient, compute_hessian, compute_jacobian_action
 from .enlisting import Enlist
 from .tape import get_working_tape, stop_annotating, no_annotations
 from .overloaded_type import OverloadedType
@@ -68,6 +68,47 @@ class ReducedFunction(object):
         )
 
     @no_annotations
+    def jac_action(self, m_dot):
+        """Returns the action of the Jacobian of the function w.r.t. the control
+        on a vector m_dot.
+
+        Using forward propagation, the action of the Jacobian with respect to the
+        control, around the last supplied value of the control, is computed and
+        returned.
+
+        Args:
+            m_dot ([OverloadedType]): The vector on which to compute the action
+                of the Jacobian.
+        Returns:
+            OverloadedType: The Jacobian action with respect to the control.
+                Should be an instance of the same type as the output.
+
+        """
+        m_dot = Enlist(m_dot)
+        if len(m_dot) != len(self.controls):
+            raise TypeError(
+                "The length of m_dot must match the length of function controls."
+            )
+
+        values = [c.tape_value() for c in self.controls]
+        self.jac_action_cb_pre(
+            self.controls.delist(values), self.controls.delist(m_dot)
+        )
+
+        derivatives = compute_jacobian_action(
+            self.output_vals, self.controls, m_dot, tape=self.tape
+        )
+
+        # Call callback
+        self.jac_action_cb_post(
+            self.outputs.delist([bv.saved_output for bv in self.outputs]),
+            self.outputs.delist(derivatives),
+            self.controls.delist(values),
+        )
+
+        return self.outputs.delist(derivatives)
+
+    @no_annotations
     def adj_jac_action(self, adj_input, options=None):
         """Returns the action of the adjoint Jacobian of the function w.r.t. the
         control on a vector adj_input.
@@ -77,6 +118,8 @@ class ReducedFunction(object):
         is computed and returned.
 
         Args:
+            adj_input ([OverloadedType]): The adjoint vector on which to
+                compute the action of the Hessian.
             options (dict): A dictionary of options. To find a list of available
                 options have a look at the specific control type.
 
@@ -120,15 +163,15 @@ class ReducedFunction(object):
         of the control, is computed and returned.
 
         Args:
-            m_dot ([OverloadedType]): The direction in which to compute the
+            m_dot ([OverloadedType]): The vector in which to compute the
                 action of the Hessian.
-            adj_input ([OverloadedType]): The adjoint direction in which to
+            adj_input ([OverloadedType]): The adjoint vector in which to
                 compute the action of the Hessian.
             options (dict): A dictionary of options. To find a list of
                 available options have a look at the specific control type.
 
         Returns:
-            OverloadedType: The action of the Hessian in the direction m_dot.
+            OverloadedType: The action of the Hessian on the vectors m_dot and adj_input.
                 Should be an instance of the same type as the control.
         """
         m_dot = Enlist(m_dot)
