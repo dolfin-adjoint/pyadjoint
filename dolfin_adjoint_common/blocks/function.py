@@ -13,7 +13,7 @@ class FunctionAssignBlock(Block):
             other = AdjFloat(other)
         if isinstance(other, OverloadedType):
             self.add_dependency(other, no_duplicates=True)
-        elif not(isinstance(other, float) or isinstance(other, int)):
+        elif not (isinstance(other, float) or isinstance(other, int)):
             # Assume that this is a point-wise evaluated UFL expression (firedrake only)
             for op in traverse_unique_terminals(other):
                 if isinstance(op, OverloadedType):
