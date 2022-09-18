@@ -185,6 +185,12 @@ class Tape(object):
                 tags.append(block.tag)
         return tags
 
+    def recompute(self, inputs=None, outputs=None):
+        for i in self._bar("Recomputing").iter(
+            range(len(self._blocks))
+        ):
+            self._blocks[i].recompute()
+
     def evaluate_adj(self, last_block=0, markings=False):
         for i in self._bar("Evaluating adjoint").iter(
             range(len(self._blocks) - 1, last_block - 1, -1)

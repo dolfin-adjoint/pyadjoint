@@ -5,13 +5,14 @@ from .tape import get_working_tape, stop_annotating
 def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
     """
     Compute the gradient of J with respect to the initialisation value of m,
-    that is the value of m at its creation.
+    that is the value of m at its creation, in the adjoint direction adj_value.
 
     Args:
-        J (AdjFloat):  The objective functional.
-        m (list or instance of Control): The (list of) controls.
+        J (OverloadedType, list[OverloadedType]):  The objective function.
+        m (Control, list[Control]): The (list of) controls.
         options (dict): A dictionary of options. To find a list of available options
             have a look at the specific control type.
+        adj_value: The adjoint direction used to evaluate the gradient.
         tape: The tape to use. Default is the current tape.
 
     Returns:
@@ -21,25 +22,34 @@ def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
     options = options or {}
     tape = tape or get_working_tape()
     tape.reset_variables()
-    J.block_variable.adj_value = adj_value
+
+    J = Enlist(J)
     m = Enlist(m)
+    adj_value = Enlist(adj_value)
+
+    for i in range(len(adj_value)):
+        J[i].block_variable.adj_value = adj_value[i]
 
     with stop_annotating():
         with tape.marked_nodes(m):
             tape.evaluate_adj(markings=True)
 
-    grads = [i.get_derivative(options=options) for i in m]
+    grads = [v.get_derivative(options=options) for v in m]
     return m.delist(grads)
 
 
-def compute_hessian(J, m, m_dot, options=None, tape=None):
+def compute_hessian(J, m, m_dot, options=None, tape=None, hessian_value=0.0):
     """
-    Compute the Hessian of J in a direction m_dot at the current value of m
+    Compute the Hessian of J in a directions m_dot at the current value of m.
+
+    Note: you must call `compute_gradient` before calling this function.
 
     Args:
-        J (AdjFloat):  The objective functional.
-        m (list or instance of Control): The (list of) controls.
+        J (OverloadedType, list[OverloadedType]):  The objective function.
+        m (Control, list[Control]): The (list of) controls.
         m_dot (list or instance of the control type): The direction in which to compute the Hessian.
+        hessian_value (list or instance of the output type): Should be the
+            representation for zero in the output
         options (dict): A dictionary of options. To find a list of available options
             have a look at the specific control type.
         tape: The tape to use. Default is the current tape.
@@ -56,13 +66,18 @@ def compute_hessian(J, m, m_dot, options=None, tape=None):
 
     m = Enlist(m)
     m_dot = Enlist(m_dot)
+    hessian_value = Enlist(hessian_value)
+    J = Enlist(J)
+
     for i, value in enumerate(m_dot):
         m[i].tlm_value = m_dot[i]
 
     with stop_annotating():
         tape.evaluate_tlm()
 
-    J.block_variable.hessian_value = 0.0
+    for i in range(len(hessian_value)):
+        J[i].block_variable.hessian_value = hessian_value[i]
+
     with stop_annotating():
         with tape.marked_nodes(m):
             tape.evaluate_hessian(markings=True)
