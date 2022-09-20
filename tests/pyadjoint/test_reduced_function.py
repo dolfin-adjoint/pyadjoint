@@ -1,5 +1,6 @@
 from pyadjoint import *
-import numpy as np
+from numpy_adjoint import *
+from numpy.testing import assert_equal
 
 def example1_get_y(x):
     """Adjoint Jacobian:
@@ -32,6 +33,7 @@ def example1_get_y(x):
         x[1] * x[1] * x[0],
     ]
 
+
 def test_reduced_function():
     x = [AdjFloat(3.0), AdjFloat(5.0)]
     y = example1_get_y(x)
@@ -48,12 +50,20 @@ def test_reduced_function():
         adj_output = [86, 97]
         assert rf.adj_jac_action(adj_input) == adj_output
 
-        tml_input = [-1.0, -2.0]
-        tml_output = [-3.0, -11.0, -85.0]
-        assert rf.jac_action(tml_input) == tml_output
+        tlm_input = [-1.0, -2.0]
+        tlm_output = [-3.0, -11.0, -85.0]
+        assert rf.jac_action(tlm_input) == tlm_output
 
         hess_output = [-64, -68]
-        assert rf.hess_action(tml_input, adj_input) == hess_output
+        assert rf.hess_action(tlm_input, adj_input) == hess_output
+
+        rf_np = ReducedFunctionNumPy(rf)
+        adj_input_np = numpy.array(adj_input)
+        tlm_input_np = numpy.array(tlm_input)
+        assert_equal(rf_np.adj_jac_action(adj_input_np), adj_output)
+        assert_equal(rf_np.jac_action(tlm_input_np), tlm_output)
+        assert_equal(rf_np.hess_action(tlm_input_np, adj_input_np), hess_output)
+
 
 def test_taylor_test():
     x = [AdjFloat(3.0), AdjFloat(5.0)]
@@ -66,37 +76,49 @@ def test_taylor_test():
         v = [1.0, 2.0, 3.0]
         h = [-1.0, -2.0]
 
-        jac = rf.jac_action(h)
-        adj_jac = rf.adj_jac_action(v)
-        hess = rf.hess_action(h, v)
-
         rate_keys = ["R0", "R1", "R2"]
         results = taylor_to_dict(rf, x, h, v=v)
         for order, k in enumerate(rate_keys):
             assert min(results[k]["Rate"]) > order + 0.9, results[k]
 
-        # Call with or without v to separately test adjoint and TLM.
-        assert taylor_test(rf, x, h) > 1.9
-        assert taylor_test(rf, x, h, v=v) > 1.9
+        try_taylor_test(rf, x, h, v)
 
-        # Call with dJdm = 0. to skip derivative calculations.
-        assert taylor_test(rf, x, h, dJdm=0, v=v) > 0.9
-        assert taylor_test(rf, x, h, dJdm=0) > 0.9
+        try_taylor_test(rf, x, h, v)
 
-        # Call with correct dJdm to skip derivative calculations.
-        dJdm = jac
-        assert taylor_test(rf, x, h, dJdm=dJdm) > 1.9
+        rf_np = ReducedFunctionNumPy(rf)
+        x_np = numpy.array(x)
+        h_np = numpy.array(h)
+        v_np = numpy.array(v)
+        try_taylor_test(rf_np, x_np, h_np, v_np)
 
-        dJdm = sum(vi * jac_i for vi, jac_i in zip(v, jac))
-        assert taylor_test(rf, x, h, dJdm=dJdm, v=v) > 1.9
 
-        dJdm = sum(hi * adj_i for hi, adj_i in zip(h, adj_jac))
-        assert taylor_test(rf, x, h, dJdm=dJdm, v=v) > 1.9
+def try_taylor_test(rf, x, h, v):
+    jac = rf.jac_action(h)
+    adj_jac = rf.adj_jac_action(v)
+    hess = rf.hess_action(h, v)
 
-        # Call with Hm = None to include Hessian calculations.
-        assert taylor_test(rf, x, h, v=v, Hm=None) > 2.9
+    # Call with or without v to separately test adjoint and TLM.
+    assert taylor_test(rf, x, h) > 1.9
+    assert taylor_test(rf, x, h, v=v) > 1.9
 
-        # Call with correct Hm to skip Hessian calculations.
-        Hm = sum(hi * hess_i for hi, hess_i in zip(h, hess))
-        assert taylor_test(rf, x, h, Hm=Hm, v=v) > 2.9
+    # Call with dJdm = 0 to skip derivative calculations.
+    assert taylor_test(rf, x, h, dJdm=0, v=v) > 0.9
+    assert taylor_test(rf, x, h, dJdm=0) > 0.9
+
+    # Call with correct dJdm to skip derivative calculations.
+    dJdm = jac
+    assert taylor_test(rf, x, h, dJdm=dJdm) > 1.9
+
+    dJdm = sum(vi * jac_i for vi, jac_i in zip(v, jac))
+    assert taylor_test(rf, x, h, dJdm=dJdm, v=v) > 1.9
+
+    dJdm = sum(hi * adj_i for hi, adj_i in zip(h, adj_jac))
+    assert taylor_test(rf, x, h, dJdm=dJdm, v=v) > 1.9
+
+    # Call with Hm = None to include Hessian calculations.
+    assert taylor_test(rf, x, h, v=v, Hm=None) > 2.9
+
+    # Call with correct Hm to skip Hessian calculations.
+    Hm = sum(hi * hess_i for hi, hess_i in zip(h, hess))
+    assert taylor_test(rf, x, h, Hm=Hm, v=v) > 2.9
 

@@ -6,7 +6,7 @@ from .overloaded_type import OverloadedType
 
 
 class ReducedFunction(object):
-    """Class representing the reduced function.
+    """Class representing the reduced function J(m).
 
     A reduced function maps a control value to the provided function.
     It may also be used to compute the derivative of the function with
@@ -68,57 +68,57 @@ class ReducedFunction(object):
         )
 
     @no_annotations
-    def jac_action(self, m_dot):
+    def jac_action(self, h):
         """Returns the action of the Jacobian of the function w.r.t. the control
-        on a vector m_dot.
+        on a vector h.
 
         Using forward propagation, the action of the Jacobian with respect to the
         control, around the last supplied value of the control, is computed and
         returned.
 
         Args:
-            m_dot ([OverloadedType]): The vector on which to compute the action
+            h ([OverloadedType]): The vector on which to compute the action
                 of the Jacobian.
         Returns:
             OverloadedType: The Jacobian action with respect to the control.
                 Should be an instance of the same type as the output.
 
         """
-        m_dot = Enlist(m_dot)
-        if len(m_dot) != len(self.controls):
+        h = Enlist(h)
+        if len(h) != len(self.controls):
             raise TypeError(
-                "The length of m_dot must match the length of function controls."
+                "The length of h must match the length of function controls."
             )
 
         values = [c.tape_value() for c in self.controls]
         self.jac_action_cb_pre(
-            self.controls.delist(values), self.controls.delist(m_dot)
+            self.controls.delist(values), self.controls.delist(h)
         )
 
-        derivatives = compute_jacobian_action(
-            self.output_vals, self.controls, m_dot, tape=self.tape
+        dJdm_h = compute_jacobian_action(
+            self.output_vals, self.controls, h, tape=self.tape
         )
 
         # Call callback
         self.jac_action_cb_post(
             self.outputs.delist([bv.saved_output for bv in self.outputs]),
-            self.outputs.delist(derivatives),
+            self.outputs.delist(dJdm_h),
             self.controls.delist(values),
         )
 
-        return self.outputs.delist(derivatives)
+        return self.outputs.delist(dJdm_h)
 
     @no_annotations
-    def adj_jac_action(self, adj_input, options=None):
+    def adj_jac_action(self, v, options=None):
         """Returns the action of the adjoint Jacobian of the function w.r.t. the
-        control on a vector adj_input.
+        control on a vector v.
 
         Using the adjoint method, the action of the adjoint Jacobian with
         respect to the control, around the last supplied value of the control,
         is computed and returned.
 
         Args:
-            adj_input ([OverloadedType]): The adjoint vector on which to
+            v ([OverloadedType]): The adjoint vector on which to
                 compute the action of the Hessian.
             options (dict): A dictionary of options. To find a list of available
                 options have a look at the specific control type.
@@ -127,63 +127,63 @@ class ReducedFunction(object):
             OverloadedType: The action of the Jacobian with respect to the control.
                 Should be an instance of the same type as the control.
         """
-        adj_input = Enlist(adj_input)
-        if len(adj_input) != len(self.outputs):
+        v = Enlist(v)
+        if len(v) != len(self.outputs):
             raise ValueError(
-                "The length of adj_input must match the length of function outputs."
+                "The length of v must match the length of function outputs."
             )
 
         values = [c.tape_value() for c in self.controls]
         self.adj_jac_action_cb_pre(self.controls.delist(values))
 
-        derivatives = compute_gradient(
+        v_dJdm = compute_gradient(
             self.output_vals,
             self.controls,
             options=options,
             tape=self.tape,
-            adj_value=adj_input,
+            adj_value=v,
         )
 
         # Call callback
         self.adj_jac_action_cb_post(
             self.outputs.delist([bv.saved_output for bv in self.outputs]),
-            self.controls.delist(derivatives),
+            self.controls.delist(v_dJdm),
             self.controls.delist(values),
         )
 
-        return self.controls.delist(derivatives)
+        return self.controls.delist(v_dJdm)
 
     @no_annotations
-    def hess_action(self, m_dot, adj_input, options=None):
+    def hess_action(self, h, v, options=None):
         """Returns the action of the Hessian of the function w.r.t. the
-        control on the vectors m_dot and adj_input.
+        control on the vectors h and v.
 
         Using the second-order adjoint method, the action of the Hessian of the
         function with respect to the control, around the last supplied value
         of the control, is computed and returned.
 
         Args:
-            m_dot ([OverloadedType]): The vector in which to compute the
+            h ([OverloadedType]): The vector in which to compute the
                 action of the Hessian.
-            adj_input ([OverloadedType]): The adjoint vector in which to
+            v ([OverloadedType]): The adjoint vector in which to
                 compute the action of the Hessian.
             options (dict): A dictionary of options. To find a list of
                 available options have a look at the specific control type.
 
         Returns:
-            OverloadedType: The action of the Hessian on the vectors m_dot and adj_input.
+            OverloadedType: The action of the Hessian on the vectors h and v.
                 Should be an instance of the same type as the control.
         """
-        m_dot = Enlist(m_dot)
-        if len(m_dot) != len(self.controls):
+        h = Enlist(h)
+        if len(h) != len(self.controls):
             raise ValueError(
-                "The length of m_dot must match the length of function controls."
+                "The length of h must match the length of function controls."
             )
 
-        adj_input = Enlist(adj_input)
-        if len(adj_input) != len(self.outputs):
+        v = Enlist(v)
+        if len(v) != len(self.outputs):
             raise ValueError(
-                "The length of adj_input must match the length of function outputs."
+                "The length of v must match the length of function outputs."
             )
 
         values = [c.tape_value() for c in self.controls]
@@ -194,15 +194,15 @@ class ReducedFunction(object):
             self.controls,
             options=options,
             tape=self.tape,
-            adj_value=adj_input,
+            adj_value=v,
         )
 
         # TODO: there should be a better way of generating hessian_value.
-        zero = [0 * v for v in adj_input]
-        hessian = compute_hessian(
+        zero = [0 * vi for vi in v]
+        v_hessian_h = compute_hessian(
             self.output_vals,
             self.controls,
-            m_dot,
+            h,
             options=options,
             tape=self.tape,
             hessian_value=zero,
@@ -211,18 +211,18 @@ class ReducedFunction(object):
         # Call callback
         self.hess_action_cb_post(
             self.outputs.delist([bv.saved_output for bv in self.outputs]),
-            self.controls.delist(hessian),
+            self.controls.delist(v_hessian_h),
             self.controls.delist(values),
         )
 
-        return self.controls.delist(hessian)
+        return self.controls.delist(v_hessian_h)
 
     @no_annotations
-    def __call__(self, inputs):
+    def __call__(self, m):
         """Computes the reduced function with supplied control value.
 
         Args:
-            inputs ([OverloadedType]): If you have multiple controls this should be a list of
+            m ([OverloadedType]): If you have multiple controls this should be a list of
                 new values for each control in the order you listed the controls to the constructor.
                 If you have a single control it can either be a list or a single object.
                 Each new value should have the same type as the corresponding control.
@@ -232,14 +232,14 @@ class ReducedFunction(object):
                 of :class:`AdjFloat`.
 
         """
-        inputs = Enlist(inputs)
-        if len(inputs) != len(self.controls):
-            raise ValueError("The length of inputs must match the length of controls.")
+        m = Enlist(m)
+        if len(m) != len(self.controls):
+            raise ValueError("The length of m must match the length of controls.")
 
         # Call callback.
-        self.eval_cb_pre(self.controls.delist(inputs))
+        self.eval_cb_pre(self.controls.delist(m))
 
-        for i, value in enumerate(inputs):
+        for i, value in enumerate(m):
             self.controls[i].update(value)
 
         self.tape.reset_blocks()
@@ -252,7 +252,7 @@ class ReducedFunction(object):
         )
 
         # Call callback
-        self.eval_cb_post(output_vals, self.controls.delist(inputs))
+        self.eval_cb_post(output_vals, self.controls.delist(m))
 
         return output_vals
 

@@ -3,6 +3,7 @@ import logging
 from .enlisting import Enlist
 from .tape import stop_annotating
 from .overloaded_type import create_overloaded_objects
+from numbers import Number
 
 
 def taylor_test(J, m, h, dJdm=None, Hm=0.0, v=None, epsilons=None):
@@ -156,7 +157,7 @@ def _get_derivatives(J, m, h, dJdm=None, Hm=None, v=None):
 
     if dJdm is None:
         print("Computing derivative")
-        if isinstance(Jm, (float, int)) and hasattr(J, "derivative"):
+        if isinstance(Jm, Number) and hasattr(J, "derivative"):
             ds = Enlist(J.derivative())
             if len(ds) != len(ms):
                 raise ValueError(
@@ -180,14 +181,14 @@ def _get_derivatives(J, m, h, dJdm=None, Hm=None, v=None):
                 dJdm = sum(hi._ad_dot(di) for hi, di in zip(hs, ds))
 
     if Hm is None:
-        if isinstance(Jm, (float, int)) and hasattr(J, "derivative"):
+        if isinstance(Jm, Number) and hasattr(J, "derivative"):
             print("Computing Hessian")
-            Hms = Enlist(J.hessian(hs))
+            Hms = Enlist(J.hessian(h))
         else:
             if v is None:
                 raise ValueError("v must be specified to compute Hessian")
             print("Computing Hessian")
-            Hms = J.hess_action(hs, v)
+            Hms = Enlist(J.hess_action(h, v))
         Hm = sum(hi._ad_dot(hmi) for hi, hmi in zip(hs, Hms))
 
     return Jm, dJdm, Hm
@@ -204,10 +205,10 @@ def calculate_residuals(Jm, dJdm, Hm, Jp, eps, v=None):
         )
 
     if (
-        isinstance(Jp, (float, int))
-        and isinstance(Jm, (float, int))
-        and isinstance(dJdm, (float, int))
-        and isinstance(Hm, (float, int))
+        isinstance(Jp, Number)
+        and isinstance(Jm, Number)
+        and isinstance(dJdm, Number)
+        and isinstance(Hm, Number)
     ):
         res = Jp - Jm
         zeroth_order = abs(res)
@@ -218,25 +219,25 @@ def calculate_residuals(Jm, dJdm, Hm, Jp, eps, v=None):
         res -= 0.5 * eps ** 2 * Hm
         second_order = abs(res)
     else:
-        res = [None] * len(Jp)
-
         Jm = create_overloaded_objects(Jm)
         Jp = create_overloaded_objects(Jp)
+
+        res = [None] * len(Jp)
         for i in range(len(Jp)):
             res[i] = Jp[i]._ad_add(Jm[i]._ad_mul(-1.0))
         zeroth_order = mag(res)
 
-        if dJdm:
-            dJdm = create_overloaded_objects(dJdm)
-            for i in range(len(Jp)):
+        dJdm = create_overloaded_objects(dJdm)
+        if dJdm is not None:
+            for i in range(len(dJdm)):
                 res[i] = res[i]._ad_add(dJdm[i]._ad_mul(-eps))
             first_order = mag(res)
         else:
             first_order = zeroth_order
 
-        if Hm:
-            Hm = create_overloaded_objects(Hm)
-            for i in range(len(Jp)):
+        Hm = create_overloaded_objects(Hm)
+        if Hm is not None:
+            for i in range(len(Hm)):
                 res[i] = res[i]._ad_add(Hm[i]._ad_mul(-0.5 * eps ** 2))
             second_order = mag(res)
         else:
