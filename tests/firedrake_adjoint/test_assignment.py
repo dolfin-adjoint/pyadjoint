@@ -73,7 +73,7 @@ def test_assign_tlm():
     assert taylor_test(rf, f, h, dJdm=J.block_variable.tlm_value) > 1.9
 
 
-def test_assign_tlm_wit_constant():
+def test_assign_tlm_with_constant():
     mesh = IntervalMesh(10, 0, 1)
     V = FunctionSpace(mesh, "CG", 1)
 
@@ -151,7 +151,6 @@ def test_assign_with_constant():
 
     u.assign(c*f+d**3)
 
-    # J = c**2/3 + cd**3 + d**6
     J = assemble(u ** 2 * dx)
 
     rf = ReducedFunctional(J, Control(c))
