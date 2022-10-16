@@ -6,7 +6,6 @@ from pyadjoint.block import Block
 
 @register_overloaded_type
 class ndarray(OverloadedType, numpy.ndarray):
-    @classmethod
     def __init__(self, *args, **kwargs):
         pass
 
