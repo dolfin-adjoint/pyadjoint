@@ -14,7 +14,7 @@ from .tape import (Tape,
 from .adjfloat import AdjFloat
 from .reduced_functional import ReducedFunction, ReducedFunctional
 from .reduced_functional_numpy import ReducedFunctionNumPy, ReducedFunctionalNumPy
-from .drivers import compute_gradient, compute_hessian, solve_adjoint
+from .drivers import compute_gradient, compute_hessian, compute_jacobian_action, solve_adjoint
 from .verification import taylor_test, taylor_to_dict
 from .overloaded_type import OverloadedType, create_overloaded_object
 from .control import Control
