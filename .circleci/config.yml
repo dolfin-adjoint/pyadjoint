@@ -96,6 +96,8 @@ jobs:
       - run:
           name: install dependencies
           command: |
+            cd /home/firedrake/firedrake/src/firedrake
+            git checkout annotation_assemble_1-form
             source /home/firedrake/firedrake/bin/activate
             pip3 install -e .[test]
 
