@@ -47,7 +47,8 @@ def test_assemble_1_forms_adjoint():
     mesh = IntervalMesh(10, 0, 1)
     V = FunctionSpace(mesh, "Lagrange", 1)
     v = TestFunction(V)
-    f = Function(V).assign(1)
+    x, = SpatialCoordinate(mesh)
+    f = Function(V).interpolate(cos(x))
 
     def J(f):
         w1 = assemble(inner(f, v) * dx)

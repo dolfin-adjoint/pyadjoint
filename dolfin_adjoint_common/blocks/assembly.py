@@ -19,6 +19,15 @@ class AssembleBlock(Block):
         return f"assemble({ufl2unicode(self.form)})"
 
     def compute_action_adjoint(self, adj_input, arity_form, form=None, c_rep=None, space=None, dform=None):
+        """This computes the action of the adjoint of the derivative of `form` wrt `c_rep` on `adj_input`.
+           In other words, it returns: `<(dform/dc_rep)*, adj_input>`
+
+           - If `form` has arity 0 => `dform/dc_rep` is a 1-form and `adj_input` a foat, we can simply use
+             the `*` operator.
+
+           - If `form` has arity 1 => `dform/dc_rep` is a 2-form and we can symbolically take its adjoint
+             and then apply the action on `adj_input`, to finally assemble the result.
+        """
         if arity_form == 0:
             if dform is None:
                 dc = self.backend.TestFunction(space)
@@ -42,13 +51,11 @@ class AssembleBlock(Block):
             else:
                 # Get PETSc matrix
                 dform_mat = self.compat.assemble_adjoint_value(dform).petscmat
-                # Adjoint (hermitian transpose)
-                dform_mat.hermitianTranspose()
-                # Action
+                # Action of the adjoint (Hermitian transpose)
                 adj_output = self.backend.Function(space)
                 with adj_input.dat.vec_ro as v_vec:
                     with adj_output.dat.vec as res_vec:
-                        dform_mat.mult(v_vec, res_vec)
+                        dform_mat.multHermitian(v_vec, res_vec)
             return adj_output, dform
         else:
             raise ValueError('Forms with arity > 1 are not handled yet!')
