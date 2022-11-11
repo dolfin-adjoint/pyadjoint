@@ -83,7 +83,7 @@ def test_assign_tlm_with_constant():
     c = Constant(5.0)
 
     u = Function(V)
-    u.assign(c * f ** 2)
+    u.interpolate(c * f**2)
 
     c.block_variable.tlm_value = Constant(0.3)
     tape = get_working_tape()
@@ -129,7 +129,7 @@ def test_assign_nonlincom():
     g = interpolate(sin(x[0]), V)
     u = Function(V)
 
-    u.assign(f*g)
+    u.interpolate(f*g)
 
     J = assemble(u ** 2 * dx)
     rf = ReducedFunctional(J, Control(f))
@@ -181,7 +181,7 @@ def test_assign_nonlin_changing():
 
     u = Function(V)
 
-    u.assign(f*sol*g)
+    u.interpolate(f*sol*g)
 
     J = assemble(u ** 2 * dx)
     rf = ReducedFunctional(J, control)
