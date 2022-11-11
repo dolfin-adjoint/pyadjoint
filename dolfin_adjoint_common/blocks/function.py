@@ -56,16 +56,12 @@ class FunctionAssignBlock(Block):
             # Linear combination
             expr, adj_input_func = prepared
             adj_output = self.backend.Function(adj_input_func.function_space())
-            if block_variable.saved_output.ufl_shape == adj_input_func.ufl_shape:
+            if not isinstance(block_variable.output, self.backend.Constant):
                 diff_expr = ufl.algorithms.expand_derivatives(
                     ufl.derivative(expr, block_variable.saved_output, adj_input_func)
                 )
                 adj_output.assign(diff_expr)
             else:
-                # Assume current variable is scalar constant.
-                # This assumption might be wrong for firedrake.
-                assert isinstance(block_variable.output, self.backend.Constant)
-
                 diff_expr = ufl.algorithms.expand_derivatives(
                     ufl.derivative(expr, block_variable.saved_output, self.backend.Constant(1.))
                 )
