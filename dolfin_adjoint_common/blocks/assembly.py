@@ -27,7 +27,8 @@ class AssembleBlock(Block):
                 dc = self.backend.TestFunction(space)
                 dform = self.backend.derivative(form, c_rep, dc)
             dform_vector = self.compat.assemble_adjoint_value(dform)
-            return adj_input * dform_vector, dform
+            # Return a Vector scaled by the scalar `adj_input`
+            return dform_vector * adj_input, dform
         elif arity_form == 1:
             if dform is None:
                 dc = self.backend.TrialFunction(space)
