@@ -1,10 +1,272 @@
-from .drivers import compute_gradient, compute_hessian
+from functools import wraps
+from .drivers import compute_gradient, compute_hessian, compute_jacobian_action
 from .enlisting import Enlist
 from .tape import get_working_tape, stop_annotating, no_annotations
 from .overloaded_type import OverloadedType
 
 
-class ReducedFunctional(object):
+class ReducedFunction(object):
+    """Class representing the reduced function J(m).
+
+    A reduced function maps a control value to the provided function.
+    It may also be used to compute the derivative of the function with
+    respect to the control.
+
+    Args:
+        outputs (:obj:`OverloadedType`): An instance of an OverloadedType,
+            usually :class:`AdjFloat`. This should be the return value of the
+            function you want to reduce. It may also be a list instead of a
+            single OverloadedType instance.
+        controls (list[Control]): A list of Control instances, which you want
+            to map to the outputs. It is also possible to supply a single Control
+            instance instead of a list.
+    """
+    def __init__(
+        self,
+        outputs,
+        controls,
+        tape=None,
+        eval_cb_pre=None,
+        eval_cb_post=None,
+        jac_action_cb_pre=None,
+        jac_action_cb_post=None,
+        adj_jac_action_cb_pre=None,
+        adj_jac_action_cb_post=None,
+        hess_action_cb_pre=None,
+        hess_action_cb_post=None,
+    ):
+        self.output_vals = Enlist(outputs)
+        for out in self.output_vals:
+            if not isinstance(out, OverloadedType):
+                raise TypeError(f"output must be an OverloadedType: {out}")
+        self.outputs = Enlist([out.block_variable for out in self.output_vals])
+        self.outputs.listed = self.output_vals.listed
+
+        self.controls = Enlist(controls)
+        self.tape = get_working_tape() if tape is None else tape
+
+        nothing = lambda *args: None
+        self.eval_cb_pre = nothing if eval_cb_pre is None else eval_cb_pre
+        self.eval_cb_post = nothing if eval_cb_post is None else eval_cb_post
+        self.jac_action_cb_pre = (
+            nothing if jac_action_cb_pre is None else jac_action_cb_pre
+        )
+        self.jac_action_cb_post = (
+            nothing if jac_action_cb_post is None else jac_action_cb_post
+        )
+        self.adj_jac_action_cb_pre = (
+            nothing if adj_jac_action_cb_pre is None else adj_jac_action_cb_pre
+        )
+        self.adj_jac_action_cb_post = (
+            nothing if adj_jac_action_cb_post is None else adj_jac_action_cb_post
+        )
+        self.hess_action_cb_pre = (
+            nothing if hess_action_cb_pre is None else hess_action_cb_pre
+        )
+        self.hess_action_cb_post = (
+            nothing if hess_action_cb_post is None else hess_action_cb_post
+        )
+
+    @no_annotations
+    def jac_action(self, h):
+        """Returns the action of the Jacobian of the function w.r.t. the control
+        on a vector h.
+
+        Using forward propagation, the action of the Jacobian with respect to the
+        control, around the last supplied value of the control, is computed and
+        returned.
+
+        Args:
+            h ([OverloadedType]): The vector on which to compute the action
+                of the Jacobian.
+        Returns:
+            OverloadedType: The Jacobian action with respect to the control.
+                Should be an instance of the same type as the output.
+
+        """
+        h = Enlist(h)
+        if len(h) != len(self.controls):
+            raise TypeError(
+                "The length of h must match the length of function controls."
+            )
+
+        values = [c.tape_value() for c in self.controls]
+        self.jac_action_cb_pre(
+            self.controls.delist(values), self.controls.delist(h)
+        )
+
+        dJdm_h = compute_jacobian_action(
+            self.output_vals, self.controls, h, tape=self.tape
+        )
+
+        # Call callback
+        self.jac_action_cb_post(
+            self.outputs.delist([bv.saved_output for bv in self.outputs]),
+            self.outputs.delist(dJdm_h),
+            self.controls.delist(values),
+        )
+
+        return self.outputs.delist(dJdm_h)
+
+    @no_annotations
+    def adj_jac_action(self, v, options=None):
+        """Returns the action of the adjoint Jacobian of the function w.r.t. the
+        control on a vector v.
+
+        Using the adjoint method, the action of the adjoint Jacobian with
+        respect to the control, around the last supplied value of the control,
+        is computed and returned.
+
+        Args:
+            v ([OverloadedType]): The adjoint vector on which to
+                compute the action of the Hessian.
+            options (dict): A dictionary of options. To find a list of available
+                options have a look at the specific control type.
+
+        Returns:
+            OverloadedType: The action of the Jacobian with respect to the control.
+                Should be an instance of the same type as the control.
+        """
+        v = Enlist(v)
+        if len(v) != len(self.outputs):
+            raise ValueError(
+                "The length of v must match the length of function outputs."
+            )
+
+        values = [c.tape_value() for c in self.controls]
+        self.adj_jac_action_cb_pre(self.controls.delist(values))
+
+        v_dJdm = compute_gradient(
+            self.output_vals,
+            self.controls,
+            options=options,
+            tape=self.tape,
+            adj_value=v,
+        )
+
+        # Call callback
+        self.adj_jac_action_cb_post(
+            self.outputs.delist([bv.saved_output for bv in self.outputs]),
+            self.controls.delist(v_dJdm),
+            self.controls.delist(values),
+        )
+
+        return self.controls.delist(v_dJdm)
+
+    @no_annotations
+    def hess_action(self, h, v, options=None):
+        """Returns the action of the Hessian of the function w.r.t. the
+        control on the vectors h and v.
+
+        Using the second-order adjoint method, the action of the Hessian of the
+        function with respect to the control, around the last supplied value
+        of the control, is computed and returned.
+
+        Args:
+            h ([OverloadedType]): The vector in which to compute the
+                action of the Hessian.
+            v ([OverloadedType]): The adjoint vector in which to
+                compute the action of the Hessian.
+            options (dict): A dictionary of options. To find a list of
+                available options have a look at the specific control type.
+
+        Returns:
+            OverloadedType: The action of the Hessian on the vectors h and v.
+                Should be an instance of the same type as the control.
+        """
+        h = Enlist(h)
+        if len(h) != len(self.controls):
+            raise ValueError(
+                "The length of h must match the length of function controls."
+            )
+
+        v = Enlist(v)
+        if len(v) != len(self.outputs):
+            raise ValueError(
+                "The length of v must match the length of function outputs."
+            )
+
+        values = [c.tape_value() for c in self.controls]
+        self.hess_action_cb_pre(self.controls.delist(values))
+
+        compute_gradient(
+            self.output_vals,
+            self.controls,
+            options=options,
+            tape=self.tape,
+            adj_value=v,
+        )
+
+        # TODO: there should be a better way of generating hessian_value.
+        zero = [0 * vi for vi in v]
+        v_hessian_h = compute_hessian(
+            self.output_vals,
+            self.controls,
+            h,
+            options=options,
+            tape=self.tape,
+            hessian_value=zero,
+        )
+
+        # Call callback
+        self.hess_action_cb_post(
+            self.outputs.delist([bv.saved_output for bv in self.outputs]),
+            self.controls.delist(v_hessian_h),
+            self.controls.delist(values),
+        )
+
+        return self.controls.delist(v_hessian_h)
+
+    @no_annotations
+    def __call__(self, m):
+        """Computes the reduced function with supplied control value.
+
+        Args:
+            m ([OverloadedType]): If you have multiple controls this should be a list of
+                new values for each control in the order you listed the controls to the constructor.
+                If you have a single control it can either be a list or a single object.
+                Each new value should have the same type as the corresponding control.
+
+        Returns:
+            :obj:`OverloadedType`: The computed value. Typically of instance
+                of :class:`AdjFloat`.
+
+        """
+        m = Enlist(m)
+        if len(m) != len(self.controls):
+            raise ValueError("The length of m must match the length of controls.")
+
+        # Call callback.
+        self.eval_cb_pre(self.controls.delist(m))
+
+        for i, value in enumerate(m):
+            self.controls[i].update(value)
+
+        self.tape.reset_blocks()
+        with self.marked_controls():
+            with stop_annotating():
+                self.tape.recompute()
+
+        output_vals = self.outputs.delist(
+            [output.saved_output for output in self.outputs]
+        )
+
+        # Call callback
+        self.eval_cb_post(output_vals, self.controls.delist(m))
+
+        return output_vals
+
+    def optimize_tape(self):
+        self.tape.optimize(
+            controls=self.controls,
+            functionals=self.output_vals
+        )
+
+    def marked_controls(self):
+        return marked_controls(self)
+
+
+class ReducedFunctional(ReducedFunction):
     """Class representing the reduced functional.
 
     A reduced functional maps a control value to the provided functional.
@@ -18,28 +280,68 @@ class ReducedFunctional(object):
         controls (list[Control]): A list of Control instances, which you want
             to map to the functional. It is also possible to supply a single Control
             instance instead of a list.
-
     """
 
-    def __init__(self, functional, controls, scale=1.0, tape=None,
-                 eval_cb_pre=lambda *args: None,
-                 eval_cb_post=lambda *args: None,
-                 derivative_cb_pre=lambda *args: None,
-                 derivative_cb_post=lambda *args: None,
-                 hessian_cb_pre=lambda *args: None,
-                 hessian_cb_post=lambda *args: None):
-        if not isinstance(functional, OverloadedType):
-            raise TypeError("Functional must be an OveroadedType.")
+    def __init__(self, functional, controls, scale=1.0,
+                 derivative_cb_pre=None,
+                 derivative_cb_post=None,
+                 hessian_cb_pre=None,
+                 hessian_cb_post=None,
+                 **kwargs):
         self.functional = functional
-        self.tape = get_working_tape() if tape is None else tape
-        self.controls = Enlist(controls)
         self.scale = scale
-        self.eval_cb_pre = eval_cb_pre
-        self.eval_cb_post = eval_cb_post
-        self.derivative_cb_pre = derivative_cb_pre
-        self.derivative_cb_post = derivative_cb_post
-        self.hessian_cb_pre = hessian_cb_pre
-        self.hessian_cb_post = hessian_cb_post
+        return super().__init__(
+            functional,
+            controls,
+            adj_jac_action_cb_pre=derivative_cb_pre,
+            adj_jac_action_cb_post=derivative_cb_post,
+            hess_action_cb_pre=hessian_cb_pre,
+            hess_action_cb_post=hessian_cb_post,
+            **kwargs
+        )
+
+    @property
+    def eval_cb_post(self):
+        return self._eval_cb_post
+
+    @eval_cb_post.setter
+    def eval_cb_post(self, func):
+        @wraps(func)
+        def eval_cb_post_with_scale(func_value, *args):
+            return func(func_value * self.scale, *args)
+        self._eval_cb_post = eval_cb_post_with_scale
+
+    @property
+    def derivative_cb_pre(self):
+        return self.adj_jac_action_cb_pre
+
+    @derivative_cb_pre.setter
+    def derivative_cb_pre(self, val):
+        self.adj_jac_action_cb_pre = val
+
+    @property
+    def derivative_cb_post(self):
+        return self.adj_jac_action_cb_post
+
+    @derivative_cb_post.setter
+    def derivative_cb_post(self, val):
+        self.adj_jac_action_cb_post = val
+
+    @property
+    def hessian_cb_pre(self):
+        return self.hess_action_cb_pre
+
+    @hessian_cb_pre.setter
+    def hessian_cb_pre(self, val):
+        self.hess_action_cb_pre = val
+
+    @property
+    def hessian_cb_post(self):
+        return self.hess_action_cb_post
+
+    @hessian_cb_post.setter
+    def hessian_cb_post(self, val):
+        self.hess_action_cb_post = val
 
     def derivative(self, options={}):
         """Returns the derivative of the functional w.r.t. the control.
@@ -57,22 +359,7 @@ class ReducedFunctional(object):
                 Should be an instance of the same type as the control.
 
         """
-        # Call callback
-        values = [c.tape_value() for c in self.controls]
-        self.derivative_cb_pre(self.controls.delist(values))
-
-        derivatives = compute_gradient(self.functional,
-                                       self.controls,
-                                       options=options,
-                                       tape=self.tape,
-                                       adj_value=self.scale)
-
-        # Call callback
-        self.derivative_cb_post(self.functional.block_variable.checkpoint,
-                                self.controls.delist(derivatives),
-                                self.controls.delist(values))
-
-        return self.controls.delist(derivatives)
+        return self.adj_jac_action(self.scale)
 
     @no_annotations
     def hessian(self, m_dot, options={}):
@@ -92,18 +379,7 @@ class ReducedFunctional(object):
             OverloadedType: The action of the Hessian in the direction m_dot.
                 Should be an instance of the same type as the control.
         """
-        # Call callback
-        values = [c.tape_value() for c in self.controls]
-        self.hessian_cb_pre(self.controls.delist(values))
-
-        r = compute_hessian(self.functional, self.controls, m_dot, options=options, tape=self.tape)
-
-        # Call callback
-        self.hessian_cb_post(self.functional.block_variable.checkpoint,
-                             self.controls.delist(r),
-                             self.controls.delist(values))
-
-        return self.controls.delist(r)
+        return self.hess_action(m_dot, self.scale)
 
     @no_annotations
     def __call__(self, values):
@@ -120,40 +396,8 @@ class ReducedFunctional(object):
                 of :class:`AdjFloat`.
 
         """
-        values = Enlist(values)
-        if len(values) != len(self.controls):
-            raise ValueError("values should be a list of same length as controls.")
-
-        # Call callback.
-        self.eval_cb_pre(self.controls.delist(values))
-
-        for i, value in enumerate(values):
-            self.controls[i].update(value)
-
-        self.tape.reset_blocks()
-        blocks = self.tape.get_blocks()
-        with self.marked_controls():
-            with stop_annotating():
-                for i in self.tape._bar("Evaluating functional").iter(
-                    range(len(blocks))
-                ):
-                    blocks[i].recompute()
-
-        func_value = self.scale * self.functional.block_variable.checkpoint
-
-        # Call callback
-        self.eval_cb_post(func_value, self.controls.delist(values))
-
-        return func_value
-
-    def optimize_tape(self):
-        self.tape.optimize(
-            controls=self.controls,
-            functionals=[self.functional]
-        )
-
-    def marked_controls(self):
-        return marked_controls(self)
+        val = super().__call__(values)
+        return val * self.scale
 
 
 class marked_controls(object):

@@ -112,7 +112,7 @@ class AdjFloat(OverloadedType, float):
 
     @staticmethod
     def _ad_assign_numpy(dst, src, offset):
-        dst = type(dst)(src[offset:offset + 1])
+        dst = type(dst)(src[offset])
         offset += 1
         return dst, offset
 
@@ -124,6 +124,7 @@ class AdjFloat(OverloadedType, float):
         return self
 
 
+register_overloaded_type(AdjFloat, int)
 _min = min
 _max = max
 

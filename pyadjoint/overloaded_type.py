@@ -1,4 +1,5 @@
 from .block_variable import BlockVariable
+from .enlisting import Enlist
 from .tape import get_working_tape
 
 _overloaded_types = {}
@@ -36,6 +37,10 @@ def create_overloaded_object(obj, suppress_warning=False):
             import warnings
             warnings.warn("Could not find overloaded class of type '{}'.".format(obj_type), stacklevel=2)
         return obj
+
+
+def create_overloaded_objects(seq):
+    return [create_overloaded_object(v) for v in Enlist(seq)]
 
 
 def register_overloaded_type(overloaded_type, classes=None):
