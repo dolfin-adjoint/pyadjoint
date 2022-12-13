@@ -22,6 +22,15 @@ class AssembleBlock(Block):
         return f"assemble({ufl2unicode(self.form)})"
 
     def compute_action_adjoint(self, adj_input, arity_form, form=None, c_rep=None, space=None, dform=None):
+        """This computes the action of the adjoint of the derivative of `form` wrt `c_rep` on `adj_input`.
+           In other words, it returns: `<(dform/dc_rep)*, adj_input>`
+
+           - If `form` has arity 0 => `dform/dc_rep` is a 1-form and `adj_input` a foat, we can simply use
+             the `*` operator.
+
+           - If `form` has arity 1 => `dform/dc_rep` is a 2-form and we can symbolically take its adjoint
+             and then apply the action on `adj_input`, to finally assemble the result.
+        """
         if arity_form == 0:
             if dform is None:
                 dc = self.backend.TestFunction(space)
@@ -33,11 +42,25 @@ class AssembleBlock(Block):
             if dform is None:
                 dc = self.backend.TrialFunction(space)
                 dform = self.backend.derivative(form, c_rep, dc)
-            # Get the Cofunction
+            # Get the Function
             adj_input = adj_input.function
-            # Symbolically compute: (dform/dc_rep)^* * adj_input
-            adj_output = ufl.action(ufl.adjoint(dform), adj_input)
-            return self.compat.assemble_adjoint_value(adj_output), dform
+            # Symbolic operators such as action/adjoint require derivatives to have been expanded beforehand.
+            # However, UFL doesn't support expanding coordinate derivatives of Coefficients in physical space,
+            # implying that we can't symbolically take the action/adjoint of the Jacobian for SpatialCoordinates.
+            # -> Workaround: Apply action/adjoint numerically (using PETSc).
+            if not isinstance(c_rep, self.backend.SpatialCoordinate):
+                # Symbolically compute: (dform/dc_rep)^* * adj_input
+                adj_output = self.backend.action(self.backend.adjoint(dform), adj_input)
+                adj_output = self.compat.assemble_adjoint_value(adj_output)
+            else:
+                # Get PETSc matrix
+                dform_mat = self.compat.assemble_adjoint_value(dform).petscmat
+                # Action of the adjoint (Hermitian transpose)
+                adj_output = self.backend.Function(space)
+                with adj_input.dat.vec_ro as v_vec:
+                    with adj_output.dat.vec as res_vec:
+                        dform_mat.multHermitian(v_vec, res_vec)
+            return adj_output, dform
         else:
             raise ValueError('Forms with arity > 1 are not handled yet!')
 
@@ -89,9 +112,9 @@ class AssembleBlock(Block):
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
         form = prepared
         dform = 0.
+
         from ufl.algorithms.analysis import extract_arguments
         arity_form = len(extract_arguments(form))
-
         for bv in self.get_dependencies():
             c_rep = bv.saved_output
             tlm_value = bv.tlm_value
