@@ -56,7 +56,7 @@ class AssembleBlock(Block):
                 # Get PETSc matrix
                 dform_mat = self.compat.assemble_adjoint_value(dform).petscmat
                 # Action of the adjoint (Hermitian transpose)
-                adj_output = self.backend.Function(space)
+                adj_output = self.backend.Cofunction(space.dual())
                 with adj_input.dat.vec_ro as v_vec:
                     with adj_output.dat.vec as res_vec:
                         dform_mat.multHermitian(v_vec, res_vec)
