@@ -64,7 +64,8 @@ class FunctionAssignBlock(Block):
                     ufl.derivative(expr, block_variable.saved_output, adj_input_func)
                 )
                 if self.backend.__name__ == "firedrake":
-                    adj_output.assign(ufl.conj(diff_expr))
+                    # Firedrake does not support assignment of conjugate functions
+                    adj_output.interpolate(ufl.conj(diff_expr))
                     adj_output = self.backend.Cofunction(adj_output.function_space().dual(),
                                                          val=adj_output.vector())
                 else:
