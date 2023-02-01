@@ -140,13 +140,10 @@ class ReducedFunctional(object):
                 ):
                     blocks[i].recompute()
 
-        # func_value = self.scale * self.functional.block_variable.checkpoint
+        # ReducedFunctional can result in a scalar or an assembled 1-form
         func_value = self.functional.block_variable.checkpoint
-        if isinstance(func_value, float):
-            func_value = self.scale * self.functional.block_variable.checkpoint
-        else:
-            # ReducedFunctional results in an assembled 1-form
-            func_value.vector()._scale(self.scale)
+        # Scale the underlying functional value
+        func_value *= self.scale
 
         # Call callback
         self.eval_cb_post(func_value, self.controls.delist(values))
