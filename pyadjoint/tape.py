@@ -16,11 +16,6 @@ def get_working_tape():
     return _working_tape
 
 
-def set_working_tape(tape):
-    global _working_tape
-    _working_tape = tape
-
-
 def pause_annotation():
     global _stop_annotating
     _stop_annotating += 1
@@ -30,6 +25,41 @@ def continue_annotation():
     global _stop_annotating
     _stop_annotating -= 1
     return _stop_annotating <= 0
+
+
+class set_working_tape(object):
+    """A context manager whithin which a new tape is set as the working tape.
+       This context manager can also be used in an imperative manner.
+
+       Example usage:
+
+        1) Set a new tape as the working tape:
+            ```
+            set_working_tape(Tape())
+            ```
+
+        2) Set a local tape within a context manager:
+            ```
+            with set_working_tape() as tape:
+                ...
+            ```
+    """
+    def __init__(self, tape=None, **tape_kwargs):
+        # Get working tape
+        global _working_tape
+        # Store current tape
+        self.old_tape = _working_tape
+        # Set new tape
+        self.tape = tape or Tape(**tape_kwargs)
+        _working_tape = self.tape
+
+    def __enter__(self):
+        return self.tape
+
+    def __exit__(self, *args):
+        # Re-establish the original tape
+        global _working_tape
+        _working_tape = self.old_tape
 
 
 class stop_annotating(object):
