@@ -61,7 +61,10 @@ class ReducedFunctional(object):
         values = [c.tape_value() for c in self.controls]
         self.derivative_cb_pre(self.controls.delist(values))
 
-        adj_value = self.scale * adj_input
+        # Scale adjoint input
+        with stop_annotating():
+            adj_value = self.scale * adj_input
+
         derivatives = compute_gradient(self.functional,
                                        self.controls,
                                        options=options,
