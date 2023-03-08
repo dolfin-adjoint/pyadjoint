@@ -144,7 +144,7 @@ class ReducedFunctional(object):
                     blocks[i].recompute()
 
         # ReducedFunctional can result in a scalar or an assembled 1-form
-        func_value = self.functional.block_variable.checkpoint
+        func_value = self.functional.block_variable.saved_output
         # Scale the underlying functional value
         func_value *= self.scale
 
