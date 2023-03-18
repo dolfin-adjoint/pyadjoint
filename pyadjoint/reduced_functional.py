@@ -61,7 +61,10 @@ class ReducedFunctional(object):
         values = [c.tape_value() for c in self.controls]
         self.derivative_cb_pre(self.controls.delist(values))
 
-        adj_value = self.scale * adj_input
+        # Scale adjoint input
+        with stop_annotating():
+            adj_value = self.scale * adj_input
+
         derivatives = compute_gradient(self.functional,
                                        self.controls,
                                        options=options,
@@ -140,13 +143,17 @@ class ReducedFunctional(object):
                 ):
                     blocks[i].recompute()
 
-        # func_value = self.scale * self.functional.block_variable.checkpoint
-        func_value = self.functional.block_variable.checkpoint
+        # ReducedFunctional can result in a scalar or an assembled 1-form
+        func_value = self.functional.block_variable.saved_output
+        # Scale the underlying functional value
+        func_value *= self.scale
+        """
         if isinstance(func_value, float):
             func_value = self.scale * self.functional.block_variable.checkpoint
         else:
             # ReducedFunctional results in an assembled 1-form
             func_value.vector()._scale(self.scale)
+        """
 
         # Call callback
         self.eval_cb_post(func_value, self.controls.delist(values))
