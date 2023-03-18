@@ -41,7 +41,7 @@ class ReducedFunctional(object):
         self.hessian_cb_pre = hessian_cb_pre
         self.hessian_cb_post = hessian_cb_post
 
-    def derivative(self, options={}):
+    def derivative(self, adj_input=1.0, options={}):
         """Returns the derivative of the functional w.r.t. the control.
 
         Using the adjoint method, the derivative of the functional with
@@ -61,11 +61,15 @@ class ReducedFunctional(object):
         values = [c.tape_value() for c in self.controls]
         self.derivative_cb_pre(self.controls.delist(values))
 
+        # Scale adjoint input
+        with stop_annotating():
+            adj_value = self.scale * adj_input
+
         derivatives = compute_gradient(self.functional,
                                        self.controls,
                                        options=options,
                                        tape=self.tape,
-                                       adj_value=self.scale)
+                                       adj_value=adj_value)
 
         # Call callback
         self.derivative_cb_post(self.functional.block_variable.checkpoint,
@@ -139,7 +143,10 @@ class ReducedFunctional(object):
                 ):
                     blocks[i].recompute()
 
-        func_value = self.scale * self.functional.block_variable.checkpoint
+        # ReducedFunctional can result in a scalar or an assembled 1-form
+        func_value = self.functional.block_variable.saved_output
+        # Scale the underlying functional value
+        func_value *= self.scale
 
         # Call callback
         self.eval_cb_post(func_value, self.controls.delist(values))
