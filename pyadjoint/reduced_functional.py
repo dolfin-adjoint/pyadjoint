@@ -124,7 +124,6 @@ class ReducedFunctional(object):
                 of :class:`AdjFloat`.
 
         """
-        import pdb; pdb.set_trace()
         values = Enlist(values)
         if len(values) != len(self.controls):
             raise ValueError("values should be a list of same length as controls.")
