@@ -20,6 +20,9 @@ class FunctionAssignBlock(Block):
                     self.add_dependency(op, no_duplicates=True)
             self.expr = other
 
+    def is_real_space_function(self, var):
+        return isinstance(var, self.backend.Function) and var.ufl_element().family() == "Real"
+
     def _replace_with_saved_output(self):
         if self.expr is None:
             return None
@@ -44,7 +47,7 @@ class FunctionAssignBlock(Block):
         if self.expr is None:
             if isinstance(block_variable.output, AdjFloat):
                 return adj_inputs[0].sum()
-            elif isinstance(block_variable.output, self.backend.Constant):
+            elif self.is_real_space_function(block_variable.output):
                 R = block_variable.output._ad_function_space(prepared.function_space().mesh())
                 return self._adj_assign_constant(prepared, R)
             else:
@@ -56,19 +59,20 @@ class FunctionAssignBlock(Block):
             # Linear combination
             expr, adj_input_func = prepared
             adj_output = self.backend.Function(adj_input_func.function_space())
-            if not isinstance(block_variable.output, self.backend.Constant):
+            if not self.is_real_space_function(block_variable.output):
                 diff_expr = ufl.algorithms.expand_derivatives(
                     ufl.derivative(expr, block_variable.saved_output, adj_input_func)
                 )
                 adj_output.assign(diff_expr)
             else:
+                mesh = prepared.function_space().mesh()
                 diff_expr = ufl.algorithms.expand_derivatives(
-                    ufl.derivative(expr, block_variable.saved_output, self.backend.Constant(1.))
+                    ufl.derivative(expr, block_variable.saved_output, self.backend.Constant(1., domain=mesh))
                 )
                 adj_output.assign(diff_expr)
                 return adj_output.vector().inner(adj_input_func.vector())
 
-            if isinstance(block_variable.output, self.backend.Constant):
+            if self.is_real_space_function(block_variable.output):
                 R = block_variable.output._ad_function_space(adj_output.function_space().mesh())
                 return self._adj_assign_constant(adj_output, R)
             else:
