@@ -224,6 +224,7 @@ class MaxBlock(Block):
 class FloatOperatorBlock(Block):
     # the float operator annotated in this Block
     operator = None
+    symbol = None
 
     def __init__(self, *args):
         super(FloatOperatorBlock, self).__init__()
@@ -238,9 +239,13 @@ class FloatOperatorBlock(Block):
     def recompute_component(self, inputs, block_variable, idx, prepared):
         return self.operator(*(term.saved_output for term in self.terms))
 
+    def __str__(self):
+        return f"{self.terms[0]} {self.symbol} {self.terms[1]}"
+
 
 class PowBlock(FloatOperatorBlock):
     operator = staticmethod(float.__pow__)
+    symbol = "**"
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         base_value = inputs[0]
@@ -322,6 +327,7 @@ class PowBlock(FloatOperatorBlock):
 
 class AddBlock(FloatOperatorBlock):
     operator = staticmethod(float.__add__)
+    symbol = "+"
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         return adj_inputs[0]
@@ -344,6 +350,7 @@ class AddBlock(FloatOperatorBlock):
 
 class SubBlock(FloatOperatorBlock):
     operator = staticmethod(float.__sub__)
+    symbol = "-"
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         if idx == 0:
@@ -371,6 +378,7 @@ class SubBlock(FloatOperatorBlock):
 
 class MulBlock(FloatOperatorBlock):
     operator = staticmethod(float.__mul__)
+    symbol = "*"
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         other_idx = 0 if idx == 1 else 1
@@ -401,6 +409,7 @@ class MulBlock(FloatOperatorBlock):
 
 class DivBlock(FloatOperatorBlock):
     operator = staticmethod(float.__truediv__)
+    symbol = "/"
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         if idx == 0:
@@ -482,6 +491,7 @@ class DivBlock(FloatOperatorBlock):
 
 class NegBlock(FloatOperatorBlock):
     operator = staticmethod(float.__neg__)
+    symbol = "-"
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         return float.__neg__(adj_inputs[0])
@@ -495,3 +505,6 @@ class NegBlock(FloatOperatorBlock):
             return
 
         self.terms[0].add_hessian_output(float.__neg__(hessian_input))
+
+    def __str__(self):
+        return f"{self.symbol} {self.terms[0]}"
