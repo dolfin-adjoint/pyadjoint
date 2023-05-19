@@ -243,3 +243,18 @@ def test_min_max():
     assert b == 0.
     assert a2 == oa2 + h[0]*ob2/h[1]
     assert b2 == 0.
+
+
+def test_float_components():
+    a = AdjFloat(3.0)
+    b = AdjFloat(2.0)
+    c = a * b
+    assert c == 6.0
+    rf = ReducedFunctional(c, (Control(a), Control(b)),
+                           derivative_components=(0,))
+    assert rf((a, b)) == 6.0
+    assert rf((AdjFloat(1.0), AdjFloat(2.0))) == 2.0
+    assert rf((AdjFloat(3.0), AdjFloat(2.0))) == 6.0
+    assert rf.derivative() == [2.0]
+    assert rf((AdjFloat(3.0), AdjFloat(3.0))) == 9.0
+    assert rf.derivative() == [3.0]

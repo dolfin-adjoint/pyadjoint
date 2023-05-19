@@ -16,12 +16,17 @@ class ReducedFunctional(object):
             usually :class:`AdjFloat`. This should be the return value of the
             functional you want to reduce.
         controls (list[Control]): A list of Control instances, which you want
-            to map to the functional. It is also possible to supply a single Control
-            instance instead of a list.
+            to map to the functional. It is also possible to supply a single
+            Control instance instead of a list.
+        derivative_components (tuple of int): The indices of the controls with
+            respect to which to take the derivative. By default, the derivative
+            is taken with respect to all controls.
 
     """
 
-    def __init__(self, functional, controls, scale=1.0, tape=None,
+    def __init__(self, functional, controls,
+                 derivative_components=None,
+                 scale=1.0, tape=None,
                  eval_cb_pre=lambda *args: None,
                  eval_cb_post=lambda *args: None,
                  derivative_cb_pre=lambda *args: None,
@@ -33,6 +38,7 @@ class ReducedFunctional(object):
         self.functional = functional
         self.tape = get_working_tape() if tape is None else tape
         self.controls = Enlist(controls)
+        self.derivative_components = derivative_components
         self.scale = scale
         self.eval_cb_pre = eval_cb_pre
         self.eval_cb_post = eval_cb_post
@@ -49,34 +55,40 @@ class ReducedFunctional(object):
         is computed and returned.
 
         Args:
-            options (dict): A dictionary of options. To find a list of available options
-                have a look at the specific control type.
+            options (dict): A dictionary of options. To find a list of
+                available options have a look at the specific control type.
 
         Returns:
             OverloadedType: The derivative with respect to the control.
                 Should be an instance of the same type as the control.
 
         """
+        if self.derivative_components is None:
+            controls = self.controls
+        else:
+            controls = Enlist([self.controls[i]
+                               for i in self.derivative_components])
+
         # Call callback
-        values = [c.tape_value() for c in self.controls]
-        self.derivative_cb_pre(self.controls.delist(values))
+        values = [c.tape_value() for c in controls]
+        self.derivative_cb_pre(controls.delist(values))
 
         # Scale adjoint input
         with stop_annotating():
             adj_value = self.scale * adj_input
 
         derivatives = compute_gradient(self.functional,
-                                       self.controls,
+                                       controls,
                                        options=options,
                                        tape=self.tape,
                                        adj_value=adj_value)
 
         # Call callback
         self.derivative_cb_post(self.functional.block_variable.checkpoint,
-                                self.controls.delist(derivatives),
-                                self.controls.delist(values))
+                                controls.delist(derivatives),
+                                controls.delist(values))
 
-        return self.controls.delist(derivatives)
+        return controls.delist(derivatives)
 
     @no_annotations
     def hessian(self, m_dot, options={}):
