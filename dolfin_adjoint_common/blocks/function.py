@@ -70,7 +70,11 @@ class FunctionAssignBlock(Block):
             else:
                 mesh = adj_output.function_space().mesh()
                 diff_expr = ufl.algorithms.expand_derivatives(
-                    ufl.derivative(expr, block_variable.saved_output, self.backend.Constant(1., domain=mesh))
+                    ufl.derivative(
+                        expr,
+                        block_variable.saved_output,
+                        self.compat.create_constant(1., domain=mesh)
+                    )
                 )
                 adj_output.assign(diff_expr)
                 return adj_output.vector().inner(adj_input_func.vector())

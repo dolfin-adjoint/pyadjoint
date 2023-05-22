@@ -147,6 +147,12 @@ def compat(backend):
             return function_from_vector(obj.function_space(), obj.vector(), cls=cls)
         compat.type_cast_function = type_cast_function
 
+        def create_constant(*args, **kwargs):
+            """Initialises a firedrake.Constant object and returns it."""
+            from firedrake import Constant
+            return Constant(*args, **kwargs)
+        compat.create_constant = create_constant
+
         def create_function(*args, **kwargs):
             """Initialises a firedrake.Function object and returns it."""
             from firedrake import Function
@@ -155,7 +161,7 @@ def compat(backend):
 
         def isconstant(expr):
             """Check whether expression is constant type.
-            In firedrake this is either a function in the real space
+            In firedrake this is a function in the real space
             Ie: `firedrake.Function(FunctionSpace(mesh, "R"))`"""
             if isinstance(expr, backend.Constant):
                 raise ValueError("Firedrake Constant requires a domain to work with pyadjoint")
@@ -336,6 +342,14 @@ def compat(backend):
             """
             return cls(obj.function_space(), obj._cpp_object)
         compat.type_cast_function = type_cast_function
+
+        def create_constant(*args, **kwargs):
+            """Initialises a fenics_adjoint.Constant object and returns it."""
+            from fenics_adjoint import Constant
+            # Dolfin constants do not have domains
+            _ = kwargs.pop("domain", None)
+            return Constant(*args, **kwargs)
+        compat.create_constant = create_constant
 
         def create_function(*args, **kwargs):
             """Initialises a fenics_adjoint.Function object and returns it."""
