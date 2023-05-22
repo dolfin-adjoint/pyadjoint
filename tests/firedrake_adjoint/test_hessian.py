@@ -100,7 +100,7 @@ def test_function():
     mesh = IntervalMesh(10, 0, 1)
     V = FunctionSpace(mesh, "Lagrange", 2)
 
-    c = Constant(4)
+    c = Constant(4, domain=mesh)
     control_c = Control(c)
     f = Function(V)
     f.vector()[:] = 3
@@ -108,20 +108,20 @@ def test_function():
 
     u = Function(V)
     v = TestFunction(V)
-    bc = DirichletBC(V, Constant(1), "on_boundary")
+    bc = DirichletBC(V, Constant(1, domain=mesh), "on_boundary")
 
     F = inner(grad(u), grad(v)) * dx + u**2*v*dx - f ** 2 * v * dx - c**2*v*dx
     solve(F == 0, u, bc)
 
     J = assemble(c ** 2 * u ** 2 * dx)
-    Jhat = ReducedFunctional(J, f)
+    Jhat = ReducedFunctional(J, 2.0) # Second argument is redundant here!?
 
     h = Function(V)
     h.vector()[4] = 1
 
     J.block_variable.adj_value = 1.0
     f.block_variable.tlm_value = h
-    c.block_variable.tlm_value = Constant(1)
+    c.block_variable.tlm_value = Constant(1, domain=mesh)
 
     tape.evaluate_adj()
     tape.evaluate_tlm()
@@ -149,7 +149,7 @@ def test_nonlinear():
 
     u = Function(V)
     v = TestFunction(V)
-    bc = DirichletBC(V, Constant(1), "on_boundary")
+    bc = DirichletBC(V, Constant(1, domain=mesh), "on_boundary")
 
     F = inner(grad(u), grad(v)) * dx - u**2*v*dx - f * v * dx
     solve(F == 0, u, bc)

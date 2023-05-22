@@ -153,6 +153,15 @@ def compat(backend):
             return Function(*args, **kwargs)
         compat.create_function = create_function
 
+        def isconstant(expr):
+            """Check whether expression is constant type.
+            In firedrake this is either a function in the real space
+            Ie: `firedrake.Function(FunctionSpace(mesh, "R"))`"""
+            if isinstance(expr, backend.Constant):
+                raise ValueError("Firedrake Constant requires a domain to work with pyadjoint")
+            return isinstance(expr, backend.Function) and expr.ufl_element().family() == "Real"
+        compat.isconstant = isconstant
+
     else:
         compat.Expression = backend.Expression
         compat.MatrixType = (backend.cpp.la.Matrix, backend.cpp.la.GenericMatrix)
@@ -333,5 +342,10 @@ def compat(backend):
             from fenics_adjoint import Function
             return Function(*args, **kwargs)
         compat.create_function = create_function
+
+        def is_constant(expr):
+            """Check whether expression is constant type."""
+            return isinstance(expr, backend.Constant)
+        compat.isconstant = isconstant
 
     return compat

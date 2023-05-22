@@ -32,7 +32,7 @@ class DirichletBCBlock(Block):
         adj_inputs = adj_inputs[0]
         adj_output = None
         for adj_input in adj_inputs:
-            if isinstance(c, self.backend.Function) and c.ufl_element().family() == "Real":
+            if self.compat.isconstant(c):
                 adj_value = self.backend.Function(self.parent_space)
                 adj_input.apply(adj_value.vector())
                 if self.function_space != self.parent_space:
