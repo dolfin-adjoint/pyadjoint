@@ -47,7 +47,7 @@ class FunctionAssignBlock(Block):
                 try:
                     # Adjoint of a broadcast is just a sum
                     return adj_inputs[0].sum()
-                except AttributeError as e:
+                except AttributeError:
                     # Catch the case where adj_inputs[0] is just a float
                     return adj_inputs[0]
             elif self.compat.isconstant(block_variable.output):
