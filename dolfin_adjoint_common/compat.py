@@ -343,7 +343,7 @@ def compat(backend):
             return Function(*args, **kwargs)
         compat.create_function = create_function
 
-        def is_constant(expr):
+        def isconstant(expr):
             """Check whether expression is constant type."""
             return isinstance(expr, backend.Constant)
         compat.isconstant = isconstant
