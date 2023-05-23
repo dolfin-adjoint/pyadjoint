@@ -4,7 +4,8 @@ pytest.importorskip("firedrake")
 from firedrake import *
 from firedrake_adjoint import *
 
-from numpy.random import rand
+from numpy.random import default_rng
+rng = default_rng()
 
 
 def test_simple_solve():
@@ -37,7 +38,7 @@ def test_simple_solve():
     Jhat = ReducedFunctional(J, c)
 
     h = Function(V)
-    h.vector()[:] = rand(V.dim())
+    h.vector()[:] = rng.random(V.dim())
 
     tape.evaluate_adj()
 
@@ -72,15 +73,22 @@ def test_mixed_derivatives():
     solve(a == L, u_)
 
     J = assemble(u_**2*dx)
-    J.block_variable.adj_value = 1.0
+    Jhat = ReducedFunctional(J, [control_f, control_g])
+
+    # Direction to take a step for convergence test
     h = Function(V)
-    h.vector()[:] = rand(V.dim())
+    h.vector()[:] = rng.random(V.dim())
+
+    # Evaluate TLM
     control_f.tlm_value = h
     control_g.tlm_value = h
-
-    tape.evaluate_adj()
     tape.evaluate_tlm()
 
+    # Evaluate Adjoint
+    J.block_variable.adj_value = 1.0
+    tape.evaluate_adj()
+
+    # Evaluate Hessian
     J.block_variable.hessian_value = 0
     tape.evaluate_hessian()
 
@@ -90,7 +98,7 @@ def test_mixed_derivatives():
     m_1 = f.copy(deepcopy=True)
     m_2 = g.copy(deepcopy=True)
 
-    assert conv_mixed(J, control_f, control_g, m_1, m_2, h, h, dJdm, Hm) > 2.9
+    assert conv_mixed(Jhat, [f, g], [h, h], dJdm, Hm) > 2.9
 
 
 def test_function():
@@ -114,27 +122,24 @@ def test_function():
     solve(F == 0, u, bc)
 
     J = assemble(c ** 2 * u ** 2 * dx)
-    Jhat = ReducedFunctional(J, 2.0) # Second argument is redundant here!?
 
-    h = Function(V)
-    h.vector()[4] = 1
+    Jhat = ReducedFunctional(J, [control_c, control_f])
+    dJdc, dJdf = compute_gradient(J, [control_c, control_f])
 
-    J.block_variable.adj_value = 1.0
-    f.block_variable.tlm_value = h
-    c.block_variable.tlm_value = Constant(1, domain=mesh)
+    # Step direction for derivatives and convergence test
+    h_c = Constant(1.0, domain=mesh)
+    h_f = Function(V)
+    h_f.vector()[:] = 10*rng.random(V.dim())
 
-    tape.evaluate_adj()
-    tape.evaluate_tlm()
+    # Total derivative
+    dJdc, dJdf = compute_gradient(J, [control_c, control_f])
+    dJdm = dJdc.vector().inner(h_c) + dJdf.vector().inner(h_f)
 
-    J.block_variable.hessian_value = 0
-    tape.evaluate_hessian()
+    # Hessian
+    Hcc, Hff = compute_hessian(J, [control_c, control_f], [h_c, h_f])
+    Hm = Hff.vector().inner(h_f.vector()) + Hcc.vector().inner(h_c.vector())
 
-    g = f.copy(deepcopy=True)
-
-    dJdm = J.block_variable.tlm_value
-    Hm = control_f.hessian_value.vector().inner(h.vector()) + control_c.hessian_value
-
-    assert conv_mixed(J, control_f, control_c, g, Constant(4), h, Constant(1), dJdm=dJdm, Hm=Hm) > 2.9
+    assert conv_mixed(Jhat, [c, f], [h_c, h_f], dJdm=dJdm, Hm=Hm) > 2.9
 
 
 def test_nonlinear():
@@ -158,7 +163,7 @@ def test_nonlinear():
     Jhat = ReducedFunctional(J, Control(f))
 
     h = Function(V)
-    h.vector()[:] = 10*rand(V.dim())
+    h.vector()[:] = 10*rng.random(V.dim())
 
     J.block_variable.adj_value = 1.0
     f.block_variable.tlm_value = h
@@ -199,7 +204,7 @@ def test_dirichlet():
     Jhat = ReducedFunctional(J, Control(c))
 
     h = Function(V)
-    h.vector()[:] = rand(V.dim())
+    h.vector()[:] = rng.random(V.dim())
 
     J.block_variable.adj_value = 1.0
     c.block_variable.tlm_value = h
@@ -264,7 +269,7 @@ def test_burgers():
 
     Jhat = ReducedFunctional(J, Control(ic))
     h = Function(V)
-    h.vector()[:] = rand(V.dim())
+    h.vector()[:] = rng.random(V.dim())
     g = ic.copy(deepcopy=True)
     J.block_variable.adj_value = 1.0
     ic.block_variable.tlm_value = h
@@ -280,27 +285,23 @@ def test_burgers():
 
 
 # Temporary mixed controls taylor test until pyadjoint natively supports it.
-def conv_mixed(J, c_1, c_2, m_1, m_2, h_1, h_2, dJdm, Hm):
+#TODO: Move this code into adjoint, it is fragile if it remains here untested.
+def conv_mixed(Jhat, m, h, dJdm, Hm):
+    """
+    Jhat - Reduced functional in the controls in list m
+    m - list of controls
+    h - list of directions to perform convergence test in
+    dJdm - sum of first derivatives in directions h
+    Hm - Hessian
+    """
     tape = get_working_tape()
-    def J_eval(m_1, m_2):
-        c_1.update(m_1)
-        c_2.update(m_2)
 
-        blocks = tape.get_blocks()
-        for i in range(len(blocks)):
-            blocks[i].recompute()
-
-        return J.block_variable.saved_output
-
-    Jm = J_eval(m_1, m_2)
+    Jm = Jhat(m)
 
     residuals = []
     epsilons = [0.01 / 2 ** i for i in range(4)]
     for eps in epsilons:
-        perturbation_1 = h_1._ad_mul(eps)
-        perturbation_2 = h_2._ad_mul(eps)
-        Jp = J_eval(m_1._ad_add(perturbation_1), m_2._ad_add(perturbation_2))
-
+        Jp = Jhat([m_ + eps*h_ for (m_, h_) in zip(m, h)])
         res = abs(Jp - Jm - eps * dJdm - 0.5 * eps ** 2 * Hm)
         residuals.append(res)
     print(residuals)
