@@ -267,4 +267,17 @@ def test_float_components_minimize():
     rf = ReducedFunctional(c, (Control(a), Control(b)),
                            derivative_components=(0,))
     z = minimize(rf)
+    # this should minimise c over a, leaving b fixed
+    # check that b is fixed
+    assert(z[1] == 2.0)
+    # check that a + b = 0 (the minimum)
     assert(abs(z[0] + z[1]) < 5.0e-3)
+
+    # check that we can stop annotating, change
+    # the values of the inputs, and minimise still
+    # keeping b fixed (to the new value)
+    with stop_annotating():
+        rf((AdjFloat(1.0), AdjFloat(1.0)))
+        z = minimize(rf)
+        assert(z[1] == 1.0)
+        assert(abs(z[0] + z[1]) < 5.0e-3)
