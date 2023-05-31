@@ -50,13 +50,14 @@ class ReducedFunctional(object):
             Control instance instead of a list.
         derivative_components (tuple of int): The indices of the controls with
             respect to which to take the derivative. By default, the derivative
-            is taken with respect to all controls.
+            is taken with respect to all controls. If present, it overwrites
+            derivative_cb_pre and derivative_cb_post.
         derivative_cb_pre (function): Callback function before evaluating
             derivatives. Should return a list of Controls (usually the same
-            list as the input).
+            list as the input) to be passed to compute_gradient.
         derivative_cb_post (function): Callback function after evaluating
             derivatives. Should return a list of Controls (usually the same
-            list as the input).
+            list as the input) to be passed to copmute_gradient.
     """
 
     def __init__(self, functional, controls,
