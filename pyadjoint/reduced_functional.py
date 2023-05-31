@@ -3,20 +3,22 @@ from .enlisting import Enlist
 from .tape import get_working_tape, stop_annotating, no_annotations
 from .overloaded_type import OverloadedType
 
+
 def get_extract_derivative_components(derivative_components):
     """
-    Construct a function to pass as a pre derivative callback 
+    Construct a function to pass as a pre derivative callback
     when derivative components are required.
     """
     def extract_derivative_components(controls):
         controls_out = Enlist([controls[i]
-                           for i in derivative_components])
+                               for i in derivative_components])
         return controls_out
     return extract_derivative_components
 
+
 def get_pack_derivative_components(controls, derivative_components):
     """
-    Construct a function to pass as a post derivative callback 
+    Construct a function to pass as a post derivative callback
     when derivative components are required.
     """
     def pack_derivative_components(checkpoint, derivatives, values):
@@ -26,10 +28,11 @@ def get_pack_derivative_components(controls, derivative_components):
                 derivatives_out.append(derivatives[i])
             else:
                 zero_derivative = control._ad_copy()
-                zero_derivative._ad_imul(0.)
+                zero_derivative *= 0.
                 derivatives_out.append(zero_derivative)
         return Enlist(derivatives_out)
     return pack_derivative_components
+
 
 class ReducedFunctional(object):
     """Class representing the reduced functional.
@@ -48,8 +51,12 @@ class ReducedFunctional(object):
         derivative_components (tuple of int): The indices of the controls with
             respect to which to take the derivative. By default, the derivative
             is taken with respect to all controls.
-        derivative_cb_pre (function): Callback function before evaluating derivatives. Should return a list of Controls (usually the same list as the input).
-        derivative_cb_post (function): Callback function after evaluating derivatives. Should return a list of Controls (usually the same list as the input).
+        derivative_cb_pre (function): Callback function before evaluating
+            derivatives. Should return a list of Controls (usually the same
+            list as the input).
+        derivative_cb_post (function): Callback function after evaluating
+            derivatives. Should return a list of Controls (usually the same
+            list as the input).
     """
 
     def __init__(self, functional, controls,
@@ -57,8 +64,8 @@ class ReducedFunctional(object):
                  scale=1.0, tape=None,
                  eval_cb_pre=lambda *args: None,
                  eval_cb_post=lambda *args: None,
-                 derivative_cb_pre=lambda *args: *args,
-                 derivative_cb_post=lambda *args: *args,
+                 derivative_cb_pre=lambda *args: args,
+                 derivative_cb_post=lambda *args: args,
                  hessian_cb_pre=lambda *args: None,
                  hessian_cb_post=lambda *args: None):
         if not isinstance(functional, OverloadedType):
@@ -85,10 +92,9 @@ class ReducedFunctional(object):
 
     def derivative(self, adj_input=1.0, options={}):
         """Returns the derivative of the functional w.r.t. the control.
-
         Using the adjoint method, the derivative of the functional with
-        respect to the control, around the last supplied value of the control,
-        is computed and returned.
+        respect to the control, around the last supplied value of the
+        control, is computed and returned.
 
         Args:
             options (dict): A dictionary of options. To find a list of
@@ -99,10 +105,14 @@ class ReducedFunctional(object):
                 Should be an instance of the same type as the control.
 
         """
-        controls = self.controls
+
         # Call callback
-        values = [c.tape_value() for c in controls]
-        controls = self.derivative_cb_pre(controls.delist(values))
+        values = [c.tape_value() for c in self.controls]
+        controls = self.derivative_cb_pre(self.controls)
+        if not isinstance(controls, Enlist):
+            raise DeprecationWarning("""Note that the callback interface
+            for derivative_cb_pre has changed. It should now return a
+            list of controls (usually the same list as input.""")
 
         # Scale adjoint input
         with stop_annotating():
