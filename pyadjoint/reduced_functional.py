@@ -4,7 +4,7 @@ from .tape import get_working_tape, stop_annotating, no_annotations
 from .overloaded_type import OverloadedType
 
 
-def get_extract_derivative_components(derivative_components):
+def _get_extract_derivative_components(derivative_components):
     """
     Construct a function to pass as a pre derivative callback
     when derivative components are required.
@@ -16,7 +16,7 @@ def get_extract_derivative_components(derivative_components):
     return extract_derivative_components
 
 
-def get_pack_derivative_components(controls, derivative_components):
+def _get_pack_derivative_components(controls, derivative_components):
     """
     Construct a function to pass as a post derivative callback
     when derivative components are required.
@@ -30,7 +30,7 @@ def get_pack_derivative_components(controls, derivative_components):
                 zero_derivative = control._ad_copy()
                 zero_derivative *= 0.
                 derivatives_out.append(zero_derivative)
-        return Enlist(derivatives_out)
+        return derivatives_out
     return pack_derivative_components
 
 
@@ -53,11 +53,14 @@ class ReducedFunctional(object):
             is taken with respect to all controls. If present, it overwrites
             derivative_cb_pre and derivative_cb_post.
         derivative_cb_pre (function): Callback function before evaluating
-            derivatives. Should return a list of Controls (usually the same
+            derivatives. Input is a list of Controls.
+            Should return a list of Controls (usually the same
             list as the input) to be passed to compute_gradient.
         derivative_cb_post (function): Callback function after evaluating
-            derivatives. Should return a list of Controls (usually the same
-            list as the input) to be passed to copmute_gradient.
+            derivatives.  Inputs are: functional.block_variable.checkpoint,
+            list of functional derivatives, list of functional values.
+            Should return a list of derivatives (usually the same
+            list as the input) to be returned from self.derivative.
     """
 
     def __init__(self, functional, controls,
@@ -65,8 +68,9 @@ class ReducedFunctional(object):
                  scale=1.0, tape=None,
                  eval_cb_pre=lambda *args: None,
                  eval_cb_post=lambda *args: None,
-                 derivative_cb_pre=lambda *args: args,
-                 derivative_cb_post=lambda *args: args,
+                 derivative_cb_pre=lambda controls: controls,
+                 derivative_cb_post=lambda checkpoint, controls,
+                 derivative_components: controls,
                  hessian_cb_pre=lambda *args: None,
                  hessian_cb_post=lambda *args: None):
         if not isinstance(functional, OverloadedType):
@@ -85,10 +89,10 @@ class ReducedFunctional(object):
 
         if self.derivative_components:
             # pre callback
-            self.derivative_cb_pre = get_extract_derivative_components(
+            self.derivative_cb_pre = _get_extract_derivative_components(
                 derivative_components)
             # post callback
-            self.derivative_cb_post = get_pack_derivative_components(
+            self.derivative_cb_post = _get_pack_derivative_components(
                 controls, derivative_components)
 
     def derivative(self, adj_input=1.0, options={}):
@@ -110,7 +114,8 @@ class ReducedFunctional(object):
         # Call callback
         values = [c.tape_value() for c in self.controls]
         controls = self.derivative_cb_pre(self.controls)
-        if not isinstance(controls, Enlist):
+
+        if not controls:
             raise DeprecationWarning("""Note that the callback interface
             for derivative_cb_pre has changed. It should now return a
             list of controls (usually the same list as input.""")
@@ -125,13 +130,18 @@ class ReducedFunctional(object):
                                        tape=self.tape,
                                        adj_value=adj_value)
 
+        if not derivatives:
+            raise DeprecationWarning("""Note that the callback interface
+            for derivative_cb_pre has changed. It should now return a
+            list of controls (usually the same list as input.""")
+
         # Call callback
         derivatives = self.derivative_cb_post(
             self.functional.block_variable.checkpoint,
-            controls.delist(derivatives),
-            controls.delist(values))
+            derivatives,
+            values)
 
-        return controls.delist(derivatives)
+        return self.controls.delist(derivatives)
 
     @no_annotations
     def hessian(self, m_dot, options={}):
