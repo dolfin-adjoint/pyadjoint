@@ -23,9 +23,11 @@ def _get_pack_derivative_components(controls, derivative_components):
     """
     def pack_derivative_components(checkpoint, derivatives, values):
         derivatives_out = []
+        count = 0
         for i, control in enumerate(controls):
             if i in derivative_components:
-                derivatives_out.append(derivatives[i])
+                derivatives_out.append(derivatives[count])
+                count += 1
             else:
                 zero_derivative = control._ad_copy()
                 zero_derivative *= 0.

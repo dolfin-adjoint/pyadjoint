@@ -251,13 +251,13 @@ def test_float_components():
     c = a * b
     assert c == 6.0
     rf = ReducedFunctional(c, (Control(a), Control(b)),
-                           derivative_components=(0,))
+                           derivative_components=(1,))
     assert rf((a, b)) == 6.0
     assert rf((AdjFloat(1.0), AdjFloat(2.0))) == 2.0
     assert rf((AdjFloat(3.0), AdjFloat(2.0))) == 6.0
-    assert rf.derivative() == [2.0, 0.0]
+    assert rf.derivative() == [0.0, 3.0]
     assert rf((AdjFloat(3.0), AdjFloat(3.0))) == 9.0
-    assert rf.derivative() == [3.0, 0.0]
+    assert rf.derivative() == [0.0, 3.0]
 
 def test_float_components_minimize():
     a = AdjFloat(3.0)
