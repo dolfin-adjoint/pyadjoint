@@ -344,7 +344,7 @@ def compat(backend):
         compat.type_cast_function = type_cast_function
 
         def create_constant(*args, **kwargs):
-            """Initialises a fenics_adjoint.Constant object and returns it."""
+            """Initialise a fenics_adjoint.Constant object and return it."""
             from fenics_adjoint import Constant
             # Dolfin constants do not have domains
             _ = kwargs.pop("domain", None)
