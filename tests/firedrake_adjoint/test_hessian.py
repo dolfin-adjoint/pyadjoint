@@ -98,7 +98,7 @@ def test_mixed_derivatives():
     m_1 = f.copy(deepcopy=True)
     m_2 = g.copy(deepcopy=True)
 
-    assert conv_mixed(Jhat, [f, g], [h, h], dJdm, Hm) > 2.9
+    assert taylor_test(Jhat, [f, g], [h, h], dJdm, Hm) > 2.9
 
 
 def test_function():
@@ -139,7 +139,7 @@ def test_function():
     Hcc, Hff = compute_hessian(J, [control_c, control_f], [h_c, h_f])
     Hm = Hff.vector().inner(h_f.vector()) + Hcc.vector().inner(h_c.vector())
 
-    assert conv_mixed(Jhat, [c, f], [h_c, h_f], dJdm=dJdm, Hm=Hm) > 2.9
+    assert taylor_test(Jhat, [c, f], [h_c, h_f], dJdm=dJdm, Hm=Hm) > 2.9
 
 
 def test_nonlinear():
@@ -282,36 +282,3 @@ def test_burgers():
     dJdm = J.block_variable.tlm_value
     Hm = ic.block_variable.hessian_value.vector().inner(h.vector())
     assert taylor_test(Jhat, g, h, dJdm=dJdm, Hm=Hm) > 2.9
-
-
-# Temporary mixed controls taylor test until pyadjoint natively supports it.
-#TODO: Move this code into adjoint, it is fragile if it remains here untested.
-def conv_mixed(Jhat, m, h, dJdm, Hm):
-    """
-    Jhat - Reduced functional in the controls in list m
-    m - list of controls
-    h - list of directions to perform convergence test in
-    dJdm - sum of first derivatives in directions h
-    Hm - Hessian
-    """
-    tape = get_working_tape()
-
-    Jm = Jhat(m)
-
-    residuals = []
-    epsilons = [0.01 / 2 ** i for i in range(4)]
-    for eps in epsilons:
-        Jp = Jhat([m_ + eps*h_ for (m_, h_) in zip(m, h)])
-        res = abs(Jp - Jm - eps * dJdm - 0.5 * eps ** 2 * Hm)
-        residuals.append(res)
-    print(residuals)
-    return min(convergence_rates(residuals, epsilons))
-
-
-def convergence_rates(E_values, eps_values):
-    from numpy import log
-    r = []
-    for i in range(1, len(eps_values)):
-        r.append(log(E_values[i] / E_values[i - 1]) / log(eps_values[i] / eps_values[i - 1]))
-    print(r)
-    return r
