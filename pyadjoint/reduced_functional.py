@@ -1,6 +1,6 @@
 from .drivers import compute_gradient, compute_hessian
 from .enlisting import Enlist
-from .tape import get_working_tape, stop_annotating, no_annotations
+from .tape import get_working_tape, stop_annotating, no_annotations, _stop_annotating
 from .overloaded_type import OverloadedType
 
 

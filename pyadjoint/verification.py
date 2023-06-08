@@ -41,6 +41,8 @@ def taylor_test(J, m, h, dJdm=None, Hm=0):
                         len(ds), len(ms)))
             dJdm = sum(hi._ad_dot(di) for hi, di in zip(hs, ds))
 
+        print("dJdm: ", dJdm)
+
         def perturbe(eps):
             ret = [mi._ad_add(hi._ad_mul(eps)) for mi, hi in zip(ms, hs)]
             return ms.delist(ret)
@@ -50,7 +52,9 @@ def taylor_test(J, m, h, dJdm=None, Hm=0):
         epsilons = [0.01 / 2 ** i for i in range(4)]
         for eps in epsilons:
             Jp = J(perturbe(eps))
+            print("Jp: ", Jp)
             res = abs(Jp - Jm - eps * dJdm - 0.5 * eps ** 2 * Hm)
+            print("res: ", res)
             residuals.append(res)
 
         if min(residuals) < 1E-15:

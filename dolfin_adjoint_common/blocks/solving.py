@@ -102,12 +102,16 @@ class GenericSolveBlock(Block):
                 bcs.append(c_rep)
         return bcs
 
-    def _replace_map(self, form):
+    def _replace_map(self, form, func=None):
         replace_coeffs = {}
         for block_variable in self.get_dependencies():
             coeff = block_variable.output
             if coeff in form.coefficients():
-                replace_coeffs[coeff] = block_variable.saved_output
+                if func is not None and coeff == self.func:
+                    replace_coeffs[coeff] = func.assign(block_variable.saved_output)
+                    # replace_coeffs[coeff] = block_variable.saved_output
+                else:
+                    replace_coeffs[coeff] = block_variable.saved_output
         return replace_coeffs
 
     def _replace_form(self, form, func=None):
@@ -115,10 +119,13 @@ class GenericSolveBlock(Block):
 
         func represents the initial guess if relevant.
         """
-        replace_map = self._replace_map(form)
-        if func is not None and self.func in replace_map:
-            self.backend.Function.assign(func, replace_map[self.func])
-            replace_map[self.func] = func
+        replace_map = self._replace_map(form, func)
+
+        # removing this breaks things...
+        # copy but don't use saved_output...
+        # if func is not None and self.func in replace_map:
+        #     func.assign(replace_map[self.func])
+        #     replace_map[self.func] = func
         return ufl.replace(form, replace_map)
 
     def _should_compute_boundary_adjoint(self, relevant_dependencies):
@@ -440,16 +447,28 @@ class GenericSolveBlock(Block):
     def prepare_recompute_component(self, inputs, relevant_outputs):
         return self._replace_recompute_form()
 
+    def _assign_to_form_coeffs(self, form, func=None):
+        for block_variable in self.get_dependencies():
+            coeff = block_variable.output
+            if coeff in form.coefficients():
+                coeff.assign(block_variable.saved_output)
+
+        return form
+
     def _replace_recompute_form(self):
         func = self._create_initial_guess()
 
         bcs = self._recover_bcs()
-        lhs = self._replace_form(self.lhs, func=func)
+        # lhs = self._assign_to_form_coeffs(self.lhs)
+        # lhs = self._replace_form(self.lhs, func=func)
+        lhs = self.lhs
         rhs = 0
         if self.linear:
-            rhs = self._replace_form(self.rhs)
+            # rhs = self._assign_to_form_coeffs(self.rhs)
+            # rhs = self._replace_form(self.rhs)
+            rhs = self.rhs
 
-        return lhs, rhs, func, bcs
+        return lhs, rhs, self.func, bcs
 
     def _forward_solve(self, lhs, rhs, func, bcs):
         self.backend.solve(lhs == rhs, func, bcs, *self.forward_args, **self.forward_kwargs)
