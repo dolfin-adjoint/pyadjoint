@@ -126,7 +126,6 @@ class FunctionAssignBlock(Block):
                                            block_variable, idx, prepared)
 
     def prepare_recompute_component(self, inputs, relevant_outputs):
-        return self.expr
         if self.expr is None:
             return None
         return self._replace_with_saved_output()
@@ -134,8 +133,6 @@ class FunctionAssignBlock(Block):
     def recompute_component(self, inputs, block_variable, idx, prepared):
         if self.expr is None:
             prepared = inputs[0]
-        block_variable.output.assign(prepared)
-        return block_variable.output
         output = self.backend.Function(block_variable.output.function_space())
         output.assign(prepared)
         return output
