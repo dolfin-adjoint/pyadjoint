@@ -243,3 +243,41 @@ def test_min_max():
     assert b == 0.
     assert a2 == oa2 + h[0]*ob2/h[1]
     assert b2 == 0.
+
+
+def test_float_components():
+    a = AdjFloat(3.0)
+    b = AdjFloat(2.0)
+    c = a * b
+    assert c == 6.0
+    rf = ReducedFunctional(c, (Control(a), Control(b)),
+                           derivative_components=(1,))
+    assert rf((a, b)) == 6.0
+    assert rf((AdjFloat(1.0), AdjFloat(2.0))) == 2.0
+    assert rf((AdjFloat(3.0), AdjFloat(2.0))) == 6.0
+    assert rf.derivative() == [0.0, 3.0]
+    assert rf((AdjFloat(4.0), AdjFloat(3.0))) == 12.0
+    assert rf.derivative() == [0.0, 4.0]
+
+def test_float_components_minimize():
+    a = AdjFloat(3.0)
+    b = AdjFloat(2.0)
+    c = (a + b)**3
+    assert(c == 125.0)
+    rf = ReducedFunctional(c, (Control(a), Control(b)),
+                           derivative_components=(0,))
+    z = minimize(rf)
+    # this should minimise c over a, leaving b fixed
+    # check that b is fixed
+    assert(z[1] == 2.0)
+    # check that a + b = 0 (the minimum)
+    assert(abs(z[0] + z[1]) < 5.0e-3)
+
+    # check that we can stop annotating, change
+    # the values of the inputs, and minimise still
+    # keeping b fixed (to the new value)
+    with stop_annotating():
+        rf((AdjFloat(1.0), AdjFloat(1.0)))
+        z = minimize(rf)
+        assert(z[1] == 1.0)
+        assert(abs(z[0] + z[1]) < 5.0e-3)

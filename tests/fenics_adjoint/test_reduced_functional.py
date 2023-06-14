@@ -715,12 +715,14 @@ def test_eval_callback():
         calls_counter["eval_cb_post_calls"] += 1
         assert calls_counter["eval_cb_pre_calls"] == calls_counter["eval_cb_post_calls"]
 
-    def derivative_cb_pre(values):
+    def derivative_cb_pre(controls):
         calls_counter["derivative_cb_pre_calls"] += 1
+        return controls
 
     def derivative_cb_post(functional_value, derivatives, values):
         calls_counter["derivative_cb_post_calls"] += 1
         assert calls_counter["derivative_cb_post_calls"] == calls_counter["derivative_cb_pre_calls"]
+        return derivatives
 
     Jhat = ReducedFunctional(J, Control(f),
                              eval_cb_pre=eval_cb_pre,
