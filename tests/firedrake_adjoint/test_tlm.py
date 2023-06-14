@@ -47,7 +47,7 @@ def test_tlm_bc():
     mesh = IntervalMesh(10, 0, 1)
     V = FunctionSpace(mesh, "Lagrange", 1)
 
-    c = Constant(1)
+    c = Constant(1, domain=mesh)
     f = Function(V)
     f.vector()[:] = 1
 
@@ -212,7 +212,7 @@ def test_projection():
     V = FunctionSpace(mesh, "CG", 1)
 
     bc = DirichletBC(V, Constant(1), "on_boundary")
-    k = Constant(2.0)
+    k = Constant(2.0, domain=mesh)
     x, y = SpatialCoordinate(mesh)
     expr = sin(k*x)
     f = project(expr, V)
