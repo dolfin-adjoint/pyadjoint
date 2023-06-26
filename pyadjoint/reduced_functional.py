@@ -63,13 +63,13 @@ class ReducedFunctional(object):
 
         # Scale adjoint input
         with stop_annotating():
-            adj_value = self.scale * adj_input
+            adj_input *= self.scale
 
         derivatives = compute_gradient(self.functional,
                                        self.controls,
                                        options=options,
                                        tape=self.tape,
-                                       adj_value=adj_value)
+                                       adj_value=adj_input)
 
         # Call callback
         self.derivative_cb_post(self.functional.block_variable.checkpoint,
