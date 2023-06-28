@@ -71,8 +71,7 @@ class ReducedFunctional(object):
                  eval_cb_pre=lambda *args: None,
                  eval_cb_post=lambda *args: None,
                  derivative_cb_pre=lambda controls: controls,
-                 derivative_cb_post=lambda checkpoint, controls,
-                 derivative_components: controls,
+                 derivative_cb_post=lambda checkpoint, derivative_components, controls: derivative_components,
                  hessian_cb_pre=lambda *args: None,
                  hessian_cb_post=lambda *args: None):
         if not isinstance(functional, OverloadedType):
@@ -118,7 +117,7 @@ class ReducedFunctional(object):
         controls = self.derivative_cb_pre(self.controls)
 
         if not controls:
-            raise DeprecationWarning("""Note that the callback interface
+            raise ValueError("""Note that the callback interface
             for derivative_cb_pre has changed. It should now return a
             list of controls (usually the same list as input.""")
 
@@ -132,16 +131,16 @@ class ReducedFunctional(object):
                                        tape=self.tape,
                                        adj_value=adj_value)
 
-        if not derivatives:
-            raise DeprecationWarning("""Note that the callback interface
-            for derivative_cb_pre has changed. It should now return a
-            list of controls (usually the same list as input.""")
-
         # Call callback
         derivatives = self.derivative_cb_post(
             self.functional.block_variable.checkpoint,
             derivatives,
             values)
+
+        if not derivatives:
+            raise ValueError("""Note that the callback interface
+            for derivative_cb_post has changed. It should now return a
+            list of derivatives, usually the same list as input.""")
 
         return self.controls.delist(derivatives)
 
