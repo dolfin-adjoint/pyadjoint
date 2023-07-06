@@ -36,10 +36,11 @@ class GenericSolveBlock(Block):
         if bcs is not None:
             self.bcs = Enlist(bcs)
 
-        if isinstance(self.lhs, ufl.Form) and isinstance(self.rhs, ufl.Form):
+        if isinstance(self.lhs, ufl.Form) and isinstance(self.rhs, (ufl.Form, ufl.Cofunction)):
             self.linear = True
-            for c in self.rhs.coefficients():
-                self.add_dependency(c, no_duplicates=True)
+            if not isinstance(rhs, ufl.Cofunction):
+                for c in self.rhs.coefficients():
+                    self.add_dependency(c, no_duplicates=True)
         else:
             self.linear = False
 
