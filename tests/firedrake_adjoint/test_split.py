@@ -118,13 +118,13 @@ def test_merge_blocks():
     W = V * V
     w = Function(W)
     w1, w2 = w.split()
-    w1_const = Constant(0.1)
-    w2_const = Constant(0.2)
+    w1_const = Constant(0.1, domain=mesh)
+    w2_const = Constant(0.2, domain=mesh)
     w1.project(w1_const)
     w2.project(w2_const)
     J = assemble(w1*w1*dx)
     c = Control(w1_const)
     rf = ReducedFunctional(J, c)
-    assert taylor_test(rf, Constant(0.3), Constant(0.01)) > 1.95
+    assert taylor_test(rf, Constant(0.3, domain=mesh), Constant(0.01, domain=mesh)) > 1.95
 
 

@@ -191,11 +191,11 @@ class GenericSolveBlock(Block):
         c = block_variable.output
         c_rep = block_variable.saved_output
 
-        if isinstance(c, self.backend.Function):
-            trial_function = self.backend.TrialFunction(c.function_space())
-        elif isinstance(c, self.backend.Constant):
+        if self.compat.isconstant(c):
             mesh = self.compat.extract_mesh_from_form(F_form)
             trial_function = self.backend.TrialFunction(c._ad_function_space(mesh))
+        elif isinstance(c, self.backend.Function):
+            trial_function = self.backend.TrialFunction(c.function_space())
         elif isinstance(c, self.compat.ExpressionType):
             mesh = F_form.ufl_domain().ufl_cargo()
             c_fs = c._ad_function_space(mesh)
@@ -377,7 +377,7 @@ class GenericSolveBlock(Block):
             tmp_bc = self.compat.create_bc(c, value=self.compat.extract_subfunction(adj_sol2_bdy, c.function_space()))
             return [tmp_bc]
 
-        if isinstance(c_rep, self.backend.Constant):
+        if self.compat.isconstant(c_rep):
             mesh = self.compat.extract_mesh_from_form(F_form)
             W = c._ad_function_space(mesh)
         elif isinstance(c, self.compat.ExpressionType):

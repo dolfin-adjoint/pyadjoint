@@ -9,9 +9,10 @@ class FunctionAssignBlock(Block):
         super().__init__(ad_block_tag=ad_block_tag)
         self.other = None
         self.expr = None
-        if isinstance(other, float) or isinstance(other, int):
-            other = AdjFloat(other)
         if isinstance(other, OverloadedType):
+            self.add_dependency(other, no_duplicates=True)
+        elif isinstance(other, float) or isinstance(other, int):
+            other = AdjFloat(other)
             self.add_dependency(other, no_duplicates=True)
         elif not (isinstance(other, float) or isinstance(other, int)):
             # Assume that this is a point-wise evaluated UFL expression (firedrake only)
@@ -43,8 +44,13 @@ class FunctionAssignBlock(Block):
                                prepared=None):
         if self.expr is None:
             if isinstance(block_variable.output, AdjFloat):
-                return adj_inputs[0].sum()
-            elif isinstance(block_variable.output, self.backend.Constant):
+                try:
+                    # Adjoint of a broadcast is just a sum
+                    return adj_inputs[0].sum()
+                except AttributeError:
+                    # Catch the case where adj_inputs[0] is just a float
+                    return adj_inputs[0]
+            elif self.compat.isconstant(block_variable.output):
                 R = block_variable.output._ad_function_space(prepared.function_space().mesh())
                 return self._adj_assign_constant(prepared, R)
             else:
@@ -59,7 +65,7 @@ class FunctionAssignBlock(Block):
             # Linear combination
             expr, adj_input_func = prepared
             adj_output = self.backend.Function(adj_input_func.function_space())
-            if not isinstance(block_variable.output, self.backend.Constant):
+            if not self.compat.isconstant(block_variable.output):
                 diff_expr = ufl.algorithms.expand_derivatives(
                     ufl.derivative(expr, block_variable.saved_output, adj_input_func)
                 )
@@ -71,13 +77,18 @@ class FunctionAssignBlock(Block):
                 else:
                     adj_output.assign(diff_expr)
             else:
+                mesh = adj_output.function_space().mesh()
                 diff_expr = ufl.algorithms.expand_derivatives(
-                    ufl.derivative(expr, block_variable.saved_output, self.backend.Constant(1.))
+                    ufl.derivative(
+                        expr,
+                        block_variable.saved_output,
+                        self.compat.create_constant(1., domain=mesh)
+                    )
                 )
                 adj_output.assign(diff_expr)
                 return adj_output.vector().inner(adj_input_func.vector())
 
-            if isinstance(block_variable.output, self.backend.Constant):
+            if self.compat.isconstant(block_variable.output):
                 R = block_variable.output._ad_function_space(adj_output.function_space().mesh())
                 return self._adj_assign_constant(adj_output, R)
             else:

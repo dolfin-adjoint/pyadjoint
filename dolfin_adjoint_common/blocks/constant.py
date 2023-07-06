@@ -61,7 +61,7 @@ class ConstantAssignBlock(Block):
             values = numpy.zeros(self.value.shape)
             for i, tlm_input in enumerate(tlm_inputs):
                 values.flat[self.dependency_to_index[i]] = tlm_input
-        elif isinstance(values, self.backend.Constant):
+        elif self.compat.isconstant(values):
             values = values.values()
         return constant_from_values(block_variable.output, values)
 
@@ -78,6 +78,6 @@ class ConstantAssignBlock(Block):
             for i, inp in enumerate(inputs):
                 self.value[self.dependency_to_index[i]] = inp
             values = self.value
-        elif isinstance(values, self.backend.Constant):
+        elif self.compat.isconstant(values):
             values = values.values()
         return constant_from_values(block_variable.output, values)

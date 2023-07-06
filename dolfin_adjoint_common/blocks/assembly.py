@@ -95,11 +95,11 @@ class AssembleBlock(Block):
             output = self.compat.assemble_adjoint_value(dform)
             return [[adj_input * output, V]]
 
-        if isinstance(c, self.backend.Function):
-            space = c.function_space()
-        elif isinstance(c, self.backend.Constant):
+        if self.compat.isconstant(c):
             mesh = self.compat.extract_mesh_from_form(self.form)
             space = c._ad_function_space(mesh)
+        elif isinstance(c, self.backend.Function):
+            space = c.function_space()
         elif isinstance(c, self.compat.MeshType):
             c_rep = self.backend.SpatialCoordinate(c_rep)
             space = c._ad_function_space()
@@ -149,13 +149,13 @@ class AssembleBlock(Block):
         c1 = block_variable.output
         c1_rep = block_variable.saved_output
 
-        if isinstance(c1, self.backend.Function):
+        if self.compat.isconstant(c1):
+            mesh = self.compat.extract_mesh_from_form(form)
+            space = c1._ad_function_space(mesh)
+        elif isinstance(c1, self.backend.Function):
             space = c1.function_space()
         elif isinstance(c1, self.compat.ExpressionType):
             mesh = form.ufl_domain().ufl_cargo()
-            space = c1._ad_function_space(mesh)
-        elif isinstance(c1, self.backend.Constant):
-            mesh = self.compat.extract_mesh_from_form(form)
             space = c1._ad_function_space(mesh)
         elif isinstance(c1, self.compat.MeshType):
             c1_rep = self.backend.SpatialCoordinate(c1)
