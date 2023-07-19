@@ -25,7 +25,7 @@ class AssembleBlock(Block):
         """This computes the action of the adjoint of the derivative of `form` wrt `c_rep` on `adj_input`.
            In other words, it returns: `<(dform/dc_rep)*, adj_input>`
 
-           - If `form` has arity 0 => `dform/dc_rep` is a 1-form and `adj_input` a foat, we can simply use
+           - If `form` has arity 0 => `dform/dc_rep` is a 1-form and `adj_input` a float, we can simply use
              the `*` operator.
 
            - If `form` has arity 1 => `dform/dc_rep` is a 2-form and we can symbolically take its adjoint
@@ -123,9 +123,9 @@ class AssembleBlock(Block):
                 continue
             if isinstance(c_rep, self.compat.MeshType):
                 X = self.backend.SpatialCoordinate(c_rep)
-                dform += self.backend.derivative(form, X, tlm_value)
+                dform += self.backend.action(self.backend.derivative(form, X), tlm_value)
             else:
-                dform += self.backend.derivative(form, c_rep, tlm_value)
+                dform += self.backend.action(self.backend.derivative(form, c_rep), tlm_value)
         if not isinstance(dform, float):
             dform = ufl.algorithms.expand_derivatives(dform)
             dform = self.compat.assemble_adjoint_value(dform)
