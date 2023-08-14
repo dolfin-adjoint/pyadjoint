@@ -1,5 +1,5 @@
-import ufl
-from ufl.formatting.ufl2unicode import ufl2unicode
+import ufl_legacy as ufl
+from ufl_legacy.formatting.ufl2unicode import ufl2unicode
 from pyadjoint import Block, create_overloaded_object
 
 
@@ -78,7 +78,7 @@ class AssembleBlock(Block):
         c = block_variable.output
         c_rep = block_variable.saved_output
 
-        from ufl.algorithms.analysis import extract_arguments
+        from ufl_legacy.algorithms.analysis import extract_arguments
         arity_form = len(extract_arguments(form))
 
         if isinstance(c, self.compat.ExpressionType):
@@ -110,7 +110,7 @@ class AssembleBlock(Block):
         form = prepared
         dform = 0.
 
-        from ufl.algorithms.analysis import extract_arguments
+        from ufl_legacy.algorithms.analysis import extract_arguments
         arity_form = len(extract_arguments(form))
         for bv in self.get_dependencies():
             c_rep = bv.saved_output
@@ -140,7 +140,7 @@ class AssembleBlock(Block):
         hessian_input = hessian_inputs[0]
         adj_input = adj_inputs[0]
 
-        from ufl.algorithms.analysis import extract_arguments
+        from ufl_legacy.algorithms.analysis import extract_arguments
         arity_form = len(extract_arguments(form))
 
         c1 = block_variable.output

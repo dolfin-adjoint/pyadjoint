@@ -1,6 +1,6 @@
 import numpy
-import ufl
-from ufl.formatting.ufl2unicode import ufl2unicode
+import ufl_legacy as ufl
+from ufl_legacy.formatting.ufl2unicode import ufl2unicode
 
 from pyadjoint import Block
 from pyadjoint.enlisting import Enlist

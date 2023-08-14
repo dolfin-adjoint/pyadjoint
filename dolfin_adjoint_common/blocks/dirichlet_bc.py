@@ -1,4 +1,4 @@
-import ufl
+import ufl_legacy as ufl
 from pyadjoint import Block, OverloadedType, no_annotations
 
 

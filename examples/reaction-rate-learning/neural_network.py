@@ -1,6 +1,6 @@
 from fenics import *
 from fenics_adjoint import *
-import ufl
+import ufl_legacy as ufl
 import numpy as np
 from numpy.random import randn, random
 import pickle
@@ -117,8 +117,8 @@ def generate_weights(mesh, layers, bias, init_method="normal"):
     assert init_method in ["normal", "uniform"]
 
     weights = []
-    for i in range(len(layers)-1):
-        R_layer, vector_layer = max(layers[i+1], layers[i]), min(layers[i+1], layers[i])
+    for i in range(len(layers) - 1):
+        R_layer, vector_layer = max(layers[i + 1], layers[i]), min(layers[i + 1], layers[i])
         R = VectorFunctionSpace(mesh, "R", 0, dim=R_layer)
         ws = []
         weight = {}
@@ -173,7 +173,7 @@ class ELU(object):
 
 
 def sigmoid(x):
-    return 1/(1 + ufl.exp(-x))
+    return 1 / (1 + ufl.exp(-x))
 
 
 def nonlin_function(vec, func=ufl.tanh):

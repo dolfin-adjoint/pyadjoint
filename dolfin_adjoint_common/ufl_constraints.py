@@ -1,6 +1,6 @@
 import backend
-import ufl
-import ufl.algorithms
+import ufl_legacy as ufl
+import ufl_legacy.algorithms as ufl_algorithms
 import numpy
 
 from pyadjoint.optimization.constraints import Constraint, EqualityConstraint, InequalityConstraint
@@ -44,7 +44,7 @@ class UFLConstraint(Constraint):
         if not isinstance(control.control, backend.Function):
             raise NotImplementedError("Only implemented for Function controls")
 
-        args = ufl.algorithms.extract_arguments(form)
+        args = ufl_algorithms.extract_arguments(form)
         if len(args) != 0:
             raise ValueError("Must be a rank-zero form, i.e. a functional")
 
@@ -58,12 +58,12 @@ class UFLConstraint(Constraint):
 
         self.trial = backend.TrialFunction(self.V)
         self.dform = backend.derivative(self.form, self.u, self.trial)
-        if len(ufl.algorithms.extract_arguments(ufl.algorithms.expand_derivatives(self.dform))) == 0:
+        if len(ufl_algorithms.extract_arguments(ufl_algorithms.expand_derivatives(self.dform))) == 0:
             raise ValueError("Form must depend on control")
 
         self.test = backend.TestFunction(self.V)
-        self.hess = ufl.algorithms.expand_derivatives(backend.derivative(self.dform, self.u, self.test))
-        if len(ufl.algorithms.extract_arguments(self.hess)) == 0:
+        self.hess = ufl_algorithms.expand_derivatives(backend.derivative(self.dform, self.u, self.test))
+        if len(ufl_algorithms.extract_arguments(self.hess)) == 0:
             self.zero_hess = True
         else:
             self.zero_hess = False

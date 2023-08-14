@@ -1,6 +1,6 @@
-import ufl
-from ufl.corealg.traversal import traverse_unique_terminals
-from ufl.formatting.ufl2unicode import ufl2unicode
+import ufl_legacy as ufl
+from ufl_legacy.corealg.traversal import traverse_unique_terminals
+from ufl_legacy.formatting.ufl2unicode import ufl2unicode
 from pyadjoint import Block, OverloadedType, AdjFloat
 
 

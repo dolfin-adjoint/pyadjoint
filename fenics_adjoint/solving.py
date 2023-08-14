@@ -1,5 +1,5 @@
 import backend
-import ufl
+import ufl_legacy as ufl
 
 from pyadjoint.tape import get_working_tape, stop_annotating, annotate_tape
 from .blocks import SolveVarFormBlock, SolveLinearSystemBlock

@@ -1,5 +1,5 @@
 import backend
-import ufl
+import ufl_legacy as ufl
 
 from pyadjoint.overloaded_type import (FloatingType,
                                        create_overloaded_object,
