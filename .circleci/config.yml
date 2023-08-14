@@ -37,7 +37,8 @@ jobs:
             apt-get update
             apt-get install -y python3-dev graphviz libgraphviz-dev pkg-config patchelf
             python3 -m pip install -e .[all]
-            python3 -m pip install roltrilinos ROL
+            python3 -m pip install roltrilinos
+            python3 -m pip install ROL
             python3 -m pip install protobuf
             python3 -m pip install --upgrade numpy
 
