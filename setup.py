@@ -4,7 +4,7 @@ from setuptools import setup
 extras = {
     'moola': ['moola>=0.1.6'],
     'test': ['pytest>=3.10', 'flake8', 'coverage'],
-    'visualisation': ['tensorflow', 'protobuf==3.8.0',
+    'visualisation': ['tensorflow', 'protobuf',
                       'networkx', 'pygraphviz'],
     'meshing': ['pygmsh', 'meshio'],
 }

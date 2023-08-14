@@ -38,7 +38,7 @@ jobs:
             apt-get install -y python3-dev graphviz libgraphviz-dev pkg-config patchelf
             python3 -m pip install -e .[all]
             python3 -m pip install roltrilinos ROL
-            python3 -m pip install protobuf==3.8.0
+            python3 -m pip install protobuf
             python3 -m pip install --upgrade numpy
 
       - save_cache:
