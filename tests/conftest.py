@@ -1,7 +1,8 @@
 import pytest
 import importlib
 import numpy.random
-from pyadjoint import set_working_tape, Tape
+from pyadjoint import set_working_tape, Tape, continue_annotation, \
+    annotate_tape
 
 
 @pytest.fixture(autouse=True)
@@ -21,3 +22,7 @@ def pytest_runtest_setup(item):
 
     # Fix the seed to avoid random test failures due to slight tolerance variations
     numpy.random.seed(21)
+
+    # Ensure taping is on.
+    if not annotate_tape():
+        continue_annotation()

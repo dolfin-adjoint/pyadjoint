@@ -1,5 +1,5 @@
 from firedrake import *
-from firedrake_adjoint import *
+from firedrake.adjoint import *
 
 from numpy.testing import assert_approx_equal
 from numpy.random import rand
