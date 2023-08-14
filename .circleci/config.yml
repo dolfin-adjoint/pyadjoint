@@ -8,7 +8,7 @@ jobs:
     docker:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
-      - image: ghcr.io/scientificcomputing/fenics:2023-08-11
+      - image: ghcr.io/scientificcomputing/fenics:2023-08-14
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
       # - image: quay.io/fenicsproject/stable:latest
