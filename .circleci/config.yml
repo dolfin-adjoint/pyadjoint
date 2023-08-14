@@ -35,11 +35,11 @@ jobs:
           command: |
             export DEBIAN_FRONTEND=noninteractive
             apt-get update
-            apt-get install -y python-dev graphviz libgraphviz-dev pkg-config patchelf
-            pip3 install -e .[all]
-            pip3 install roltrilinos ROL
-            pip3 install protobuf==3.8.0
-            pip3 install --upgrade numpy
+            apt-get install -y python3-dev graphviz libgraphviz-dev pkg-config patchelf
+            python3 -m pip install -e .[all]
+            python3 -m pip install roltrilinos ROL
+            python3 -m pip install protobuf==3.8.0
+            python3 -m pip install --upgrade numpy
 
       - save_cache:
           paths:
