@@ -247,10 +247,10 @@ using the adjoint model. SLEPc elegantly supports such matrix-free
 computations through the use of PETSc shell matrices :cite:`balay2010`
 :cite:`balay1997`.
 
-For more information on how to perform a generalised stability
-analysis with dolfin-adjoint, see the :doc:`chapter in the
-documentation on generalised stability analysis
-<../gst>`.
+.. For more information on how to perform a generalised stability
+.. analysis with dolfin-adjoint, see the :doc:`chapter in the
+.. documentation on generalised stability analysis
+.. <../gst>`.
 
 .. rubric:: References
 

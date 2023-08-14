@@ -1,3 +1,5 @@
+:orphan:
+
 .. features
 
 .. title:: dolfin-adjoint features

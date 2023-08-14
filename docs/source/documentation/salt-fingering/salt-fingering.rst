@@ -1,6 +1,8 @@
 ..  #!/usr/bin/env python
   # -*- coding: utf-8 -*-
-  
+
+:orphan:
+
 .. _salt-fingering-example:
 
 .. py:currentmodule:: dolfin_adjoint

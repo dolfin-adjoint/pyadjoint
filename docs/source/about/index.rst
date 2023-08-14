@@ -1,5 +1,3 @@
-.. _dolfin-adjoint-about:
-
 .. title:: dolfin-adjoint about
 
 *****
@@ -34,7 +32,7 @@ News
 ====
 **27.05.2019**: dolfin-adjoint 2019.1 released (compatible with FEniCS 2019.1) `ChangeLog.rst`_.
 
-**20.03.2019**: Firedrake docker images with dolfin-adjoint preinstalled are :doc:`now available<download/index>`
+**20.03.2019**: Firedrake docker images with dolfin-adjoint preinstalled are :doc:`now available<../../download/index>`
 
 **18.02.2019**: New example demonstrating the shape-optimisation capabilities of dolfin-adjoint :doc:`now available<../documentation/stokes-shape-opt/stokes_problem>`
 
@@ -45,17 +43,17 @@ News
 
                 :ref:`dolfin-adjoint-difference`
 
-**31.05.2017**: dolfin-adjoint 2017.1 released (compatible with FEniCS 2017.1) `ChangeLog`_.
+**31.05.2017**: dolfin-adjoint 2017.1 released (compatible with FEniCS 2017.1) `ChangeLog.rst`_.
 
 **21.02.2017**: dolfin-adjoint 2016.2 is now available as Conda package.
 
-**20.12.2016**: dolfin-adjoint 2016.2 released (compatible with FEniCS 2016.2) `Changelog`_.
+**20.12.2016**: dolfin-adjoint 2016.2 released (compatible with FEniCS 2016.2) `Changelog.rst`_.
 
 **08.9.2016**: We now offer Docker images to simplify the installation procedure.
 
-**30.8.2016**: dolfin-adjoint 2016.1 released (compatible with FEniCS 2016.1) `Changelog`_.
+**30.8.2016**: dolfin-adjoint 2016.1 released (compatible with FEniCS 2016.1) `Changelog.rst`_.
 
-**20.8.2015**: dolfin-adjoint 1.6 released (compatible with FEniCS 1.6) `Changelog`_.
+**20.8.2015**: dolfin-adjoint 1.6 released (compatible with FEniCS 1.6) `Changelog.rst`_.
 
 **11.6.2015**: P. E. Farrell, S. W. Funke, D. A. Ham and M. E. Rognes were awarded the 2015 `Wilkinson prize for numerical software`_ for dolfin-adjoint.
 

@@ -1,3 +1,5 @@
+:orphan:
+
 .. _dolfin-adjoint-documentation:
 
 .. title:: dolfin-adjoint documentation

@@ -1,3 +1,5 @@
+:orphan:
+
 .. _dolfin-adjoint-examples:
 
 ********************************

@@ -53,6 +53,7 @@ class Mock(object):
     __add__ = None
     __mul__ = None
     __neg__ = None
+    __name__ = None
     get_gst = None
     SolverType_LU  = None
 
@@ -89,6 +90,7 @@ for mod_name in MOCK_MODULES:
     except:
         print("Generating mock module %s." % mod_name)
         sys.modules[mod_name] = Mock()
+
 import backend
 backend.__name__ = "dolfin"
 
@@ -156,7 +158,7 @@ release = pyadjoint.__version__
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
