@@ -13,11 +13,11 @@ Fork, then clone the repository at https://github.com/dolfin-adjoint/pyadjoint
 
 Make sure the tests pass:
 
-    py.test tests
+    py.test tests/pyadjoint
 
 Make your change. Add tests for your change. Make the tests pass:
 
-    py.test tests
+    py.test tests/pyadjoint
 
 Push to your fork and [submit a pull request][pr].
 
