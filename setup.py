@@ -7,6 +7,7 @@ extras = {
     'visualisation': ['tensorflow', 'protobuf',
                       'networkx', 'pygraphviz'],
     'meshing': ['pygmsh', 'meshio'],
+    'doc': ['sphinx', 'sphinx-autobuild', 'sphinxcontrib-bibtex']
 }
 # 'all' includes all of the above
 extras['all'] = list(chain(*extras.values()))

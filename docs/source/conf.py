@@ -32,8 +32,7 @@ sys.path.insert(0, os.path.abspath('..'))
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.napoleon',
-              'sphinx.ext.coverage', 'sphinx.ext.mathjax', 'sphinxcontrib.bibtex',
-              'sphinxcontrib.youtube']
+              'sphinx.ext.coverage', 'sphinx.ext.mathjax', 'sphinxcontrib.bibtex']
 #imgmath_image_format = 'svg'
 
 #  -- Options for sphinxcontrib.bibtex ------------------------------------
@@ -56,9 +55,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'dolfin-adjoint'
-copyright = u'2017, Sebastian Mitusch'
-author = u'Sebastian Mitusch'
+project = u'pyadjoint'
+copyright = u'2017-, Sebastian Mitusch and others'
+author = u'Jørgen Dokken'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -277,7 +276,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'FEniCSAdjoint.tex', u'FEniCS Adjoint Documentation',
+    (master_doc, 'Pyadjoint.tex', u'pyadjoint Documentation',
      u'Sebastian Mitusch', 'manual'),
 ]
 
