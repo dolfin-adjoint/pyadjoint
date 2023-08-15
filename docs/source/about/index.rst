@@ -22,7 +22,7 @@ implementation. In `his book`_, Naumann (2011) states that
  of the great open challenges in the field of High-Performance
  Scientific Computing**.
 
-**The dolfin-adjoint project aims to solve this problem** for the case
+**pyadjoint aims to solve this problem** for the case
 where the model is implemented in the Python interface to FEniCS/Firedrake.
 
 .. _his book: http://dx.doi.org/10.1137/1.9781611972078
@@ -43,16 +43,22 @@ the papers <../citing/index>`.
 Contributors
 ============
 
-The dolfin-adjoint project is developed and maintained by the
-following authors:
+The pyadjoint project was originally developed by:
 
 - `Sebastian Mitusch <https://www.simula.no/people/sebastkm>`__ (Simula Research Laboratory)
+- `Simon W. Funke <http://www.simonfunke.com>`__ (Deeptech Consulting)
 - `Jørgen S. Dokken <https://www.simula.no/people/dokken>`__ (Simula Research Laboratory)
+
+Based on previous work in `Dolfin-adjoint <https://www.dolfin-adjoint.org>`__ by:
+
 - `Patrick E. Farrell <http://pefarrell.org>`__ (Mathematical Institute, University of Oxford)
 - `Simon W. Funke <http://www.simonfunke.com>`__ (Deeptech Consulting)
 - `David A. Ham <http://www.ic.ac.uk/people/david.ham>`__ (Department of Mathematics, Imperial College London)
 - `Marie E. Rognes <http://www.simula.no/people/meg/>`__ (Simula Research Laboratory)
-- `James R. Maddison <https://www.maths.ed.ac.uk/~jmaddis2/>`__ (School of Mathematics, University of Edinburgh)
+
+It is currently maintained by Jørgen Dokken and David Ham. For further
+contributors see `GitHub
+<https://github.com/dolfin-adjoint/pyadjoint/graphs/contributors>`__.
 
 Licence
 =======
