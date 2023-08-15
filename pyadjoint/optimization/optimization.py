@@ -1,5 +1,4 @@
 import numpy as np
-import six
 
 from ..reduced_functional import ReducedFunctional
 from ..reduced_functional_numpy import ReducedFunctionalNumPy, gather
@@ -194,7 +193,7 @@ def print_optimization_methods():
     """ Prints the available optimization methods """
 
     print('Available optimization methods:')
-    for function_name, (description, func) in six.iteritems(optimization_algorithms_dict):
+    for function_name, (description, func) in optimization_algorithms_dict.items():
         print(function_name, ': ', description)
 
 

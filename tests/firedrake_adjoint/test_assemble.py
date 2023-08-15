@@ -1,11 +1,12 @@
+import pytest
+
+pytest.importorskip("firedrake")
+
+from numpy.random import rand
+from numpy.testing import assert_approx_equal
+
 from firedrake import *
 from firedrake.adjoint import *
-
-from numpy.testing import assert_approx_equal
-from numpy.random import rand
-
-import pytest
-pytest.importorskip("firedrake")
 
 
 def test_assemble_0_forms():
@@ -111,7 +112,7 @@ def _test_adjoint(J, f):
     print(residuals)
 
     tol = 1E-1
-    assert(r[-1] > 2 - tol)
+    assert (r[-1] > 2 - tol)
 
 
 def convergence_rates(E_values, eps_values):

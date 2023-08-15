@@ -1,3 +1,5 @@
+:orphan:
+
 .. title:: Automating the derivation of adjoint and tangent linear models
 
 The dolfin-adjoint project automatically derives the discrete adjoint

@@ -1,4 +1,6 @@
 import pytest
+pytest.importorskip("firedrake")
+
 import numpy as np
 from firedrake import *
 from firedrake.adjoint import *

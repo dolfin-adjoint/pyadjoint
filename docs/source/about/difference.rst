@@ -1,3 +1,5 @@
+:orphan:
+
 .. _dolfin-adjoint-difference:
 
 .. title:: dolfin-adjoint Difference between dolfin-adjoint/pyadjoint and dolfin-adjoint/libadjoint

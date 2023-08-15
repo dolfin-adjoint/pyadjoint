@@ -2,24 +2,53 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   xmlns:i="http://ns.adobe.com/AdobeIllustrator/10.0/"
-   xmlns:a="http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/"
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:xlink="http://www.w3.org/1999/xlink"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="1120"
    height="185"
    id="svg2"
    version="1.1"
-   inkscape:version="0.48.3.1 r9886"
-   sodipodi:docname="banner.svg">
+   inkscape:version="1.2.2 (b0a84865, 2022-12-01)"
+   sodipodi:docname="banner.svg"
+   inkscape:export-filename="banner.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:a="http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/"
+   xmlns:i="http://ns.adobe.com/AdobeIllustrator/10.0/">
   <defs
      id="defs4">
+    <linearGradient
+       y2="542.41211"
+       y1="542.41211"
+       x2="-316.7146"
+       x1="-317.25781"
+       id="linearGradient342"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(29.4937,0,0,-4.0625,9368.0537,2205.9695)">
+      <stop
+         id="stop338"
+         style="stop-color:#18a9ff;stop-opacity:1;"
+         offset="0" />
+      <stop
+         id="stop340"
+         style="stop-color:#2032a6;stop-opacity:1;"
+         offset="1" />
+      <a:midPointStop
+         style="stop-color:#A7873D"
+         offset="0" />
+      <a:midPointStop
+         style="stop-color:#A7873D"
+         offset="0.5" />
+      <a:midPointStop
+         style="stop-color:#663624"
+         offset="1" />
+    </linearGradient>
     <inkscape:path-effect
        effect="skeletal"
        id="path-effect3745"
@@ -120,7 +149,7 @@
        y1="383.73914"
        x1="95.85939"
        id="linearGradient5829"
-       xlink:href="#rect1511_1_-0"
+       xlink:href="#linearGradient342"
        inkscape:collect="always" />
     <linearGradient
        id="linearGradient6429-2"
@@ -1058,16 +1087,19 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.98994949"
-     inkscape:cx="485.4776"
-     inkscape:cy="180.30669"
+     inkscape:cx="486.38845"
+     inkscape:cy="226.27417"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
-     inkscape:window-width="1920"
-     inkscape:window-height="1056"
+     inkscape:window-width="1496"
+     inkscape:window-height="934"
      inkscape:window-x="0"
-     inkscape:window-y="24"
-     inkscape:window-maximized="1" />
+     inkscape:window-y="33"
+     inkscape:window-maximized="0"
+     inkscape:showpageshadow="2"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1" />
   <metadata
      id="metadata7">
     <rdf:RDF>
@@ -1219,14 +1251,14 @@
        transform="matrix(0.1538109,0,0,0.16289049,105.07691,873.74579)" />
     <text
        xml:space="preserve"
-       style="font-size:108.34391785px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:Cantarell;-inkscape-font-specification:Cantarell"
-       x="265.76932"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:0%;font-family:Cantarell;-inkscape-font-specification:Cantarell;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none"
+       x="303.29138"
        y="990.86115"
-       id="text3725"
-       sodipodi:linespacing="125%"><tspan
+       id="text3725"><tspan
          sodipodi:role="line"
          id="tspan3727"
-         x="265.76932"
-         y="990.86115">dolfin-adjoint</tspan></text>
+         x="303.29138"
+         y="990.86115"
+         style="font-size:108.344px;line-height:1.25">pyadjoint</tspan></text>
   </g>
 </svg>

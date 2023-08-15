@@ -1,3 +1,5 @@
+:orphan:
+
 .. _support:
 
 #######
@@ -11,7 +13,7 @@ Having issues?
 
 Do you wonder about how something works, whether some feature is
 supported or why you are getting an error? Feel free to ask on the
-`bitbucket bugtracker
+`github issuetracker
 <https://github.com/dolfin-adjoint/pyadjoint/issues>`_.
 
 .. _getting_answers_checklist:

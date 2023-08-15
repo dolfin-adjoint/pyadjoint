@@ -1,3 +1,5 @@
+:orphan:
+
 .. py:currentmodule:: dolfin_adjoint
 
 ===================

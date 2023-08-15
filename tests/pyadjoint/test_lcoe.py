@@ -1,8 +1,8 @@
 import pytest
-pytest.importorskip("fenics")
 
 from numpy.testing import assert_approx_equal
 from pyadjoint import *
+
 
 def test_lcoe():
     energy = [AdjFloat(2.0), AdjFloat(2.5)]
@@ -10,8 +10,8 @@ def test_lcoe():
 
     discount_rate = 0.05
 
-    discounted_cost = [0]*len(cost)
-    discounted_energy = [0]*len(energy)
+    discounted_cost = [0] * len(cost)
+    discounted_energy = [0] * len(energy)
 
     for n in range(0, len(cost)):
         discounted_cost[n] = (cost[n] / ((1 + discount_rate) ** n))
