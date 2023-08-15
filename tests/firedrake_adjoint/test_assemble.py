@@ -6,7 +6,7 @@ from numpy.random import rand
 from numpy.testing import assert_approx_equal
 
 from firedrake import *
-from firedrake_adjoint import *
+from firedrake.adjoint import *
 
 
 def test_assemble_0_forms():

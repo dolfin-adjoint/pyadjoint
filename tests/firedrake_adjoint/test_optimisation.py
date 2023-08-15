@@ -3,7 +3,7 @@ pytest.importorskip("firedrake")
 
 from numpy.testing import assert_allclose
 from firedrake import *
-from firedrake_adjoint import *
+from firedrake.adjoint import *
 
 
 def test_optimisation_constant_control():

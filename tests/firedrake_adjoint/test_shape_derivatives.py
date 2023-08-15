@@ -3,7 +3,7 @@ pytest.importorskip("firedrake")
 
 import numpy as np
 from firedrake import *
-from firedrake_adjoint import *
+from firedrake.adjoint import *
 from pyadjoint import taylor_to_dict
 
 
