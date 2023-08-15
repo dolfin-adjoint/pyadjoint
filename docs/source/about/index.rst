@@ -37,8 +37,6 @@ where the model is implemented in the Python interface to FEniCS/Firedrake.
 .. _poster: https://drive.google.com/file/d/1NjIFj07u_QMfuXB2Z8uv5f2LUDwY1XeM/view?usp=sharing
 
 
-
-
 For more technical details on pyadjoint and dolfin-adjoint, :doc:`see
 the papers <../citing/index>`.
 
@@ -51,10 +49,10 @@ following authors:
 - `Sebastian Mitusch <https://www.simula.no/people/sebastkm>`__ (Simula Research Laboratory)
 - `Jørgen S. Dokken <https://www.simula.no/people/dokken>`__ (Simula Research Laboratory)
 - `Patrick E. Farrell <http://pefarrell.org>`__ (Mathematical Institute, University of Oxford)
-- `Simon W. Funke <http://simonfunke.com>`__ (Simula Research Laboratory)
-- `David A. Ham <http://www.ic.ac.uk/people/david.ham>`__ (Department of Mathematics and Department of Computing, Imperial College London)
-- `Marie E. Rognes <http://home.simula.no/~meg/>`__ (Simula Research Laboratory)
-- `James R. Maddison <http://www.maths.ed.ac.uk/people/show?person-364>`__ (School of Mathematics, University of Edinburgh)
+- `Simon W. Funke <http://www.simonfunke.com>`__ (Deeptech Consulting)
+- `David A. Ham <http://www.ic.ac.uk/people/david.ham>`__ (Department of Mathematics, Imperial College London)
+- `Marie E. Rognes <http://www.simula.no/people/meg/>`__ (Simula Research Laboratory)
+- `James R. Maddison <https://www.maths.ed.ac.uk/~jmaddis2/>`__ (School of Mathematics, University of Edinburgh)
 
 Licence
 =======
