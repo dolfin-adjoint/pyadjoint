@@ -51,7 +51,7 @@
 
   var _gaq = _gaq || [];
   _gaq.push(['_setAccount', 'UA-31806773-1']);
-  _gaq.push(['_setDomainName', 'dolfin-adjoint.org']);
+  _gaq.push(['_setDomainName', 'pyadjoint.org']);
   _gaq.push(['_trackPageview']);
 
   (function() {
@@ -86,16 +86,15 @@
 {# override upper relbar to show our navigation menu #}
 {% block relbar1 %}
 <div class="wrapper">
-  <a href="{{ pathto('', 1) }}"><img src="{{ pathto('_static/%s.%s' % ('banner', 'png'), 1) }}" width="900px" alt="dolfin-adjoint Project Banner" /></a>
+  <a href="{{ pathto('', 1) }}"><img src="{{ pathto('_static/%s.%s' % ('banner', 'png'), 1) }}" width="900px" alt="pyadjoint Project Banner" /></a>
   <div id="access">
     <div class="menu">
       <ul>
-          <li class="page_item"><a href="{{ pathto('about/%s.%s' % ('index', 'html'), 1) }}" title="Find out more about dolfin-adjoint">About</a></li>
-          <li class="page_item"><a href="{{ pathto('features/%s.%s' % ('index', 'html'), 1) }}" title="Features of dolfin-adjoint">Features</a></li>
-          <li class="page_item"><a href="{{ pathto('documentation/%s.%s' % ('examples', 'html'), 1) }}" title="List of examples using dolfin-adjoint">Examples</a></li>
-          <li class="page_item"><a href="{{ pathto('documentation/%s.%s' % ('index', 'html'), 1) }}" title="Learn how to use dolfin-adjoint">Documentation</a></li>
-          <li class="page_item"><a href="{{ pathto('download/%s.%s' % ('index', 'html'), 1) }}" title="Obtain the dolfin-adjoint code">Download</a></li>
-          <li class="page_item"><a href="{{ pathto('citing/%s.%s' % ('index', 'html'), 1) }}" title="Learn how to cite the dolfin-adjoint project">Citing</a></li>
+          <li class="page_item"><a href="{{ pathto('about/%s.%s' % ('index', 'html'), 1) }}" title="Find out more about pyadjoint">About</a></li>
+          <li class="page_item"><a href="{{ pathto('features/%s.%s' % ('index', 'html'), 1) }}" title="Features of pyadjoint">Features</a></li>
+          <li class="page_item"><a href="{{ pathto('documentation/%s.%s' % ('index', 'html'), 1) }}" title="Learn how to use pyadjoint">Documentation</a></li>
+          <li class="page_item"><a href="{{ pathto('download/%s.%s' % ('index', 'html'), 1) }}" title="Obtain the pyadjoint code">Download</a></li>
+          <li class="page_item"><a href="{{ pathto('citing/%s.%s' % ('index', 'html'), 1) }}" title="Learn how to cite the pyadjoint project">Citing</a></li>
           <li class="page_item"><a href="{{ pathto('support/%s.%s' % ('index', 'html'), 1) }}" title="Where to go for more help">Support</a></li>
       </ul>
     </div><!-- .menu -->

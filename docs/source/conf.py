@@ -23,89 +23,6 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
-class MockType(type):
-    @classmethod
-    def __getattr__(cls, name):
-        if name in ('__file__', '__path__'):
-            return '/dev/null'
-        elif name[0] == name[0].upper():
-            if name in MOCK_META_CLASSES:
-                mockType = MockType(name, (MockMeta, ), {})
-            else:
-                mockType = MockType(name, (Mock, ), {})
-            mockType.__module__ = __name__
-            setattr(cls, name, mockType)
-            return mockType
-        else:
-            return Mock()
-
-# Create Mock classes for FEniCS
-class Mock(object):
-
-    __all__ = []
-
-    assign = None
-    apply = None
-    vector = None
-    split = None
-    interpolate = None
-    copy = None
-    __add__ = None
-    __mul__ = None
-    __neg__ = None
-    __name__ = None
-    get_gst = None
-    SolverType_LU  = None
-
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def __call__(self, *args, **kwargs):
-        return Mock()
-
-    @classmethod
-    def __getattr__(cls, name):
-        if name in ('__file__', '__path__'):
-            return '/dev/null'
-        elif name[0] == name[0].upper():
-            if name in MOCK_META_CLASSES:
-                mockType = MockType(name, (MockMeta, ), {})
-            else:
-                mockType = MockType(name, (Mock, ), {})
-            mockType.__module__ = __name__
-            setattr(cls, name, mockType)
-            return mockType
-        else:
-            return Mock()
-
-MOCK_MODULES = ['dolfin', 'ffc', 'backend.fem', 'backend.fem.projection', 'backend.PeriodicBC',
-                'backend.HDF5File',
-                'backend.HDF5File.read',
-                'backend', 'ufl', 'scipy', 'scipy.optimize', 'ufl.classes',
-                'ufl.algorithms', 'ufl.operators',
-                'tensorflow']
-for mod_name in MOCK_MODULES:
-    try:
-        importlib.import_module(mod_name)
-    except:
-        print("Generating mock module %s." % mod_name)
-        sys.modules[mod_name] = Mock()
-
-import backend
-backend.__name__ = "dolfin"
-
-class MockMeta(type):
-    pass
-
-class MockClass(object):
-    pass
-
-
-backend.HDF5File = MockClass()
-backend.HDF5File.read = None
-
-MOCK_META_CLASSES = ["ExpressionMetaClass"]
-
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -431,3 +348,10 @@ texinfo_documents = [
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #
 # texinfo_no_detailmenu = False
+
+intersphinx_mapping = {
+    'ufl': ('https://fenics.readthedocs.io/projects/ufl/en/latest/', None),
+    'python': ('https://docs.python.org/3/', None),
+    'numpy': ('https://numpy.org/doc/stable/', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/', None),
+}
