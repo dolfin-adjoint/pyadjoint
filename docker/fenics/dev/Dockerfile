@@ -8,7 +8,6 @@
 
 FROM ghcr.io/scientificcomputing/fenics-gmsh:2023-04-21
 
-
 RUN apt-get -qq update && \
     apt-get -y install libjsoncpp-dev curl python-is-python3 && \
     apt-get -y install python3-dev graphviz libgraphviz-dev && \
@@ -36,6 +35,7 @@ RUN sed -i "s/#define MPI_COMM_WORLD IPOPT_MPI_COMM_WORLD//g" Ipopt/src/Algorith
     make install
 
 # Build pyipopt
+ENV LD_LIBRARY_PATH=/usr/local/lib:${LD_LIBRARY_PATH}
 WORKDIR /src
 RUN python3 -m pip install --no-cache cython && \
     python3 -m pip install --no-cache ipopt
