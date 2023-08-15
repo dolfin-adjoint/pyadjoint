@@ -12,8 +12,8 @@ extras = {
 # 'all' includes all of the above
 extras['all'] = list(chain(*extras.values()))
 
-setup(name='dolfin_adjoint',
-      version='2019.1.2',
+setup(name='pyadjoint',
+      version='2023.0.0',
       description='High-level automatic differentiation library for FEniCS.',
       author='Jørgen Dokken',
       author_email='dokken@simula.no',
