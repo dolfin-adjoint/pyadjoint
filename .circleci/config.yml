@@ -97,7 +97,6 @@ jobs:
           name: install dependencies
           command: |
             source /home/firedrake/firedrake/bin/activate
-            pushd $VIRTUAL_ENV/src/firedrake; git pull; git checkout move_firedrake_adjoint; popd
             pip3 install -e .[test]
 
       - save_cache:
