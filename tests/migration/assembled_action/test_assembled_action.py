@@ -13,4 +13,4 @@ def test(request):
     test_cmd = [sys.executable, path.join(test_dir, test_file)]
 
     handle = subprocess.Popen(test_cmd, cwd=test_dir)
-    assert handle.wait() == 00
+    assert handle.wait() == 0
