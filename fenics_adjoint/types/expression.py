@@ -10,7 +10,7 @@ _REMEMBERED_EXPRESSION_ATTRIBUTES = ["block_variable", "block", "block_class", "
 _IGNORED_EXPRESSION_ATTRIBUTES = ['_ad_init_object', '_cppcode', '_parameters', '_user_parameters', 'degree',
                                   '_cpp_object', '_ad_dim', '__init_subclass__', '_ufl_required_properties_',
                                   '__radd__', '__rsub__', 'ufl_evaluate', 'rename', 'geometric_dimension',
-                                  'ufl_enable_profiling', '_ufl_profiling__del__', 'adj_update_value', '_ad_outputs',
+                                  'ufl_enable_profiling', '_ufl_profiling__del__', '_ad_outputs',
                                   '__getnewargs__', '_ufl_is_index_free_', '_ufl_num_typecodes_',
                                   '_ufl_is_restriction_', '_repr_png_', '__getitem__', '_ufl_noslots_',
                                   '_ufl_num_ops_',
