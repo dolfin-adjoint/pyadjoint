@@ -305,4 +305,3 @@ the control can be observed.
 .. bibliography:: /documentation/poisson-mother/poisson-mother.bib
    :cited:
    :labelprefix: 1E-
-   :keyprefix: 1E-
