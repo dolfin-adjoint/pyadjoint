@@ -1,6 +1,5 @@
 from firedrake import *
-from firedrake_adjoint import *
-from firedrake.adjoint.checkpointing import disk_checkpointing
+from firedrake.adjoint import *
 import numpy as np
 import os
 
