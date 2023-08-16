@@ -6,7 +6,7 @@ About pyadjoint
 
 pyajoint is an operator-overloading algorithmic differentiation framework for
 Python. It is employed as the basis for the automatic adjoint and tangent
-linear model capabilities of the `FEniCS <http://dolfin-adjoint.org>`__ and 
+linear model capabilities of the `FEniCS <http://www.dolfin-adjoint.org>`__ and 
 `Firedrake <http://firedrakeproject.org>`__ projects.
 
 These adjoint and tangent linear models are key ingredients in many
