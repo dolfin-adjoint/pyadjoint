@@ -8,7 +8,7 @@ jobs:
     docker:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
-      - image: quay.io/fenicsproject/dev:latest
+      - image: ghcr.io/scientificcomputing/fenics:2023-08-14
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
       # - image: quay.io/fenicsproject/stable:latest
@@ -35,11 +35,12 @@ jobs:
           command: |
             export DEBIAN_FRONTEND=noninteractive
             apt-get update
-            apt-get install -y python-dev graphviz libgraphviz-dev pkg-config patchelf
-            pip3 install -e .[all]
-            pip3 install roltrilinos ROL
-            pip3 install protobuf==3.8.0
-            pip3 install --upgrade numpy
+            apt-get install -y python3-dev graphviz libgraphviz-dev pkg-config patchelf
+            python3 -m pip install -e .[all]
+            python3 -m pip install roltrilinos
+            python3 -m pip install ROL
+            python3 -m pip install protobuf
+            python3 -m pip install --upgrade numpy
 
       - save_cache:
           paths:
@@ -108,7 +109,6 @@ jobs:
             - ./venv
           key: v2-dependencies-{{ checksum "setup.py" }}
 
-      # run tests!
       - run:
           name: Run tests
           command: |

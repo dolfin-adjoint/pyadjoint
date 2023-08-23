@@ -7,7 +7,6 @@ except ImportError:
 
 from dolfin import *
 from dolfin_adjoint import *
-import ufl.algorithms
 
 if not hasattr(MultiStageScheme, "to_tlm"):
     info_red("Need dolfin > 1.2.0 for ode_solver test.")

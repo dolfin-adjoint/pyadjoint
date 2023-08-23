@@ -292,7 +292,7 @@ def rhs(states, time, parameters, dy=None):
     Compute right hand side
     """
     # Imports
-    import ufl
+    import ufl_legacy as ufl
     import dolfin
 
     # Assign states

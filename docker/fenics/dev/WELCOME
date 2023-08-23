@@ -1,6 +1,0 @@
-# dolfin-adjoint development version image
-
-This image provides the most recent development release of dolfin-adjoint
-(<http://dolfin-adjoint.org>). The FEniCS installation is built against the
-development image (<https://quay.io/repository/fenicsproject/dev/>)
-which contains an up-to-date development build of FEniCS, PETSc and SLEPc.

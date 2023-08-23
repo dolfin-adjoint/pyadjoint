@@ -2,7 +2,7 @@ import pytest
 pytest.importorskip("firedrake")
 
 from firedrake import *
-from firedrake_adjoint import *
+from firedrake.adjoint import *
 
 from numpy.random import rand
 from numpy.testing import assert_approx_equal, assert_allclose

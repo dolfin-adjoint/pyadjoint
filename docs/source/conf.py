@@ -13,96 +13,14 @@
 # serve to show the default.
 
 from __future__ import print_function
-import sys, os, datetime
+import sys
+import os
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os
-import sys
 sys.path.insert(0, os.path.abspath('..'))
-
-class MockType(type):
-    @classmethod
-    def __getattr__(cls, name):
-        if name in ('__file__', '__path__'):
-            return '/dev/null'
-        elif name[0] == name[0].upper():
-            if name in MOCK_META_CLASSES:
-                mockType = MockType(name, (MockMeta, ), {})
-            else:
-                mockType = MockType(name, (Mock, ), {})
-            mockType.__module__ = __name__
-            setattr(cls, name, mockType)
-            return mockType
-        else:
-            return Mock()
-
-# Create Mock classes for FEniCS
-class Mock(object):
-
-    __all__ = []
-
-    assign = None
-    apply = None
-    vector = None
-    split = None
-    interpolate = None
-    copy = None
-    __add__ = None
-    __mul__ = None
-    __neg__ = None
-    get_gst = None
-    SolverType_LU  = None
-
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def __call__(self, *args, **kwargs):
-        return Mock()
-
-    @classmethod
-    def __getattr__(cls, name):
-        if name in ('__file__', '__path__'):
-            return '/dev/null'
-        elif name[0] == name[0].upper():
-            if name in MOCK_META_CLASSES:
-                mockType = MockType(name, (MockMeta, ), {})
-            else:
-                mockType = MockType(name, (Mock, ), {})
-            mockType.__module__ = __name__
-            setattr(cls, name, mockType)
-            return mockType
-        else:
-            return Mock()
-
-MOCK_MODULES = ['dolfin', 'ffc', 'backend.fem', 'backend.fem.projection', 'backend.PeriodicBC',
-                'backend.HDF5File',
-                'backend.HDF5File.read',
-                'backend', 'ufl', 'scipy', 'scipy.optimize', 'ufl.classes',
-                'ufl.algorithms', 'ufl.operators',
-                'tensorflow']
-for mod_name in MOCK_MODULES:
-    try:
-        importlib.import_module(mod_name)
-    except:
-        print("Generating mock module %s." % mod_name)
-        sys.modules[mod_name] = Mock()
-import backend
-backend.__name__ = "dolfin"
-
-class MockMeta(type):
-    pass
-
-class MockClass(object):
-    pass
-
-
-backend.HDF5File = MockClass()
-backend.HDF5File.read = None
-
-MOCK_META_CLASSES = ["ExpressionMetaClass"]
 
 # -- General configuration ------------------------------------------------
 
@@ -113,8 +31,7 @@ MOCK_META_CLASSES = ["ExpressionMetaClass"]
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.napoleon',
-              'sphinx.ext.coverage', 'sphinx.ext.mathjax', 'sphinxcontrib.bibtex',
-              'sphinxcontrib.youtube']
+              'sphinx.ext.coverage', 'sphinx.ext.mathjax', 'sphinxcontrib.bibtex']
 #imgmath_image_format = 'svg'
 
 #  -- Options for sphinxcontrib.bibtex ------------------------------------
@@ -137,9 +54,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'dolfin-adjoint'
-copyright = u'2017, Sebastian Mitusch'
-author = u'Sebastian Mitusch'
+project = u'pyadjoint'
+copyright = u'2017-, Sebastian Mitusch and others'
+author = u'Jørgen Dokken'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -156,7 +73,7 @@ release = pyadjoint.__version__
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
@@ -358,7 +275,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'FEniCSAdjoint.tex', u'FEniCS Adjoint Documentation',
+    (master_doc, 'Pyadjoint.tex', u'pyadjoint Documentation',
      u'Sebastian Mitusch', 'manual'),
 ]
 
@@ -429,3 +346,10 @@ texinfo_documents = [
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #
 # texinfo_no_detailmenu = False
+
+intersphinx_mapping = {
+    'ufl': ('https://fenics.readthedocs.io/projects/ufl/en/latest/', None),
+    'python': ('https://docs.python.org/3/', None),
+    'numpy': ('https://numpy.org/doc/stable/', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/', None),
+}
