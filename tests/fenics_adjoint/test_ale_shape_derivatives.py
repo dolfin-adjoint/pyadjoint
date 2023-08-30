@@ -1,8 +1,6 @@
-import pytest
 import numpy as np
 from dolfin import *
 from dolfin_adjoint import *
-from dolfin_utils.test import fixture
 
 
 

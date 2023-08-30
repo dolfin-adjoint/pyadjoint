@@ -1,3 +1,5 @@
+:orphan:
+
 .. _pyadjoint-api-reference:
 
 ============================
@@ -44,7 +46,6 @@ Core classes
     .. automethod:: _ad_convert_type
     .. automethod:: _ad_create_checkpoint
     .. automethod:: _ad_restore_at_checkpoint
-    .. automethod:: adj_update_value
     .. automethod:: _ad_mul
     .. automethod:: _ad_imul
     .. automethod:: _ad_add

@@ -1,11 +1,12 @@
-from firedrake import *
-from firedrake_adjoint import *
-
-from numpy.testing import assert_approx_equal
-from numpy.random import rand
-
 import pytest
+
 pytest.importorskip("firedrake")
+
+from numpy.random import rand
+from numpy.testing import assert_approx_equal
+
+from firedrake import *
+from firedrake.adjoint import *
 
 
 def test_assemble_0_forms():
@@ -54,9 +55,8 @@ def test_assemble_1_forms_adjoint():
         w1 = assemble(inner(f, v) * dx)
         w2 = assemble(inner(f**2, v) * dx)
         w3 = assemble(inner(f**3, v) * dx)
-        # Sum the Riesz representations (Function) of the assembled 1-forms (Cofunction)
-        w = sum(c.riesz_representation() for c in (w1, w2, w3))
-        return assemble(w**2 * dx)
+        inner_dual = lambda x: assemble(action(x, x.riesz_representation()))
+        return sum(inner_dual(c) for c in (w1, w2, w3))
 
     _test_adjoint(J, f)
 
@@ -73,9 +73,8 @@ def test_assemble_1_forms_tlm():
     w1 = assemble(inner(f, v) * dx)
     w2 = assemble(inner(f**2, v) * dx)
     w3 = assemble(inner(f**3, v) * dx)
-    # Sum the Riesz representations (Function) of the assembled 1-forms (Cofunction)
-    w = sum(c.riesz_representation() for c in (w1, w2, w3))
-    J = assemble(w**2 * dx)
+    inner_dual = lambda x: assemble(action(x, x.riesz_representation()))
+    J = sum(inner_dual(c) for c in (w1, w2, w3))
 
     Jhat = ReducedFunctional(J, Control(f))
     h = Function(V)
@@ -115,7 +114,7 @@ def _test_adjoint(J, f):
     print(residuals)
 
     tol = 1E-1
-    assert(r[-1] > 2 - tol)
+    assert (r[-1] > 2 - tol)
 
 
 def convergence_rates(E_values, eps_values):

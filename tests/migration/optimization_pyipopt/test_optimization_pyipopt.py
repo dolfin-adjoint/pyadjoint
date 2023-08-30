@@ -1,9 +1,9 @@
-import pytest
-pytest.importorskip("fenics")
-
 from os import path
-import subprocess
 import sys
+import subprocess
+import pytest
+
+pytest.importorskip("fenics")
 
 
 def test(request):

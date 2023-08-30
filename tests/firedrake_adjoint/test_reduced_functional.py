@@ -2,7 +2,7 @@ import pytest
 pytest.importorskip("firedrake")
 
 from firedrake import *
-from firedrake_adjoint import *
+from firedrake.adjoint import *
 
 from numpy.random import rand
 
@@ -10,20 +10,20 @@ def test_constant():
     mesh = IntervalMesh(10, 0, 1)
     V = FunctionSpace(mesh, "Lagrange", 1)
 
-    c = Constant(1)
+    c = Constant(1, domain=mesh)
     f = Function(V)
     f.vector()[:] = 1
 
     u = Function(V)
     v = TestFunction(V)
-    bc = DirichletBC(V, Constant(1), "on_boundary")
+    bc = DirichletBC(V, Constant(1, domain=mesh), "on_boundary")
 
     F = inner(grad(u), grad(v))*dx - f**2*v*dx
     solve(F == 0, u, bc)
 
     J = assemble(c**2*u*dx)
     Jhat = ReducedFunctional(J, Control(c))
-    assert taylor_test(Jhat, c, Constant(1)) > 1.9
+    assert taylor_test(Jhat, c, Constant(1, domain=mesh)) > 1.9
 
 
 def test_function():
@@ -43,7 +43,7 @@ def test_function():
 
     J = assemble(c**2*u*dx)
     Jhat = ReducedFunctional(J, Control(f))
-    
+
     h = Function(V)
     h.vector()[:] = rand(V.dof_dset.size)
     assert taylor_test(Jhat, f, h) > 1.9
@@ -64,8 +64,8 @@ def test_wrt_function_dirichlet_boundary(control):
     bc2 = DirichletBC(V, 2, 2)
     bc = [bc1,bc2]
 
-    g1 = Constant(2)
-    g2 = Constant(1)
+    g1 = Constant(2, domain=mesh)
+    g2 = Constant(1, domain=mesh)
     f = Function(V)
     f.vector()[:] = 10
 
@@ -127,7 +127,7 @@ def test_time_dependent():
     J = assemble(u_1**2*dx)
 
     Jhat = ReducedFunctional(J, control)
-    
+
     h = Function(V)
     h.vector()[:] = 1
     assert taylor_test(Jhat, control.tape_value(), h) > 1.9
@@ -167,14 +167,9 @@ def test_assemble_recompute():
     mesh = UnitSquareMesh(10, 10)
     V = FunctionSpace(mesh, "CG", 1)
 
-    v = TestFunction(V)
-    u = Function(V)
-    u.vector()[:] = 1
-
-    bc = DirichletBC(V, Constant(1), "on_boundary")
     f = Function(V)
     f.vector()[:] = 2
-    expr = Constant(assemble(f**2*dx))
+    expr = Constant(assemble(f**2*dx), domain=mesh)
     J = assemble(expr**2*dx(domain=mesh))
     Jhat = ReducedFunctional(J, Control(f))
 

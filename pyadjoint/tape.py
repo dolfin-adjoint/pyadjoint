@@ -34,16 +34,21 @@ class set_working_tape(object):
        Example usage:
 
         1) Set a new tape as the working tape:
-            ```
-            set_working_tape(Tape())
-            ```
+
+            .. highlight:: python
+            .. code-block:: python
+
+                set_working_tape(Tape())
 
         2) Set a local tape within a context manager:
-            ```
-            with set_working_tape() as tape:
-                ...
-            ```
+
+            .. highlight:: python
+            .. code-block:: python
+
+                with set_working_tape() as tape:
+                    ...
     """
+
     def __init__(self, tape=None, **tape_kwargs):
         # Get working tape
         global _working_tape
@@ -74,6 +79,7 @@ class stop_annotating(object):
     changes the value of inputs to the adjoint calculation such as time varying
     forcings. Its effect is to create a new block variable for each of the
     modified variables at the end of the context manager. """
+
     def __init__(self, modifies=None):
         self.modifies = modifies
 
@@ -572,6 +578,7 @@ class Tape(object):
 
 class _NullProgressBar:
     """A placeholder class with the same interface as a progress bar."""
+
     def __init__(self, *args, **kwargs):
         pass
 

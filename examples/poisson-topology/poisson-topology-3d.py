@@ -74,7 +74,7 @@ PETScOptions.set("pc_gamg_agg_nsmooths", 1)
 try:
     from pyadjoint import ipopt
 except ImportError:
-    from ufl.log import info_red
+    from ufl_legacy.log import info_red
 
     info_red("""This example depends on IPOPT and Python ipopt bindings. \
   When compiling IPOPT, make sure to link against HSL, as it \
@@ -182,11 +182,9 @@ if __name__ == "__main__":
     controls = File("output-3d/control_iterations.pvd")
     a_viz = Function(A, name="ControlVisualisation")
 
-
     def eval_cb(j, a):
         a_viz.assign(a)
         controls << a_viz
-
 
     # Now we define the functional, compliance with a weak regularisation
     # term on the gradient of the material
@@ -207,7 +205,6 @@ if __name__ == "__main__":
 
     lb = 0.0
     ub = 1.0
-
 
     # The volume constraint involves a little bit more work. Following
     # :cite:`nocedal2006`, inequality constraints are represented as
@@ -255,7 +252,6 @@ if __name__ == "__main__":
         def length(self):
             """Return the number of components in the constraint vector (here, one)."""
             return 1
-
 
     # Now that all the ingredients are in place, we can perform the
     # optimisation.  The :py:class:`MinimizationProblem` class

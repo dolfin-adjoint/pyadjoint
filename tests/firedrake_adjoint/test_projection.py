@@ -2,7 +2,7 @@ import pytest
 pytest.importorskip("firedrake")
 
 from firedrake import *
-from firedrake_adjoint import *
+from firedrake.adjoint import *
 
 from numpy.random import rand
 
@@ -135,24 +135,24 @@ def test_self_project():
     mesh = UnitSquareMesh(1,1)
     V = FunctionSpace(mesh, "CG", 1)
     u = Function(V)
-    c = Constant(1.)
+    c = Constant(1., domain=mesh)
     u.project(u+c)
     J = assemble(u**2*dx)
     rf = ReducedFunctional(J, Control(c))
     h = Constant(0.1)
-    assert taylor_test(rf, Constant(2.), h)
+    assert taylor_test(rf, Constant(2., domain=mesh), h)
 
 def test_self_project_function():
     mesh = UnitSquareMesh(1,1)
     V = FunctionSpace(mesh, "CG", 1)
     u = Function(V)
-    c = Constant(1.)
+    c = Constant(1., domain=mesh)
     project(u+c, u)
     project(u+c*u**2, u)
     J = assemble(u**2*dx)
     rf = ReducedFunctional(J, Control(c))
     h = Constant(0.1)
-    assert taylor_test(rf, Constant(3.), h)
+    assert taylor_test(rf, Constant(3., domain=mesh), h)
 
 def test_project_to_function_space():
     mesh = UnitSquareMesh(1,1)
@@ -161,9 +161,9 @@ def test_project_to_function_space():
     u = Function(V)
     x = SpatialCoordinate(mesh)
     u.interpolate(x[0])
-    c = Constant(1.)
+    c = Constant(1., domain=mesh)
     w = project((u+c)*u, W)
     J = assemble(w**2*dx)
     rf = ReducedFunctional(J, Control(c))
     h = Constant(0.1)
-    assert taylor_test(rf, Constant(1.), h)
+    assert taylor_test(rf, Constant(1., domain=mesh), h)

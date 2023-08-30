@@ -1,36 +1,23 @@
-# The algorithmic differentation tool pyadjoint and add-ons
+# The algorithmic differentation tool pyadjoint
 
-The full documentation is available [here](http://pyadjoint.readthedocs.io)
+The full documentation is available [here](https://pyadjoint.org)
 
 Circle CI status: [![CircleCI](https://circleci.com/gh/dolfin-adjoint/pyadjoint.svg?style=svg)](https://circleci.com/gh/dolfin-adjoint/pyadjoint)
 
-# Installation
-First install [FEniCS](http://fenicsproject.org) or [Firedrake](http://firedrakeproject.org)
-
-Then install the pyadjoint with:
-    pip install git+https://github.com/dolfin-adjoint/pyadjoint.git@master
-
-# Reporting bugs
-
-If you found a bug, create an [issue].
-
-[issue]: https://github.com/dolfin-adjoint/pyadjoint/issues/new
 
 # Contributing
 
 We love pull requests from everyone. 
 
-Fork, then clone the repository:
-
-    git clone https://bitbucket.org/dolfin-adjoint/pyadjoint.git
+Fork, then clone the repository at https://github.com/dolfin-adjoint/pyadjoint
 
 Make sure the tests pass:
 
-    py.test tests
+    py.test tests/pyadjoint
 
 Make your change. Add tests for your change. Make the tests pass:
 
-    py.test tests
+    py.test tests/pyadjoint
 
 Push to your fork and [submit a pull request][pr].
 
@@ -47,7 +34,7 @@ Some things that will increase the chance that your pull request is accepted:
 
 [style]: http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html
 
-# License
+# Licence
 This software is licensed under the [GNU LGPL v3][license].
 
 [license]: https://github.com/dolfin-adjoint/pyadjoint/raw/master/LICENSE
