@@ -26,9 +26,9 @@ jobs:
       # Download and cache dependencies
       - restore_cache:
           keys:
-          - v2-dependencies-{{ checksum "setup.py" }}
-          # fallback to using the latest cache if no exact match is found
-          - v2-dependencies-
+            - v2-dependencies-{{ checksum "setup.py" }}
+            # fallback to using the latest cache if no exact match is found
+            - v2-dependencies-
 
       - run:
           name: install dependencies
@@ -49,20 +49,30 @@ jobs:
 
       - restore_cache:
           keys:
-          - v3-dolfin-jit-cache
-
-      # run tests!
-      - run:
-          name: Run tests
-          command: |
-            coverage run --source=fenics_adjoint,pyadjoint -m pytest tests/fenics_adjoint/ tests/pyadjoint/
-            coverage report
-            coverage html
+            - v3-dolfin-jit-cache
 
       - run:
           name: Flake8 tests
           command: |
             python3 -m flake8
+
+      - run:
+          name: Install dolfin-adjoint
+          command: |
+            git clone https://github.com/dolfin-adjoint/dolfin-adjoint ~/dolfin-adjoint
+            python3 -m pip install -e ~/dolfin-adjoint[all]
+
+      - run:
+          name: Run tests
+          command: |
+            coverage run --source=fenics_adjoint -m pytest ~/dolfin-adjoint/tests/fenics_adjoint/
+            coverage report
+            coverage html
+
+      - run:
+          name: Run migration tests
+          command: |
+            python3 -m pytest ~/dolfin-adjoint/tests/migration
 
       - save_cache:
           key: v2-dolfin-jit-cache
@@ -80,7 +90,6 @@ jobs:
   test-firedrake:
     docker:
       - image: firedrakeproject/firedrake:latest
-
 
     working_directory: ~/repo
 
@@ -123,7 +132,6 @@ jobs:
 
       - store_artifacts:
           path: htmlcov
-
 
 workflows:
   version: 2
