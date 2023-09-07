@@ -61,7 +61,9 @@ def test_tlm_bc():
     J = assemble(c ** 2 * u * dx)
     Jhat = ReducedFunctional(J, Control(c))
 
-    c.block_variable.tlm_value = Constant(1)
+    # Need to specify the domain for the constant as `ufl.action`, which requires `ufl.Constant`
+    # to have a function space, will be applied on the tlm value.
+    c.block_variable.tlm_value = Constant(1, domain=mesh)
     tape.evaluate_tlm()
 
     assert (taylor_test(Jhat, Constant(c), Constant(1), dJdm=J.block_variable.tlm_value) > 1.9)
