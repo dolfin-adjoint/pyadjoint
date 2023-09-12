@@ -18,12 +18,12 @@ def get_working_tape():
 
 def pause_annotation():
     global _stop_annotating
-    _stop_annotating += 1
+    _stop_annotating = 1
 
 
 def continue_annotation():
     global _stop_annotating
-    _stop_annotating -= 1
+    _stop_annotating = 0
     return _stop_annotating <= 0
 
 
