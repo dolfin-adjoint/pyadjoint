@@ -24,7 +24,7 @@ def pause_annotation():
 def continue_annotation():
     global _enabled_annotation
     _enabled_annotation = 1
-    return _enabled_annotation
+    return _enabled_annotation == 1
 
 
 class set_working_tape(object):
