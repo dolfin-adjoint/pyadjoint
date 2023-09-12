@@ -66,7 +66,7 @@ import numpy as np
 #     tape = get_working_tape()
 #     tape.progress_bar = ProgressBar
 #     tape.enable_checkpointing(
-#         HRevolve(7, 2, 0))
+#         HHRevolveCheckpointSchedule(7, 2, 0))
 
 #     x, = SpatialCoordinate(mesh)
 #     ic = project(sin(2.*pi*x), V)
