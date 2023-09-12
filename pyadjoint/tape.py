@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 
 
 _working_tape = None
-_annotation_enabled = 0
+_stop_annotating = 0
 
 
 def get_working_tape():
@@ -17,14 +17,14 @@ def get_working_tape():
 
 
 def pause_annotation():
-    global _annotation_enabled
-    _annotation_enabled = 0
+    global _stop_annotating
+    _stop_annotating = 0
 
 
 def continue_annotation():
-    global _annotation_enabled
-    _annotation_enabled = 1
-    return _annotation_enabled
+    global _stop_annotating
+    _stop_annotating = 1
+    return _stop_annotating
 
 
 class set_working_tape(object):
@@ -81,17 +81,17 @@ class stop_annotating(object):
     modified variables at the end of the context manager. """
 
     def __init__(self, modifies=None):
-        global _annotation_enabled
+        global _stop_annotating
         self.modifies = modifies
-        self._orig_annotation_enabled = _annotation_enabled
+        self._orig_stop_annotating = _stop_annotating
 
     def __enter__(self):
-        global _annotation_enabled
-        _annotation_enabled = 0
+        global _stop_annotating
+        _stop_annotating = 0
 
     def __exit__(self, *args):
-        global _annotation_enabled
-        _annotation_enabled = self._orig_annotation_enabled
+        global _stop_annotating
+        _stop_annotating = self._orig_stop_annotating
         if self.modifies is not None:
             try:
                 self.modifies.create_block_variable()
@@ -129,7 +129,7 @@ def annotate_tape(kwargs=None):
 
     # TODO: Consider if there is any scenario where one would want the keyword to have
     # precedence over the global flag.
-    if _annotation_enabled == 0:
+    if _stop_annotating == 0:
         return False
 
     return annotate
