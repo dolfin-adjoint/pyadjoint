@@ -81,12 +81,12 @@ class stop_annotating(object):
     modified variables at the end of the context manager. """
 
     def __init__(self, modifies=None):
+        global _annotation_enabled
         self.modifies = modifies
-        self._orig_annotation_enabled = False
+        self._orig_annotation_enabled = _annotation_enabled
 
     def __enter__(self):
         global _annotation_enabled
-        self._orig_annotation_enabled = _annotation_enabled
         _annotation_enabled = False
 
     def __exit__(self, *args):
@@ -126,12 +126,12 @@ def annotate_tape(kwargs=None):
     Returns: bool
 
     """
-    annotate = kwargs is None or kwargs.pop("annotate", True)
-
     # TODO: Consider if there is any scenario where one would want the keyword to have
     # precedence over the global flag.
-    if _annotation_enabled is False:
+    if not _annotation_enabled:
         return False
+
+    annotate = kwargs is None or kwargs.pop("annotate", True)
 
     return annotate
 
