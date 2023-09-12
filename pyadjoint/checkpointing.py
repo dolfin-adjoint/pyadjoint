@@ -26,10 +26,19 @@ class AdjointSchedule(list):
 
 
 def process_schedule(schedule):
+    """Split a schedule into forward and reverse passes.
+    
+    Parameters
+    ----------
+    schedule : CheckpointSchedule
+        The schedule to split.
+    """
     schedule = list(schedule)
-
-    end_forward = schedule.index(EndForward()) + 1
-
+    action_index = 0
+    while not isinstance(schedule[action_index], EndForward):
+        end_forward = action_index
+        action_index += 1
+    end_forward += 1
     forward_steps = sum(map(len, schedule[:end_forward]))
     reverse_steps = sum(map(len, schedule[end_forward:]))
 
@@ -41,8 +50,7 @@ def process_schedule(schedule):
 
 class CheckpointManager:
     def __init__(self, schedule, tape):
-        self.forward = False
-        self.reverse = False
+        self.forward, self.reverse = process_schedule(schedule)
         if schedule.uses_disk_storage and not tape._package_data:
             raise CheckpointError(
                 "The schedule employs disk checkpointing but it is not configured."
@@ -50,7 +58,7 @@ class CheckpointManager:
         self.tape = tape
         self.timesteps = schedule.max_n()
         self.mode = Mode.RECORD
-        self._iterator = iter(self.schedule)
+        self._iterator = iter(self.forward)
         self._current = next(self._iterator)
         self._configuration = None
         self._configuration_step = None
