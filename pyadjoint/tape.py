@@ -92,7 +92,6 @@ class stop_annotating(object):
     def __exit__(self, *args):
         global _annotation_enabled
         _annotation_enabled = self._orig_annotation_enabled
-        
         if self.modifies is not None:
             try:
                 self.modifies.create_block_variable()
