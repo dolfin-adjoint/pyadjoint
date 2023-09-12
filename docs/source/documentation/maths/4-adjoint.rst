@@ -210,36 +210,28 @@ freedom, it is usually impractical to store the entire solution
 trajectory, and therefore some alternative approach must be
 implemented.
 
-The space cost of storing all variables is linear in time (double the
-timesteps, double the storage) and the time cost is constant (no extra
-recomputation is required). The opposite strategy, of storing nothing
-and recomputing everything when it becomes necessary, is quadratic in
-time and constant in space. A *checkpointing algorithm* attempts to
-strike a balance between these two extremes to control both the
-spatial requirements (storage space) and temporal requirements
-(recomputation).
+.. The space cost of storing all variables is linear in time (double the
+.. timesteps, double the storage) and the time cost is constant (no extra
+.. recomputation is required). The opposite strategy, of storing nothing
+.. and recomputing everything when it becomes necessary, is quadratic in
+.. time and constant in space. A *checkpointing algorithm* attempts to
+.. strike a balance between these two extremes to control both the
+.. spatial requirements (storage space) and temporal requirements
+.. (recomputation).
 
-.. sidebar:: Checkpointing in dolfin-adjoint
-
-  Libadjoint, the library that is the backbone of dolfin-adjoint,
-  embeds the revolve algorithm of Griewank and Walther. Activating
-  checkpointing is a simple matter of adding two function calls. For
-  more details, see :doc:`the manual section on checkpointing
-  <../checkpointing>`.
-
-Checkpointing algorithms have been well studied in the literature,
-usually in the context of algorithmic differentiation
-:cite:`griewank1992` :cite:`hinze2005` :cite:`stumm2010`
-:cite:`wang2009`.  There are two categories of checkpointing
-algorithms: *offline* algorithms and *online* algorithms.  In the
-offline case, the number of timesteps is known in advance, and so the
-optimal distribution of checkpoints may be computed a priori (and
-hence "offline"), while in the online case, the number of timesteps is
-not known in advance, and so the distribution of checkpoints must be
-computed during the run itself. Of particular note is the revolve
-software of Griewank and Walther, which achieves logarithmic growth of
-both space *and* time :cite:`griewank2000`.  This algorithm is
-provably optimal for the offline case :cite:`grimm1996`.
+.. Checkpointing algorithms have been well studied in the literature,
+.. usually in the context of algorithmic differentiation
+.. :cite:`griewank1992` :cite:`hinze2005` :cite:`stumm2010`
+.. :cite:`wang2009`.  There are two categories of checkpointing
+.. algorithms: *offline* algorithms and *online* algorithms.  In the
+.. offline case, the number of timesteps is known in advance, and so the
+.. optimal distribution of checkpoints may be computed a priori (and
+.. hence "offline"), while in the online case, the number of timesteps is
+.. not known in advance, and so the distribution of checkpoints must be
+.. computed during the run itself. Of particular note is the revolve
+.. software of Griewank and Walther, which achieves logarithmic growth of
+.. both space *and* time :cite:`griewank2000`.  This algorithm is
+.. provably optimal for the offline case :cite:`grimm1996`.
 
 Summary
 =======
@@ -249,8 +241,8 @@ introduced, and some of their properties discussed, let us see in more
 detail the applications of these concepts. This is discussed in
 :doc:`the next section <5-applications>`.
 
-.. rubric:: References
+.. .. rubric:: References
 
-.. bibliography:: 4-adjoint.bib
-   :cited:
-   :labelprefix: 4M-
+.. .. bibliography:: 4-adjoint.bib
+..    :cited:
+..    :labelprefix: 4M-

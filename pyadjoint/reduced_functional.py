@@ -4,6 +4,38 @@ from .tape import get_working_tape, stop_annotating, no_annotations
 from .overloaded_type import OverloadedType
 
 
+def _get_extract_derivative_components(derivative_components):
+    """
+    Construct a function to pass as a pre derivative callback
+    when derivative components are required.
+    """
+    def extract_derivative_components(controls):
+        controls_out = Enlist([controls[i]
+                               for i in derivative_components])
+        return controls_out
+    return extract_derivative_components
+
+
+def _get_pack_derivative_components(controls, derivative_components):
+    """
+    Construct a function to pass as a post derivative callback
+    when derivative components are required.
+    """
+    def pack_derivative_components(checkpoint, derivatives, values):
+        derivatives_out = []
+        count = 0
+        for i, control in enumerate(controls):
+            if i in derivative_components:
+                derivatives_out.append(derivatives[count])
+                count += 1
+            else:
+                zero_derivative = control._ad_copy()
+                zero_derivative *= 0.
+                derivatives_out.append(zero_derivative)
+        return derivatives_out
+    return pack_derivative_components
+
+
 class ReducedFunctional(object):
     """Class representing the reduced functional.
 
@@ -16,16 +48,30 @@ class ReducedFunctional(object):
             usually :class:`AdjFloat`. This should be the return value of the
             functional you want to reduce.
         controls (list[Control]): A list of Control instances, which you want
-            to map to the functional. It is also possible to supply a single Control
-            instance instead of a list.
-
+            to map to the functional. It is also possible to supply a single
+            Control instance instead of a list.
+        derivative_components (tuple of int): The indices of the controls with
+            respect to which to take the derivative. By default, the derivative
+            is taken with respect to all controls. If present, it overwrites
+            derivative_cb_pre and derivative_cb_post.
+        derivative_cb_pre (function): Callback function before evaluating
+            derivatives. Input is a list of Controls.
+            Should return a list of Controls (usually the same
+            list as the input) to be passed to compute_gradient.
+        derivative_cb_post (function): Callback function after evaluating
+            derivatives.  Inputs are: functional.block_variable.checkpoint,
+            list of functional derivatives, list of functional values.
+            Should return a list of derivatives (usually the same
+            list as the input) to be returned from self.derivative.
     """
 
-    def __init__(self, functional, controls, scale=1.0, tape=None,
+    def __init__(self, functional, controls,
+                 derivative_components=None,
+                 scale=1.0, tape=None,
                  eval_cb_pre=lambda *args: None,
                  eval_cb_post=lambda *args: None,
-                 derivative_cb_pre=lambda *args: None,
-                 derivative_cb_post=lambda *args: None,
+                 derivative_cb_pre=lambda controls: controls,
+                 derivative_cb_post=lambda checkpoint, derivative_components, controls: derivative_components,
                  hessian_cb_pre=lambda *args: None,
                  hessian_cb_post=lambda *args: None):
         if not isinstance(functional, OverloadedType):
@@ -33,6 +79,7 @@ class ReducedFunctional(object):
         self.functional = functional
         self.tape = get_working_tape() if tape is None else tape
         self.controls = Enlist(controls)
+        self.derivative_components = derivative_components
         self.scale = scale
         self.eval_cb_pre = eval_cb_pre
         self.eval_cb_post = eval_cb_post
@@ -41,36 +88,59 @@ class ReducedFunctional(object):
         self.hessian_cb_pre = hessian_cb_pre
         self.hessian_cb_post = hessian_cb_post
 
-    def derivative(self, options={}):
-        """Returns the derivative of the functional w.r.t. the control.
+        if self.derivative_components:
+            # pre callback
+            self.derivative_cb_pre = _get_extract_derivative_components(
+                derivative_components)
+            # post callback
+            self.derivative_cb_post = _get_pack_derivative_components(
+                controls, derivative_components)
 
+    def derivative(self, adj_input=1.0, options={}):
+        """Returns the derivative of the functional w.r.t. the control.
         Using the adjoint method, the derivative of the functional with
-        respect to the control, around the last supplied value of the control,
-        is computed and returned.
+        respect to the control, around the last supplied value of the
+        control, is computed and returned.
 
         Args:
-            options (dict): A dictionary of options. To find a list of available options
-                have a look at the specific control type.
+            options (dict): A dictionary of options. To find a list of
+                available options have a look at the specific control type.
 
         Returns:
             OverloadedType: The derivative with respect to the control.
                 Should be an instance of the same type as the control.
 
         """
+
         # Call callback
         values = [c.tape_value() for c in self.controls]
-        self.derivative_cb_pre(self.controls.delist(values))
+        controls = self.derivative_cb_pre(self.controls)
+
+        if not controls:
+            raise ValueError("""Note that the callback interface
+            for derivative_cb_pre has changed. It should now return a
+            list of controls (usually the same list as input.""")
+
+        # Scale adjoint input
+        with stop_annotating():
+            adj_value = self.scale * adj_input
 
         derivatives = compute_gradient(self.functional,
-                                       self.controls,
+                                       controls,
                                        options=options,
                                        tape=self.tape,
-                                       adj_value=self.scale)
+                                       adj_value=adj_value)
 
         # Call callback
-        self.derivative_cb_post(self.functional.block_variable.checkpoint,
-                                self.controls.delist(derivatives),
-                                self.controls.delist(values))
+        derivatives = self.derivative_cb_post(
+            self.functional.block_variable.checkpoint,
+            derivatives,
+            values)
+
+        if not derivatives:
+            raise ValueError("""Note that the callback interface
+            for derivative_cb_post has changed. It should now return a
+            list of derivatives, usually the same list as input.""")
 
         return self.controls.delist(derivatives)
 
@@ -142,7 +212,10 @@ class ReducedFunctional(object):
                     ):
                         blocks[i].recompute()
 
-        func_value = self.scale * self.functional.block_variable.checkpoint
+        # ReducedFunctional can result in a scalar or an assembled 1-form
+        func_value = self.functional.block_variable.saved_output
+        # Scale the underlying functional value
+        func_value *= self.scale
 
         # Call callback
         self.eval_cb_post(func_value, self.controls.delist(values))

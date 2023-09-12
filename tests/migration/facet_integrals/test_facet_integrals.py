@@ -1,5 +1,6 @@
 import pytest
 pytest.importorskip("fenics")
+pytest.importorskip("fenics_adjoint")
 
 from fenics import *
 from fenics_adjoint import *

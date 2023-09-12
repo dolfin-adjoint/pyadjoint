@@ -1,32 +1,12 @@
 # flake8: noqa
 
-import pyadjoint
-__version__ = pyadjoint.__version__
+import warnings
 
-import sys
-if 'backend' not in sys.modules:
-    import firedrake
-    sys.modules['backend'] = firedrake
-else:
-    raise ImportError("'backend' module already exists?")
-
-from pyadjoint.tape import (Tape, set_working_tape, get_working_tape,
-                            pause_annotation, continue_annotation,
-                            stop_annotating, annotate_tape)
-from pyadjoint.reduced_functional import ReducedFunctional
-from firedrake.adjoint.checkpointing import (
-    enable_disk_checkpointing, pause_disk_checkpointing,
-    continue_disk_checkpointing, stop_disk_checkpointing,
-    checkpointable_mesh
-)
-from pyadjoint.verification import taylor_test, taylor_to_dict
-from pyadjoint.drivers import compute_gradient, compute_hessian
-from pyadjoint.adjfloat import AdjFloat
-from pyadjoint.control import Control
-from pyadjoint import IPOPTSolver, ROLSolver, MinimizationProblem, InequalityConstraint, minimize
-
-from dolfin_adjoint_common.ufl_constraints import UFLInequalityConstraint, UFLEqualityConstraint
-import numpy_adjoint
+from firedrake.adjoint import *
 
 continue_annotation()
-set_working_tape(Tape())
+
+warnings.warn("""The firedrake_adjoint module is deprecated.
+
+Instead, use the firedrake.adjoint module and explicitly start taping
+by calling continue_annotation().""", FutureWarning)

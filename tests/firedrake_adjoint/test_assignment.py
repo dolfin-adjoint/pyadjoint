@@ -2,7 +2,7 @@ import pytest
 pytest.importorskip("firedrake")
 
 from firedrake import *
-from firedrake_adjoint import *
+from firedrake.adjoint import *
 
 from numpy.random import rand
 from numpy.testing import assert_approx_equal, assert_allclose
@@ -73,17 +73,17 @@ def test_assign_tlm():
     assert taylor_test(rf, f, h, dJdm=J.block_variable.tlm_value) > 1.9
 
 
-def test_assign_tlm_wit_constant():
+def test_assign_tlm_with_constant():
     mesh = IntervalMesh(10, 0, 1)
     V = FunctionSpace(mesh, "CG", 1)
 
     x = SpatialCoordinate(mesh)
     f = interpolate(x[0], V)
     g = interpolate(sin(x[0]), V)
-    c = Constant(5.0)
+    c = Constant(5.0, domain=mesh)
 
     u = Function(V)
-    u.assign(c * f ** 2)
+    u.interpolate(c * f**2)
 
     c.block_variable.tlm_value = Constant(0.3)
     tape = get_working_tape()
@@ -129,7 +129,7 @@ def test_assign_nonlincom():
     g = interpolate(sin(x[0]), V)
     u = Function(V)
 
-    u.assign(f*g)
+    u.interpolate(f*g)
 
     J = assemble(u ** 2 * dx)
     rf = ReducedFunctional(J, Control(f))
@@ -145,13 +145,12 @@ def test_assign_with_constant():
 
     x = SpatialCoordinate(mesh)
     f = interpolate(x[0], V)
-    c = Constant(3.0)
-    d = Constant(2.0)
+    c = Constant(3.0, domain=mesh)
+    d = Constant(2.0, domain=mesh)
     u = Function(V)
 
     u.assign(c*f+d**3)
 
-    # J = c**2/3 + cd**3 + d**6
     J = assemble(u ** 2 * dx)
 
     rf = ReducedFunctional(J, Control(c))
@@ -182,7 +181,7 @@ def test_assign_nonlin_changing():
 
     u = Function(V)
 
-    u.assign(f*sol*g)
+    u.interpolate(f*sol*g)
 
     J = assemble(u ** 2 * dx)
     rf = ReducedFunctional(J, control)
@@ -200,7 +199,7 @@ def test_assign_constant_scale():
     V = VectorFunctionSpace(mesh, "CG", 1)
 
     f = Function(V)
-    c = Constant(2.0)
+    c = Constant(2.0, domain=mesh)
     x, y = SpatialCoordinate(mesh)
     g = interpolate(as_vector([sin(y)+x, cos(x)*y]), V)
 

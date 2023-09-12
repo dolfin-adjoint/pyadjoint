@@ -8,7 +8,6 @@ except ImportError:
 
 from dolfin import *
 from dolfin_adjoint import *
-import ufl.algorithms
 
 parameters["form_compiler"]["representation"] = "uflacs"
 

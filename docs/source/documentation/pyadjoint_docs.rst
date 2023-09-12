@@ -1,3 +1,5 @@
+:orphan:
+
 .. _pyadjoint-docs:
 
 .. py:currentmodule:: pyadjoint

@@ -1,18 +1,19 @@
-import pytest
-pytest.importorskip("fenics")
-
-from os import path
 import subprocess
-import dolfin
+from os import path
+import pytest
+import sys
 
-@pytest.mark.skipif(not hasattr(dolfin, "HDF5File"),
-                            reason="requires hdf5 support")
+fenics = pytest.importorskip("fenics")
+
+
+@pytest.mark.skipif(not hasattr(fenics, "HDF5File"),
+                    reason="requires hdf5 support")
 @pytest.mark.xfail(reason='Checkpointing is not implemented yet.')
 @pytest.mark.xfail(reason="checkpointing is not implemented")
 def test(request):
     test_file = path.split(path.dirname(str(request.fspath)))[1] + ".py"
     test_dir = path.split(str(request.fspath))[0]
-    test_cmd = ["python", path.join(test_dir, test_file)]
+    test_cmd = [sys.executable, path.join(test_dir, test_file)]
 
     handle = subprocess.Popen(test_cmd, cwd=test_dir)
     assert handle.wait() == 0

@@ -8,7 +8,7 @@ jobs:
     docker:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
-      - image: quay.io/fenicsproject/dev:latest
+      - image: ghcr.io/scientificcomputing/fenics:2023-08-14
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
       # - image: quay.io/fenicsproject/stable:latest
@@ -26,20 +26,21 @@ jobs:
       # Download and cache dependencies
       - restore_cache:
           keys:
-          - v2-dependencies-{{ checksum "setup.py" }}
-          # fallback to using the latest cache if no exact match is found
-          - v2-dependencies-
+            - v2-dependencies-{{ checksum "setup.py" }}
+            # fallback to using the latest cache if no exact match is found
+            - v2-dependencies-
 
       - run:
           name: install dependencies
           command: |
             export DEBIAN_FRONTEND=noninteractive
             apt-get update
-            apt-get install -y python-dev graphviz libgraphviz-dev pkg-config patchelf
-            pip3 install -e .[all]
-            pip3 install roltrilinos ROL
-            pip3 install protobuf==3.8.0
-            pip3 install --upgrade numpy
+            apt-get install -y python3-dev graphviz libgraphviz-dev pkg-config patchelf
+            python3 -m pip install -e .[all]
+            python3 -m pip install roltrilinos
+            python3 -m pip install ROL
+            python3 -m pip install protobuf
+            python3 -m pip install --upgrade numpy
 
       - save_cache:
           paths:
@@ -48,20 +49,30 @@ jobs:
 
       - restore_cache:
           keys:
-          - v3-dolfin-jit-cache
-
-      # run tests!
-      - run:
-          name: Run tests
-          command: |
-            coverage run --source=fenics_adjoint,pyadjoint -m pytest tests/fenics_adjoint/ tests/pyadjoint/
-            coverage report
-            coverage html
+            - v3-dolfin-jit-cache
 
       - run:
           name: Flake8 tests
           command: |
             python3 -m flake8
+
+      - run:
+          name: Install dolfin-adjoint
+          command: |
+            git clone https://github.com/dolfin-adjoint/dolfin-adjoint ~/dolfin-adjoint
+            python3 -m pip install -e ~/dolfin-adjoint[all]
+
+      - run:
+          name: Run tests
+          command: |
+            coverage run --source=fenics_adjoint -m pytest ~/dolfin-adjoint/tests/fenics_adjoint/
+            coverage report
+            coverage html
+
+      - run:
+          name: Run migration tests
+          command: |
+            python3 -m pytest ~/dolfin-adjoint/tests/migration
 
       - save_cache:
           key: v2-dolfin-jit-cache
@@ -79,7 +90,6 @@ jobs:
   test-firedrake:
     docker:
       - image: firedrakeproject/firedrake:latest
-
 
     working_directory: ~/repo
 
@@ -104,7 +114,6 @@ jobs:
             - ./venv
           key: v2-dependencies-{{ checksum "setup.py" }}
 
-      # run tests!
       - run:
           name: Run tests
           command: |
@@ -119,7 +128,6 @@ jobs:
 
       - store_artifacts:
           path: htmlcov
-
 
 workflows:
   version: 2
