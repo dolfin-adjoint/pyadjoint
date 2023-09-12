@@ -78,7 +78,7 @@ class stop_annotating(object):
     The `modifies` argument is intended to be used by user code which
     changes the value of inputs to the adjoint calculation such as time varying
     forcings. Its effect is to create a new block variable for each of the
-    modified variables at the end of the context manager. """
+    modified variables at the end of the context manager. ass """
 
     def __init__(self, modifies=None):
         self.modifies = modifies
