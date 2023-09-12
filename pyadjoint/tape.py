@@ -125,7 +125,6 @@ def annotate_tape(kwargs=None):
     Returns: bool
 
     """
-    
     annotate = kwargs is None or kwargs.pop("annotate", True)
 
     # TODO: Consider if there is any scenario where one would want the keyword to have
