@@ -92,7 +92,7 @@ class stop_annotating(object):
     def __exit__(self, *args):
         global _stop_annotating
         # continue_annotation()
-        _stop_annotating = self._orig_annotation_enabled
+        _stop_annotating = self.orig_annotation_state
 
         if self.modifies is not None:
             try:
