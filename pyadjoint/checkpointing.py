@@ -28,7 +28,8 @@ class AdjointSchedule(list):
 def process_schedule(schedule):
     schedule = list(schedule)
 
-    end_forward = schedule.index(EndForward()) + 1
+    # end_forward = schedule.index(Forward) + 1
+    # while not isinstance(EndForward(), type(a[index])):
 
     forward_steps = sum(map(len, schedule[:end_forward]))
     reverse_steps = sum(map(len, schedule[end_forward:]))
