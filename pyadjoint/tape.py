@@ -131,7 +131,7 @@ def annotate_tape(kwargs=None):
 
     # TODO: Consider if there is any scenario where one would want the keyword to have
     # precedence over the global flag.
-    if not _enabled_annotation:
+    if _enabled_annotation is False:
         return False
 
     return annotate
