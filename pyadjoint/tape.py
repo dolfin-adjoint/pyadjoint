@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 
 
 _working_tape = None
-_annotation_enabled = False
+_annotation_enabled = 0
 
 
 def get_working_tape():
@@ -18,12 +18,12 @@ def get_working_tape():
 
 def pause_annotation():
     global _annotation_enabled
-    _annotation_enabled = False
+    _annotation_enabled = 0
 
 
 def continue_annotation():
     global _annotation_enabled
-    _annotation_enabled = True
+    _annotation_enabled = 1
     return _annotation_enabled
 
 
@@ -87,7 +87,7 @@ class stop_annotating(object):
 
     def __enter__(self):
         global _annotation_enabled
-        _annotation_enabled = False
+        _annotation_enabled = 0
 
     def __exit__(self, *args):
         global _annotation_enabled
@@ -129,7 +129,7 @@ def annotate_tape(kwargs=None):
 
     # TODO: Consider if there is any scenario where one would want the keyword to have
     # precedence over the global flag.
-    if not _annotation_enabled:
+    if _annotation_enabled == 0:
         return False
 
     return annotate
