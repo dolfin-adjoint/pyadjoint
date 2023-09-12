@@ -6,8 +6,8 @@ import pytest
 pytest.importorskip("firedrake")
 
 from firedrake import *
-from firedrake_adjoint import *
-from tlm_adjoint.checkpoint_schedules import HRevolveCheckpointSchedule
+from firedrake.adjoint import *
+from checkpoint_schedules import CheckpointSchedule
 import numpy as np
 
 set_log_level(CRITICAL)
@@ -66,7 +66,7 @@ def test_burgers_newton(solve_type):
     tape = get_working_tape()
     tape.progress_bar = ProgressBar
     tape.enable_checkpointing(
-        HRevolveCheckpointSchedule(7, 2, 0))
+        HRevolve(7, 2, 0))
 
     x, = SpatialCoordinate(mesh)
     ic = project(sin(2.*pi*x), V)

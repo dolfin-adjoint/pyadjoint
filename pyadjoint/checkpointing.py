@@ -1,7 +1,7 @@
 from enum import Enum
 from functools import singledispatchmethod
-from tlm_adjoint.checkpoint_schedules import Clear, \
-    Configure, EndForward, EndReverse, Forward, Reverse, Read, Write
+from checkpoint_schedules import Copy, \
+    Move, EndForward, EndReverse, Forward, Reverse
 
 
 class CheckpointError(RuntimeError):
@@ -97,22 +97,6 @@ class CheckpointManager:
             return True
         else:
             return False
-
-    @process_taping.register(Clear)
-    def _(self, operation, timestep):
-        if not self._configuration:
-            return False
-
-        if operation.clear_data:
-            for step in range(self._configuration_step, timestep):
-                for block in self.tape.timesteps[step]:
-                    for output in block.get_outputs():
-                        output.checkpoint = None
-        if operation.clear_ics:
-            for var in self.tape.timesteps[self._configuration_step]:
-                var.checkpoint = None
-
-        return False
 
     @process_taping.register(Configure)
     def _(self, operation, timestep):
