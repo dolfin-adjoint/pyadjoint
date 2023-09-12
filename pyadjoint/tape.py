@@ -82,12 +82,18 @@ class stop_annotating(object):
 
     def __init__(self, modifies=None):
         self.modifies = modifies
+        self.orig_annotation_state = _stop_annotating
 
     def __enter__(self):
-        pause_annotation()
+        global _stop_annotating
+        # pause_annotation()
+        _stop_annotating = 1
 
     def __exit__(self, *args):
-        continue_annotation()
+        global _stop_annotating
+        # continue_annotation()
+        _stop_annotating = self._orig_annotation_enabled
+
         if self.modifies is not None:
             try:
                 self.modifies.create_block_variable()
