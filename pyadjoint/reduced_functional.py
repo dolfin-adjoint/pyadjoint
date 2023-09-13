@@ -125,13 +125,13 @@ class ReducedFunctional(object):
         with stop_annotating():
             # Make sure `adj_input` is an OverloadedType
             adj_input = create_overloaded_object(adj_input)
-            adj_input._ad_mul(self.scale)
+            adj_value = adj_input._ad_mul(self.scale)
 
         derivatives = compute_gradient(self.functional,
                                        controls,
                                        options=options,
                                        tape=self.tape,
-                                       adj_value=adj_input)
+                                       adj_value=adj_value)
 
         # Call callback
         derivatives = self.derivative_cb_post(
