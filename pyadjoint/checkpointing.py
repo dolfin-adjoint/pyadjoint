@@ -1,7 +1,7 @@
 from enum import Enum
 from functools import singledispatchmethod
-from checkpoint_schedules import Copy, \
-    Move, EndForward, EndReverse, Forward, Reverse
+from checkpoint_schedules import Copy,\
+     Move, EndForward, EndReverse, Forward, Reverse, StorageType
 
 
 class CheckpointError(RuntimeError):
@@ -36,13 +36,13 @@ def process_schedule(schedule):
     schedule = list(schedule)
     action_index = 0
     while not isinstance(schedule[action_index], EndForward):
-        end_forward = action_index
         action_index += 1
-    end_forward += 1
+        end_forward = action_index
+    
     forward_steps = sum(map(len, schedule[:end_forward]))
-    reverse_steps = sum(map(len, schedule[end_forward:]))
+    reverse_steps = schedule[end_forward+1].n1
 
-    forward = AdjointSchedule(schedule[:end_forward], forward_steps)
+    forward = AdjointSchedule(schedule[:end_forward+1], forward_steps)
     reverse = AdjointSchedule(schedule[end_forward:], reverse_steps)
 
     return forward, reverse
@@ -51,12 +51,12 @@ def process_schedule(schedule):
 class CheckpointManager:
     def __init__(self, schedule, tape):
         self.forward, self.reverse = process_schedule(schedule)
-        if schedule.uses_disk_storage and not tape._package_data:
+        if schedule._snapshots_on_disk > 0 and not tape._package_data:
             raise CheckpointError(
                 "The schedule employs disk checkpointing but it is not configured."
             )
         self.tape = tape
-        self.timesteps = schedule.max_n()
+        self.timesteps = schedule.max_n
         self.mode = Mode.RECORD
         self._iterator = iter(self.forward)
         self._current = next(self._iterator)
@@ -95,17 +95,47 @@ class CheckpointManager:
         raise CheckpointError(f"Unable to process {operation} while taping.")
 
     @process_taping.register(Forward)
-    def _(self, operation, timestep):
+    def _(self, schedule_action, timestep):
 
-        if timestep < (operation.n0):
+        if timestep < (schedule_action.n0):
             raise CheckpointError(
-                "Timestep is before start of Forward operation."
+                "Timestep is before start of Forward action."
             )
-        if timestep in operation:
+        if schedule_action.write_ics:
+            self.tape.latest_checkpoint = timestep
+        self._configuration = schedule_action
+        self._configuration_step = timestep
+
+        # weird! see later
+        self.tape._eagerly_checkpoint_outputs = schedule_action.write_adj_deps
+
+        # tape._package_data is empty. So, I need to verify how to use this.
+        for data in self.tape._package_data.values():
+            data.configure_checkpointing(schedule_action.storage)
+        # It is failing here. I need to check why self.tape.timesteps[schedule_action.n0]
+        # is not working. Why we do not have the checkpoint for this timestep?
+        self.tape.timesteps[schedule_action.n0].checkpoint()
+
+        for data in self.tape._package_data.values():
+            data.configure_checkpointing("RAM")
+
+        if timestep in schedule_action:
             self.tape.get_blocks().append_step()
+
             return True
         else:
             return False
+        
+    # @process_taping.register(Write)
+    # @process_operation.register(Write)
+    # def _(self, operation, bar, **kwargs):
+    #     for data in self.tape._package_data.values():
+    #         data.configure_checkpointing(operation.storage)
+
+    #     self.tape.timesteps[operation.n].checkpoint()
+
+    #     for data in self.tape._package_data.values():
+    #         data.configure_checkpointing("RAM")
 
     # @process_taping.register(Clear)
     # def _(self, operation, timestep):
@@ -133,7 +163,8 @@ class CheckpointManager:
     #     self.tape._eagerly_checkpoint_outputs = operation.store_data
 
     #     return False
-
+    
+    # process_taping is used in the forward and end forward run.
     @process_taping.register(EndForward)
     def _(self, operation, timestep):
         self.mode = Mode.EVALUATED
@@ -168,16 +199,6 @@ class CheckpointManager:
         """Perform the operations required by the schedule."""
         raise CheckpointError(f"Unable to process {operation}.")
 
-    # @process_taping.register(Write)
-    # @process_operation.register(Write)
-    # def _(self, operation, bar, **kwargs):
-    #     for data in self.tape._package_data.values():
-    #         data.configure_checkpointing(operation.storage)
-
-    #     self.tape.timesteps[operation.n].checkpoint()
-
-    #     for data in self.tape._package_data.values():
-    #         data.configure_checkpointing("RAM")
 
     @process_operation.register(Forward)
     def _(self, operation, bar, functional=None, **kwargs):
@@ -217,13 +238,20 @@ class CheckpointManager:
         # Not currently advancing so no checkpointable state.
         self._checkpointable_state = set()
 
-    # @process_operation.register(Read)
-    # def _(self, operation, bar, **kwargs):
-    #     current_step = self.tape.timesteps[operation.n]
-    #     current_step.restore_from_checkpoint()
-    #     self._checkpointable_state = current_step.checkpointable_state
-    #     if operation.delete:
-    #         current_step.delete_checkpoint()
+    @process_operation.register(Copy)
+    def _(self, operation, bar, **kwargs):
+        current_step = self.tape.timesteps[operation.n]
+        current_step.restore_from_checkpoint()
+        self._checkpointable_state = current_step.checkpointable_state
+        # if operation.delete:
+        #     current_step.delete_checkpoint()
+
+    @process_operation.register(Move)
+    def _(self, operation, bar, **kwargs):
+        current_step = self.tape.timesteps[operation.n]
+        current_step.restore_from_checkpoint()
+        self._checkpointable_state = current_step.checkpointable_state
+        current_step.delete_checkpoint()
 
     @process_operation.register(EndForward)
     def _(self, operation, bar, **kwargs):
