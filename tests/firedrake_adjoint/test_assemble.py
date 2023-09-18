@@ -104,7 +104,7 @@ def _test_adjoint(J, f):
         Jm.block_variable.adj_value = 1.0
         tape.evaluate_adj()
 
-        dJdf = f.block_variable.adj_value
+        dJdf = f.block_variable.adj_value.vector()
 
         residual = abs(Jp - Jm - eps * dJdf.inner(h.vector()))
         residuals.append(residual)
