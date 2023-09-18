@@ -1,7 +1,7 @@
 from enum import Enum
 from functools import singledispatchmethod
 from checkpoint_schedules import Copy,\
-     Move, EndForward, EndReverse, Forward, Reverse, StorageType
+     Move, EndForward, EndReverse, Forward, Reverse
 
 
 class CheckpointError(RuntimeError):
@@ -38,54 +38,48 @@ def process_schedule(schedule):
     while not isinstance(schedule[action_index], EndForward):
         action_index += 1
         end_forward = action_index
-    
-    # forward_steps = sum(map(len, schedule[:end_forward]))
-    # reverse_steps = schedule[end_forward+1].n1
+    end_forward += 1
+    forward_steps = sum(map(len, schedule[:end_forward - 1]))
+    reverse_steps = schedule[end_forward].n1
 
-    # forward = AdjointSchedule(schedule[:end_forward+1], forward_steps)
-    # reverse = AdjointSchedule(schedule[end_forward:], reverse_steps)
+    forward = AdjointSchedule(schedule[:end_forward], forward_steps)
+    reverse = AdjointSchedule(schedule[end_forward:], reverse_steps)
 
-    return end_forward
+    return forward, reverse
 
 
 class CheckpointManager:
-    def __init__(self, schedule, tape):
-        # self.forward, self.reverse = process_schedule(schedule)
-        self.end_fwd = process_schedule(schedule)
+    def __init__(self, schedule, tape, n_steps):
+        self.forward, self.reverse = process_schedule(schedule)
         if schedule._snapshots_on_disk > 0 and not tape._package_data:
             raise CheckpointError(
                 "The schedule employs disk checkpointing but it is not configured."
             )
-        self._schedule = schedule
         self.tape = tape
-        self.timesteps = schedule.max_n
+        self.timesteps = n_steps
+        # schedule.max_n
         self.mode = Mode.RECORD
-        # self._iterator = iter(self.forward)
-        self._current = None
+        self._iterator = iter(self.forward)
+        self._current = next(self._iterator)
         self._configuration = None
         self._configuration_step = None
         self._stored_timesteps = []
         self._checkpointable_state = set()
+        self._schedule = schedule
         # Tell the tape to only checkpoint input data until told otherwise.
         self.tape.latest_checkpoint = 0
         # Process any initial instructions on the tape.
-        self.run_fwd(0)
+        self.end_timestep(-1)
 
-    def run_fwd(self, timestep):
+    def end_timestep(self, timestep):
         """Process the end of a timestep while recording."""
         if self.mode == Mode.EVALUATED:
             raise CheckpointError("Not enough timesteps in schedule.")
         elif self.mode != Mode.RECORD:
             raise CheckpointError(f"Cannot end timestep in {self.mode}")
 
-        # while not self.process_taping(self._current, timestep + 1):
-        for index, schedule_action in enumerate(self._schedule):
-            self.process_taping(schedule_action, timestep + 1)
-            if index == self.end_fwd:
-                break
-
-    # def execute_reverse(self, reverse):
-
+        while not self.process_taping(self._current, timestep + 1):
+            self._current = next(self._iterator)
 
     def end_taping(self):
         current_timestep = self.tape.latest_timestep
@@ -114,65 +108,25 @@ class CheckpointManager:
         self._configuration = schedule_action
         self._configuration_step = timestep
 
-        # Wheter to store the adjoint dependency data.
         self.tape._eagerly_checkpoint_outputs = schedule_action.write_adj_deps
-
-        for data in self.tape._package_data.values():
-            data.configure_checkpointing(schedule_action.storage)
-
-        self.tape.timesteps[schedule_action.n0].checkpoint()
-
-        for data in self.tape._package_data.values():
-            data.configure_checkpointing("RAM")
-
         if timestep in schedule_action:
             self.tape.get_blocks().append_step()
 
+            if timestep == schedule_action.n0 and schedule_action.write_ics:
+                for data in self.tape._package_data.values():
+                    data.configure_checkpointing(schedule_action.storage)
+                self.tape.latest_checkpoint = timestep
+                self._configuration = schedule_action
+                self._configuration_step = timestep
+                self.tape.timesteps[schedule_action.n0].checkpoint()
             return True
         else:
             return False
-        
-    # @process_taping.register(Write)
-    # @process_operation.register(Write)
-    # def _(self, operation, bar, **kwargs):
-    #     for data in self.tape._package_data.values():
-    #         data.configure_checkpointing(operation.storage)
 
-    #     self.tape.timesteps[operation.n].checkpoint()
-
-    #     for data in self.tape._package_data.values():
-    #         data.configure_checkpointing("RAM")
-
-    # @process_taping.register(Clear)
-    # def _(self, operation, timestep):
-    #     if not self._configuration:
-    #         return False
-
-    #     if operation.clear_data:
-    #         for step in range(self._configuration_step, timestep):
-    #             for block in self.tape.timesteps[step]:
-    #                 for output in block.get_outputs():
-    #                     output.checkpoint = None
-    #     if operation.clear_ics:
-    #         for var in self.tape.timesteps[self._configuration_step]:
-    #             var.checkpoint = None
-
-    #     return False
-
-    # @process_taping.register(Configure)
-    # def _(self, operation, timestep):
-    #     if operation.store_ics:
-    #         self.tape.latest_checkpoint = timestep
-    #     self._configuration = operation
-    #     self._configuration_step = timestep
-
-    #     self.tape._eagerly_checkpoint_outputs = operation.store_data
-
-    #     return False
-    
     # process_taping is used in the forward and end forward run.
     @process_taping.register(EndForward)
     def _(self, operation, timestep):
+        
         self.mode = Mode.EVALUATED
         return True
 
@@ -207,14 +161,14 @@ class CheckpointManager:
 
 
     @process_operation.register(Forward)
-    def _(self, operation, bar, functional=None, **kwargs):
-        for step in operation:
+    def _(self, schedule_action, bar, functional=None, **kwargs):
+        for step in schedule_action:
             bar.next()
             current_step = self.tape.timesteps[step]
             self._stored_timesteps.append(step)
             for block in current_step:
                 block.recompute()
-            if not self._configuration.store_data:
+            if not self._configuration.write_adj_deps:
                 next_step = self.tape.timesteps[step + 1]
                 to_keep = next_step.checkpointable_state
                 if functional:
@@ -228,8 +182,8 @@ class CheckpointManager:
                     self._checkpointable_state = next_step.checkpointable_state
 
     @process_operation.register(Reverse)
-    def _(self, operation, bar, markings, **kwargs):
-        for step in operation:
+    def _(self, schedule_action, bar, markings, functional=None, **kwargs):
+        for step in schedule_action:
             bar.next()
             current_step = self.tape.timesteps[step]
             for block in reversed(current_step):
@@ -241,55 +195,38 @@ class CheckpointManager:
                     var.reset_variables(("tlm",))
                     if not var.is_control:
                         var.reset_variables(("adjoint", "hessian"))
-        # Not currently advancing so no checkpointable state.
+        if schedule_action.clear_adj_deps:
+            to_keep = self._checkpointable_state
+            if functional:
+                to_keep = to_keep.union([functional.block_variable])
+            for step in self._stored_timesteps:
+                for block in self.tape.timesteps[step]:
+                    for output in block.get_outputs():
+                        if output not in to_keep:
+                            output.checkpoint = None
+            # Not currently advancing so no checkpointable state.
         self._checkpointable_state = set()
 
     @process_operation.register(Copy)
-    def _(self, operation, bar, **kwargs):
-        current_step = self.tape.timesteps[operation.n]
+    def _(self, schedule_action, bar, **kwargs):
+        current_step = self.tape.timesteps[schedule_action.n]
         current_step.restore_from_checkpoint()
         self._checkpointable_state = current_step.checkpointable_state
-        # if operation.delete:
-        #     current_step.delete_checkpoint()
 
     @process_operation.register(Move)
-    def _(self, operation, bar, **kwargs):
-        current_step = self.tape.timesteps[operation.n]
+    def _(self, schedule_action, bar, **kwargs):
+        current_step = self.tape.timesteps[schedule_action.n]
         current_step.restore_from_checkpoint()
         self._checkpointable_state = current_step.checkpointable_state
         current_step.delete_checkpoint()
 
     @process_operation.register(EndForward)
-    def _(self, operation, bar, **kwargs):
+    def _(self, schedule_action, bar, **kwargs):
         self.mode = Mode.EVALUATED
 
     @process_operation.register(EndReverse)
-    def _(self, operation, bar, **kwargs):
-        if operation.exhausted:
+    def _(self, schedule_action, bar, **kwargs):
+        if self._schedule.is_exhausted:
             self.mode = Mode.EXHAUSTED
         else:
             self.mode = Mode.EVALUATED
-
-    # @process_operation.register(Configure)
-    # def _(self, operation, bar, **kwargs):
-    #     if operation.store_ics:
-    #         # Clear the current checkpointable state so it isn't deleted by the
-    #         # next forward.
-    #         self._checkpointable_state = set()
-    #     self._configuration = operation
-    #     self._configuration_step = None
-
-    # @process_operation.register(Clear)
-    # def _(self, operation, bar, functional=None, **kwargs):
-    #     # Return later to what we do if we're not clearing all of these.
-    #     assert operation.clear_ics
-    #     assert operation.clear_data
-
-    #     to_keep = self._checkpointable_state
-    #     if functional:
-    #         to_keep = to_keep.union([functional.block_variable])
-    #     for step in self._stored_timesteps:
-    #         for block in self.tape.timesteps[step]:
-    #             for output in block.get_outputs():
-    #                 if output not in to_keep:
-    #                     output.checkpoint = None
