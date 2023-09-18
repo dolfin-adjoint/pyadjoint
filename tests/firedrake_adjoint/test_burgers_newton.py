@@ -6,11 +6,16 @@ import pytest
 pytest.importorskip("firedrake")
 
 from firedrake import *
-from firedrake_adjoint import *
+from firedrake.adjoint import *
 from checkpoint_schedules import Revolve
 import numpy as np
 
 set_log_level(CRITICAL)
+continue_annotation()
+
+tape = get_working_tape()
+tape.progress_bar = ProgressBar
+
 
 n = 30
 mesh = UnitIntervalMesh(n)
@@ -63,11 +68,7 @@ def J(ic, solve_type):
 # @pytest.mark.parametrize("solve_type",
 #                          ["solve", "NLVS"])
 def test_burgers_newton(solve_type):
-    tape = get_working_tape()
-    tape.progress_bar = ProgressBar
-    tape.enable_checkpointing(
-        Revolve(7, 2))
-
+    tape.enable_checkpointing(Revolve(7, 2))
     x, = SpatialCoordinate(mesh)
     ic = project(sin(2.*pi*x), V)
 

@@ -140,6 +140,7 @@ class Tape(object):
         # Default to checkpointing all block variables.
         self.latest_checkpoint = float("inf")
         self._checkpoint_manager = None
+        # Whether to store the adjoint dependencies.
         self._eagerly_checkpoint_outputs = False
 
     def __len__(self):

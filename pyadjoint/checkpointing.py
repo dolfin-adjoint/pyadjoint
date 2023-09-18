@@ -39,27 +39,29 @@ def process_schedule(schedule):
         action_index += 1
         end_forward = action_index
     
-    forward_steps = sum(map(len, schedule[:end_forward]))
-    reverse_steps = schedule[end_forward+1].n1
+    # forward_steps = sum(map(len, schedule[:end_forward]))
+    # reverse_steps = schedule[end_forward+1].n1
 
-    forward = AdjointSchedule(schedule[:end_forward+1], forward_steps)
-    reverse = AdjointSchedule(schedule[end_forward:], reverse_steps)
+    # forward = AdjointSchedule(schedule[:end_forward+1], forward_steps)
+    # reverse = AdjointSchedule(schedule[end_forward:], reverse_steps)
 
-    return forward, reverse
+    return end_forward
 
 
 class CheckpointManager:
     def __init__(self, schedule, tape):
-        self.forward, self.reverse = process_schedule(schedule)
+        # self.forward, self.reverse = process_schedule(schedule)
+        self.end_fwd = process_schedule(schedule)
         if schedule._snapshots_on_disk > 0 and not tape._package_data:
             raise CheckpointError(
                 "The schedule employs disk checkpointing but it is not configured."
             )
+        self._schedule = schedule
         self.tape = tape
         self.timesteps = schedule.max_n
         self.mode = Mode.RECORD
-        self._iterator = iter(self.forward)
-        self._current = next(self._iterator)
+        # self._iterator = iter(self.forward)
+        self._current = None
         self._configuration = None
         self._configuration_step = None
         self._stored_timesteps = []
@@ -67,17 +69,23 @@ class CheckpointManager:
         # Tell the tape to only checkpoint input data until told otherwise.
         self.tape.latest_checkpoint = 0
         # Process any initial instructions on the tape.
-        self.end_timestep(-1)
+        self.run_fwd(0)
 
-    def end_timestep(self, timestep):
+    def run_fwd(self, timestep):
         """Process the end of a timestep while recording."""
         if self.mode == Mode.EVALUATED:
             raise CheckpointError("Not enough timesteps in schedule.")
         elif self.mode != Mode.RECORD:
             raise CheckpointError(f"Cannot end timestep in {self.mode}")
 
-        while not self.process_taping(self._current, timestep + 1):
-            self._current = next(self._iterator)
+        # while not self.process_taping(self._current, timestep + 1):
+        for index, schedule_action in enumerate(self._schedule):
+            self.process_taping(schedule_action, timestep + 1)
+            if index == self.end_fwd:
+                break
+
+    # def execute_reverse(self, reverse):
+
 
     def end_taping(self):
         current_timestep = self.tape.latest_timestep
@@ -106,14 +114,12 @@ class CheckpointManager:
         self._configuration = schedule_action
         self._configuration_step = timestep
 
-        # weird! see later
+        # Wheter to store the adjoint dependency data.
         self.tape._eagerly_checkpoint_outputs = schedule_action.write_adj_deps
 
-        # tape._package_data is empty. So, I need to verify how to use this.
         for data in self.tape._package_data.values():
             data.configure_checkpointing(schedule_action.storage)
-        # It is failing here. I need to check why self.tape.timesteps[schedule_action.n0]
-        # is not working. Why we do not have the checkpoint for this timestep?
+
         self.tape.timesteps[schedule_action.n0].checkpoint()
 
         for data in self.tape._package_data.values():
