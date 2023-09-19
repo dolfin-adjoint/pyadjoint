@@ -1,7 +1,8 @@
 from enum import Enum
+import sys
 from functools import singledispatchmethod
 from checkpoint_schedules import Copy,\
-     Move, EndForward, EndReverse, Forward, Reverse
+     Move, EndForward, EndReverse, Forward, Reverse, StorageType
 
 
 class CheckpointError(RuntimeError):
@@ -51,13 +52,16 @@ def process_schedule(schedule):
 class CheckpointManager:
     def __init__(self, schedule, tape, n_steps):
         self.forward, self.reverse = process_schedule(schedule)
-        if schedule._snapshots_on_disk > 0 and not tape._package_data:
+        if schedule.uses_storage_type(StorageType.DISK) and not tape._package_data:
             raise CheckpointError(
                 "The schedule employs disk checkpointing but it is not configured."
             )
         self.tape = tape
-        self.timesteps = n_steps
-        # schedule.max_n
+        self._schedule = schedule
+        if schedule.max_n is None:
+            self.timesteps = n_steps
+        else:
+            self.timesteps = schedule.max_n
         self.mode = Mode.RECORD
         self._iterator = iter(self.forward)
         self._current = next(self._iterator)
@@ -125,9 +129,11 @@ class CheckpointManager:
 
     # process_taping is used in the forward and end forward run.
     @process_taping.register(EndForward)
-    def _(self, operation, timestep):
+    def _(self, schedule_action, timestep):
         
         self.mode = Mode.EVALUATED
+        if self._schedule._max_n is None:
+            self._schedule._max_n = self.timesteps
         return True
 
     def recompute(self, functional=None):

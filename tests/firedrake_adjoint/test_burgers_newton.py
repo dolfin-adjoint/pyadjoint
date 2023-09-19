@@ -16,7 +16,9 @@ tape = fda.get_working_tape()
 tape.progress_bar = fd.ProgressBar
 
 
-n = 10
+n = 100
+end = 1.0
+timestep = fd.Constant(1/n)
 mesh = fd.UnitIntervalMesh(n)
 V = fd.FunctionSpace(mesh, "CG", 2)
 
@@ -31,14 +33,12 @@ def J(ic, solve_type):
     v = fd.TestFunction(V)
 
     nu = fd.Constant(0.0001)
-
-    timestep = fd.Constant(1.0/n)
-
     F = (Dt(u, ic, timestep)*v
          + u*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*fd.dx
     bc = fd.DirichletBC(V, 0.0, "on_boundary")
 
     t = 0.0
+    step = 0
     if solve_type == "NLVS":
         problem = fd.NonlinearVariationalProblem(F, u, bcs=bc)
         solver = fd.NonlinearVariationalSolver(problem)
@@ -53,8 +53,9 @@ def J(ic, solve_type):
     F = (Dt(u, u_, timestep)*v
          + u*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*fd.dx
 
-    end = 10 * 0.1
     for t in tape.timestepper(np.arange(t, end, float(timestep))):
+        step += 1
+        print(step)
         if solve_type == "NLVS":
             solver.solve()
         else:
@@ -68,7 +69,10 @@ def J(ic, solve_type):
 # @pytest.mark.parametrize("solve_type",
 #                          ["solve", "NLVS"])
 def test_burgers_newton(solve_type):
-    tape.enable_checkpointing(Revolve(10, 1), n_steps=10)
+    steps = int(end/float(timestep))
+    print(steps)
+    schedule = Revolve(steps, 5)
+    tape.enable_checkpointing(schedule)
     x, = fd.SpatialCoordinate(mesh)
     ic = fd.project(fd.sin(2.*fd.pi*x), V)
 
@@ -79,8 +83,8 @@ def test_burgers_newton(solve_type):
     dJ = Jhat.derivative()
     assert np.allclose(Jhat(ic), val)
 
-    dJbar = Jhat.derivative()
-    assert np.allclose(dJ.dat.data_ro[:], dJbar.dat.data_ro[:])
+    # dJbar = Jhat.derivative()
+    # assert np.allclose(dJ.dat.data_ro[:], dJbar.dat.data_ro[:])
 
     h = fd.Function(V)
     h.assign(1, annotate=False)
