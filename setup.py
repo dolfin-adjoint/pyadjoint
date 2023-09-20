@@ -5,7 +5,8 @@ extras = {
     'moola': ['moola>=0.1.6'],
     'test': ['pytest>=3.10', 'flake8', 'coverage'],
     'visualisation': ['tensorflow', 'protobuf',
-                      'networkx', 'pygraphviz'],
+                      'networkx', 'pygraphviz',
+                      'checkpoint_schedules'],
     'meshing': ['pygmsh', 'meshio'],
     'doc': ['sphinx', 'sphinx-autobuild', 'sphinxcontrib-bibtex']
 }

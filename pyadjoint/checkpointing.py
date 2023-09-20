@@ -107,12 +107,12 @@ class CheckpointManager:
             raise CheckpointError(
                 "Timestep is before start of Forward action."
             )
-        if schedule_action.write_ics:
-            self.tape.latest_checkpoint = timestep
         self._configuration = schedule_action
         self._configuration_step = timestep
-
-        self.tape._eagerly_checkpoint_outputs = schedule_action.write_adj_deps
+        if timestep == schedule_action.n1:
+            self.tape._eagerly_checkpoint_outputs = schedule_action.write_adj_deps  # noqa: E501
+        else:
+            self.tape._eagerly_checkpoint_outputs = False
         if timestep in schedule_action:
             self.tape.get_blocks().append_step()
 

@@ -2,25 +2,19 @@
 Implementation of Burger's equation with nonlinear solve in each
 timestep
 """
-# import pytest
-# pytest.importorskip("firedrake")
-from checkpoint_schedules import *
+import pytest
+pytest.importorskip("firedrake")
+
+from firedrake import *
+from firedrake_adjoint import *
+from checkpoint_schedules import Revolve
 import numpy as np
-import firedrake as fd
-import firedrake.adjoint as fda
 
-fd.set_log_level(fd.CRITICAL)
-fda.continue_annotation()
+set_log_level(CRITICAL)
 
-tape = fda.get_working_tape()
-tape.progress_bar = fd.ProgressBar
-
-
-n = 100
-end = 1.0
-timestep = fd.Constant(1/n)
-mesh = fd.UnitIntervalMesh(n)
-V = fd.FunctionSpace(mesh, "CG", 2)
+n = 30
+mesh = UnitIntervalMesh(n)
+V = FunctionSpace(mesh, "CG", 2)
 
 
 def Dt(u, u_, timestep):
@@ -28,67 +22,66 @@ def Dt(u, u_, timestep):
 
 
 def J(ic, solve_type):
-    u_ = fd.Function(V)
-    u = fd.Function(V)
-    v = fd.TestFunction(V)
+    u_ = Function(V)
+    u = Function(V)
+    v = TestFunction(V)
 
-    nu = fd.Constant(0.0001)
+    nu = Constant(0.0001)
+
+    timestep = Constant(1.0/n)
+
     F = (Dt(u, ic, timestep)*v
-         + u*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*fd.dx
-    bc = fd.DirichletBC(V, 0.0, "on_boundary")
+         + u*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*dx
+    bc = DirichletBC(V, 0.0, "on_boundary")
 
     t = 0.0
-    step = 0
     if solve_type == "NLVS":
-        problem = fd.NonlinearVariationalProblem(F, u, bcs=bc)
-        solver = fd.NonlinearVariationalSolver(problem)
+        problem = NonlinearVariationalProblem(F, u, bcs=bc)
+        solver = NonlinearVariationalSolver(problem)
         solver.solve()
     else:
-        fd.solve(F == 0, u, bc)
+        solve(F == 0, u, bc)
     u_.assign(u)
-    tape = fda.get_working_tape()
+    tape = get_working_tape()
     tape.end_timestep()
     t += float(timestep)
 
     F = (Dt(u, u_, timestep)*v
-         + u*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*fd.dx
+         + u*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*dx
 
+    end = 0.2
     for t in tape.timestepper(np.arange(t, end, float(timestep))):
-        step += 1
-        print(step)
         if solve_type == "NLVS":
             solver.solve()
         else:
-            fd.solve(F == 0, u, bc)
+            solve(F == 0, u, bc)
         u_.assign(u)
-        if t == end:
-            break
-    return fd.assemble(u_*u_*fd.dx + ic*ic*fd.dx)
+
+    return assemble(u_*u_*dx + ic*ic*dx)
 
 
-# @pytest.mark.parametrize("solve_type",
-#                          ["solve", "NLVS"])
+@pytest.mark.parametrize("solve_type",
+                         ["solve", "NLVS"])
 def test_burgers_newton(solve_type):
-    steps = int(end/float(timestep))
-    print(steps)
-    schedule = Revolve(steps, 5)
-    tape.enable_checkpointing(schedule)
-    x, = fd.SpatialCoordinate(mesh)
-    ic = fd.project(fd.sin(2.*fd.pi*x), V)
+    tape = get_working_tape()
+    tape.progress_bar = ProgressBar
+    tape.enable_checkpointing(Revolve(7, 2))
+
+    x, = SpatialCoordinate(mesh)
+    ic = project(sin(2.*pi*x), V)
 
     val = J(ic, solve_type)
-    # dJdc = fda.compute_gradient(val, fda.Control(ic))
-    # assert len(tape.timesteps) == 3
-    Jhat = fda.ReducedFunctional(val, fda.Control(ic))
+    assert len(tape.timesteps) == 7
+    Jhat = ReducedFunctional(val, Control(ic))
     dJ = Jhat.derivative()
-    assert np.allclose(Jhat(ic), val)
-
-    # dJbar = Jhat.derivative()
-    # assert np.allclose(dJ.dat.data_ro[:], dJbar.dat.data_ro[:])
-
-    h = fd.Function(V)
+    assert(np.allclose(Jhat(ic), val))
+    dJbar = Jhat.derivative()
+    dif = max(abs(dJ.dat.data_ro[:] - dJbar.dat.data_ro[:]))/max(abs(dJ.dat.data_ro[:]))
+    print(dif)
+    assert np.allclose(dJ.dat.data_ro[:], dJbar.dat.data_ro[:])
+    h = Function(V)
     h.assign(1, annotate=False)
-    assert fda.taylor_test(Jhat, ic, h) > 1.9
+    assert taylor_test(Jhat, ic, h) > 1.9
 
 
 test_burgers_newton("solve")
