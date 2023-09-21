@@ -5,8 +5,8 @@ extras = {
     'moola': ['moola>=0.1.6'],
     'test': ['pytest>=3.10', 'flake8', 'coverage'],
     'visualisation': ['tensorflow', 'protobuf',
-                      'networkx', 'pygraphviz',
-                      'checkpoint-schedules'],
+                      'networkx', 'pygraphviz'
+                     ],
     'meshing': ['pygmsh', 'meshio'],
     'doc': ['sphinx', 'sphinx-autobuild', 'sphinxcontrib-bibtex']
 }
@@ -25,6 +25,6 @@ setup(name='pyadjoint',
       package_dir={'pyadjoint': 'pyadjoint',
                    'firedrake_adjoint': 'firedrake_adjoint',
                    'numpy_adjoint': 'numpy_adjoint'},
-      install_requires=['scipy>=1.0'],
+      install_requires=['scipy>=1.0', 'checkpoint-schedules'],
       extras_require=extras
       )
