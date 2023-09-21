@@ -6,7 +6,7 @@ extras = {
     'test': ['pytest>=3.10', 'flake8', 'coverage'],
     'visualisation': ['tensorflow', 'protobuf',
                       'networkx', 'pygraphviz',
-                      'checkpoint_schedules'],
+                      'checkpoint-schedules'],
     'meshing': ['pygmsh', 'meshio'],
     'doc': ['sphinx', 'sphinx-autobuild', 'sphinxcontrib-bibtex']
 }
