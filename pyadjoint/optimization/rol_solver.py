@@ -20,8 +20,9 @@ try:
             return self._val
 
         def gradient(self, g, x, tol):
-            self.deriv = self.rf.derivative()
-            g.dat = g.riesz_map(self.deriv)
+            opts = {"riesz_representation": x.inner_product}
+            self.deriv = self.rf.derivative(options=opts)
+            g.dat = Enlist(self.deriv)
 
         def hessVec(self, hv, v, x, tol):
             hessian_action = self.rf.hessian(v.dat)
