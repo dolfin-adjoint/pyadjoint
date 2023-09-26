@@ -25,8 +25,9 @@ try:
             g.dat = Enlist(self.deriv)
 
         def hessVec(self, hv, v, x, tol):
-            hessian_action = self.rf.hessian(v.dat)
-            hv.dat = hv.riesz_map(hessian_action)
+            opts = {"riesz_representation": x.inner_product}
+            hessian_action = self.rf.hessian(v.dat, options=opts)
+            hv.dat = Enlist(hessian_action)
 
         def update(self, x, flag, iteration):
             if hasattr(ROL, "UpdateType") and isinstance(flag, ROL.UpdateType):
