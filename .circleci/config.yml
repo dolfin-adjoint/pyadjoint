@@ -59,7 +59,7 @@ jobs:
       - run:
           name: Install dolfin-adjoint
           command: |
-            git clone --branch dham/default_annotate_on https://github.com/dolfin-adjoint/dolfin-adjoint ~/dolfin-adjoint
+            git clone https://github.com/dolfin-adjoint/dolfin-adjoint ~/dolfin-adjoint
             python3 -m pip install -e ~/dolfin-adjoint[all]
 
       - run:
