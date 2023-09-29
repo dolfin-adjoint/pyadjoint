@@ -209,7 +209,7 @@ class Tape(object):
         for step in self.timesteps[last_used + 1:]:
             step.checkpointable_state.add(block_var)
 
-    def enable_checkpointing(self, schedule, max_n=None):
+    def enable_checkpointing(self, schedule):
         """Enable checkpointing of block variables.
 
         Parameters
@@ -223,7 +223,7 @@ class Tape(object):
             raise CheckpointError(
                 "Checkpointing must be enabled before any blocks are added to the tape."
             )
-        self._checkpoint_manager = CheckpointManager(schedule, self, max_n)
+        self._checkpoint_manager = CheckpointManager(schedule, self)
 
     def get_blocks(self, tag=None):
         """Returns a list of the blocks on the tape.

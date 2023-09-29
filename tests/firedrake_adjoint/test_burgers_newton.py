@@ -3,26 +3,25 @@ Implementation of Burger's equation with nonlinear solve in each
 timestep
 """
 import pytest
+from checkpoint_schedules import Revolve
 pytest.importorskip("firedrake")
 
 from firedrake import *
 from firedrake.adjoint import *
-from checkpoint_schedules import Revolve, SingleMemoryStorageSchedule
-import numpy as np
+
 
 set_log_level(CRITICAL)
 continue_annotation()
+
 n = 30
-mesh = UnitIntervalMesh(n)
-V = FunctionSpace(mesh, "CG", 2)
-end = 0.2
+end = 0.3
 timestep = Constant(1.0/n)
 steps = int(end/float(timestep)) + 1
-# print(steps)
-# quit()
+mesh = UnitIntervalMesh(n)
+V = FunctionSpace(mesh, "CG", 2)
+
 def Dt(u, u_, timestep):
     return (u - u_)/timestep
-
 
 def J(ic, solve_type):
     u_ = Function(V)
@@ -30,6 +29,8 @@ def J(ic, solve_type):
     v = TestFunction(V)
 
     nu = Constant(0.0001)
+
+    timestep = Constant(1.0/n)
 
     F = (Dt(u, ic, timestep)*v
          + u*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*dx
@@ -43,52 +44,58 @@ def J(ic, solve_type):
     else:
         solve(F == 0, u, bc)
     u_.assign(u)
-    tape = get_working_tape()
-    tape.end_timestep()
     t += float(timestep)
 
     F = (Dt(u, u_, timestep)*v
          + u*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*dx
 
-    step = 0
-    for t in tape.timestepper(np.arange(t, end, float(timestep))):
+    while (t <= end):
         if solve_type == "NLVS":
             solver.solve()
         else:
             solve(F == 0, u, bc)
         u_.assign(u)
-        step += 1
-        print(step)
+        breakpoint()
+        t += float(timestep)
 
     return assemble(u_*u_*dx + ic*ic*dx)
 
 
-@pytest.mark.parametrize("solve_type",
-                         ["solve", "NLVS"])
-def test_burgers_newton(solve_type):
-    tape = get_working_tape()
-    tape.progress_bar = ProgressBar
-    tape.enable_checkpointing(Revolve(steps, 1))
-        # SingleMemoryStorageSchedule(), max_n=steps)
-        # Revolve(7, 2))
+@pytest.mark.parametrize("solve_type, checkpointing, snapshots_in_ram",
+                         [
+                            ("solve", True, 1),
+                            ("NLVS", True, 1),
+                            ("solve", True, steps//3),
+                            ("NLVS", True, steps//3),
+                            ("solve", True, steps//2),
+                            ("NLVS", True, steps//2),
+                            ("solve", True, steps),
+                            ("NLVS", True, steps),
+                            ("solve", False, steps),
+                            ("NLVS", False, steps)
+                         ])
+def test_burgers_newton(solve_type, checkpointing, snapshots_in_ram):
+    if checkpointing:
+        tape = get_working_tape()
+        tape.progress_bar = ProgressBar
+        tape.enable_checkpointing(Revolve(steps, snapshots_in_ram))
 
+    
     x, = SpatialCoordinate(mesh)
-    ic = project(sin(2.*pi*x), V)
+    ic = project(sin(2*pi*x),  V)
 
     val = J(ic, solve_type)
-    assert len(tape.timesteps) == steps
+    if checkpointing:
+        assert len(tape.timesteps) == steps
     Jhat = ReducedFunctional(val, Control(ic))
     dJ = Jhat.derivative()
     val1 = Jhat(ic)
     assert(np.allclose(val1, val))
-    print(val1, val)
     dJbar = Jhat.derivative()
-    dif = max(abs(dJ.dat.data_ro[:] - dJbar.dat.data_ro[:]))/max(abs(dJ.dat.data_ro[:]))
-    print(dif)
     assert np.allclose(dJ.dat.data_ro[:], dJbar.dat.data_ro[:])
     h = Function(V)
     h.assign(1, annotate=False)
     assert taylor_test(Jhat, ic, h) > 1.9
 
 
-test_burgers_newton("solve")
+test_burgers_newton("solve", True, 2)
