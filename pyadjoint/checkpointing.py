@@ -47,37 +47,22 @@ def process_schedule(schedule):
     AdjointSchedule, AdjointSchedule
         The forward and adjoint schedules.
     """
-    # schedule = list(schedule)
-    # index = 0
-    # forward_steps = 0
-
-    # while not isinstance(schedule[index], EndForward):
-    #     if isinstance(schedule[index], Forward):
-    #         forward_steps += len(schedule[index])
-    #     index += 1
-    # end_forward = index + 1
-    # reverse_steps = 0
-
-    # while not isinstance(schedule[index], EndReverse):
-    #     if isinstance(schedule[index], Reverse) or isinstance(schedule[index], Forward):  # noqa: E501
-    #         reverse_steps += len(schedule[index])
-    #     index += 1
-  
-    # forward = AdjointSchedule(schedule[:end_forward], forward_steps)
-    # reverse = AdjointSchedule(schedule[end_forward:], reverse_steps)
-
-    # return forward, reverse
-
     schedule = list(schedule)
-
-    # end_forward = schedule.index(EndForward()) + 1
     index = 0
+    forward_steps = 0
+
     while not isinstance(schedule[index], EndForward):
+        if isinstance(schedule[index], Forward):
+            forward_steps += len(schedule[index])
         index += 1
     end_forward = index + 1
-    forward_steps = sum(map(len, schedule[:end_forward-1]))
-    reverse_steps = sum(map(len, schedule[end_forward:-1]))
+    reverse_steps = 0
 
+    while not isinstance(schedule[index], EndReverse):
+        if isinstance(schedule[index], Reverse) or isinstance(schedule[index], Forward):  # noqa: E501
+            reverse_steps += len(schedule[index])
+        index += 1
+  
     forward = AdjointSchedule(schedule[:end_forward], forward_steps)
     reverse = AdjointSchedule(schedule[end_forward:], reverse_steps)
 
@@ -134,7 +119,6 @@ class CheckpointManager:
             raise CheckpointError("Not enough timesteps in schedule.")
         elif self.mode != Mode.RECORD:
             raise CheckpointError(f"Cannot end timestep in {self.mode}")
-        breakpoint()
         while not self.process_taping(self._current, timestep + 1):
             self._current = next(self._iterator)
 
@@ -155,7 +139,7 @@ class CheckpointManager:
 
         Parameters
         ----------
-        cp_action : checkpoint_schedules.schedule
+        cp_action : CheckpointAction
             A schedule provided by the checkpoint_schedules package.
         timestep : int
             The number of forward steps in the initial forward calculation.
