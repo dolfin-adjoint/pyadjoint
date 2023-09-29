@@ -1,5 +1,4 @@
 from enum import Enum
-import sys
 from functools import singledispatchmethod
 from checkpoint_schedules import (Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType)
 from checkpoint_schedules import Revolve
@@ -62,7 +61,6 @@ def process_schedule(schedule):
         if isinstance(schedule[index], Reverse) or isinstance(schedule[index], Forward):  # noqa: E501
             reverse_steps += len(schedule[index])
         index += 1
-  
     forward = AdjointSchedule(schedule[:end_forward], forward_steps)
     reverse = AdjointSchedule(schedule[end_forward:], reverse_steps)
 
@@ -109,7 +107,7 @@ class CheckpointManager:
 
     def end_timestep(self, timestep):
         """Process the end of a timestep while recording.
-        
+
         Parameters
         ----------
         timestep : int
@@ -121,7 +119,6 @@ class CheckpointManager:
             raise CheckpointError(f"Cannot end timestep in {self.mode}")
         while not self.process_taping(self._current, timestep + 1):
             self._current = next(self._iterator)
-
 
     def end_taping(self):
         """Process the end of the forward execution."""
@@ -152,7 +149,7 @@ class CheckpointManager:
             raise CheckpointError(
                 "Timestep is before start of Forward action."
             )
-        
+
         self._configuration = cp_action
         self._configuration_step = timestep
         self.tape._eagerly_checkpoint_outputs = False
@@ -205,7 +202,7 @@ class CheckpointManager:
             self.end_taping()
 
         if self.mode not in (Mode.EVALUATED, Mode.FINISHED_RECORDING):
-            raise CheckpointError("Evaluate Functional before calling gradient.")
+            raise CheckpointError("Evaluate Functional before calling gradient.")  # noqa: E501
 
         with self.tape.progress_bar("Evaluating Adjoint",
                                     max=self.rev_schedule.steps) as bar:
