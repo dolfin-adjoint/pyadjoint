@@ -8,18 +8,12 @@ from itertools import chain
 from abc import ABC, abstractmethod
 from .checkpointing import CheckpointManager, CheckpointError
 
-
 _working_tape = None
 _annotation_enabled = False
 
 
 def get_working_tape():
     return _working_tape
-
-
-def set_working_tape(tape):
-    global _working_tape
-    _working_tape = tape
 
 
 def pause_annotation():
@@ -31,6 +25,46 @@ def continue_annotation():
     global _annotation_enabled
     _annotation_enabled = True
     return _annotation_enabled
+
+
+class set_working_tape(object):
+    """A context manager whithin which a new tape is set as the working tape.
+       This context manager can also be used in an imperative manner.
+
+       Example usage:
+
+        1) Set a new tape as the working tape:
+
+            .. highlight:: python
+            .. code-block:: python
+
+                set_working_tape(Tape())
+
+        2) Set a local tape within a context manager:
+
+            .. highlight:: python
+            .. code-block:: python
+
+                with set_working_tape() as tape:
+                    ...
+    """
+
+    def __init__(self, tape=None, **tape_kwargs):
+        # Get working tape
+        global _working_tape
+        # Store current tape
+        self.old_tape = _working_tape
+        # Set new tape
+        self.tape = tape or Tape(**tape_kwargs)
+        _working_tape = self.tape
+
+    def __enter__(self):
+        return self.tape
+
+    def __exit__(self, *args):
+        # Re-establish the original tape
+        global _working_tape
+        _working_tape = self.old_tape
 
 
 class stop_annotating(object):
@@ -45,6 +79,7 @@ class stop_annotating(object):
     changes the value of inputs to the adjoint calculation such as time varying
     forcings. Its effect is to create a new block variable for each of the
     modified variables at the end of the context manager. """
+
     def __init__(self, modifies=None):
         global _annotation_enabled
         self.modifies = modifies
@@ -127,13 +162,14 @@ class Tape(object):
     __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks", "_nodes",
                  "_tf_registered_blocks", "_bar", "_package_data",
                  "latest_checkpoint", "_checkpoint_manager",
-                 "_eagerly_checkpoint_outputs"]
+                 "_eagerly_checkpoint_outputs", "_time_dependent"]
 
-    def __init__(self, blocks=(), package_data=None):
+    def __init__(self, blocks=None, package_data=None):
         # Initialize the list of blocks on the tape.
-        self._blocks = TimeStepSequence(blocks)
+        self._blocks = [] if blocks is None else blocks
         # Dictionary of TensorFlow tensors. Key is id(block).
         self._tf_tensors = {}
+        self._time_dependent = False
         # Keep a list of blocks that has been added to the TensorFlow graph
         self._tf_added_blocks = []
         self._tf_registered_blocks = []
@@ -147,12 +183,9 @@ class Tape(object):
         # Whether to store the adjoint dependencies.
         self._eagerly_checkpoint_outputs = False
 
-    def __len__(self):
-        return len(self._blocks)
-
     def clear_tape(self):
         self.reset_variables()
-        self._blocks = TimeStepSequence()
+        self._blocks = []
         for data in self._package_data.values():
             data.clear()
         self._checkpoint_manager = None
@@ -296,7 +329,7 @@ class Tape(object):
         """
         # TODO: Offer deepcopying. But is it feasible memory wise to copy all checkpoints?
         return Tape(
-            blocks=self._blocks,  # TimeStepSequence.__init__ does the copy.
+            blocks=self._blocks[:],
             package_data={k: v.copy() for k, v in self._package_data.items()}
         )
 
@@ -317,9 +350,7 @@ class Tape(object):
                 chain.from_iterable(b.get_outputs() for b in self.get_blocks(tag)),
                 (control.block_variable for control in controls))
         }
-        state_dict["package_data"] = {
-            k: v.checkpoint_tape() for k, v in self._package_data.items()
-        }
+        state_dict["package_data"] = {k: v.checkpoint() for k, v in self._package_data.items()}
         return state_dict
 
     def restore_block_vars(self, block_vars):
@@ -341,7 +372,7 @@ class Tape(object):
             k._checkpoint = v
 
         for k, v in self._package_data.items():
-            v.restore_tape_from_checkpoint(package_data[k])
+            v.restore_from_checkpoint(package_data[k])
 
     def optimize(self, controls=None, functionals=None):
         if controls is not None:
@@ -353,14 +384,35 @@ class Tape(object):
     def optimize_for_controls(self, controls):
         # TODO: Consider if we want Enlist wherever it is possible. Like in this case.
         # TODO: Consider warning/message on empty tape.
+        blocks = self.get_blocks()
         nodes = set([control.block_variable for control in controls])
-        discarded_variables = set()
-        optimized_timesteps = TimeStepSequence()
+        valid_blocks = []
+        if self._time_dependent:
+            discarded_variables = set()
+            optimized_timesteps = TimeStepSequence()
 
-        for step in self._blocks.steps:
-            optimized_timesteps.append_step()
+            for step in self._blocks.steps:
+                optimized_timesteps.append_step()
 
-            for block in step:
+                for block in step:
+                    depends_on_control = False
+                    for dep in block.get_dependencies():
+                        if dep in nodes:
+                            depends_on_control = True
+
+                    if depends_on_control:
+                        for output in block.get_outputs():
+                            if output in nodes:
+                                raise RuntimeError("Control depends on another control.")
+                            nodes.add(output)
+                        optimized_timesteps.append(block)
+                    else:
+                        discarded_variables.union(block.get_outputs())
+                optimized_timesteps.steps[-1].checkpointable_state = \
+                    step.checkpointable_state - discarded_variables
+            self._blocks = optimized_timesteps
+        else:
+            for block in blocks:
                 depends_on_control = False
                 for dep in block.get_dependencies():
                     if dep in nodes:
@@ -371,41 +423,49 @@ class Tape(object):
                         if output in nodes:
                             raise RuntimeError("Control depends on another control.")
                         nodes.add(output)
-                    optimized_timesteps.append(block)
-                else:
-                    discarded_variables.union(block.get_outputs())
-            optimized_timesteps.steps[-1].checkpointable_state = \
-                step.checkpointable_state - discarded_variables
-
-        self._blocks = optimized_timesteps
+                    valid_blocks.append(block)
+            self._blocks = valid_blocks
 
     def optimize_for_functionals(self, functionals):
-        retained_nodes = set(
-            [functional.block_variable for functional in functionals]
-        )
-        optimized_timesteps = []
+        blocks = self.get_blocks()
+        nodes = set([functional.block_variable for functional in functionals])
+        valid_blocks = []
+        if self._time_dependent:
+            optimized_timesteps = []
 
-        for step in reversed(self._blocks.steps):
-            current_blocks = []
-            for block in reversed(step):
+            for step in reversed(self._blocks.steps):
+                current_blocks = []
+                for block in reversed(step):
+                    produces_functional = False
+                    for dep in block.get_outputs():
+                        if dep in retained_nodes:
+                            produces_functional = True
+
+                    if produces_functional:
+                        for dep in block.get_dependencies():
+                            retained_nodes.add(dep)
+                        current_blocks.append(block)
+                optimized_timesteps.append(TimeStep(reversed(current_blocks)))
+
+            optimized_timesteps.reverse()
+
+            for step, new_step in zip(self._blocks.steps, optimized_timesteps):
+                new_step.checkpointable_state = \
+                    step.checkpointable_state & retained_nodes
+
+            self._blocks = TimeStepSequence(steps=optimized_timesteps)
+        else:
+            for block in reversed(blocks):
                 produces_functional = False
                 for dep in block.get_outputs():
-                    if dep in retained_nodes:
+                    if dep in nodes:
                         produces_functional = True
 
                 if produces_functional:
                     for dep in block.get_dependencies():
-                        retained_nodes.add(dep)
-                    current_blocks.append(block)
-            optimized_timesteps.append(TimeStep(reversed(current_blocks)))
-
-        optimized_timesteps.reverse()
-
-        for step, new_step in zip(self._blocks.steps, optimized_timesteps):
-            new_step.checkpointable_state = \
-                step.checkpointable_state & retained_nodes
-
-        self._blocks = TimeStepSequence(steps=optimized_timesteps)
+                        nodes.add(dep)
+                    valid_blocks.append(block)
+            self._blocks = list(reversed(valid_blocks))
 
     @contextmanager
     def marked_nodes(self, controls):
@@ -640,6 +700,7 @@ class Tape(object):
 
 class _NullProgressBar:
     """A placeholder class with the same interface as a progress bar."""
+
     def __init__(self, *args, **kwargs):
         pass
 
@@ -775,22 +836,13 @@ class TapePackageData(ABC):
         pass
 
     @abstractmethod
-    def configure_checkpointing(self, location):
-        """Configure checkpointing for the next batch of checkpointed data.
-
-        Args:
-            location (str): checkpoint location, "RAM" or "Disk".
-        """
-        pass
-
-    @abstractmethod
-    def checkpoint_tape(self):
+    def checkpoint(self):
         """Record the information required to return to the current state."""
         pass
 
     @abstractmethod
-    def restore_tape_from_checkpoint(self, state):
-        """Restore state from a previously stored checkpoint."""
+    def restore_from_checkpoint(self, state):
+        """Restore state from a previously stored checkpioint."""
         pass
 
     @abstractmethod
