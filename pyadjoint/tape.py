@@ -10,7 +10,7 @@ from .checkpointing import CheckpointManager, CheckpointError
 
 
 _working_tape = None
-_stop_annotating = 0
+_annotation_enabled = False
 
 
 def get_working_tape():
@@ -23,14 +23,14 @@ def set_working_tape(tape):
 
 
 def pause_annotation():
-    global _stop_annotating
-    _stop_annotating += 1
+    global _annotation_enabled
+    _annotation_enabled = False
 
 
 def continue_annotation():
-    global _stop_annotating
-    _stop_annotating -= 1
-    return _stop_annotating <= 0
+    global _annotation_enabled
+    _annotation_enabled = True
+    return _annotation_enabled
 
 
 class stop_annotating(object):
@@ -46,13 +46,17 @@ class stop_annotating(object):
     forcings. Its effect is to create a new block variable for each of the
     modified variables at the end of the context manager. """
     def __init__(self, modifies=None):
+        global _annotation_enabled
         self.modifies = modifies
+        self._orig_annotation_enabled = _annotation_enabled
 
     def __enter__(self):
-        pause_annotation()
+        global _annotation_enabled
+        _annotation_enabled = False
 
     def __exit__(self, *args):
-        continue_annotation()
+        global _annotation_enabled
+        _annotation_enabled = self._orig_annotation_enabled
         if self.modifies is not None:
             try:
                 self.modifies.create_block_variable()
@@ -90,7 +94,7 @@ def annotate_tape(kwargs=None):
 
     # TODO: Consider if there is any scenario where one would want the keyword to have
     # precedence over the global flag.
-    if _stop_annotating > 0:
+    if not _annotation_enabled:
         return False
 
     return annotate
