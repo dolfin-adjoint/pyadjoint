@@ -1,4 +1,4 @@
-from .tape import no_annotations
+from .tape import no_annotations, get_working_tape
 
 
 class BlockVariable(object):
@@ -16,6 +16,10 @@ class BlockVariable(object):
         self.floating_type = False
         # Helper flag for use during tape traversals.
         self.marked_in_path = False
+        # By default assume the variable is created externally to the tape.
+        self.creation_timestep = -1
+        # The timestep during which this variable was last used as an input.
+        self.last_use = -1
 
     def add_adj_output(self, val):
         if self.adj_value is None:
@@ -58,14 +62,35 @@ class BlockVariable(object):
             return self.output
 
     def will_add_as_dependency(self):
-        overwrite = self.output._ad_will_add_as_dependency()
-        overwrite = False if overwrite is None else overwrite
-        self.save_output(overwrite=overwrite)
+        tape = get_working_tape()
+        if tape._time_dependent:
+            overwrite = self.output._ad_will_add_as_dependency()
+            overwrite = False if overwrite is None else overwrite
+            
+            if self.last_use < tape.latest_checkpoint:
+                self.save_output(overwrite=overwrite)
+            tape.add_to_checkpointable_state(self, self.last_use)
+            self.last_use = tape.latest_timestep
+        else:
+            overwrite = self.output._ad_will_add_as_dependency()
+            overwrite = False if overwrite is None else overwrite
+            self.save_output(overwrite=overwrite)
 
     def will_add_as_output(self):
-        overwrite = self.output._ad_will_add_as_output()
-        overwrite = True if overwrite is None else overwrite
-        self.save_output(overwrite=overwrite)
+        if get_working_tape()._time_dependent:
+            tape = get_working_tape()
+            self.creation_timestep = tape.latest_timestep
+            self.last_use = self.creation_timestep
+            overwrite = self.output._ad_will_add_as_output()
+            overwrite = True if overwrite is None else overwrite
+            if overwrite:
+                self._checkpoint = None
+            if tape._eagerly_checkpoint_outputs:
+                self.save_output()
+        else:
+            overwrite = self.output._ad_will_add_as_output()
+            overwrite = True if overwrite is None else overwrite
+            self.save_output(overwrite=overwrite)
 
     def __str__(self):
         return str(self.output)
