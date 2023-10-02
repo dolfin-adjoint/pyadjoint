@@ -1,4 +1,4 @@
-from .tape import no_annotations, get_working_tape
+from .tape import no_annotations
 
 
 class BlockVariable(object):
@@ -16,11 +16,7 @@ class BlockVariable(object):
         self.floating_type = False
         # Helper flag for use during tape traversals.
         self.marked_in_path = False
-        if get_working_tape()._time_dependent:
-            # By default assume the variable is created externally to the tape.
-            self.creation_timestep = -1
-            # The timestep during which this variable was last used as an input.
-            self.last_use = -1
+
     def add_adj_output(self, val):
         if self.adj_value is None:
             self.adj_value = val
@@ -64,15 +60,7 @@ class BlockVariable(object):
     def will_add_as_dependency(self):
         overwrite = self.output._ad_will_add_as_dependency()
         overwrite = False if overwrite is None else overwrite
-        tape = get_working_tape()
-        if tape._time_dependent:
-            if self.last_use < tape.latest_checkpoint:
-                self.save_output(overwrite=overwrite)
-            if tape._enable_checkpointing:
-                tape.add_to_checkpointable_state(self, self.last_use)
-            self.last_use = tape.latest_timestep
-        else:  
-            self.save_output(overwrite=overwrite)
+        self.save_output(overwrite=overwrite)
 
     def will_add_as_output(self):
         overwrite = self.output._ad_will_add_as_output()
