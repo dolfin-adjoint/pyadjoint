@@ -436,10 +436,10 @@ class Tape(object):
 
         self._blocks = optimized_timesteps
 
-    def optimize_for_functionals(self, functionals): 
+    def optimize_for_functionals(self, functionals):
         nodes = set([functional.block_variable for functional in functionals])
         if self._time_dependent:
-            self.optimize_for_functionals_time_dependent(nodes)
+            self.optimize_for_functionals_time_dependent(nodes, functionals)
         else:
             blocks = self.get_blocks()
             optimized_blocks = []
@@ -455,10 +455,9 @@ class Tape(object):
                     optimized_blocks.append(block)
             self._blocks = list(reversed(optimized_blocks))
 
-    def optimize_for_functionals_time_dependent(self, nodes):
+    def optimize_for_functionals_time_dependent(self, nodes, functionals):
         retained_nodes = set(
-                [functional.block_variable for functional in functionals]
-            )
+            [functional.block_variable for functional in functionals])
         optimized_timesteps = []
 
         for step in reversed(self._blocks.steps):
