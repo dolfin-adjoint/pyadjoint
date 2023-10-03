@@ -1,4 +1,5 @@
 from .tape import no_annotations, get_working_tape
+from .checkpointing import CheckpointManager
 
 
 class BlockVariable(object):
@@ -63,32 +64,28 @@ class BlockVariable(object):
 
     def will_add_as_dependency(self):
         tape = get_working_tape()
-        if tape._time_dependent:
-            overwrite = self.output._ad_will_add_as_dependency()
-            overwrite = False if overwrite is None else overwrite
+        overwrite = self.output._ad_will_add_as_dependency()
+        overwrite = False if overwrite is None else overwrite
+        if isinstance(get_working_tape()._checkpoint_manager, CheckpointManager):
             if self.last_use < tape.latest_checkpoint:
                 self.save_output(overwrite=overwrite)
             tape.add_to_checkpointable_state(self, self.last_use)
             self.last_use = tape.latest_timestep
         else:
-            overwrite = self.output._ad_will_add_as_dependency()
-            overwrite = False if overwrite is None else overwrite
             self.save_output(overwrite=overwrite)
 
     def will_add_as_output(self):
-        if get_working_tape()._time_dependent:
+        overwrite = self.output._ad_will_add_as_output()
+        overwrite = True if overwrite is None else overwrite
+        if isinstance(get_working_tape()._checkpoint_manager, CheckpointManager):
             tape = get_working_tape()
             self.creation_timestep = tape.latest_timestep
             self.last_use = self.creation_timestep
-            overwrite = self.output._ad_will_add_as_output()
-            overwrite = True if overwrite is None else overwrite
             if overwrite:
                 self._checkpoint = None
             if tape._eagerly_checkpoint_outputs:
                 self.save_output()
         else:
-            overwrite = self.output._ad_will_add_as_output()
-            overwrite = True if overwrite is None else overwrite
             self.save_output(overwrite=overwrite)
 
     def __str__(self):

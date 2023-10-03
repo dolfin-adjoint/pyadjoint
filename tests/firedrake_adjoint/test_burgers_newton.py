@@ -9,7 +9,6 @@ from firedrake import *
 from firedrake.adjoint import *
 from checkpoint_schedules import Revolve
 import numpy as np
-
 set_log_level(CRITICAL)
 continue_annotation()
 n = 30
@@ -22,7 +21,7 @@ def Dt(u, u_, timestep):
     return (u - u_)/timestep
 
 
-def J(ic, solve_type, checkpointing):
+def J(ic, solve_type):
     u_ = Function(V)
     u = Function(V)
     v = TestFunction(V)
@@ -42,7 +41,8 @@ def J(ic, solve_type, checkpointing):
         solve(F == 0, u, bc)
     u_.assign(u)
     tape = get_working_tape()
-    tape.end_timestep()
+    if tape._time_dependent:
+        tape.end_timestep()
     t += float(timestep)
 
     F = (Dt(u, u_, timestep)*v
@@ -55,7 +55,7 @@ def J(ic, solve_type, checkpointing):
             solve(F == 0, u, bc)
         u_.assign(u)
 
-    if checkpointing:
+    if tape._time_dependent:
         for t in tape.timestepper(np.arange(t, end, float(timestep))):
             time_advance()
     else:
@@ -87,7 +87,7 @@ def test_burgers_newton(solve_type, snaps_in_ram, checkpointing):
     x, = SpatialCoordinate(mesh)
     ic = project(sin(2.*pi*x), V)
 
-    val = J(ic, solve_type, checkpointing)
+    val = J(ic, solve_type)
     if checkpointing:
         assert len(tape.timesteps) == steps
     Jhat = ReducedFunctional(val, Control(ic))
