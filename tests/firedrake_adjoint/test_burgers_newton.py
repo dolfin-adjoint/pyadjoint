@@ -100,3 +100,4 @@ def test_burgers_newton(solve_type, snaps_in_ram, checkpointing):
     h.assign(1, annotate=False)
     assert taylor_test(Jhat, ic, h) > 1.9
 
+test_burgers_newton("solve", 1, True)

@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from functools import wraps
 from itertools import chain
 from abc import ABC, abstractmethod
-from .checkpointing import CheckpointManager, CheckpointError
+from pyadjoint.checkpointing import CheckpointManager, CheckpointError
 
 
 _working_tape = None
@@ -15,11 +15,6 @@ _annotation_enabled = False
 
 def get_working_tape():
     return _working_tape
-
-
-def set_working_tape(tape):
-    global _working_tape
-    _working_tape = tape
 
 
 def pause_annotation():
@@ -31,6 +26,46 @@ def continue_annotation():
     global _annotation_enabled
     _annotation_enabled = True
     return _annotation_enabled
+
+
+class set_working_tape(object):
+    """A context manager whithin which a new tape is set as the working tape.
+       This context manager can also be used in an imperative manner.
+
+       Example usage:
+
+        1) Set a new tape as the working tape:
+
+            .. highlight:: python
+            .. code-block:: python
+
+                set_working_tape(Tape())
+
+        2) Set a local tape within a context manager:
+
+            .. highlight:: python
+            .. code-block:: python
+
+                with set_working_tape() as tape:
+                    ...
+    """
+
+    def __init__(self, tape=None, **tape_kwargs):
+        # Get working tape
+        global _working_tape
+        # Store current tape
+        self.old_tape = _working_tape
+        # Set new tape
+        self.tape = tape or Tape(**tape_kwargs)
+        _working_tape = self.tape
+
+    def __enter__(self):
+        return self.tape
+
+    def __exit__(self, *args):
+        # Re-establish the original tape
+        global _working_tape
+        _working_tape = self.old_tape
 
 
 class stop_annotating(object):
@@ -158,12 +193,12 @@ class Tape(object):
             self._blocks = TimeStepSequence()
             for data in self._package_data.values():
                 data.clear()
-            self._checkpoint_manager = None
         else:
             self.reset_variables()
             self._blocks = []
             for data in self._package_data.values():
                 data.clear()
+        self._checkpoint_manager = None
 
     @property
     def latest_timestep(self):
@@ -305,7 +340,7 @@ class Tape(object):
         """
         # TODO: Offer deepcopying. But is it feasible memory wise to copy all checkpoints?
         return Tape(
-            blocks=self._blocks,  # TimeStepSequence.__init__ does the copy.
+            blocks=self._blocks[:],
             package_data={k: v.copy() for k, v in self._package_data.items()}
         )
 
@@ -350,7 +385,7 @@ class Tape(object):
             k._checkpoint = v
 
         for k, v in self._package_data.items():
-            v.restore_tape_from_checkpoint(package_data[k])
+            v.restore_from_checkpoint(package_data[k])
 
     def optimize(self, controls=None, functionals=None):
         if controls is not None:
