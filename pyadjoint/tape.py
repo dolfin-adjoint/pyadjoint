@@ -161,12 +161,12 @@ class Tape(object):
     """
     __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks", "_nodes",
                  "_tf_registered_blocks", "_bar", "_package_data",
-                 "_checkpoint_manager", "_time_dependent", "latest_checkpoint",
+                 "_checkpoint_manager", "latest_checkpoint",
                  "_eagerly_checkpoint_outputs"]
 
     def __init__(self, blocks=None, package_data=None):
         # Initialize the list of blocks on the tape.
-        self._blocks = [] if blocks is None else blocks
+        self._blocks = TimeStepSequence(blocks=blocks) if blocks is not None else TimeStepSequence()  
         # Dictionary of TensorFlow tensors. Key is id(block).
         self._tf_tensors = {}
         # Keep a list of blocks that has been added to the TensorFlow graph
@@ -176,19 +176,16 @@ class Tape(object):
         # Hook location for packages which need to store additional data on the
         # tape. Packages should store the data under a "packagename" key.
         self._package_data = package_data or {}
-        self._time_dependent = False
+        # Default to checkpointing all block variables.
         self.latest_checkpoint = float("inf")
         self._checkpoint_manager = None
         # Whether to store the adjoint dependencies.
         self._eagerly_checkpoint_outputs = False
-        self._time_dependent = False
 
     def clear_tape(self):
+        """Clear the tape."""
         self.reset_variables()
-        if self._time_dependent:
-            self._blocks = TimeStepSequence()
-        else:
-            self._blocks = []
+        self._blocks = TimeStepSequence()
         for data in self._package_data.values():
             data.clear()
         self._checkpoint_manager = None
@@ -244,18 +241,29 @@ class Tape(object):
         return len(self._blocks) - 1
 
     def add_to_checkpointable_state(self, block_var, last_used):
+        """Add a block variable to the checkpointable state.
+        
+        Parameters
+        ----------
+        block_var : BlockVariable
+            The block variable to add.
+        last_used : int
+            The last timestep in which the block variable was used.
+        """
         if not self.timesteps:
             self._blocks.append_step()
         for step in self.timesteps[last_used + 1:]:
             step.checkpointable_state.add(block_var)
 
     def enable_checkpointing(self, schedule):
-        """Enable checkpointing of block variables.
+        """Enable checkpointing on the adjoint evaluation.
+        A checkpoint manager object is created to manage the
+        forward and adjoint computations.
 
         Parameters
         ----------
-        schedule : CheckpointingSchedule
-            The checkpointing schedule to use.
+        schedule : checkpoint_schedules.schedule
+            A schedule provided by the checkpoint_schedules package.
         max_n : int, optional
             The number of total steps.
         """
@@ -263,8 +271,6 @@ class Tape(object):
             raise CheckpointError(
                 "Checkpointing must be enabled before any blocks are added to the tape."
             )
-        self._time_dependent = True
-        self._blocks = TimeStepSequence()
         self._checkpoint_manager = CheckpointManager(schedule, self)
 
     def get_blocks(self, tag=None):
@@ -293,6 +299,18 @@ class Tape(object):
         return tags
 
     def evaluate_adj(self, last_block=0, markings=False):
+        """Evaluate the adjoint of the tape.
+
+        Parameters
+        ----------
+        last_block : int, optional
+            The index of the last block to evaluate. Default 0.
+        markings : bool, optional
+            If True, then each block_variable of the current block will have
+            set `marked_in_path` attribute indicating whether their adjoint
+            components are relevant for computing the final target adjoint
+            values. Default is False.
+        """
         if self._checkpoint_manager:
             self._checkpoint_manager.evaluate_adj(last_block, markings)
         else:
@@ -390,27 +408,6 @@ class Tape(object):
         # TODO: Consider if we want Enlist wherever it is possible. Like in this case.
         # TODO: Consider warning/message on empty tape.
         nodes = set([control.block_variable for control in controls])
-        if self._time_dependent:
-            self.optimize_for_controls_time_dependent(nodes)
-        else:
-            blocks = self.get_blocks()
-            optimized_blocks = []
-
-            for block in blocks:
-                depends_on_control = False
-                for dep in block.get_dependencies():
-                    if dep in nodes:
-                        depends_on_control = True
-
-                if depends_on_control:
-                    for output in block.get_outputs():
-                        if output in nodes:
-                            raise RuntimeError("Control depends on another control.")
-                        nodes.add(output)
-                    optimized_blocks.append(block)
-            self._blocks = optimized_blocks
-
-    def optimize_for_controls_time_dependent(self, nodes):
         discarded_variables = set()
         optimized_timesteps = TimeStepSequence()
 
@@ -437,27 +434,9 @@ class Tape(object):
         self._blocks = optimized_timesteps
 
     def optimize_for_functionals(self, functionals):
-        nodes = set([functional.block_variable for functional in functionals])
-        if self._time_dependent:
-            self.optimize_for_functionals_time_dependent(nodes, functionals)
-        else:
-            blocks = self.get_blocks()
-            optimized_blocks = []
-            for block in reversed(blocks):
-                produces_functional = False
-                for dep in block.get_outputs():
-                    if dep in nodes:
-                        produces_functional = True
-
-                if produces_functional:
-                    for dep in block.get_dependencies():
-                        nodes.add(dep)
-                    optimized_blocks.append(block)
-            self._blocks = list(reversed(optimized_blocks))
-
-    def optimize_for_functionals_time_dependent(self, nodes, functionals):
         retained_nodes = set(
-            [functional.block_variable for functional in functionals])
+            [functional.block_variable for functional in functionals]
+            )
         optimized_timesteps = []
 
         for step in reversed(self._blocks.steps):

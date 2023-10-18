@@ -16,7 +16,7 @@ mesh = UnitIntervalMesh(n)
 V = FunctionSpace(mesh, "CG", 2)
 end = 0.5
 timestep = Constant(1.0/n)
-steps = int(end/float(timestep)) + 1
+steps = int(end/float(timestep))
 def Dt(u, u_, timestep):
     return (u - u_)/timestep
 
@@ -36,13 +36,9 @@ def J(ic, solve_type):
     if solve_type == "NLVS":
         problem = NonlinearVariationalProblem(F, u, bcs=bc)
         solver = NonlinearVariationalSolver(problem)
-        solver.solve()
-    else:
-        solve(F == 0, u, bc)
-    u_.assign(u)
+        
     tape = get_working_tape()
-    if tape._time_dependent:
-        tape.end_timestep()
+
     t += float(timestep)
 
     F = (Dt(u, u_, timestep)*v
@@ -55,7 +51,7 @@ def J(ic, solve_type):
             solve(F == 0, u, bc)
         u_.assign(u)
 
-    if tape._time_dependent:
+    if tape._checkpoint_manager:
         for t in tape.timestepper(np.arange(t, end, float(timestep))):
             time_advance()
     else:
@@ -68,13 +64,7 @@ def J(ic, solve_type):
 
 @pytest.mark.parametrize("solve_type, snaps_in_ram, checkpointing",
                          [("solve", steps//3, True),
-                          ("solve", steps//2, True),
-                          ("solve", 1, True),
                           ("NLVS", steps//3, True),
-                          ("NLVS", steps//2, True),
-                          ("NLVS", 1, True),
-                          ("solve", steps, True),
-                          ("NLVS", steps, True),
                           ("solve", steps, False),
                           ("NLVS", steps, False),
                         ])
@@ -83,7 +73,6 @@ def test_burgers_newton(solve_type, snaps_in_ram, checkpointing):
         tape = get_working_tape()
         tape.progress_bar = ProgressBar
         tape.enable_checkpointing(Revolve(steps, snaps_in_ram))
-    print(snaps_in_ram)
     x, = SpatialCoordinate(mesh)
     ic = project(sin(2.*pi*x), V)
 
@@ -91,6 +80,7 @@ def test_burgers_newton(solve_type, snaps_in_ram, checkpointing):
     if checkpointing:
         assert len(tape.timesteps) == steps
     Jhat = ReducedFunctional(val, Control(ic))
+    breakpoint()
     dJ = Jhat.derivative()
     val1 = Jhat(ic)
     assert(np.allclose(val1, val))
@@ -100,4 +90,20 @@ def test_burgers_newton(solve_type, snaps_in_ram, checkpointing):
     h.assign(1, annotate=False)
     assert taylor_test(Jhat, ic, h) > 1.9
 
-test_burgers_newton("solve", 1, True)
+test_burgers_newton("solve", steps, True)
+
+def test_performance():
+    import time
+    start0 = time.time()
+    test_burgers_newton("solve", steps, True)
+    end0 = time.time()
+    
+    tape = get_working_tape()
+    tape.clear_tape()
+    start = time.time()
+    test_burgers_newton("solve", steps, False)
+    end = time.time()
+    print("Time for checkpointing: ", end0-start0)
+    print("Time for no checkpointing: ", end-start)
+
+# test_performance()

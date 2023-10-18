@@ -77,12 +77,10 @@ class CheckpointManager:
     tape : Tape
         A list of blocks :class:`Block` instances.
         Each block represents one operation in the forward model.
-    max_n : int
-        The number of forward steps in the initial forward calculation.
     """
     def __init__(self, schedule, tape):
-        # For now, only support Revolve schedules.
-        assert isinstance(schedule, Revolve)
+        if not isinstance(schedule, Revolve):
+            raise CheckpointError("Only Revolve schedules are supported.")
 
         self.fwd_schedule, self.rev_schedule = process_schedule(schedule)
         if schedule.uses_storage_type(StorageType.DISK) and not tape._package_data:  # noqa: E501
@@ -106,7 +104,7 @@ class CheckpointManager:
         self.end_timestep(-1)
 
     def end_timestep(self, timestep):
-        """Process the end of a timestep while recording.
+        """Process any initial instructions on the tape.
 
         Parameters
         ----------
@@ -129,17 +127,21 @@ class CheckpointManager:
 
     @singledispatchmethod
     def process_taping(self, cp_action, timestep):
-        """Perform any checkpoint action demanded by schedule at timestep.
-
-        If execution should now continue, return True. Otherwise return
-        False and the next cp_action in the schedule will be processed.
+        """A single-dispatch generic function.
+        This function is used while taping the forward model.
 
         Parameters
         ----------
-        cp_action : CheckpointAction
-            A schedule provided by the checkpoint_schedules package.
+        cp_action : schedules.CheckpointAction
+            A checkpoint action from the schedule. The actions can
+            be Forward, Reverse, EndForward, EndReverse, Copy, or Move.
         timestep : int
-            The number of forward steps in the initial forward calculation.
+            The current timestep.
+
+        Raises
+        ------
+        CheckpointError
+            If the checkpoint action is not supported.
         """
         raise CheckpointError(f"Unable to process {cp_action} while taping.")
 
@@ -171,7 +173,6 @@ class CheckpointManager:
 
     @process_taping.register(EndForward)
     def _(self, cp_action, timestep):
-        print(len(self.tape.timesteps))
         # The correct number of forward steps has been taken
         self.mode = Mode.EVALUATED
         return True
@@ -192,8 +193,11 @@ class CheckpointManager:
         ----------
         last_block : int
             The last block to be evaluated.
-        markings : dict
-            A dictionary of variable markings.
+        markings : bool
+            If True, then each block_variable of the current block will have
+            set `marked_in_path` attribute indicating whether their adjoint
+            components are relevant for computing the final target adjoint
+            values. Default is False.
         """
         # Work out other cases when they arise.
         assert last_block == 0
@@ -286,7 +290,6 @@ class CheckpointManager:
 
     @process_operation.register(EndReverse)
     def _(self, cp_action, bar, **kwargs):
-        print(len(self.tape.timesteps))
         if self._schedule.is_exhausted:
             self.mode = Mode.EXHAUSTED
         else:
