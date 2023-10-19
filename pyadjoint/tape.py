@@ -166,7 +166,7 @@ class Tape(object):
 
     def __init__(self, blocks=None, package_data=None):
         # Initialize the list of blocks on the tape.
-        self._blocks = TimeStepSequence(blocks=blocks) if blocks is not None else TimeStepSequence()  
+        self._blocks = TimeStepSequence(blocks=blocks) if blocks is not None else TimeStepSequence()
         # Dictionary of TensorFlow tensors. Key is id(block).
         self._tf_tensors = {}
         # Keep a list of blocks that has been added to the TensorFlow graph
@@ -241,14 +241,19 @@ class Tape(object):
         return len(self._blocks) - 1
 
     def add_to_checkpointable_state(self, block_var, last_used):
-        """Add a block variable to the checkpointable state.
-        
+        """Add a block variable into the checkpointable state set.
+
         Parameters
         ----------
         block_var : BlockVariable
             The block variable to add.
         last_used : int
             The last timestep in which the block variable was used.
+
+        Notes
+        -----
+        Checkpointable state holds informations of the set of block variables
+        required to recompute a block from the start of a timestep `n`.
         """
         if not self.timesteps:
             self._blocks.append_step()
@@ -434,9 +439,9 @@ class Tape(object):
         self._blocks = optimized_timesteps
 
     def optimize_for_functionals(self, functionals):
-        retained_nodes = set(
-            [functional.block_variable for functional in functionals]
-            )
+        retained_nodes = set([functional.block_variable
+                             for functional in functionals]
+                             )
         optimized_timesteps = []
 
         for step in reversed(self._blocks.steps):

@@ -93,7 +93,6 @@ class CheckpointManager:
         self.mode = Mode.RECORD
         self._iterator = iter(self.fwd_schedule)
         self._current = next(self._iterator)
-        self._configuration = None
         self._configuration_step = None
         self._stored_timesteps = []
         self._shedule = schedule
@@ -152,21 +151,29 @@ class CheckpointManager:
                 "Timestep is before start of Forward action."
             )
 
-        self._configuration = cp_action
-        self._configuration_step = timestep
-        self.tape._eagerly_checkpoint_outputs = False
-        n1 = min(cp_action.n1, self.timesteps)
+        self.tape._eagerly_checkpoint_outputs = cp_action.write_adj_deps
 
-        if timestep in cp_action and timestep < n1:
+        # Configure the data storage.
+        if timestep in cp_action and timestep < cp_action.n1:
             self.tape.get_blocks().append_step()
 
+            # checkpoint_schedules has the forward action given by
+            # Forward(n0, n1, with_ics, with_adj_deps).
+            # If with_ics is True, then the restart data is checkpointed.
+            # This restart data is the data required for the forward model
+            # from the start of the step `n0`.
             if timestep == cp_action.n0 and cp_action.write_ics:
-                for data in self.tape._package_data.values():
-                    data.configure_checkpointing(cp_action.storage)
                 self.tape.latest_checkpoint = timestep
-                self._configuration = cp_action
-                self._configuration_step = timestep
                 self.tape.timesteps[cp_action.n0].checkpoint()
+                self._configuration_step = timestep
+
+            # If with_adj_deps is False, then the adjoint dependencies are
+            # not required to be checkpointed.
+            if not cp_action.write_adj_deps:
+                for step in range(self._configuration_step, timestep):
+                    for block in self.tape.timesteps[step]:
+                        for output in block.get_outputs():
+                            output.checkpoint = None
             return True
         else:
             return False
@@ -223,14 +230,13 @@ class CheckpointManager:
 
     @process_operation.register(Forward)
     def _(self, cp_action, bar, functional=None, **kwargs):
-        n1 = min(cp_action.n1, self.timesteps)
-        for step in range(n1):
+        for step in range(cp_action.n1):
             bar.next()
             current_step = self.tape.timesteps[step]
             self._stored_timesteps.append(step)
             for block in current_step:
                 block.recompute()
-            if not self._configuration.write_adj_deps:
+            if not cp_action.write_adj_deps:
                 next_step = self.tape.timesteps[step + 1]
                 to_keep = next_step.checkpointable_state
                 if functional:
@@ -242,6 +248,20 @@ class CheckpointManager:
                     for var in self._checkpointable_state - to_keep:
                         var.checkpoint = None
                     self._checkpointable_state = next_step.checkpointable_state
+
+            # checkpoint_schedules has the forward action given by
+            # Forward(n0, n1, with_ics, with_adj_deps).
+            # If with_ics is True, then the restart data is checkpointed.
+            # This restart data is the data required for the forward model
+            # from the start of the step `n0`.
+            if step == cp_action.n0 and cp_action.write_ics:
+                # Clear the current checkpointable state so it isn't deleted by the
+                # next forward.
+                self._checkpointable_state = set()
+
+                self.tape.latest_checkpoint = step
+                self.tape.timesteps[cp_action.n0].checkpoint()
+                self._configuration_step = step
 
     @process_operation.register(Reverse)
     def _(self, cp_action, bar, markings, functional=None, **kwargs):
@@ -258,6 +278,7 @@ class CheckpointManager:
                     var.reset_variables(("tlm",))
                     if not var.is_control:
                         var.reset_variables(("adjoint", "hessian"))
+        self._checkpointable_state = set()
         if cp_action.clear_adj_deps:
             to_keep = self._checkpointable_state
             if functional:
@@ -267,7 +288,6 @@ class CheckpointManager:
                     for output in block.get_outputs():
                         if output not in to_keep:
                             output.checkpoint = None
-        self._checkpointable_state = set()
 
     @process_operation.register(Copy)
     def _(self, cp_action, bar, **kwargs):
