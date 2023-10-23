@@ -14,12 +14,14 @@ continue_annotation()
 n = 30
 mesh = UnitIntervalMesh(n)
 V = FunctionSpace(mesh, "CG", 2)
-end = 0.4
+end = 0.3
 timestep = Constant(1.0/n)
-steps = int(end/float(timestep))
+steps = int(end/float(timestep)) + 1
+
 
 def Dt(u, u_, timestep):
     return (u - u_)/timestep
+
 
 def J(ic, solve_type, checkpointing):
     u_ = Function(V)
@@ -45,12 +47,11 @@ def J(ic, solve_type, checkpointing):
     tape = get_working_tape()
     t += float(timestep)
     if checkpointing:
-        for t in tape.timestepper(np.arange(t, end, float(timestep))):
+        for t in tape.timestepper(np.arange(t, end + t, float(timestep))):
             time_advance()
     else:
-        while (t <= end):
+        for t in np.arange(t, end + t, float(timestep)):
             time_advance()
-            t += float(timestep)
 
     return assemble(u_*u_*dx + ic*ic*dx), u_
 
@@ -74,10 +75,14 @@ def test_burgers_newton(solve_type, checkpointing):
     if checkpointing:
         assert len(tape.timesteps) == steps
 
-    # Test recompute
     Jhat = ReducedFunctional(val, Control(ic))
-    val1 = Jhat(ic)
-    assert(np.allclose(val1, val))
+    dJ = Jhat.derivative()
+    # Test recompute forward model
+    assert(np.allclose(Jhat(ic), val))
+
+    dJbar = Jhat.derivative()
+    # Test recompute adjoint-based gradient
+    assert np.allclose(dJ.dat.data_ro[:], dJbar.dat.data_ro[:])
 
     # Taylor test
     h = Function(V)
@@ -94,6 +99,7 @@ def test_checkpointing_validity(solve_type):
     tape = get_working_tape()
     x, = SpatialCoordinate(mesh)
     ic = project(sin(2.*pi*x), V)
+
     val0, u0 = J(ic, solve_type, False)
     Jhat = ReducedFunctional(val0, Control(ic))
     dJ0 = Jhat.derivative()
@@ -101,14 +107,13 @@ def test_checkpointing_validity(solve_type):
 
     # With checkpointing
     tape.progress_bar = ProgressBar
-    tape.enable_checkpointing(Revolve(steps, 10))
+    tape.enable_checkpointing(Revolve(steps, steps//3))
     x, = SpatialCoordinate(mesh)
     ic = project(sin(2.*pi*x), V)
     val1, u1 = J(ic, solve_type, True)
     Jhat = ReducedFunctional(val1, Control(ic))
     dJ1 = Jhat.derivative()
-    print(val0, val1)
     assert len(tape.timesteps) == steps
-    assert np.allclose(val0, val1, rtol=1e-2)
+    assert np.allclose(val0, val1)
     assert np.allclose(u0.dat.data_ro[:], u1.dat.data_ro[:])
     assert np.allclose(dJ0.dat.data_ro[:], dJ1.dat.data_ro[:])

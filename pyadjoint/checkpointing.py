@@ -2,6 +2,7 @@ from enum import Enum
 from functools import singledispatchmethod
 from checkpoint_schedules import (Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType)
 from checkpoint_schedules import Revolve
+import gc
 
 
 class CheckpointError(RuntimeError):
@@ -38,7 +39,7 @@ def process_schedule(schedule):
 
     Parameters
     ----------
-    schedule : checkpoint_schedules
+    schedule : checkpoint_schedules.schedule
         A schedule provided by the checkpoint_schedules package.
 
     Returns
@@ -127,7 +128,7 @@ class CheckpointManager:
     @singledispatchmethod
     def process_taping(self, cp_action, timestep):
         """A single-dispatch generic function.
-        This function is used while taping the forward model.
+        Process taping is used while the forward model is taped.
 
         Parameters
         ----------
@@ -153,27 +154,28 @@ class CheckpointManager:
 
         self.tape._eagerly_checkpoint_outputs = cp_action.write_adj_deps
 
-        # Configure the data storage.
-        if timestep in cp_action and timestep < cp_action.n1:
+        if timestep in cp_action:
+            # gc.collect() is required to avoid memory leaks.
+            gc.collect()
             self.tape.get_blocks().append_step()
+            if cp_action.write_ics:
+                # checkpoint_schedules has the forward action given by
+                # Forward(n0, n1, with_ics, with_adj_deps).
+                # If with_ics is True, then the restart forward data is
+                # checkpointed. This restart data is the data required
+                # for the forward model from the step `n0`.
+                if timestep == cp_action.n0:
+                    self.tape.latest_checkpoint = timestep
+                    self.tape.timesteps[cp_action.n0].checkpoint()
+                    self._configuration_step = timestep
 
-            # checkpoint_schedules has the forward action given by
-            # Forward(n0, n1, with_ics, with_adj_deps).
-            # If with_ics is True, then the restart data is checkpointed.
-            # This restart data is the data required for the forward model
-            # from the start of the step `n0`.
-            if timestep == cp_action.n0 and cp_action.write_ics:
-                self.tape.latest_checkpoint = timestep
-                self.tape.timesteps[cp_action.n0].checkpoint()
-                self._configuration_step = timestep
-
-            # If with_adj_deps is False, then the adjoint dependencies are
-            # not required to be checkpointed.
-            if not cp_action.write_adj_deps:
-                for step in range(self._configuration_step, timestep):
-                    for block in self.tape.timesteps[step]:
-                        for output in block.get_outputs():
-                            output.checkpoint = None
+                # If with_adj_deps is False, then the adjoint dependencies are
+                # not required to be checkpointed.
+                if not cp_action.write_adj_deps:
+                    for step in range(self._configuration_step, timestep):
+                        for block in self.tape.timesteps[step]:
+                            for output in block.get_outputs():
+                                output._checkpoint = None
             return True
         else:
             return False
@@ -181,6 +183,7 @@ class CheckpointManager:
     @process_taping.register(EndForward)
     def _(self, cp_action, timestep):
         # The correct number of forward steps has been taken
+        assert timestep == self.timesteps
         self.mode = Mode.EVALUATED
         return True
 
@@ -224,49 +227,43 @@ class CheckpointManager:
                 self.mode = Mode.EVALUATE_ADJOINT
 
     @singledispatchmethod
-    def process_operation(self, operation, bar, **kwargs):
-        """Perform the operations required by the schedule."""
-        raise CheckpointError(f"Unable to process {operation}.")
+    def process_operation(self, cp_action, bar, **kwargs):
+        """Perform the the checkpoint action required by the schedule."""
+        raise CheckpointError(f"Unable to process {cp_action}.")
 
     @process_operation.register(Forward)
     def _(self, cp_action, bar, functional=None, **kwargs):
-        for step in range(cp_action.n1):
+        for step in cp_action:
+            # gc.collect() is required to avoid memory leaks.
+            gc.collect()
             bar.next()
+            # Get the blocks of the current step.
             current_step = self.tape.timesteps[step]
             self._stored_timesteps.append(step)
             for block in current_step:
                 block.recompute()
-            if not cp_action.write_adj_deps:
+            if not cp_action.write_adj_deps and step < cp_action.n1 - 1:
                 next_step = self.tape.timesteps[step + 1]
+                # The checkpointable state set of the current step.
                 to_keep = next_step.checkpointable_state
                 if functional:
+                    # to_keep holds the variables required for restarting
+                    # a forward model.
                     to_keep = to_keep.union([functional.block_variable])
                 for block in current_step:
                     for var in block.get_outputs():
                         if var not in to_keep:
-                            var.checkpoint = None
-                    for var in self._checkpointable_state - to_keep:
-                        var.checkpoint = None
+                            var._checkpoint = None
+                    # This code is making the burger's test fail.
+                    for var in (self._checkpointable_state - to_keep):
+                        var._checkpoint = None
                     self._checkpointable_state = next_step.checkpointable_state
-
-            # checkpoint_schedules has the forward action given by
-            # Forward(n0, n1, with_ics, with_adj_deps).
-            # If with_ics is True, then the restart data is checkpointed.
-            # This restart data is the data required for the forward model
-            # from the start of the step `n0`.
-            if step == cp_action.n0 and cp_action.write_ics:
-                # Clear the current checkpointable state so it isn't deleted by the
-                # next forward.
-                self._checkpointable_state = set()
-
-                self.tape.latest_checkpoint = step
-                self.tape.timesteps[cp_action.n0].checkpoint()
-                self._configuration_step = step
 
     @process_operation.register(Reverse)
     def _(self, cp_action, bar, markings, functional=None, **kwargs):
         for step in cp_action:
             bar.next()
+            # Get the blocks of the current step.
             current_step = self.tape.timesteps[step]
             for block in reversed(current_step):
                 block.evaluate_adj(markings=markings)
@@ -278,27 +275,24 @@ class CheckpointManager:
                     var.reset_variables(("tlm",))
                     if not var.is_control:
                         var.reset_variables(("adjoint", "hessian"))
-        self._checkpointable_state = set()
-        if cp_action.clear_adj_deps:
-            to_keep = self._checkpointable_state
-            if functional:
-                to_keep = to_keep.union([functional.block_variable])
-            for step in self._stored_timesteps:
-                for block in self.tape.timesteps[step]:
+                if cp_action.clear_adj_deps:
+                    to_keep = self._checkpointable_state
+                    if functional:
+                        to_keep = to_keep.union([functional.block_variable])
                     for output in block.get_outputs():
                         if output not in to_keep:
-                            output.checkpoint = None
+                            output._checkpoint = None
+        # Not currently advancing so no checkpointable state.
+        self._checkpointable_state = set()
 
     @process_operation.register(Copy)
     def _(self, cp_action, bar, **kwargs):
-        self.rev_schedule.append(cp_action)
         current_step = self.tape.timesteps[cp_action.n]
         current_step.restore_from_checkpoint()
         self._checkpointable_state = current_step.checkpointable_state
 
     @process_operation.register(Move)
     def _(self, cp_action, bar, **kwargs):
-        self.rev_schedule.append(cp_action)
         current_step = self.tape.timesteps[cp_action.n]
         current_step.restore_from_checkpoint()
         self._checkpointable_state = current_step.checkpointable_state
