@@ -207,7 +207,7 @@ class Tape(object):
 
         Parameters
         ----------
-        iterable (iterable): 
+        iterable : iterable
             The iterable definining the sequence of timesteps.
 
         Notes

@@ -96,9 +96,9 @@ def process_schedule(schedule):
     reverse_steps = 0
     while not isinstance(schedule[index], EndReverse):
         if (
-            isinstance(schedule[index], Reverse) 
+            isinstance(schedule[index], Reverse)
             or isinstance(schedule[index], Forward)
-            ):
+        ):
             reverse_steps += len(schedule[index])
         index += 1
     forward = AdjointSchedule(schedule[:end_forward], forward_steps)
@@ -194,7 +194,6 @@ class CheckpointManager:
         bool
             `'True'`, if the forward schedule is not finalised. Otherwise,
             `'False'`.
-            
         """
         raise CheckpointError(f"Unable to process {cp_action} while taping.")
 
