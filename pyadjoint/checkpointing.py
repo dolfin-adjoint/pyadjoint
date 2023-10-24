@@ -44,8 +44,8 @@ def process_schedule(schedule):
 
     Returns
     -------
-    AdjointSchedule, AdjointSchedule
-        The forward and adjoint schedules.
+    list, list
+        Forward and adjoint list of schedules.
     """
     schedule = list(schedule)
     index = 0
@@ -109,7 +109,7 @@ class CheckpointManager:
         Parameters
         ----------
         timestep : int
-            The number of forward steps in the initial forward calculation.
+            The current timestep.
         """
         if self.mode == Mode.EVALUATED:
             raise CheckpointError("Not enough timesteps in schedule.")
@@ -134,7 +134,7 @@ class CheckpointManager:
         ----------
         cp_action : schedules.CheckpointAction
             A checkpoint action from the schedule. The actions can
-            be Forward, Reverse, EndForward, EndReverse, Copy, or Move.
+            be `Forward`, `Reverse`, `EndForward`, `EndReverse`, `Copy`, or `Move`.
         timestep : int
             The current timestep.
 
@@ -248,7 +248,7 @@ class CheckpointManager:
                 to_keep = next_step.checkpointable_state
                 if functional:
                     # to_keep holds the variables required for restarting
-                    # a forward model.
+                    # the forward model from a step `n`.
                     to_keep = to_keep.union([functional.block_variable])
                 for block in current_step:
                     for var in block.get_outputs():

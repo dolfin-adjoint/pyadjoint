@@ -205,9 +205,13 @@ class Tape(object):
     def timestepper(self, iterable):
         """Return an iterator that advances the tape timestep.
 
-        Args:
-            iterable (iterable): The iterable definining the sequence of timesteps.
+        Parameters
+        ----------
+        iterable (iterable): 
+            The iterable definining the sequence of timesteps.
 
+        Notes
+        -----
         This method facilitates taping timestepping simulations so that recompute
         checkpointing can be used on the tape. For example, a simulation with
         10 timesteps might use a timestepping loop of this form::
@@ -252,8 +256,8 @@ class Tape(object):
 
         Notes
         -----
-        Checkpointable state holds informations of the set of block variables
-        required to recompute a block from the start of a timestep `n`.
+        `checkpointable_state` is a set of block variables which are needed
+        to restart from the start of a timestep.
         """
         if not self.timesteps:
             self._blocks.append_step()
@@ -311,10 +315,10 @@ class Tape(object):
         last_block : int, optional
             The index of the last block to evaluate. Default 0.
         markings : bool, optional
-            If True, then each block_variable of the current block will have
-            set `marked_in_path` attribute indicating whether their adjoint
-            components are relevant for computing the final target adjoint
-            values. Default is False.
+            If True, then each :class:`BlockVariable` of the current block
+            will have set `marked_in_path` attribute indicating whether their
+            adjoint components are relevant for computing the final target
+            adjoint values. Default is False.
         """
         if self._checkpoint_manager:
             self._checkpoint_manager.evaluate_adj(last_block, markings)
