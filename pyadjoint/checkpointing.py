@@ -1,6 +1,7 @@
 from enum import Enum
 from functools import singledispatchmethod
-from checkpoint_schedules import (Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType)
+from checkpoint_schedules import (
+    Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType)
 from checkpoint_schedules import Revolve
 
 
@@ -23,12 +24,17 @@ class AdjointSchedule(list):
 
     Attributes
     ----------
+    cp_action : list
+        A list of checkpoint actions from a schedule provided by the
+        checkpoint_schedules package.
     steps : int
         The number of forward steps in the initial forward calculation.
+
+    Notes
+    -----
+    `steps` is only intended to provide a rough indicator for progress bars.
     """
     def __init__(self, cp_action=(), steps=0):
-        # Steps is only intended to provide a rough indicator for progress
-        # bars.
         super().__init__(cp_action)
         self.steps = steps
 
@@ -41,6 +47,39 @@ def process_schedule(schedule):
     schedule : checkpoint_schedules.schedule
         A schedule provided by the checkpoint_schedules package.
 
+    Examples
+    --------
+    >>> from checkpoint_schedules import Revolve
+    >>> max_n = 3
+    >>> snaps_in_ram = 1
+    >>> schedule = Revolve(max_n, snaps_in_ram)
+    The `schedule` is a generator of checkpoint actions.
+    When we make a list of the schedule, we get a list of checkpoint actions
+    as follows:
+    >>> list(schedule)
+    [Forward(0, 2, True, False, StorageType.RAM),
+    Forward(2, 3, False, True, StorageType.WORK),
+    EndForward(),
+    Reverse(3, 2, True),
+    Copy(0, StorageType.RAM, StorageType.WORK),
+    Forward(0, 1, False, False, StorageType.WORK),
+    Forward(1, 2, False, True, StorageType.WORK),
+    Reverse(2, 1, True)
+    ]
+    This current function processes the schedule into forward and adjoint list,
+    as exemplified below:
+    >>> forward, reverse = process_schedule(schedule)
+    >>> list(forward)
+    [Forward(0, 2, True, False, StorageType.RAM),
+    Forward(2, 3, False, True, StorageType.WORK),
+    EndForward()]
+    >>> list(reverse)
+    [Reverse(3, 2, True),
+    Copy(0, StorageType.RAM, StorageType.WORK),
+    Forward(0, 1, False, False, StorageType.WORK),
+    Forward(1, 2, False, True, StorageType.WORK),
+    Reverse(2, 1, True)]
+
     Returns
     -------
     list, list
@@ -49,16 +88,17 @@ def process_schedule(schedule):
     schedule = list(schedule)
     index = 0
     forward_steps = 0
-
     while not isinstance(schedule[index], EndForward):
         if isinstance(schedule[index], Forward):
             forward_steps += len(schedule[index])
         index += 1
     end_forward = index + 1
     reverse_steps = 0
-
     while not isinstance(schedule[index], EndReverse):
-        if isinstance(schedule[index], Reverse) or isinstance(schedule[index], Forward):  # noqa: E501
+        if (
+            isinstance(schedule[index], Reverse) 
+            or isinstance(schedule[index], Forward)
+            ):
             reverse_steps += len(schedule[index])
         index += 1
     forward = AdjointSchedule(schedule[:end_forward], forward_steps)
@@ -77,15 +117,22 @@ class CheckpointManager:
     tape : Tape
         A list of blocks :class:`Block` instances.
         Each block represents one operation in the forward model.
+
+    Notes
+    -----
+    Currently, automated gradient using checkpointing only supports `Revolve` schedules.
     """
     def __init__(self, schedule, tape):
         if not isinstance(schedule, Revolve):
             raise CheckpointError("Only Revolve schedules are supported.")
 
         self.fwd_schedule, self.rev_schedule = process_schedule(schedule)
-        if schedule.uses_storage_type(StorageType.DISK) and not tape._package_data:  # noqa: E501
+        if (
+            schedule.uses_storage_type(StorageType.DISK)
+            and not tape._package_data
+        ):
             raise CheckpointError(
-                "The schedule employs disk checkpointing but it is not configured."  # noqa: E501
+                "The schedule employs disk checkpointing but it is not configured."
             )
         self.tape = tape
         self._schedule = schedule
@@ -99,7 +146,6 @@ class CheckpointManager:
         self._checkpointable_state = set()
         # Tell the tape to only checkpoint input data until told otherwise.
         self.tape.latest_checkpoint = 0
-        # Process any initial instructions on the tape.
         self.end_timestep(-1)
 
     def end_timestep(self, timestep):
@@ -127,13 +173,14 @@ class CheckpointManager:
     @singledispatchmethod
     def process_taping(self, cp_action, timestep):
         """A single-dispatch generic function.
-        Process taping is used while the forward model is taped.
+        The process taping is used while the forward model is taped.
 
         Parameters
         ----------
         cp_action : schedules.CheckpointAction
             A checkpoint action from the schedule. The actions can
-            be `Forward`, `Reverse`, `EndForward`, `EndReverse`, `Copy`, or `Move`.
+            be `Forward`, `Reverse`, `EndForward`, `EndReverse`, `Copy`, or
+            `Move`.
         timestep : int
             The current timestep.
 
@@ -141,6 +188,13 @@ class CheckpointManager:
         ------
         CheckpointError
             If the checkpoint action is not supported.
+
+        Returns
+        -------
+        bool
+            `'True'`, if the forward schedule is not finalised. Otherwise,
+            `'False'`.
+            
         """
         raise CheckpointError(f"Unable to process {cp_action} while taping.")
 
@@ -201,7 +255,7 @@ class CheckpointManager:
         last_block : int
             The last block to be evaluated.
         markings : bool
-            If True, then each block_variable of the current block will have
+            If True, then each `BlockVariable` of the current block will have
             set `marked_in_path` attribute indicating whether their adjoint
             components are relevant for computing the final target adjoint
             values. Default is False.
@@ -213,7 +267,7 @@ class CheckpointManager:
             self.end_taping()
 
         if self.mode not in (Mode.EVALUATED, Mode.FINISHED_RECORDING):
-            raise CheckpointError("Evaluate Functional before calling gradient.")  # noqa: E501
+            raise CheckpointError("Evaluate Functional before calling gradient.")
 
         with self.tape.progress_bar("Evaluating Adjoint",
                                     max=self.rev_schedule.steps) as bar:
@@ -249,7 +303,6 @@ class CheckpointManager:
                     for var in block.get_outputs():
                         if var not in to_keep:
                             var._checkpoint = None
-                    # This code is making the burger's test fail.
                     for var in (self._checkpointable_state - to_keep):
                         var._checkpoint = None
                     self._checkpointable_state = next_step.checkpointable_state

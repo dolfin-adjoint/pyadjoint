@@ -166,7 +166,7 @@ class Tape(object):
 
     def __init__(self, blocks=None, package_data=None):
         # Initialize the list of blocks on the tape.
-        self._blocks = TimeStepSequence(blocks=blocks) if blocks is not None else TimeStepSequence()
+        self._blocks = TimeStepSequence(blocks=blocks) if blocks else TimeStepSequence()
         # Dictionary of TensorFlow tensors. Key is id(block).
         self._tf_tensors = {}
         # Keep a list of blocks that has been added to the TensorFlow graph
@@ -276,7 +276,7 @@ class Tape(object):
         max_n : int, optional
             The number of total steps.
         """
-        if len(self._blocks) > 0:
+        if self._blocks:
             raise CheckpointError(
                 "Checkpointing must be enabled before any blocks are added to the tape."
             )
@@ -313,12 +313,12 @@ class Tape(object):
         Parameters
         ----------
         last_block : int, optional
-            The index of the last block to evaluate. Default 0.
+            The index of the last block to evaluate.
         markings : bool, optional
-            If True, then each :class:`BlockVariable` of the current block
+            If True, then each `BlockVariable` of the current block
             will have set `marked_in_path` attribute indicating whether their
             adjoint components are relevant for computing the final target
-            adjoint values. Default is False.
+            adjoint values.
         """
         if self._checkpoint_manager:
             self._checkpoint_manager.evaluate_adj(last_block, markings)
@@ -791,7 +791,7 @@ class TimeStep(list):
         self._checkpoint = {}
 
     def copy(self, blocks=None):
-        out = TimeStep(self) if blocks is None else TimeStep(blocks)
+        out = TimeStep(blocks) if blocks else TimeStep(self)
         out.checkpointable_state = self.checkpointable_state
         return out
 

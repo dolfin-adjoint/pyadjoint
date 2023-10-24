@@ -50,7 +50,6 @@ class Block(object):
 
         """
         if not no_duplicates or dep.block_variable not in self._dependencies:
-            # dep._ad_will_add_as_dependency()
             dep.block_variable.will_add_as_dependency()
             self._dependencies.append(dep.block_variable)
 
