@@ -2,7 +2,6 @@ from enum import Enum
 from functools import singledispatchmethod
 from checkpoint_schedules import (Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType)
 from checkpoint_schedules import Revolve
-import gc
 
 
 class CheckpointError(RuntimeError):
@@ -155,8 +154,6 @@ class CheckpointManager:
         self.tape._eagerly_checkpoint_outputs = cp_action.write_adj_deps
 
         if timestep in cp_action:
-            # gc.collect() is required to avoid memory leaks.
-            gc.collect()
             self.tape.get_blocks().append_step()
             if cp_action.write_ics:
                 # checkpoint_schedules has the forward action given by
@@ -234,8 +231,6 @@ class CheckpointManager:
     @process_operation.register(Forward)
     def _(self, cp_action, bar, functional=None, **kwargs):
         for step in cp_action:
-            # gc.collect() is required to avoid memory leaks.
-            gc.collect()
             bar.next()
             # Get the blocks of the current step.
             current_step = self.tape.timesteps[step]
