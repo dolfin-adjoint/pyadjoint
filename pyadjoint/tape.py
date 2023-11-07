@@ -196,7 +196,7 @@ class Tape(object):
         return max(len(self._blocks.steps) - 1, 0)
 
     def end_timestep(self):
-        """Mark the end of a timestep when taping."""
+        """Mark the end of a timestep when taping the forward model."""
         if self._checkpoint_manager:
             self._checkpoint_manager.end_timestep(self.latest_timestep)
         else:
@@ -800,7 +800,7 @@ class TimeStep(list):
 
         with stop_annotating():
             self._checkpoint = {
-                var: var.output._ad_create_checkpoint()
+                var: var.saved_output._ad_create_checkpoint()
                 for var in self.checkpointable_state
             }
 
