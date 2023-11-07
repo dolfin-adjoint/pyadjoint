@@ -185,10 +185,10 @@ class CheckpointManager:
         ------
         CheckpointError
             If the checkpoint action is not supported.
-        
+
         Notes
         -----
-        Additional details about checkpoint_schedules can be found at 
+        Additional details about checkpoint_schedules can be found at
         checkpoint_schedules
         `documentation <https://www.firedrakeproject.org/checkpoint_schedules/>`_.
 
@@ -241,14 +241,14 @@ class CheckpointManager:
         if timestep != self.timesteps:
             raise CheckpointError(
                 "The correct number of forward steps has notbeen taken."
-                )
+            )
         assert timestep == self.timesteps
         self.mode = Mode.EVALUATED
         return True
 
     def recompute(self, functional=None):
         """Recompute the forward model.
-        
+
         Parameters
         ----------
         functional : BlockVariable
@@ -302,7 +302,7 @@ class CheckpointManager:
     @singledispatchmethod
     def process_operation(self, cp_action, bar, **kwargs):
         """Perform the the checkpoint action required by the schedule.
-        
+
         Parameters
         ----------
         cp_action : checkpoint_schedules.CheckpointAction
@@ -311,7 +311,7 @@ class CheckpointManager:
             `Move`.
         bar : progressbar.ProgressBar
             A progress bar to display the progress of the reverse executions.
-        
+
         Raises
         ------
         CheckpointError
@@ -327,7 +327,7 @@ class CheckpointManager:
             current_step = self.tape.timesteps[step]
             for block in current_step:
                 block.recompute()
-            
+
             if cp_action.write_ics:
                 # checkpoint_schedules has the forward action given by
                 # `Forward(n0, n1, with_ics, with_adj_deps)`.
