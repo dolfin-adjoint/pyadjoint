@@ -341,7 +341,6 @@ class CheckpointManager:
                                 bv._checkpoint = None
                     for var in (current_step.checkpointable_state - to_keep):
                         var._checkpoint = None
-                        
 
     @process_operation.register(Reverse)
     def _(self, cp_action, bar, markings, functional=None, **kwargs):
