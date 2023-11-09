@@ -140,7 +140,6 @@ class CheckpointManager:
         self.mode = Mode.RECORD
         self._iterator = iter(self.fwd_schedule)
         self._current = next(self._iterator)
-        self._configuration_step = None
         # Tell the tape to only checkpoint input data until told otherwise.
         self.tape.latest_checkpoint = 0
         self.end_timestep(-1)
@@ -195,7 +194,7 @@ class CheckpointManager:
         Returns
         -------
         bool
-            `'True'`, if the forward schedule is not finalised. Otherwise,
+            `'True'`, while a forward action is not finalised. Otherwise,
             `'False'`.
         """
         raise CheckpointError(f"Unable to process {cp_action} while taping.")
@@ -209,31 +208,24 @@ class CheckpointManager:
 
         self.tape._eagerly_checkpoint_outputs = cp_action.write_adj_deps
 
+        if cp_action.write_ics and timestep == (cp_action.n0 + 1):
+            self.tape.timesteps[cp_action.n0].checkpoint()
+            for var in self.tape.timesteps[cp_action.n0].checkpointable_state:
+                var._checkpoint = None
+
         if timestep in cp_action:
             self.tape.get_blocks().append_step()
             if cp_action.write_ics:
-                # checkpoint_schedules has the forward action given by
-                # Forward(n0, n1, with_ics, with_adj_deps).
-                # If `cp_cation.with_ics` is `'True'`, then the restarting
-                # forward data is checkpointed.
-                self._configuration_step = cp_action.n0
                 self.tape.latest_checkpoint = cp_action.n0
-                if timestep == (cp_action.n0 + 1):
-                    self.tape.timesteps[cp_action.n0].checkpoint()
-                # Clearing the forward restart checkpoint data of the previous
-                # step.
-                for var in self.tape.timesteps[timestep - 1].checkpointable_state:
-                    var._checkpoint = None
-
+            return True
+        else:
             # If `cp_cation.with_adj_deps` is `'False'`, then the adjoint
             # dependencies are not required to be checkpointed.
             if not cp_action.write_adj_deps:
-                for block in self.tape.timesteps[timestep - 1]:
-                    for output in block.get_outputs():
-                        output._checkpoint = None
-
-            return True
-        else:
+                for step in range(cp_action.n0, timestep):
+                    for block in self.tape.timesteps[step]:
+                        for output in block.get_outputs():
+                            output._checkpoint = None
             return False
 
     @process_taping.register(EndForward)
@@ -329,24 +321,19 @@ class CheckpointManager:
                 block.recompute()
 
             if cp_action.write_ics:
-                # checkpoint_schedules has the forward action given by
-                # `Forward(n0, n1, with_ics, with_adj_deps)`.
-                # If `cp_action.with_ics` is `'True'`, then the restart
-                # forward data is checkpointed. This restart data is the
-                # data required for the forward model from the step `n0`.
                 if step == cp_action.n0:
                     for var in current_step.checkpointable_state:
                         if var.checkpoint:
                             current_step._checkpoint.update(
                                 {var: var.checkpoint}
                             )
-                if not cp_action.write_adj_deps and step < cp_action.n1:
+                if not cp_action.write_adj_deps:
                     next_step = self.tape.timesteps[step + 1]
                     # The checkpointable state set of the current step.
                     to_keep = next_step.checkpointable_state
                     if functional:
-                        # `to_keep` holds the blocks required for
-                        # restarting the forward model from a step `n`.
+                        # `to_keep` holds informations of the blocks required
+                        # for restarting the forward model from a step `n`.
                         to_keep = to_keep.union([functional.block_variable])
                     for block in current_step:
                         for bv in block.get_outputs():
@@ -354,6 +341,7 @@ class CheckpointManager:
                                 bv._checkpoint = None
                     for var in (current_step.checkpointable_state - to_keep):
                         var._checkpoint = None
+                        
 
     @process_operation.register(Reverse)
     def _(self, cp_action, bar, markings, functional=None, **kwargs):

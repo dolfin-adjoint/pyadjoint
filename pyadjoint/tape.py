@@ -266,8 +266,9 @@ class Tape(object):
 
     def enable_checkpointing(self, schedule):
         """Enable checkpointing on the adjoint evaluation.
-        A checkpoint manager object is created to manage the
-        forward and adjoint computations.
+        A checkpoint manager able to execute the forward
+        and adjoint computations according to the schedule
+        provided by checkpoint_schedules package.
 
         Parameters
         ----------
