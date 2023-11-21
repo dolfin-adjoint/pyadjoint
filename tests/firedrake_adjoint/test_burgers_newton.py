@@ -77,7 +77,12 @@ def test_burgers_newton(solve_type, checkpointing):
 
     Jhat = ReducedFunctional(val, Control(ic))
     dJ = Jhat.derivative()
-    # Test recompute forward model
+
+    # Recomputing the functional with a modified control variable
+    # before the recompute test.
+    Jhat(project(sin(pi*x), V))
+
+    # Recompute test
     assert(np.allclose(Jhat(ic), val))
 
     dJbar = Jhat.derivative()

@@ -208,10 +208,16 @@ class CheckpointManager:
 
         self.tape._eagerly_checkpoint_outputs = cp_action.write_adj_deps
 
-        if cp_action.write_ics and timestep == (cp_action.n0 + 1):
-            self.tape.timesteps[cp_action.n0].checkpoint()
-            for var in self.tape.timesteps[cp_action.n0].checkpointable_state:
-                var._checkpoint = None
+        if timestep > cp_action.n0:
+            if cp_action.write_ics and timestep == (cp_action.n0 + 1):
+                self.tape.timesteps[cp_action.n0].checkpoint()
+
+            if not cp_action.write_adj_deps:
+                for var in self.tape.timesteps[timestep - 1].checkpointable_state:
+                    var._checkpoint = None
+                for block in self.tape.timesteps[timestep - 1]:
+                    for output in block.get_outputs():
+                        output._checkpoint = None
 
         if timestep in cp_action:
             self.tape.get_blocks().append_step()
@@ -219,13 +225,6 @@ class CheckpointManager:
                 self.tape.latest_checkpoint = cp_action.n0
             return True
         else:
-            # If `cp_cation.with_adj_deps` is `'False'`, then the adjoint
-            # dependencies are not required to be checkpointed.
-            if not cp_action.write_adj_deps:
-                for step in range(cp_action.n0, timestep):
-                    for block in self.tape.timesteps[step]:
-                        for output in block.get_outputs():
-                            output._checkpoint = None
             return False
 
     @process_taping.register(EndForward)
