@@ -12,9 +12,9 @@ extras = {
 # 'all' includes all of the above
 extras['all'] = list(chain(*extras.values()))
 
-setup(name='pyadjoint',
+setup(name='pyadjoint-ad',
       version='2023.0.0',
-      description='High-level automatic differentiation library for FEniCS.',
+      description='High-level automatic differentiation library.',
       author='Jørgen Dokken',
       author_email='dokken@simula.no',
       packages=['firedrake_adjoint',
