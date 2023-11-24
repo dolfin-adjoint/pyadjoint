@@ -64,7 +64,6 @@ class BlockVariable(object):
     def will_add_as_dependency(self):
         overwrite = self.output._ad_will_add_as_dependency()
         overwrite = bool(overwrite)
-        # overwrite = False if overwrite is None else overwrite
         tape = get_working_tape()
         if self.last_use < tape.latest_checkpoint:
             self.save_output(overwrite=overwrite)
@@ -77,7 +76,6 @@ class BlockVariable(object):
         self.last_use = self.creation_timestep
         overwrite = self.output._ad_will_add_as_output()
         overwrite = bool(overwrite)
-        # True if overwrite is None else overwrite
         if not overwrite:
             self._checkpoint = None
         if tape._eagerly_checkpoint_outputs:

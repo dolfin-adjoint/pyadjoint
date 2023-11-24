@@ -7,7 +7,7 @@ pytest.importorskip("firedrake")
 
 from firedrake import *
 from firedrake.adjoint import *
-from checkpoint_schedules import Revolve
+from checkpoint_schedules import Revolve, MultistageCheckpointSchedule
 import numpy as np
 set_log_level(CRITICAL)
 continue_annotation()
@@ -57,18 +57,22 @@ def J(ic, solve_type, checkpointing):
 
 
 @pytest.mark.parametrize("solve_type, checkpointing",
-                         [("solve", True),
-                          ("NLVS", True),
+                         [("solve", "Revolve"),
+                          ("NLVS", "Revolve"),
+                          ("solve", "Multistage"),
+                          ("NLVS", "Multistage"),
                           ("solve", False),
                           ("NLVS", False),
                           ])
 def test_burgers_newton(solve_type, checkpointing):
     """Adjoint-based gradient tests with and without checkpointing.
     """
-    if checkpointing:
-        tape = get_working_tape()
-        tape.progress_bar = ProgressBar
+    tape = get_working_tape()
+    tape.progress_bar = ProgressBar
+    if checkpointing=="Revolve":
         tape.enable_checkpointing(Revolve(steps, steps//3))
+    if checkpointing=="Multistage":
+        tape.enable_checkpointing(MultistageCheckpointSchedule(steps, steps//3, 0))
     x, = SpatialCoordinate(mesh)
     ic = project(sin(2.*pi*x), V)
     val, _ = J(ic, solve_type, checkpointing)
@@ -95,13 +99,18 @@ def test_burgers_newton(solve_type, checkpointing):
     assert taylor_test(Jhat, ic, h) > 1.9
 
 
-@pytest.mark.parametrize("solve_type",
-                         ["solve", "NLVS"])
-def test_checkpointing_validity(solve_type):
+@pytest.mark.parametrize("solve_type, checkpointing",
+                         [("solve", "Revolve"),
+                          ("NLVS", "Revolve"),
+                          ("solve", "Multistage"),
+                          ("NLVS", "Multistage")
+                          ])
+def test_checkpointing_validity(solve_type, checkpointing):
     """Compare forward and backward results with and without checkpointing.
     """
     # Without checkpointing
     tape = get_working_tape()
+    tape.progress_bar = ProgressBar
     x, = SpatialCoordinate(mesh)
     ic = project(sin(2.*pi*x), V)
 
@@ -112,7 +121,10 @@ def test_checkpointing_validity(solve_type):
 
     # With checkpointing
     tape.progress_bar = ProgressBar
-    tape.enable_checkpointing(Revolve(steps, steps//3))
+    if checkpointing == "Revolve":
+        tape.enable_checkpointing(Revolve(steps, steps//3))
+    if checkpointing == "Multistage":
+        tape.enable_checkpointing(MultistageCheckpointSchedule(steps, steps//3, 0))
     x, = SpatialCoordinate(mesh)
     ic = project(sin(2.*pi*x), V)
     val1, u1 = J(ic, solve_type, True)

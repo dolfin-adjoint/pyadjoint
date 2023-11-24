@@ -206,7 +206,7 @@ class ReducedFunctional(object):
         blocks = self.tape.get_blocks()
         with self.marked_controls():
             with stop_annotating():
-                if self.tape._checkpoint_manager is not None:
+                if self.tape._checkpoint_manager:
                     self.tape._checkpoint_manager.recompute(self.functional)
                 else:
                     for i in self.tape._bar("Evaluating functional").iter(

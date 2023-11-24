@@ -94,7 +94,7 @@ def solve_adjoint(J, tape=None, adj_value=1.0):
         tape.evaluate_adj(markings=False)
 
 
-class marked_controls(object):
+class marked_controls:
     def __init__(self, controls):
         self.controls = controls
 

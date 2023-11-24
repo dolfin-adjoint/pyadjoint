@@ -2,7 +2,7 @@ from enum import Enum
 from functools import singledispatchmethod
 from checkpoint_schedules import (
     Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType)
-from checkpoint_schedules import Revolve
+from checkpoint_schedules import Revolve, MultistageCheckpointSchedule
 
 
 class CheckpointError(RuntimeError):
@@ -19,94 +19,6 @@ class Mode(Enum):
     EVALUATE_ADJOINT = 6
 
 
-class AdjointSchedule(list):
-    """A list of checkpoint actions with a step count.
-
-    Attributes
-    ----------
-    cp_action : list
-        A list of checkpoint actions from a schedule provided by the
-        checkpoint_schedules package.
-    steps : int
-        The number of forward steps in the initial forward calculation.
-
-    Notes
-    -----
-    `steps` is only intended to provide a rough indicator for progress bars.
-    """
-    def __init__(self, cp_action=(), steps=0):
-        super().__init__(cp_action)
-        self.steps = steps
-
-
-def process_schedule(schedule):
-    """Process a checkpoint schedule into forward and adjoint schedules.
-
-    Parameters
-    ----------
-    schedule : checkpoint_schedules.schedule
-        A schedule provided by the checkpoint_schedules package.
-
-    Examples
-    --------
-    >>> from checkpoint_schedules import Revolve
-    >>> max_n = 3
-    >>> snaps_in_ram = 1
-    >>> schedule = Revolve(max_n, snaps_in_ram)
-    The `schedule` is a generator of checkpoint actions.
-    When we make a list of the schedule, we get a list of checkpoint actions
-    as follows:
-    >>> list(schedule)
-    [Forward(0, 2, True, False, StorageType.RAM),
-    Forward(2, 3, False, True, StorageType.WORK),
-    EndForward(),
-    Reverse(3, 2, True),
-    Copy(0, StorageType.RAM, StorageType.WORK),
-    Forward(0, 1, False, False, StorageType.WORK),
-    Forward(1, 2, False, True, StorageType.WORK),
-    Reverse(2, 1, True)
-    ]
-    This current function processes the schedule into forward and adjoint list,
-    as exemplified below:
-    >>> forward, reverse = process_schedule(schedule)
-    >>> list(forward)
-    [Forward(0, 2, True, False, StorageType.RAM),
-    Forward(2, 3, False, True, StorageType.WORK),
-    EndForward()]
-    >>> list(reverse)
-    [Reverse(3, 2, True),
-    Copy(0, StorageType.RAM, StorageType.WORK),
-    Forward(0, 1, False, False, StorageType.WORK),
-    Forward(1, 2, False, True, StorageType.WORK),
-    Reverse(2, 1, True)]
-
-    Returns
-    -------
-    list, list
-        Forward and adjoint list of schedules.
-    """
-    schedule = list(schedule)
-    index = 0
-    forward_steps = 0
-    while not isinstance(schedule[index], EndForward):
-        if isinstance(schedule[index], Forward):
-            forward_steps += len(schedule[index])
-        index += 1
-    end_forward = index + 1
-    reverse_steps = 0
-    while not isinstance(schedule[index], EndReverse):
-        if (
-            isinstance(schedule[index], Reverse)
-            or isinstance(schedule[index], Forward)
-        ):
-            reverse_steps += len(schedule[index])
-        index += 1
-    forward = AdjointSchedule(schedule[:end_forward], forward_steps)
-    reverse = AdjointSchedule(schedule[end_forward:], reverse_steps)
-
-    return forward, reverse
-
-
 class CheckpointManager:
     """Manage the executions of the forward and adjoint solvers.
 
@@ -120,13 +32,18 @@ class CheckpointManager:
 
     Notes
     -----
-    Currently, automated gradient using checkpointing only supports `Revolve` schedules.
+    Currently, automated gradient using checkpointing only supports `Revolve`
+    schedules.
     """
     def __init__(self, schedule, tape):
-        if not isinstance(schedule, Revolve):
-            raise CheckpointError("Only Revolve schedules are supported.")
+        if (
+            not isinstance(schedule, Revolve)
+            and not isinstance(schedule, MultistageCheckpointSchedule)
+        ):
+            raise CheckpointError(
+                "Only Revolve and MultistageCheckpointSchedule schedules are supported."
+            )
 
-        self.fwd_schedule, self.rev_schedule = process_schedule(schedule)
         if (
             schedule.uses_storage_type(StorageType.DISK)
             and not tape._package_data
@@ -136,10 +53,14 @@ class CheckpointManager:
             )
         self.tape = tape
         self._schedule = schedule
+        self.forward_schedule = []
+        self.reverse_schedule = []
         self.timesteps = schedule.max_n
+        # This variable is used to indicate whether the adjoint model
+        self.adjoint_evaluated = False
         self.mode = Mode.RECORD
-        self._iterator = iter(self.fwd_schedule)
-        self._current = next(self._iterator)
+        self._current_action = next(self._schedule)
+        self.forward_schedule.append(self._current_action)
         # Tell the tape to only checkpoint input data until told otherwise.
         self.tape.latest_checkpoint = 0
         self.end_timestep(-1)
@@ -156,8 +77,9 @@ class CheckpointManager:
             raise CheckpointError("Not enough timesteps in schedule.")
         elif self.mode != Mode.RECORD:
             raise CheckpointError(f"Cannot end timestep in {self.mode}")
-        while not self.process_taping(self._current, timestep + 1):
-            self._current = next(self._iterator)
+        while not self.process_taping(self._current_action, timestep + 1):
+            self._current_action = next(self._schedule)
+            self.forward_schedule.append(self._current_action)
 
     def end_taping(self):
         """Process the end of the forward execution."""
@@ -210,12 +132,17 @@ class CheckpointManager:
 
         if timestep > cp_action.n0:
             if cp_action.write_ics and timestep == (cp_action.n0 + 1):
+                # Stores the checkpointint data in RAM
+                # This data will be used to restart the forward model
+                # from the step `n0` in the reverse computations.
                 self.tape.timesteps[cp_action.n0].checkpoint()
 
             if not cp_action.write_adj_deps:
+                # Remove unnecessary variables from previous steps.
                 for var in self.tape.timesteps[timestep - 1].checkpointable_state:
                     var._checkpoint = None
                 for block in self.tape.timesteps[timestep - 1]:
+                    # Remove unnecessary variables from previous steps.
                     for output in block.get_outputs():
                         output._checkpoint = None
 
@@ -233,7 +160,6 @@ class CheckpointManager:
             raise CheckpointError(
                 "The correct number of forward steps has notbeen taken."
             )
-        assert timestep == self.timesteps
         self.mode = Mode.EVALUATED
         return True
 
@@ -248,12 +174,13 @@ class CheckpointManager:
         self.mode = Mode.RECOMPUTE
 
         with self.tape.progress_bar("Evaluating Functional",
-                                    max=self.fwd_schedule.steps) as bar:
+                                    max=self.timesteps) as bar:
             # Restore the initial condition to advance the forward model
             # from the step 0.
-            current_step = self.tape.timesteps[self.fwd_schedule[0].n0]
+            current_step = self.tape.timesteps[self.forward_schedule[0].n0]
             current_step.restore_from_checkpoint()
-            for cp_action in self.fwd_schedule:
+            for cp_action in self.forward_schedule:
+                self._current_action = cp_action
                 self.process_operation(cp_action, bar, functional=functional)
 
     def evaluate_adj(self, last_block, markings):
@@ -267,7 +194,7 @@ class CheckpointManager:
             If True, then each `BlockVariable` of the current block will have
             set `marked_in_path` attribute indicating whether their adjoint
             components are relevant for computing the final target adjoint
-            values. Default is False.
+            values.
         """
         # Work out other cases when they arise.
         if last_block != 0:
@@ -283,12 +210,22 @@ class CheckpointManager:
             raise CheckpointError("Evaluate Functional before calling gradient.")
 
         with self.tape.progress_bar("Evaluating Adjoint",
-                                    max=self.rev_schedule.steps) as bar:
-            for cp_action in list(self.rev_schedule):
-                self.process_operation(cp_action, bar, markings=markings)
+                                    max=self.timesteps) as bar:
+            if self.adjoint_evaluated:
+                reverse_iterator = iter(self.reverse_schedule)
+            while not isinstance(self._current_action, EndReverse):
+                if not self.adjoint_evaluated:
+                    self._current_action = next(self._schedule)
+                    self.reverse_schedule.append(self._current_action)
+                else:
+                    self._current_action = next(reverse_iterator)
+                self.process_operation(self._current_action, bar, markings=markings)
                 # Only set the mode after the first backward in order to handle
                 # that step correctly.
                 self.mode = Mode.EVALUATE_ADJOINT
+
+            # Inform that the adjoint model has been evaluated.
+            self.adjoint_evaluated = True
 
     @singledispatchmethod
     def process_operation(self, cp_action, bar, **kwargs):
@@ -313,7 +250,8 @@ class CheckpointManager:
     @process_operation.register(Forward)
     def _(self, cp_action, bar, functional=None, **kwargs):
         for step in cp_action:
-            bar.next()
+            if self.mode == Mode.RECOMPUTE:
+                bar.next()
             # Get the blocks of the current step.
             current_step = self.tape.timesteps[step]
             for block in current_step:
@@ -335,9 +273,11 @@ class CheckpointManager:
                         # for restarting the forward model from a step `n`.
                         to_keep = to_keep.union([functional.block_variable])
                     for block in current_step:
+                        # Remove unnecessary variables from previous steps.
                         for bv in block.get_outputs():
                             if bv not in to_keep:
                                 bv._checkpoint = None
+                    # Remove unnecessary variables from previous steps.
                     for var in (current_step.checkpointable_state - to_keep):
                         var._checkpoint = None
 
