@@ -33,7 +33,7 @@ class CheckpointManager:
     Notes
     -----
     Currently, automated gradient using checkpointing only supports `Revolve`
-    schedules.
+    and `MultistageCheckpointSchedule` schedules.
     """
     def __init__(self, schedule, tape):
         if (
@@ -116,8 +116,8 @@ class CheckpointManager:
         Returns
         -------
         bool
-            `'True'`, while a forward action is not finalised. Otherwise,
-            `'False'`.
+            `True`, while a forward action is not finalised. Otherwise,
+            `False`.
         """
         raise CheckpointError(f"Unable to process {cp_action} while taping.")
 

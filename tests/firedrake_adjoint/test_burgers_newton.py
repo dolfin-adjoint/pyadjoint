@@ -38,20 +38,14 @@ def J(ic, solve_type, checkpointing):
         problem = NonlinearVariationalProblem(F, u, bcs=bc)
         solver = NonlinearVariationalSolver(problem)
 
-    def time_advance():
+    tape = get_working_tape()
+    t += float(timestep)
+    for t in tape.timestepper(np.arange(t, end + t, float(timestep))):
         if solve_type == "NLVS":
             solver.solve()
         else:
             solve(F == 0, u, bc)
         u_.assign(u)
-    tape = get_working_tape()
-    t += float(timestep)
-    if checkpointing:
-        for t in tape.timestepper(np.arange(t, end + t, float(timestep))):
-            time_advance()
-    else:
-        for t in np.arange(t, end + t, float(timestep)):
-            time_advance()
 
     return assemble(u_*u_*dx + ic*ic*dx), u_
 
@@ -61,17 +55,17 @@ def J(ic, solve_type, checkpointing):
                           ("NLVS", "Revolve"),
                           ("solve", "Multistage"),
                           ("NLVS", "Multistage"),
-                          ("solve", False),
-                          ("NLVS", False),
+                          ("solve", None),
+                          ("NLVS", None),
                           ])
 def test_burgers_newton(solve_type, checkpointing):
     """Adjoint-based gradient tests with and without checkpointing.
     """
     tape = get_working_tape()
     tape.progress_bar = ProgressBar
-    if checkpointing=="Revolve":
+    if checkpointing == "Revolve":
         tape.enable_checkpointing(Revolve(steps, steps//3))
-    if checkpointing=="Multistage":
+    if checkpointing == "Multistage":
         tape.enable_checkpointing(MultistageCheckpointSchedule(steps, steps//3, 0))
     x, = SpatialCoordinate(mesh)
     ic = project(sin(2.*pi*x), V)
