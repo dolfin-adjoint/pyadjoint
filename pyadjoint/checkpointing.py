@@ -102,6 +102,12 @@ class CheckpointManager:
         timestep : int
             The current timestep.
 
+        Returns
+        -------
+        bool
+            `True`, while a forward action is not finalised. Otherwise,
+            `False`.
+
         Raises
         ------
         CheckpointError
@@ -112,12 +118,6 @@ class CheckpointManager:
         Additional details about checkpoint_schedules can be found at
         checkpoint_schedules
         `documentation <https://www.firedrakeproject.org/checkpoint_schedules/>`_.
-
-        Returns
-        -------
-        bool
-            `True`, while a forward action is not finalised. Otherwise,
-            `False`.
         """
         raise CheckpointError(f"Unable to process {cp_action} while taping.")
 
