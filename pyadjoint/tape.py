@@ -200,7 +200,15 @@ class Tape(object):
         if self._checkpoint_manager:
             self._checkpoint_manager.end_timestep(self.latest_timestep)
         else:
-            self._blocks.append_step()
+            if _annotation_enabled:
+                self._blocks.append_step()
+
+    def finalize_forward_model(self):
+        """Finalize the taping of the forward model."""
+        if self._checkpoint_manager:
+            self._checkpoint_manager.finalize_forward_model()
+        else:
+            _annotation_enabled = False
 
     def timestepper(self, iterable):
         """Return an iterator that advances the tape timestep.
