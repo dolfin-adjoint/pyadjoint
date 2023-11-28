@@ -1,8 +1,9 @@
 from enum import Enum
+import sys
 from functools import singledispatchmethod
 from checkpoint_schedules import (
     Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType)
-from checkpoint_schedules import Revolve, MultistageCheckpointSchedule
+# from checkpoint_schedules import Revolve, MultistageCheckpointSchedule
 
 
 class CheckpointError(RuntimeError):
@@ -59,7 +60,11 @@ class CheckpointManager:
         self._schedule = schedule
         self.forward_schedule = []
         self.reverse_schedule = []
-        self.timesteps = schedule.max_n
+        # The total number of timesteps in the forward model.
+        if not self._schedule.max_n:
+            self.total_steps = sys.maxsize
+        else:
+            self.total_steps = self._schedule.max_n
         # This variable is used to indicate whether the adjoint model
         self.adjoint_evaluated = False
         self.mode = Mode.RECORD
@@ -92,10 +97,12 @@ class CheckpointManager:
             self.end_timestep(current_timestep)
             current_timestep += 1
 
-    def finalize_forward_model(self):
+    def finalize_forward_steps(self):
         """Finalize the foward schedule."""
+        # Inform the total number of timesteps in the forward model
         self._schedule.finalize(len(self.tape.timesteps))
-        self.timesteps = self._schedule.max_n
+        self.total_steps = self._schedule.max_n
+        self.end_taping()
 
     @singledispatchmethod
     def process_taping(self, cp_action, timestep):
@@ -125,8 +132,8 @@ class CheckpointManager:
         Returns
         -------
         bool
-            `'True'`, while a forward action is not finalised. Otherwise,
-            `'False'`.
+            `True`, while a forward action is not finalised. Otherwise,
+            `False`.
         """
         raise CheckpointError(f"Unable to process {cp_action} while taping.")
 
@@ -155,7 +162,7 @@ class CheckpointManager:
                     for output in block.get_outputs():
                         output._checkpoint = None
 
-        if timestep in cp_action and timestep != self._schedule.max_n:
+        if timestep in cp_action and timestep < self.total_steps:
             self.tape.get_blocks().append_step()
             if cp_action.write_ics:
                 self.tape.latest_checkpoint = cp_action.n0
@@ -165,7 +172,7 @@ class CheckpointManager:
 
     @process_taping.register(EndForward)
     def _(self, cp_action, timestep):
-        if timestep != self.timesteps:
+        if timestep != self.total_steps:
             raise CheckpointError(
                 "The correct number of forward steps has notbeen taken."
             )
@@ -180,15 +187,14 @@ class CheckpointManager:
         functional : BlockVariable
             The functional to be evaluated.
         """
-        if not self.timesteps:
-            if not self.timesteps:
-                raise FinalizeForwardModelError(
-                    "The forward schedule needs to be finalized before recompute."
-                )
+        if not self.total_steps:
+            raise FinalizeForwardModelError(
+                "The forward schedule needs to be finalized before recompute."
+            )
 
         self.mode = Mode.RECOMPUTE
         with self.tape.progress_bar("Evaluating Functional",
-                                    max=self.timesteps) as bar:
+                                    max=self.total_steps) as bar:
             # Restore the initial condition to advance the forward model
             # from the step 0.
             current_step = self.tape.timesteps[self.forward_schedule[0].n0]
@@ -216,8 +222,8 @@ class CheckpointManager:
                 "Only the first block can be evaluated at present."
             )
 
-        if not self.timesteps:
-            raise FinalizeForwardError(
+        if not self.total_steps:
+            raise FinalizeForwardModelError(
                 "The forward schedule needs to be finalized before evaluate adjoint."
             )
 
@@ -229,7 +235,7 @@ class CheckpointManager:
             raise CheckpointError("Evaluate Functional before calling gradient.")
 
         with self.tape.progress_bar("Evaluating Adjoint",
-                                    max=self.timesteps) as bar:
+                                    max=self.total_steps) as bar:
             if self.adjoint_evaluated:
                 reverse_iterator = iter(self.reverse_schedule)
             while not isinstance(self._current_action, EndReverse):
@@ -269,7 +275,7 @@ class CheckpointManager:
     @process_operation.register(Forward)
     def _(self, cp_action, bar, functional=None, **kwargs):
         step = cp_action.n0
-        while step in cp_action and step < self.timesteps:
+        while step in cp_action and step < self.total_steps:
             if self.mode == Mode.RECOMPUTE:
                 bar.next()
             # Get the blocks of the current step.
@@ -286,7 +292,7 @@ class CheckpointManager:
                             )
             if not cp_action.write_adj_deps:
                 to_keep = None
-                if step < (self.timesteps - 1):
+                if step < (self.total_steps - 1):
                     next_step = self.tape.timesteps[step + 1]
                     # The checkpointable state set of the current step.
                     to_keep = next_step.checkpointable_state
