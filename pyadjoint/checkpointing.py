@@ -326,13 +326,13 @@ class CheckpointManager:
                     var.reset_variables(("tlm",))
                     if not var.is_control:
                         var.reset_variables(("adjoint", "hessian"))
-            if cp_action.clear_adj_deps:
-                to_keep = current_step.checkpointable_state
-                if functional:
-                    to_keep = to_keep.union([functional.block_variable])
-                for output in block.get_outputs():
-                    if output not in to_keep:
-                        output._checkpoint = None
+                if cp_action.clear_adj_deps:
+                    to_keep = current_step.checkpointable_state
+                    if functional:
+                        to_keep = to_keep.union([functional.block_variable])
+                    for output in block.get_outputs():
+                        if output not in to_keep:
+                            output._checkpoint = None
 
     @process_operation.register(Copy)
     def _(self, cp_action, bar, **kwargs):
