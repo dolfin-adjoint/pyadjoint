@@ -3,7 +3,6 @@ import sys
 from functools import singledispatchmethod
 from checkpoint_schedules import (
     Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType)
-# from checkpoint_schedules import Revolve, MultistageCheckpointSchedule
 
 
 class CheckpointError(RuntimeError):
@@ -135,6 +134,12 @@ class CheckpointManager:
                 # This data will be used to restart the forward model
                 # from the step `n0` in the reverse computations.
                 self.tape.timesteps[cp_action.n0].checkpoint()
+            if (
+                cp_action.write_adj_deps
+                and timestep == (cp_action.n1 - 1)
+                and cp_action.storage == StorageType.RAM
+            ):
+                self.tape.timesteps[cp_action.n1 - 1].checkpoint()
 
             if not cp_action.write_adj_deps:
                 # Remove unnecessary variables from previous steps.
@@ -256,15 +261,33 @@ class CheckpointManager:
             current_step = self.tape.timesteps[step]
             for block in current_step:
                 block.recompute()
-
-            if cp_action.write_ics:
-                if step == cp_action.n0:
-                    for var in current_step.checkpointable_state:
+            if (cp_action.write_ics and step == cp_action.n0):
+                for var in current_step.checkpointable_state:
+                    if var.checkpoint:
+                        current_step._checkpoint.update(
+                            {var: var.checkpoint}
+                        )
+            if (
+                cp_action.write_adj_deps
+                and step == cp_action.n1 - 1
+                and cp_action.storage == StorageType.RAM
+            ):
+                for var in current_step.checkpointable_state:
+                    if var.checkpoint:
+                        current_step._checkpoint.update(
+                            {var: var.checkpoint}
+                        )
+                for block in current_step:
+                    for var in block.get_outputs():
                         if var.checkpoint:
                             current_step._checkpoint.update(
                                 {var: var.checkpoint}
                             )
-            if not cp_action.write_adj_deps:
+            if (
+                not cp_action.write_adj_deps
+                or (cp_action.write_adj_deps
+                    and cp_action.storage == StorageType.RAM)
+            ):
                 to_keep = None
                 if step < (self.total_steps - 1):
                     next_step = self.tape.timesteps[step + 1]
@@ -303,13 +326,13 @@ class CheckpointManager:
                     var.reset_variables(("tlm",))
                     if not var.is_control:
                         var.reset_variables(("adjoint", "hessian"))
-                if cp_action.clear_adj_deps:
-                    to_keep = current_step.checkpointable_state
-                    if functional:
-                        to_keep = to_keep.union([functional.block_variable])
-                    for output in block.get_outputs():
-                        if output not in to_keep:
-                            output._checkpoint = None
+            if cp_action.clear_adj_deps:
+                to_keep = current_step.checkpointable_state
+                if functional:
+                    to_keep = to_keep.union([functional.block_variable])
+                for output in block.get_outputs():
+                    if output not in to_keep:
+                        output._checkpoint = None
 
     @process_operation.register(Copy)
     def _(self, cp_action, bar, **kwargs):
