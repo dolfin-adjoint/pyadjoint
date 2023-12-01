@@ -202,11 +202,6 @@ class Tape(object):
         else:
             self._blocks.append_step()
 
-    def finalize_forward_steps(self):
-        """Finalize the forward steps."""
-        if self._checkpoint_manager:
-            self._checkpoint_manager.finalize_forward_steps()
-
     def timestepper(self, iterable):
         """Return an iterator that advances the tape timestep.
 

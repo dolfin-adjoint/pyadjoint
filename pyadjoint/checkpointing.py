@@ -10,10 +10,6 @@ class CheckpointError(RuntimeError):
     pass
 
 
-class FinalizeForwardModelError(RuntimeError):
-    pass
-
-
 class Mode(Enum):
     """The mode of the checkpoint manager."""
     RECORD = 1
@@ -41,14 +37,6 @@ class CheckpointManager:
     and `MultistageCheckpointSchedule` schedules.
     """
     def __init__(self, schedule, tape):
-        # if (
-        #     not isinstance(schedule, Revolve)
-        #     and not isinstance(schedule, MultistageCheckpointSchedule)
-        # ):
-        #     raise CheckpointError(
-        #         "Only Revolve and MultistageCheckpointSchedule schedules are supported."
-        #     )
-
         if (
             schedule.uses_storage_type(StorageType.DISK)
             and not tape._package_data
@@ -65,8 +53,6 @@ class CheckpointManager:
             self.total_steps = sys.maxsize
         else:
             self.total_steps = self._schedule.max_n
-        # This variable is used to indicate whether the adjoint model
-        self.adjoint_evaluated = False
         self.mode = Mode.RECORD
         self._current_action = next(self._schedule)
         self.forward_schedule.append(self._current_action)
@@ -93,16 +79,13 @@ class CheckpointManager:
     def end_taping(self):
         """Process the end of the forward execution."""
         current_timestep = self.tape.latest_timestep
+        if not self._schedule.max_n:
+            # Inform the total number of timesteps in the forward model
+            self._schedule.finalize(len(self.tape.timesteps))
+            self.total_steps = self._schedule.max_n
         while self.mode != Mode.EVALUATED:
             self.end_timestep(current_timestep)
             current_timestep += 1
-
-    def finalize_forward_steps(self):
-        """Finalize the foward schedule."""
-        # Inform the total number of timesteps in the forward model
-        self._schedule.finalize(len(self.tape.timesteps))
-        self.total_steps = self._schedule.max_n
-        self.end_taping()
 
     @singledispatchmethod
     def process_taping(self, cp_action, timestep):
@@ -187,10 +170,9 @@ class CheckpointManager:
         functional : BlockVariable
             The functional to be evaluated.
         """
-        if not self.total_steps:
-            raise FinalizeForwardModelError(
-                "The forward schedule needs to be finalized before recompute."
-            )
+        if self.mode == Mode.RECORD:
+            # The declared timesteps were not exhausted while taping.
+            self.end_taping()
 
         self.mode = Mode.RECOMPUTE
         with self.tape.progress_bar("Evaluating Functional",
@@ -200,7 +182,6 @@ class CheckpointManager:
             current_step = self.tape.timesteps[self.forward_schedule[0].n0]
             current_step.restore_from_checkpoint()
             for cp_action in self.forward_schedule:
-                self._current_action = cp_action
                 self.process_operation(cp_action, bar, functional=functional)
 
     def evaluate_adj(self, last_block, markings):
@@ -222,11 +203,6 @@ class CheckpointManager:
                 "Only the first block can be evaluated at present."
             )
 
-        if not self.total_steps:
-            raise FinalizeForwardModelError(
-                "The forward schedule needs to be finalized before evaluate adjoint."
-            )
-
         if self.mode == Mode.RECORD:
             # The declared timesteps were not exhausted while taping.
             self.end_taping()
@@ -236,21 +212,19 @@ class CheckpointManager:
 
         with self.tape.progress_bar("Evaluating Adjoint",
                                     max=self.total_steps) as bar:
-            if self.adjoint_evaluated:
-                reverse_iterator = iter(self.reverse_schedule)
-            while not isinstance(self._current_action, EndReverse):
-                if not self.adjoint_evaluated:
-                    self._current_action = next(self._schedule)
-                    self.reverse_schedule.append(self._current_action)
-                else:
-                    self._current_action = next(reverse_iterator)
-                self.process_operation(self._current_action, bar, markings=markings)
-                # Only set the mode after the first backward in order to handle
-                # that step correctly.
-                self.mode = Mode.EVALUATE_ADJOINT
+            if self.reverse_schedule:
+                for cp_action in self.reverse_schedule:
+                    self.process_operation(cp_action, bar, markings=markings)
+            else:
+                while not isinstance(self._current_action, EndReverse):
+                    cp_action = next(self._schedule)
+                    self._current_action = cp_action
+                    self.reverse_schedule.append(cp_action)
+                    self.process_operation(cp_action, bar, markings=markings)
 
-            # Inform that the adjoint model has been evaluated.
-            self.adjoint_evaluated = True
+            # Only set the mode after the first backward in order to handle
+            # that step correctly.
+            self.mode = Mode.EVALUATE_ADJOINT
 
     @singledispatchmethod
     def process_operation(self, cp_action, bar, **kwargs):
@@ -311,7 +285,6 @@ class CheckpointManager:
                 # Remove unnecessary variables from previous steps.
                 for var in (current_step.checkpointable_state - to_keep):
                     var._checkpoint = None
-            
             step += 1
 
     @process_operation.register(Reverse)
