@@ -2,7 +2,8 @@ from enum import Enum
 import sys
 from functools import singledispatchmethod
 from checkpoint_schedules import (
-    Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType)
+    Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType,
+    MixedCheckpointSchedule)
 
 
 class CheckpointError(RuntimeError):
@@ -133,13 +134,13 @@ class CheckpointManager:
                 # Stores the checkpointint data in RAM
                 # This data will be used to restart the forward model
                 # from the step `n0` in the reverse computations.
-                self.tape.timesteps[cp_action.n0].checkpoint()
+                self.tape.timesteps[timestep - 1].checkpoint()
             if (
                 cp_action.write_adj_deps
                 and timestep == (cp_action.n1 - 1)
                 and cp_action.storage == StorageType.RAM
             ):
-                self.tape.timesteps[cp_action.n1 - 1].checkpoint()
+                self.tape.timesteps[timestep].checkpoint()
 
             if not cp_action.write_adj_deps:
                 # Remove unnecessary variables from previous steps.
@@ -261,7 +262,29 @@ class CheckpointManager:
             current_step = self.tape.timesteps[step]
             for block in current_step:
                 block.recompute()
-            if (cp_action.write_ics and step == cp_action.n0):
+            if (
+                (cp_action.write_ics and step == cp_action.n0)
+                or (cp_action.write_adj_deps
+                    and step == cp_action.n1 - 1
+                    and cp_action.storage == StorageType.RAM)
+            ):
+                if (
+                    cp_action.write_adj_deps
+                    and cp_action.storage != StorageType.WORK
+                    and not isinstance(self._schedule, MixedCheckpointSchedule)
+                ):
+                    # This action configuration is available only for
+                    # MixedCheckpointSchedule, which assumes the
+                    # non-linear adjoint dependency and the forward restart
+                    # data sizes are the same [1].
+                    #
+                    # [1] Maddison, J. R. (2023). On the implementation of
+                    # checkpointing with high-level algorithmic
+                    # differentiation. arXiv preprint arXiv:2305.09568.
+                    # DOI: 10.48550/arXiv.2305.09568
+                    raise CheckpointError("This type of action is only "
+                                          "supported by MixedCheckpointSchedule")
+
                 for var in current_step.checkpointable_state:
                     if var.checkpoint:
                         current_step._checkpoint.update(
@@ -277,12 +300,6 @@ class CheckpointManager:
                         current_step._checkpoint.update(
                             {var: var.checkpoint}
                         )
-                for block in current_step:
-                    for var in block.get_outputs():
-                        if var.checkpoint:
-                            current_step._checkpoint.update(
-                                {var: var.checkpoint}
-                            )
             if (
                 not cp_action.write_adj_deps
                 or (cp_action.write_adj_deps

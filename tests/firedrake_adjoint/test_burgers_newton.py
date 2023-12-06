@@ -7,7 +7,7 @@ pytest.importorskip("firedrake")
 
 from checkpoint_schedules import (
     Revolve, MultistageCheckpointSchedule, SingleMemoryStorageSchedule,
-    NoneCheckpointSchedule)
+    NoneCheckpointSchedule, MixedCheckpointSchedule, StorageType)
 from firedrake import *
 from firedrake.adjoint import *
 import numpy as np
@@ -61,6 +61,8 @@ def J(ic, solve_type, checkpointing):
                           ("NLVS", "SingleMemory"),
                           ("solve", "NoneAdjointCompute"),
                           ("NLVS", "NoneAdjointCompute"),
+                          ("solve", "Mixed"),
+                          ("NLVS", "Mixed"),
                           ("solve", None),
                           ("NLVS", None),
                           ])
@@ -79,6 +81,10 @@ def test_burgers_newton(solve_type, checkpointing):
         tape.enable_checkpointing(SingleMemoryStorageSchedule())
     elif checkpointing == "NoneAdjointCompute":
         tape.enable_checkpointing(NoneCheckpointSchedule())
+    elif checkpointing == "Mixed":
+        tape.enable_checkpointing(
+            MixedCheckpointSchedule(steps, steps // 3, storage=StorageType.RAM)
+            )
     x, = SpatialCoordinate(mesh)
     ic = project(sin(2. * pi * x), V)
     val = J(ic, solve_type, checkpointing)
@@ -117,6 +123,8 @@ def test_burgers_newton(solve_type, checkpointing):
                           ("NLVS", "SingleMemory"),
                           ("solve", "NoneAdjointCompute"),
                           ("NLVS", "NoneAdjointCompute"),
+                          ("solve", "Mixed"),
+                          ("NLVS", "Mixed"),
                           ])
 def test_checkpointing_validity(solve_type, checkpointing):
     """Compare forward and backward results with and without checkpointing.
@@ -137,10 +145,18 @@ def test_checkpointing_validity(solve_type, checkpointing):
     tape.progress_bar = ProgressBar
     if checkpointing == "Revolve":
         tape.enable_checkpointing(Revolve(steps, steps // 3))
-    if checkpointing == "Multistage":
+    elif checkpointing == "Multistage":
         tape.enable_checkpointing(
             MultistageCheckpointSchedule(steps, steps // 3, 0)
         )
+    elif checkpointing == "SingleMemory":
+        tape.enable_checkpointing(SingleMemoryStorageSchedule())
+    elif checkpointing == "NoneAdjointCompute":
+        tape.enable_checkpointing(NoneCheckpointSchedule())
+    elif checkpointing == "Mixed":
+        tape.enable_checkpointing(
+            MixedCheckpointSchedule(steps, steps // 3, storage=StorageType.RAM)
+            )
     x, = SpatialCoordinate(mesh)
     ic = project(sin(2. * pi * x), V)
     val1 = J(ic, solve_type, True)
