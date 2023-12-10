@@ -3,6 +3,7 @@ pytest.importorskip("firedrake")
 
 import numpy as np
 from firedrake import *
+from firedrake.__future__ import *
 from firedrake.adjoint import *
 from pyadjoint import taylor_to_dict
 
@@ -221,7 +222,7 @@ def test_multiple_assignments():
     dJdm = Jhat.derivative()
 
     pert = as_vector((x * y, sin(x)))
-    pert = interpolate(pert, S)
+    pert = assemble(Interpolate(pert, S))
     results = taylor_to_dict(Jhat, s, pert)
 
     assert min(results["R0"]["Rate"]) > 0.9
@@ -252,7 +253,7 @@ def test_multiple_assignments():
                        dJdm.vector().get_local())
 
     pert = as_vector((x * y, sin(x)))
-    pert = interpolate(pert, S)
+    pert = assemble(Interpolate(pert, S))
     results = taylor_to_dict(Jhat, s, pert)
 
     assert min(results["R0"]["Rate"]) > 0.9
