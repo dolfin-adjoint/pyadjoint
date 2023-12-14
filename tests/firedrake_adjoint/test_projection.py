@@ -14,8 +14,8 @@ def test_project_vector_valued():
     V = FunctionSpace(mesh, element)
 
     x = SpatialCoordinate(mesh)
-    f = assemble(Interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V))
-    g = assemble(Interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V))
+    f = assemble(interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V))
+    g = assemble(interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V))
     u = Function(V)
 
     u.project(f - 0.5*g)
@@ -34,8 +34,8 @@ def test_project_tlm():
     V = FunctionSpace(mesh, element)
 
     x = SpatialCoordinate(mesh)
-    f = assemble(Interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V))
-    g = assemble(Interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V))
+    f = assemble(interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V))
+    g = assemble(interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V))
     u = Function(V)
 
     u.project(f - 0.5*g)
@@ -59,8 +59,8 @@ def test_project_hessian():
     V = FunctionSpace(mesh, element)
 
     x = SpatialCoordinate(mesh)
-    f = assemble(Interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V))
-    g = assemble(Interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V))
+    f = assemble(interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V))
+    g = assemble(interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V))
     u = Function(V)
 
     u.project(f - 0.5*g)
@@ -86,8 +86,8 @@ def test_project_nonlincom():
     V3 = FunctionSpace(mesh, element)
 
     x = SpatialCoordinate(mesh)
-    f = assemble(Interpolate(x[0], V1))
-    g = assemble(Interpolate(sin(x[0]), V2))
+    f = assemble(interpolate(x[0], V1))
+    g = assemble(interpolate(sin(x[0]), V2))
     u = Function(V3)
 
     u.project(f*g)
@@ -105,8 +105,8 @@ def test_project_nonlin_changing():
     V = FunctionSpace(mesh, "CG", 1)
 
     x = SpatialCoordinate(mesh)
-    f = assemble(Interpolate(x[0], V))
-    g = assemble(Interpolate(sin(x[0]), V))
+    f = assemble(interpolate(x[0], V))
+    g = assemble(interpolate(sin(x[0]), V))
     control = Control(g)
 
     test = TestFunction(V)

@@ -17,7 +17,7 @@ def adjoint_example(fine, coarse):
 
     x, y = SpatialCoordinate(fine)
     # AssembleBlock
-    m = assemble(Interpolate(sin(4*pi*x)*cos(4*pi*y), cg_space))
+    m = assemble(interpolate(sin(4*pi*x)*cos(4*pi*y), cg_space))
 
     u, v = w.split()
     # FunctionAssignBlock, FunctionMergeBlock
@@ -38,7 +38,7 @@ def adjoint_example(fine, coarse):
     Jhat = ReducedFunctional(J, Control(m))
 
     with stop_annotating():
-        m_new = assemble(Interpolate(sin(4*pi*x)*cos(4*pi*y), cg_space))
+        m_new = assemble(interpolate(sin(4*pi*x)*cos(4*pi*y), cg_space))
     checkpointer = get_working_tape()._package_data["firedrake"]
     init_file_timestamp = os.stat(checkpointer.init_checkpoint_file.name).st_mtime
     current_file_timestamp = os.stat(checkpointer.current_checkpoint_file.name).st_mtime

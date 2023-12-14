@@ -14,8 +14,8 @@ def test_assign_linear_combination():
     V = FunctionSpace(mesh, "CG", 1)
 
     x, = SpatialCoordinate(mesh)
-    f = assemble(Interpolate(x, V))
-    g = assemble(Interpolate(sin(x), V))
+    f = assemble(interpolate(x, V))
+    g = assemble(interpolate(sin(x), V))
     u = Function(V)
 
     u.assign(3*f + g)
@@ -34,8 +34,8 @@ def test_assign_vector_valued():
     V = FunctionSpace(mesh, element)
 
     x = SpatialCoordinate(mesh)
-    f = assemble(Interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V))
-    g = assemble(Interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V))
+    f = assemble(interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V))
+    g = assemble(interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V))
     u = Function(V)
 
     u.assign(f - 0.5*g)
@@ -54,8 +54,8 @@ def test_assign_tlm():
     V = FunctionSpace(mesh, element)
 
     x = SpatialCoordinate(mesh)
-    f = assemble(Interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V))
-    g = assemble(Interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V))
+    f = assemble(interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V))
+    g = assemble(interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V))
     u = Function(V)
 
     u.assign(f - 0.5*g)
@@ -79,8 +79,8 @@ def test_assign_tlm_with_constant():
     V = FunctionSpace(mesh, "CG", 1)
 
     x = SpatialCoordinate(mesh)
-    f = assemble(Interpolate(x[0], V))
-    g = assemble(Interpolate(sin(x[0]), V))
+    f = assemble(interpolate(x[0], V))
+    g = assemble(interpolate(sin(x[0]), V))
     c = Constant(5.0, domain=mesh)
 
     u = Function(V)
@@ -104,8 +104,8 @@ def test_assign_hessian():
     V = FunctionSpace(mesh, element)
 
     x = SpatialCoordinate(mesh)
-    f = assemble(Interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V))
-    g = assemble(Interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V))
+    f = assemble(interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V))
+    g = assemble(interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V))
     u = Function(V)
 
     u.assign(f - 0.5*g)
@@ -126,8 +126,8 @@ def test_assign_nonlincom():
     V = FunctionSpace(mesh, "CG", 1)
 
     x = SpatialCoordinate(mesh)
-    f = assemble(Interpolate(x[0], V))
-    g = assemble(Interpolate(sin(x[0]), V))
+    f = assemble(interpolate(x[0], V))
+    g = assemble(interpolate(sin(x[0]), V))
     u = Function(V)
 
     u.interpolate(f*g)
@@ -145,7 +145,7 @@ def test_assign_with_constant():
     V = FunctionSpace(mesh, "CG", 1)
 
     x = SpatialCoordinate(mesh)
-    f = assemble(Interpolate(x[0], V))
+    f = assemble(interpolate(x[0], V))
     c = Constant(3.0, domain=mesh)
     d = Constant(2.0, domain=mesh)
     u = Function(V)
@@ -167,8 +167,8 @@ def test_assign_nonlin_changing():
     V = FunctionSpace(mesh, "CG", 1)
 
     x = SpatialCoordinate(mesh)
-    f = assemble(Interpolate(x[0], V))
-    g = assemble(Interpolate(sin(x[0]), V))
+    f = assemble(interpolate(x[0], V))
+    g = assemble(interpolate(sin(x[0]), V))
     control = Control(g)
 
     test = TestFunction(V)
@@ -202,7 +202,7 @@ def test_assign_constant_scale():
     f = Function(V)
     c = Constant(2.0, domain=mesh)
     x, y = SpatialCoordinate(mesh)
-    g = assemble(Interpolate(as_vector([sin(y)+x, cos(x)*y]), V))
+    g = assemble(interpolate(as_vector([sin(y)+x, cos(x)*y]), V))
 
     f.assign(c * g)
 
