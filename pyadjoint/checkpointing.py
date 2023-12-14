@@ -138,11 +138,14 @@ class CheckpointManager:
             if (
                 cp_action.write_adj_deps
                 and timestep == (cp_action.n1 - 1)
-                and cp_action.storage == StorageType.RAM
+                and cp_action.storage != StorageType.WORK
             ):
                 self.tape.timesteps[timestep].checkpoint()
 
-            if not cp_action.write_adj_deps:
+            if (not cp_action.write_adj_deps
+                or(cp_action.write_adj_deps
+                   and cp_action.storage != StorageType.WORK)
+            ):
                 # Remove unnecessary variables from previous steps.
                 for var in self.tape.timesteps[timestep - 1].checkpointable_state:
                     var._checkpoint = None
@@ -266,34 +269,7 @@ class CheckpointManager:
                 (cp_action.write_ics and step == cp_action.n0)
                 or (cp_action.write_adj_deps
                     and step == cp_action.n1 - 1
-                    and cp_action.storage == StorageType.RAM)
-            ):
-                if (
-                    cp_action.write_adj_deps
-                    and cp_action.storage != StorageType.WORK
-                    and not isinstance(self._schedule, MixedCheckpointSchedule)
-                ):
-                    # This action configuration is available only for
-                    # MixedCheckpointSchedule, which assumes the
-                    # non-linear adjoint dependency and the forward restart
-                    # data sizes are the same [1].
-                    #
-                    # [1] Maddison, J. R. (2023). On the implementation of
-                    # checkpointing with high-level algorithmic
-                    # differentiation. arXiv preprint arXiv:2305.09568.
-                    # DOI: 10.48550/arXiv.2305.09568
-                    raise CheckpointError("This type of action is only "
-                                          "supported by MixedCheckpointSchedule")
-
-                for var in current_step.checkpointable_state:
-                    if var.checkpoint:
-                        current_step._checkpoint.update(
-                            {var: var.checkpoint}
-                        )
-            if (
-                cp_action.write_adj_deps
-                and step == cp_action.n1 - 1
-                and cp_action.storage == StorageType.RAM
+                    and cp_action.storage != StorageType.WORK)
             ):
                 for var in current_step.checkpointable_state:
                     if var.checkpoint:
@@ -303,9 +279,8 @@ class CheckpointManager:
             if (
                 not cp_action.write_adj_deps
                 or (cp_action.write_adj_deps
-                    and cp_action.storage == StorageType.RAM)
+                    and cp_action.storage != StorageType.WORK)
             ):
-                to_keep = None
                 if step < (self.total_steps - 1):
                     next_step = self.tape.timesteps[step + 1]
                     # The checkpointable state set of the current step.
