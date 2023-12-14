@@ -735,6 +735,13 @@ class TapeTimeStepper:
         else:
             self.tape.end_timestep()
         return step
+    
+    def checkpoint_storage_type(self):
+        """Return the storage type of the current checkpoint manager."""
+        if self.tape._checkpoint_manager:
+            return self.tape._checkpoint_manager.storage_type
+        else:
+            return "WORKING_MEMORY"
 
 
 class TimeStepSequence(list):
@@ -791,6 +798,7 @@ class TimeStep(list):
         # A dictionary mapping the block variables in the checkpointable state
         # to their checkpoint values.
         self._checkpoint = {}
+        self.checkpoint_storage_type = None
 
     def copy(self, blocks=None):
         out = TimeStep(blocks or self)
@@ -806,6 +814,10 @@ class TimeStep(list):
                 for var in self.checkpointable_state
             }
 
+    def storage_type(self, storage_type):
+        """Store the storage type of the current checkpoint manager."""
+        self.checkpoint_storage_type = storage_type
+    
     def restore_from_checkpoint(self):
         """Restore the block var checkpoints from the timestep checkpoint."""
 

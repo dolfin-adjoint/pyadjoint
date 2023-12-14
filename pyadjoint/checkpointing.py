@@ -128,7 +128,6 @@ class CheckpointManager:
             )
 
         self.tape._eagerly_checkpoint_outputs = cp_action.write_adj_deps
-
         if timestep > cp_action.n0:
             if cp_action.write_ics and timestep == (cp_action.n0 + 1):
                 # Stores the checkpointint data in RAM
@@ -156,6 +155,7 @@ class CheckpointManager:
 
         if timestep in cp_action and timestep < self.total_steps:
             self.tape.get_blocks().append_step()
+            self.tape.timesteps[timestep].storage_type = cp_action.storage
             if cp_action.write_ics:
                 self.tape.latest_checkpoint = cp_action.n0
             return True
