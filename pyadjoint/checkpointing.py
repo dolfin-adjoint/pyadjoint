@@ -37,13 +37,13 @@ class CheckpointManager:
     and `MultistageCheckpointSchedule` schedules.
     """
     def __init__(self, schedule, tape):
-        if (
-            schedule.uses_storage_type(StorageType.DISK)
-            and not tape._package_data
-        ):
-            raise CheckpointError(
-                "The schedule employs disk checkpointing but it is not configured."
-            )
+        # if (
+        #     schedule.uses_storage_type(StorageType.DISK)
+        #     and not tape._package_data
+        # ):
+        #     raise CheckpointError(
+        #         "The schedule employs disk checkpointing but it is not configured."
+        #     )
         self.tape = tape
         self._schedule = schedule
         self.forward_schedule = []
@@ -141,10 +141,14 @@ class CheckpointManager:
             ):
                 self.tape.timesteps[timestep].checkpoint()
 
-            if (not cp_action.write_adj_deps
-                or(cp_action.write_adj_deps
-                   and cp_action.storage != StorageType.WORK)
+            if (
+                not cp_action.write_adj_deps
+                or (cp_action.write_adj_deps
+                    and cp_action.storage != StorageType.WORK)
             ):
+                chk = set()
+                for var in self.tape.timesteps[timestep - 1].checkpointable_state:
+                    chk.add(var.checkpoint.restore())
                 # Remove unnecessary variables from previous steps.
                 for var in self.tape.timesteps[timestep - 1].checkpointable_state:
                     var._checkpoint = None
@@ -155,9 +159,12 @@ class CheckpointManager:
 
         if timestep in cp_action and timestep < self.total_steps:
             self.tape.get_blocks().append_step()
-            self.tape.timesteps[timestep].storage_type = cp_action.storage
             if cp_action.write_ics:
                 self.tape.latest_checkpoint = cp_action.n0
+                if timestep == cp_action.n0:
+                    self.tape.timesteps[timestep]._storage_type = cp_action.storage
+                else:
+                    self.tape.timesteps[timestep]._storage_type = StorageType.NONE
             return True
         else:
             return False

@@ -3,7 +3,7 @@ from pyadjoint import (ReducedFunctional, get_working_tape, stop_annotating,
                        pause_annotation, Control)
 from checkpoint_schedules import (
     Revolve, MultistageCheckpointSchedule, SingleMemoryStorageSchedule,
-    NoneCheckpointSchedule, MixedCheckpointSchedule, StorageType)
+    NoneCheckpointSchedule, MixedCheckpointSchedule, StorageType, HRevolve)
 import numpy as np
 
 from firedrake.adjoint import *
@@ -11,25 +11,7 @@ from firedrake.adjoint import *
 def Dt(u, u_, timestep):
     return (u - u_) / timestep
 
-def test_disk_checkpointing():
-    tape = get_working_tape()
-    tape.clear_tape()
-    enable_disk_checkpointing()
-
-    mesh = checkpointable_mesh(UnitSquareMesh(10, 10, name="mesh"))
-    J_disk, grad_J_disk = adjoint_example(mesh)
-    tape.clear_tape()
-    pause_disk_checkpointing()
-
-    J_mem, grad_J_mem = adjoint_example(mesh)
-
-    assert np.allclose(J_disk, J_mem)
-    assert np.allclose(assemble((grad_J_disk - grad_J_mem)**2*dx), 0.0)
-    tape.clear_tape()
-
-
-
-def J(ic, solve_type, checkpointing):
+def J(ic, solve_type):
     u_ = Function(V)
     u = Function(V)
     v = TestFunction(V)
@@ -46,22 +28,19 @@ def J(ic, solve_type, checkpointing):
 
     tape = get_working_tape()
     t = 0
-    for t in tape.timestepper(np.arange(t, end, float(timestep))):
-        storage_type = tape.timesteps[int(t)].checkpoint_storage_type
-        if storage_type == StorageType.DISK:
-            enable_disk_checkpointing()
 
+    for t in tape.timestepper(np.arange(t, end, float(timestep))):
+        step = int(t/float(timestep))
         if solve_type == "NLVS":
             solver.solve()
         else:
             solve(F == 0, u, bc)
         u_.assign(u)
-        if storage_type == StorageType.DISK:
-            pause_disk_checkpointing()
 
     return assemble(u_ * u_ * dx + ic * ic * dx)
 
 continue_annotation()
+enable_disk_checkpointing()
 n = 30
 mesh = UnitIntervalMesh(n)
 V = FunctionSpace(mesh, "CG", 2)
@@ -70,8 +49,11 @@ timestep = Constant(1.0 / n)
 steps = int(end / float(timestep))
 tape = get_working_tape()
 tape.progress_bar = ProgressBar
-tape.enable_checkpointing(Revolve(steps, steps // 3))
+# tape.enable_checkpointing(HRevolve(steps, 1, 10))
 x, = SpatialCoordinate(mesh)
 ic = project(sin(2. * pi * x), V)
 
-J(ic, "NLVS", "Revolve")
+val = J(ic, "NLVS")
+pause_disk_checkpointing()
+J_hat = ReducedFunctional(val, Control(ic))
+J_hat(ic)
