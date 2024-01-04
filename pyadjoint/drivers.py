@@ -23,7 +23,6 @@ def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
     tape.reset_variables()
     J.block_variable.adj_value = adj_value
     m = Enlist(m)
-
     with stop_annotating():
         with tape.marked_nodes(m):
             with marked_controls(m):

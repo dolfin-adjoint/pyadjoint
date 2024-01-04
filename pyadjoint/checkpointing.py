@@ -1,9 +1,7 @@
 from enum import Enum
 import sys
 from functools import singledispatchmethod
-from checkpoint_schedules import (
-    Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType,
-    MixedCheckpointSchedule)
+from checkpoint_schedules import *
 
 
 class CheckpointError(RuntimeError):
@@ -130,41 +128,33 @@ class CheckpointManager:
         self.tape._eagerly_checkpoint_outputs = cp_action.write_adj_deps
         if timestep > cp_action.n0:
             if cp_action.write_ics and timestep == (cp_action.n0 + 1):
-                # Stores the checkpointint data in RAM
-                # This data will be used to restart the forward model
-                # from the step `n0` in the reverse computations.
+                # Store the checkpointint data in RAM or on disk.
+                # The data will be used to restart the forward model from the
+                # step `n0` in the reverse computations.
                 self.tape.timesteps[timestep - 1].checkpoint()
-            if (
-                cp_action.write_adj_deps
-                and timestep == (cp_action.n1 - 1)
-                and cp_action.storage != StorageType.WORK
-            ):
-                self.tape.timesteps[timestep].checkpoint()
-
-            if (
-                not cp_action.write_adj_deps
-                or (cp_action.write_adj_deps
-                    and cp_action.storage != StorageType.WORK)
-            ):
-                chk = set()
-                for var in self.tape.timesteps[timestep - 1].checkpointable_state:
-                    chk.add(var.checkpoint.restore())
+            if cp_action.write_adj_deps and cp_action.storage != StorageType.WORK:
+                # Stores the checkpointing data in RAM or on disk.
+                # The foward data will be used in the adjoint computations.
+                if isinstance(self._schedule, SingleDiskStorageSchedule):
+                    self.tape.timesteps[timestep - 1].checkpoint()
+                else:
+                    self.tape.timesteps[cp_action.n1 - 1].checkpoint()
+            if cp_action.storage != StorageType.WORK:
                 # Remove unnecessary variables from previous steps.
                 for var in self.tape.timesteps[timestep - 1].checkpointable_state:
                     var._checkpoint = None
                 for block in self.tape.timesteps[timestep - 1]:
-                    # Remove unnecessary variables from previous steps.
                     for output in block.get_outputs():
                         output._checkpoint = None
 
         if timestep in cp_action and timestep < self.total_steps:
             self.tape.get_blocks().append_step()
-            if cp_action.write_ics:
-                self.tape.latest_checkpoint = cp_action.n0
-                if timestep == cp_action.n0:
-                    self.tape.timesteps[timestep]._storage_type = cp_action.storage
-                else:
-                    self.tape.timesteps[timestep]._storage_type = StorageType.NONE
+            # Get the storage type of every single timestep.
+            self.tape.timesteps[timestep]._storage_type = StorageType.NONE
+            if cp_action.write_ics and timestep == cp_action.n0:
+                self.tape.timesteps[timestep]._storage_type = cp_action.storage
+            if cp_action.write_adj_deps:
+                self.tape.timesteps[timestep]._storage_type = cp_action.storage
             return True
         else:
             return False
@@ -195,6 +185,7 @@ class CheckpointManager:
                                     max=self.total_steps) as bar:
             # Restore the initial condition to advance the forward model
             # from the step 0.
+            self.tape._recomputation = True
             current_step = self.tape.timesteps[self.forward_schedule[0].n0]
             current_step.restore_from_checkpoint()
             for cp_action in self.forward_schedule:
@@ -275,7 +266,6 @@ class CheckpointManager:
             if (
                 (cp_action.write_ics and step == cp_action.n0)
                 or (cp_action.write_adj_deps
-                    and step == cp_action.n1 - 1
                     and cp_action.storage != StorageType.WORK)
             ):
                 for var in current_step.checkpointable_state:
@@ -283,11 +273,7 @@ class CheckpointManager:
                         current_step._checkpoint.update(
                             {var: var.checkpoint}
                         )
-            if (
-                not cp_action.write_adj_deps
-                or (cp_action.write_adj_deps
-                    and cp_action.storage != StorageType.WORK)
-            ):
+            if cp_action.storage != StorageType.WORK:
                 if step < (self.total_steps - 1):
                     next_step = self.tape.timesteps[step + 1]
                     # The checkpointable state set of the current step.

@@ -29,13 +29,17 @@ def J(ic, solve_type):
     tape = get_working_tape()
     t = 0
 
-    for t in tape.timestepper(np.arange(t, end, float(timestep))):
-        step = int(t/float(timestep))
+    for time in tape.timestepper(np.arange(t, end, float(timestep))):
+        step = int(time/float(timestep))
+        if tape.timesteps[step].checkpoint_storage_type == StorageType.DISK:
+            continue_disk_checkpointing()
         if solve_type == "NLVS":
             solver.solve()
         else:
             solve(F == 0, u, bc)
         u_.assign(u)
+        if tape.timesteps[step].checkpoint_storage_type == StorageType.DISK:
+            pause_disk_checkpointing()
 
     return assemble(u_ * u_ * dx + ic * ic * dx)
 
@@ -43,17 +47,25 @@ continue_annotation()
 enable_disk_checkpointing()
 n = 30
 mesh = UnitIntervalMesh(n)
+mesh = checkpointable_mesh(mesh)
+V = FunctionSpace(mesh, "CG", 2)
+mesh = checkpointable_mesh(mesh)
 V = FunctionSpace(mesh, "CG", 2)
 end = 0.3
 timestep = Constant(1.0 / n)
 steps = int(end / float(timestep))
 tape = get_working_tape()
 tape.progress_bar = ProgressBar
-# tape.enable_checkpointing(HRevolve(steps, 1, 10))
+tape.enable_checkpointing(HRevolve(steps, 1, 10))
 x, = SpatialCoordinate(mesh)
 ic = project(sin(2. * pi * x), V)
 
 val = J(ic, "NLVS")
-pause_disk_checkpointing()
 J_hat = ReducedFunctional(val, Control(ic))
 J_hat(ic)
+J_hat.derivative()
+J_hat(ic)
+# Taylor test
+h = Function(V)
+h.assign(1, annotate=False)
+taylor_test(J_hat, ic, h)
