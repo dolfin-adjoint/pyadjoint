@@ -123,6 +123,10 @@ class AdjFloat(OverloadedType, float):
     def _ad_copy(self):
         return self
 
+    @property
+    def _ad_str(self):
+        """Return the string of the taped value of this variable."""
+        return str(self.block_variable.saved_output)
 
 _min = min
 _max = max

@@ -68,7 +68,7 @@ class BlockVariable(object):
         self.save_output(overwrite=overwrite)
 
     def __str__(self):
-        return str(self.output)
+        return str(self.output._ad_str)
 
     @property
     def checkpoint(self):
