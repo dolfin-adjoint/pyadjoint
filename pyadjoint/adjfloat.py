@@ -128,6 +128,7 @@ class AdjFloat(OverloadedType, float):
         """Return the string of the taped value of this variable."""
         return str(self.block_variable.saved_output)
 
+
 _min = min
 _max = max
 
