@@ -96,17 +96,20 @@ class CheckpointManager:
         Parameters
         ----------
         cp_action : checkpoint_schedules.CheckpointAction
-            A checkpoint action from the schedule. The actions can
-            be `Forward`, `Reverse`, `EndForward`, `EndReverse`, `Copy`, or
-            `Move`.
+            A checkpoint action obtained from the `checkpoint_schedules`.
+            In process taping, the possible actions are `Forward` and `EndForward`.
+            These actions are used to manage the execution of the forward model,
+            store checkpoint data, and inform the end of the forward execution.
         timestep : int
             The current timestep.
 
         Returns
         -------
         bool
-            `True`, while a forward action is not finalised. Otherwise,
-            `False`.
+            Returns `True` if the timestep is in the `checkpoint_schedules` action.
+            For example, if the `checkpoint_schedules` action is
+            `Forward(2, 4, True, False, StorageType.DISK)`, then timestep `3` is considered within the action;
+            otherwise, it returns `False`.
 
         Raises
         ------
@@ -115,10 +118,16 @@ class CheckpointManager:
 
         Notes
         -----
-        Additional details about checkpoint_schedules can be found at
-        checkpoint_schedules
+        To have more information about the `checkpoint_schedules`,
+        please refer to the
         `documentation <https://www.firedrakeproject.org/checkpoint_schedules/>`_.
+        Detailed descriptions of the actions used in the process taping can be found at the following links:
+        `Forward
+        <https://www.firedrakeproject.org/checkpoint_schedules/checkpoint_schedules.html#checkpoint_schedules.schedule.Forward>`_
+        and `End_Forward
+        <https://www.firedrakeproject.org/checkpoint_schedules/checkpoint_schedules.html#checkpoint_schedules.schedule.EndForward>`_.
         """
+
         raise CheckpointError(f"Unable to process {cp_action} while taping.")
 
     @process_taping.register(Forward)
@@ -191,9 +200,8 @@ class CheckpointManager:
         last_block : int
             The last block to be evaluated.
         markings : bool
-            If True, then each `BlockVariable` of the current block will have
-            set `marked_in_path` attribute indicating whether their adjoint
-            components are relevant for computing the final target adjoint
+            If True, then each `BlockVariable` of the current block will have set `marked_in_path` attribute
+            indicating whether their adjoint components are relevant for computing the final target adjoint
             values.
         """
         # Work out other cases when they arise.
@@ -229,14 +237,16 @@ class CheckpointManager:
 
     @singledispatchmethod
     def process_operation(self, cp_action, bar, **kwargs):
-        """Perform the the checkpoint action required by the schedule.
+        """A function used to process the forward and adjoint executions.
+        This single-dispatch generic function is used in the `Blocks`
+        recomputation and adjoint evaluation with checkpointing.
 
         Parameters
         ----------
         cp_action : checkpoint_schedules.CheckpointAction
-            A checkpoint action from the schedule. The actions can
-            be `Forward`, `Reverse`, `EndForward`, `EndReverse`, `Copy`, or
-            `Move`.
+            A checkpoint action from the `checkpoint_schedules`. The possible
+            actions are `Forward`, `Reverse`, `EndForward`, `EndReverse`,
+            `Copy`, or `Move`.
         bar : progressbar.ProgressBar
             A progress bar to display the progress of the reverse executions.
 
@@ -244,6 +254,11 @@ class CheckpointManager:
         ------
         CheckpointError
             If the checkpoint action is not supported.
+
+        Notes
+        -----
+        The documentation of the `checkpoint_schedules` actions is available
+        `here <https://www.firedrakeproject.org/checkpoint_schedules/>`_.
         """
         raise CheckpointError(f"Unable to process {cp_action}.")
 
