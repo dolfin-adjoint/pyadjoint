@@ -216,7 +216,7 @@ class Tape(object):
         checkpointing can be used on the tape. For example, a simulation with
         10 timesteps might use a timestepping loop of this form::
 
-            tape = get_working_tape
+            tape = get_working_tape()
 
             for timestep in tape.timestepper(range(10)):
                 ...
