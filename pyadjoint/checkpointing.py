@@ -56,7 +56,7 @@ class CheckpointManager:
         self.forward_schedule = []
         self.reverse_schedule = []
         self.timesteps = schedule.max_n
-        # This variable is used to indicate whether the adjoint model
+        # This variable is used to indicate whether the adjoint model has been evaluated at the checkpoint.
         self.adjoint_evaluated = False
         self.mode = Mode.RECORD
         self._current_action = next(self._schedule)
