@@ -132,7 +132,7 @@ class CheckpointManager:
 
         if timestep > cp_action.n0:
             if cp_action.write_ics and timestep == (cp_action.n0 + 1):
-                # Stores the checkpointint data in RAM
+                # Stores the checkpoint data in RAM
                 # This data will be used to restart the forward model
                 # from the step `n0` in the reverse computations.
                 self.tape.timesteps[cp_action.n0].checkpoint()
