@@ -25,7 +25,7 @@ class CheckpointManager:
     Attributes
     ----------
     schedule : checkpoint_schedules.schedule
-        A schedule provided by the checkpoint_schedules package.
+        A schedule provided by the `checkpoint_schedules` package.
     tape : Tape
         A list of blocks :class:`Block` instances.
         Each block represents one operation in the forward model.
