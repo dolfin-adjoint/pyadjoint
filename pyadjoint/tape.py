@@ -722,7 +722,7 @@ class TapeTimeStepper:
     """Iterator wrapper which advances the timestep after each iteration."""
     def __init__(self, tape, iterable):
         self.tape = tape
-        self.iterator = tape._bar("Taping forward").iter(iterable)
+        self.iterator = tape.progress_bar("Taping forward").iter(iterable)
         self._first = True
 
     def __iter__(self):
