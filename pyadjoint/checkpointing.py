@@ -108,8 +108,9 @@ class CheckpointManager:
         bool
             Returns `True` if the timestep is in the `checkpoint_schedules` action.
             For example, if the `checkpoint_schedules` action is
-            `Forward(2, 4, True, False, StorageType.DISK)`, then timestep `3` is considered within the action;
-            otherwise, it returns `False`.
+            `Forward(0, 4, True, False, StorageType.DISK)`, then timestep `0, 1, 2, 3`
+            is considered within the action; timestep `4` is not considered within the action
+            and `False` is returned.
 
         Raises
         ------
