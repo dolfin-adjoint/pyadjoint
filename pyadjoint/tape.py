@@ -6,6 +6,8 @@ from contextlib import contextmanager
 from functools import wraps
 from itertools import chain
 from abc import ABC, abstractmethod
+from typing import Optional
+from collections.abc import Iterable
 from .checkpointing import CheckpointManager, CheckpointError
 
 _working_tape = None
@@ -166,7 +168,7 @@ class Tape(object):
 
     def __init__(self, blocks=None, package_data=None):
         # Initialize the list of blocks on the tape.
-        self._blocks = TimeStepSequence(blocks=blocks if blocks else ())
+        self._blocks = TimeStepSequence(blocks=blocks)
         # Dictionary of TensorFlow tensors. Key is id(block).
         self._tf_tensors = {}
         # Keep a list of blocks that has been added to the TensorFlow graph
@@ -429,6 +431,7 @@ class Tape(object):
                 for dep in block.get_dependencies():
                     if dep in nodes:
                         depends_on_control = True
+                        break
 
                 if depends_on_control:
                     for output in block.get_outputs():
@@ -736,50 +739,6 @@ class TapeTimeStepper:
         return next(self.iterator)
 
 
-class TimeStepSequence(list):
-    """A list of Blocks separated into timesteps to facilitate checkpointing.
-
-    This behaves like a list of blocks. To access a list of the timesteps, use
-    the :attr:`steps` property."""
-
-    def __init__(self, blocks=(), steps=()):
-        # Keep both per-timestep and unified block lists.
-        if steps and blocks:
-            raise ValueError("set blocks or steps but not both.")
-        elif isinstance(blocks, TimeStepSequence):
-            self._steps = [step.copy() for step in blocks._steps]
-        elif blocks:
-            self._steps = [TimeStep(blocks)]
-        else:
-            self._steps = list(steps)
-        super().__init__(chain.from_iterable(self._steps))
-
-    @property
-    def steps(self):
-        return self._steps
-
-    def append(self, other):
-        """Add a new block to the sequence and to the current TimeStep."""
-        if not self.steps:
-            self.append_step()
-        self._steps[-1].append(other)
-        super().append(other)
-
-    def append_step(self, step=None):
-        """Add a new TimeStep."""
-        self._steps.append(step or TimeStep())
-
-    def __setitem__(self, key, value):
-        raise ValueError(
-            "Unable to set arbitrary blocks. Try appending instead."
-        )
-
-    def __delitem__(self, key, value):
-        raise ValueError(
-            "Unable to delete blocks from sequence."
-        )
-
-
 class TimeStep(list):
     """A list of blocks in a single time step, plus associated metadata."""
     def __init__(self, blocks=()):
@@ -814,6 +773,50 @@ class TimeStep(list):
     def delete_checkpoint(self):
         """Delete the stored checkpoint references."""
         self._checkpoint = {}
+
+
+class TimeStepSequence(list):
+    """A list of Blocks separated into timesteps to facilitate checkpointing.
+
+    This behaves like a list of blocks. To access a list of the timesteps, use
+    the :attr:`steps` property."""
+
+    def __init__(self, blocks=None, steps: Optional[Iterable[Iterable[TimeStep]]] = None):
+        # Keep both per-timestep and unified block lists.
+        if steps and blocks:
+            raise ValueError("set blocks or steps but not both.")
+        elif isinstance(blocks, TimeStepSequence):
+            self._steps = [step.copy() for step in blocks._steps]
+        elif blocks:
+            self._steps = [TimeStep(blocks)]
+        else:
+            self._steps = list(step.copy() for step in steps) if steps else []
+        super().__init__(chain.from_iterable(self._steps))
+
+    @property
+    def steps(self):
+        return self._steps
+
+    def append(self, other):
+        """Add a new block to the sequence and to the current TimeStep."""
+        if not self.steps:
+            self.append_step()
+        self._steps[-1].append(other)
+        super().append(other)
+
+    def append_step(self, step=None):
+        """Add a new TimeStep."""
+        self._steps.append(step or TimeStep())
+
+    def __setitem__(self, key, value):
+        raise ValueError(
+            "Unable to set arbitrary blocks. Try appending instead."
+        )
+
+    def __delitem__(self, key, value):
+        raise ValueError(
+            "Unable to delete blocks from sequence."
+        )
 
 
 class TapePackageData(ABC):
