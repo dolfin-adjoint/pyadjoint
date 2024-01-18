@@ -2,6 +2,7 @@ import pytest
 pytest.importorskip("firedrake")
 
 from firedrake import *
+from firedrake.__future__ import *
 from firedrake.adjoint import *
 
 from numpy.random import rand
@@ -13,8 +14,8 @@ def test_assign_linear_combination():
     V = FunctionSpace(mesh, "CG", 1)
 
     x, = SpatialCoordinate(mesh)
-    f = interpolate(x, V)
-    g = interpolate(sin(x), V)
+    f = assemble(interpolate(x, V))
+    g = assemble(interpolate(sin(x), V))
     u = Function(V)
 
     u.assign(3*f + g)
@@ -33,8 +34,8 @@ def test_assign_vector_valued():
     V = FunctionSpace(mesh, element)
 
     x = SpatialCoordinate(mesh)
-    f = interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V)
-    g = interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V)
+    f = assemble(interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V))
+    g = assemble(interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V))
     u = Function(V)
 
     u.assign(f - 0.5*g)
@@ -53,8 +54,8 @@ def test_assign_tlm():
     V = FunctionSpace(mesh, element)
 
     x = SpatialCoordinate(mesh)
-    f = interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V)
-    g = interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V)
+    f = assemble(interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V))
+    g = assemble(interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V))
     u = Function(V)
 
     u.assign(f - 0.5*g)
@@ -78,20 +79,20 @@ def test_assign_tlm_with_constant():
     V = FunctionSpace(mesh, "CG", 1)
 
     x = SpatialCoordinate(mesh)
-    f = interpolate(x[0], V)
-    g = interpolate(sin(x[0]), V)
+    f = assemble(interpolate(x[0], V))
+    g = assemble(interpolate(sin(x[0]), V))
     c = Constant(5.0, domain=mesh)
 
     u = Function(V)
     u.interpolate(c * f**2)
 
-    c.block_variable.tlm_value = Constant(0.3)
+    c.block_variable.tlm_value = Constant(0.3, domain=mesh)
     tape = get_working_tape()
     tape.evaluate_tlm()
     assert_allclose(u.block_variable.tlm_value.dat.data, 0.3 * f.dat.data ** 2)
 
     tape.reset_tlm_values()
-    c.block_variable.tlm_value = Constant(0.4)
+    c.block_variable.tlm_value = Constant(0.4, domain=mesh)
     f.block_variable.tlm_value = g
     tape.evaluate_tlm()
     assert_allclose(u.block_variable.tlm_value.dat.data, 0.4 * f.dat.data ** 2 + 10. * f.dat.data * g.dat.data)
@@ -103,8 +104,8 @@ def test_assign_hessian():
     V = FunctionSpace(mesh, element)
 
     x = SpatialCoordinate(mesh)
-    f = interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V)
-    g = interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V)
+    f = assemble(interpolate(as_vector((x[0]*x[1], x[0]+x[1])), V))
+    g = assemble(interpolate(as_vector((sin(x[1])+x[0], cos(x[0])*x[1])), V))
     u = Function(V)
 
     u.assign(f - 0.5*g)
@@ -125,8 +126,8 @@ def test_assign_nonlincom():
     V = FunctionSpace(mesh, "CG", 1)
 
     x = SpatialCoordinate(mesh)
-    f = interpolate(x[0], V)
-    g = interpolate(sin(x[0]), V)
+    f = assemble(interpolate(x[0], V))
+    g = assemble(interpolate(sin(x[0]), V))
     u = Function(V)
 
     u.interpolate(f*g)
@@ -144,7 +145,7 @@ def test_assign_with_constant():
     V = FunctionSpace(mesh, "CG", 1)
 
     x = SpatialCoordinate(mesh)
-    f = interpolate(x[0], V)
+    f = assemble(interpolate(x[0], V))
     c = Constant(3.0, domain=mesh)
     d = Constant(2.0, domain=mesh)
     u = Function(V)
@@ -166,8 +167,8 @@ def test_assign_nonlin_changing():
     V = FunctionSpace(mesh, "CG", 1)
 
     x = SpatialCoordinate(mesh)
-    f = interpolate(x[0], V)
-    g = interpolate(sin(x[0]), V)
+    f = assemble(interpolate(x[0], V))
+    g = assemble(interpolate(sin(x[0]), V))
     control = Control(g)
 
     test = TestFunction(V)
@@ -201,7 +202,7 @@ def test_assign_constant_scale():
     f = Function(V)
     c = Constant(2.0, domain=mesh)
     x, y = SpatialCoordinate(mesh)
-    g = interpolate(as_vector([sin(y)+x, cos(x)*y]), V)
+    g = assemble(interpolate(as_vector([sin(y)+x, cos(x)*y]), V))
 
     f.assign(c * g)
 
