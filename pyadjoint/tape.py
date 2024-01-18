@@ -207,23 +207,23 @@ class Tape(object):
     def timestepper(self, iterable):
         """Return an iterator that advances the tape timestep.
 
-        Parameters
-        ----------
-        iterable : iterable
-            The iterable definining the sequence of timesteps.
+        Note:
+            This method facilitates taping timestepping simulations so that recompute
+            checkpointing can be used on the tape. For example, a simulation with
+            10 timesteps might use a timestepping loop of this form::
 
-        Notes
-        -----
-        This method facilitates taping timestepping simulations so that recompute
-        checkpointing can be used on the tape. For example, a simulation with
-        10 timesteps might use a timestepping loop of this form::
+                tape = get_working_tape()
 
-            tape = get_working_tape()
+                for timestep in tape.timestepper(range(10)):
+                    ...
 
-            for timestep in tape.timestepper(range(10)):
-                ...
+            This has the effect of calling `tape.end_timestep()` after each iteration.
 
-        This has the effect of calling `tape.end_timestep()` after each iteration.
+        Args:
+            iterable (iterable): The iterable definining the sequence of timesteps.
+
+        Returns:
+            TapeTimeStepper: An iterator that advances the tape timestep.
         """
         return TapeTimeStepper(self, iterable)
 
@@ -249,17 +249,13 @@ class Tape(object):
     def add_to_checkpointable_state(self, block_var, last_used):
         """Add a block variable into the checkpointable state set.
 
-        Parameters
-        ----------
-        block_var : BlockVariable
-            The block variable to add.
-        last_used : int
-            The last timestep in which the block variable was used.
+        Note:
+            `checkpointable_state` is a set of block variables which are needed
+            to restart from the start of a timestep.
 
-        Notes
-        -----
-        `checkpointable_state` is a set of block variables which are needed
-        to restart from the start of a timestep.
+        Args:
+            block_var (BlockVariable): The block variable to add.
+            last_used (int): The last timestep in which the block variable was used.
         """
         if not self.timesteps:
             self._blocks.append_step()
@@ -268,16 +264,14 @@ class Tape(object):
 
     def enable_checkpointing(self, schedule):
         """Enable checkpointing on the adjoint evaluation.
-        A checkpoint manager able to execute the forward
-        and adjoint computations according to the schedule
-        provided by checkpoint_schedules package.
 
-        Parameters
-        ----------
-        schedule : checkpoint_schedules.schedule
-            A schedule provided by the checkpoint_schedules package.
-        max_n : int, optional
-            The number of total steps.
+        A checkpoint manager able to execute the forward and adjoint computations
+        according to the schedule provided by checkpoint_schedules package.
+
+        Args:
+            schedule (checkpoint_schedules.schedule): A schedule provided by the
+            checkpoint_schedules package.
+            max_n (int, optional): The number of total steps.
         """
         if self._blocks:
             raise CheckpointError(
@@ -313,15 +307,11 @@ class Tape(object):
     def evaluate_adj(self, last_block=0, markings=False):
         """Evaluate the adjoint of the tape.
 
-        Parameters
-        ----------
-        last_block : int, optional
-            The index of the last block to evaluate.
-        markings : bool, optional
-            If True, then each `BlockVariable` of the current block
-            will have set `marked_in_path` attribute indicating whether their
-            adjoint components are relevant for computing the final target
-            adjoint values.
+        Args:
+            last_block (int, optional): The index of the last block to evaluate.
+            markings (bool, optional): If True, then each `BlockVariable` of the current block
+                will have set `marked_in_path` attribute indicating whether their adjoint
+                components are relevant for computing the final target adjoint values.
         """
         if self._checkpoint_manager:
             self._checkpoint_manager.evaluate_adj(last_block, markings)
@@ -779,7 +769,8 @@ class TimeStepSequence(list):
     """A list of Blocks separated into timesteps to facilitate checkpointing.
 
     This behaves like a list of blocks. To access a list of the timesteps, use
-    the :attr:`steps` property."""
+    the :attr:`steps` property.
+    """
 
     def __init__(self, blocks=None, steps: Optional[Iterable[Iterable[TimeStep]]] = None):
         # Keep both per-timestep and unified block lists.

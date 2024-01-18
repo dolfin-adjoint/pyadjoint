@@ -10,7 +10,16 @@ class CheckpointError(RuntimeError):
 
 
 class Mode(Enum):
-    """The mode of the checkpoint manager."""
+    """The mode of the checkpoint manager.
+
+    RECORD: The forward model is being taped.
+    FINISHED_RECORDING: The forward model is finished being taped.
+    EVALUATED: The forward model was evaluated.
+    EXHAUSTED: The forward and the adjoint models were evaluated and the schedule has concluded.
+    RECOMPUTE: The forward model is being recomputed.
+    EVALUATE_ADJOINT: The adjoint model is being evaluated.
+
+    """
     RECORD = 1
     FINISHED_RECORDING = 2
     EVALUATED = 3
@@ -22,18 +31,24 @@ class Mode(Enum):
 class CheckpointManager:
     """Manage the executions of the forward and adjoint solvers.
 
-    Attributes
-    ----------
-    schedule : checkpoint_schedules.schedule
-        A schedule provided by the `checkpoint_schedules` package.
-    tape : Tape
-        A list of blocks :class:`Block` instances.
-        Each block represents one operation in the forward model.
+    Args:
+        schedule (checkpoint_schedules.schedule): A schedule provided by the `checkpoint_schedules` package.
+        tape (Tape): A list of blocks :class:`Block` instances.
 
-    Notes
-    -----
-    Currently, automated gradient using checkpointing only supports `Revolve`
-    and `MultistageCheckpointSchedule` schedules.
+    Attributes:
+        tape (Tape): A list of blocks :class:`Block` instances.
+        _schedule (checkpoint_schedules.schedule): A schedule provided by the `checkpoint_schedules` package.
+        forward_schedule (list): A list of `checkpoint_schedules` actions used to manage the execution of the
+        forward model.
+        reverse_schedule (list): A list of `checkpoint_schedules` actions used to manage the execution of the
+        reverse model.
+        timesteps (int): The initial number of timesteps.
+        adjoint_evaluated (bool): A boolean indicating whether the adjoint model has been evaluated.
+        mode (Mode): The mode of the checkpoint manager. The possible modes are `RECORD`, `FINISHED_RECORDING`,
+        `EVALUATED`, `EXHAUSTED`, `RECOMPUTE`, and `EVALUATE_ADJOINT`. Additional information about the modes
+        can be found class:`Mode`.
+        _current_action (checkpoint_schedules.CheckpointAction): The current `checkpoint_schedules` action.
+
     """
     def __init__(self, schedule, tape):
         if (
@@ -68,10 +83,8 @@ class CheckpointManager:
     def end_timestep(self, timestep):
         """Mark the end of one timestep when taping the forward model.
 
-        Parameters
-        ----------
-        timestep : int
-            The current timestep.
+        Args:
+            timestep (int): The current timestep.
         """
         if self.mode == Mode.EVALUATED:
             raise CheckpointError("Not enough timesteps in schedule.")
@@ -93,40 +106,27 @@ class CheckpointManager:
         """A single-dispatch generic function.
         The process taping is used while the forward model is taped.
 
-        Parameters
-        ----------
-        cp_action : checkpoint_schedules.CheckpointAction
-            A checkpoint action obtained from the `checkpoint_schedules`.
-            In process taping, the possible actions are `Forward` and `EndForward`.
-            These actions are used to manage the execution of the forward model,
-            store checkpoint data, and inform the end of the forward execution.
-        timestep : int
-            The current timestep.
+        Note:
+            To have more information about the `checkpoint_schedules`, please refer to the
+            `documentation <https://www.firedrakeproject.org/checkpoint_schedules/>`_.
+            Detailed descriptions of the actions used in the process taping can be found at the following links:
+            `Forward <https://www.firedrakeproject.org/checkpoint_schedules/checkpoint_schedules.html#
+            checkpoint_schedules.schedule.Forward>`_ and `End_Forward <https://www.firedrakeproject.org/
+            checkpoint_schedules/checkpoint_schedules.html#checkpoint_schedules.schedule.EndForward>`_.
 
-        Returns
-        -------
-        bool
-            Returns `True` if the timestep is in the `checkpoint_schedules` action.
-            For example, if the `checkpoint_schedules` action is
-            `Forward(0, 4, True, False, StorageType.DISK)`, then timestep `0, 1, 2, 3`
-            is considered within the action; timestep `4` is not considered within the action
-            and `False` is returned.
+        Args:
+            cp_action (checkpoint_schedules.CheckpointAction): A checkpoint action obtained from the
+            `checkpoint_schedules`.
+            timestep (int): The current timestep.
 
-        Raises
-        ------
-        CheckpointError
-            If the checkpoint action is not supported.
+        Returns:
+            bool: Returns `True` if the timestep is in the `checkpoint_schedules` action.
+            For example, if the `checkpoint_schedules` action is `Forward(0, 4, True, False, StorageType.DISK)`,
+            then timestep `0, 1, 2, 3` is considered within the action; timestep `4` is not considered within the
+            action and `False` is returned.
 
-        Notes
-        -----
-        To have more information about the `checkpoint_schedules`,
-        please refer to the
-        `documentation <https://www.firedrakeproject.org/checkpoint_schedules/>`_.
-        Detailed descriptions of the actions used in the process taping can be found at the following links:
-        `Forward
-        <https://www.firedrakeproject.org/checkpoint_schedules/checkpoint_schedules.html#checkpoint_schedules.schedule.Forward>`_
-        and `End_Forward
-        <https://www.firedrakeproject.org/checkpoint_schedules/checkpoint_schedules.html#checkpoint_schedules.schedule.EndForward>`_.
+        Raises:
+            CheckpointError: If the checkpoint action is not supported.
         """
 
         raise CheckpointError(f"Unable to process {cp_action} while taping.")
@@ -176,10 +176,8 @@ class CheckpointManager:
     def recompute(self, functional=None):
         """Recompute the forward model.
 
-        Parameters
-        ----------
-        functional : BlockVariable
-            The functional to be evaluated.
+        Args:
+            functional (BlockVariable): The functional to be evaluated.
         """
         self.mode = Mode.RECOMPUTE
 
@@ -196,14 +194,11 @@ class CheckpointManager:
     def evaluate_adj(self, last_block, markings):
         """Evaluate the adjoint model.
 
-        Parameters
-        ----------
-        last_block : int
-            The last block to be evaluated.
-        markings : bool
-            If True, then each `BlockVariable` of the current block will have set `marked_in_path` attribute
-            indicating whether their adjoint components are relevant for computing the final target adjoint
-            values.
+        Args:
+            last_block (int): The last block to be evaluated.
+            markings (bool): If `True`, then each `BlockVariable` of the current block will have set
+            `marked_in_path` attribute indicating whether their adjoint components are relevant for
+            computing the final target adjoint values.
         """
         # Work out other cases when they arise.
         if last_block != 0:
@@ -242,24 +237,18 @@ class CheckpointManager:
         This single-dispatch generic function is used in the `Blocks`
         recomputation and adjoint evaluation with checkpointing.
 
-        Parameters
-        ----------
-        cp_action : checkpoint_schedules.CheckpointAction
-            A checkpoint action from the `checkpoint_schedules`. The possible
-            actions are `Forward`, `Reverse`, `EndForward`, `EndReverse`,
-            `Copy`, or `Move`.
-        bar : progressbar.ProgressBar
-            A progress bar to display the progress of the reverse executions.
+        Note:
+            The documentation of the `checkpoint_schedules` actions is available
+            `here <https://www.firedrakeproject.org/checkpoint_schedules/>`_.
 
-        Raises
-        ------
-        CheckpointError
-            If the checkpoint action is not supported.
+        Args:
+            cp_action (checkpoint_schedules.CheckpointAction): A checkpoint action obtained from the
+            `checkpoint_schedules`.
+            bar (progressbar.ProgressBar): A progress bar to display the progress of the reverse executions.
+            kwargs: Additional keyword arguments.
 
-        Notes
-        -----
-        The documentation of the `checkpoint_schedules` actions is available
-        `here <https://www.firedrakeproject.org/checkpoint_schedules/>`_.
+        Raises:
+            CheckpointError: If the checkpoint action is not supported.
         """
         raise CheckpointError(f"Unable to process {cp_action}.")
 

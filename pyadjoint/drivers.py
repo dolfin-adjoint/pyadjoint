@@ -97,16 +97,13 @@ def solve_adjoint(J, tape=None, adj_value=1.0):
 class marked_controls:
     """A context manager for marking controls.
 
-    Attributes
-    ----------
-    controls : list
-        A list of :class:`Control` to mark within the context manager.
+    Note:
+        This is a context manager for marking whether the class:'BlockVariable' is
+        a control. On exiting the context, the class:'BlockVariable' that were
+        marked as controls are automatically unmarked.
 
-    Notes
-    -----
-    This context manager is employed to mark whter the class:'BlockVariable' is
-    as controls. On exiting the context, the class:'BlockVariable' that were
-    marked as controls are automatically unmarked.
+    Args:
+        controls (list): A list of :class:`Control` to mark within the context manager.
     """
     def __init__(self, controls):
         self.controls = controls
