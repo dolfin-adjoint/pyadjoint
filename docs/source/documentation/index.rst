@@ -361,8 +361,7 @@ a tape. The current working tape can be set and retrieved with the functions :py
 :py:func:`get_working_tape`.
 
 Annotation can be temporarily disabled using :py:func:`pause_annotation` and enabled again using :py:func:`continue_annotation`.
-Note that if you call :py:func:`pause_annotation` twice, then :py:func:`continue_annotation` must be called twice
-to enable annotation. Due to this, the recommended annotation control functions are :py:class:`stop_annotating` and :py:func:`no_annotations`.
+It is recommended to use :py:class:`stop_annotating` and :py:func:`no_annotations` for annotation control.
 :py:class:`stop_annotating` is a context manager and should be used as follows
 
 .. code-block:: python
