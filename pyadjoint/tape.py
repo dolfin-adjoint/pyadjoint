@@ -820,7 +820,7 @@ class TimeStep(list):
     def checkpoint_storage_type(self):
         """Store the storage type of the current checkpoint manager."""
         return self._storage_type
-    
+
     def restore_from_checkpoint(self):
         """Restore the block var checkpoints from the timestep checkpoint."""
 

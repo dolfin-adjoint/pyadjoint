@@ -1,7 +1,9 @@
 from enum import Enum
 import sys
 from functools import singledispatchmethod
-from checkpoint_schedules import *
+from checkpoint_schedules import (
+    StorageType, Forward, Reverse, EndForward, EndReverse, Copy, Move, SingleDiskStorageSchedule
+)
 
 
 class CheckpointError(RuntimeError):
