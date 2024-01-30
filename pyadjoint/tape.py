@@ -163,7 +163,7 @@ class Tape(object):
                  "_tf_registered_blocks", "_bar", "_package_data",
                  "_checkpoint_manager", "latest_checkpoint",
                  "_eagerly_checkpoint_outputs", "_reverse_computation",
-                 "_recomputation"]
+                 "_recomputation", "_evaluate_tlm"]
 
     def __init__(self, blocks=None, package_data=None):
         # Initialize the list of blocks on the tape.
@@ -185,6 +185,7 @@ class Tape(object):
         # Whether the reverse computation is being executed.
         self._reverse_computation = False
         self._recomputation = False
+        self._evaluate_tlm = False
 
     def clear_tape(self):
         """Clear the tape."""
@@ -336,6 +337,7 @@ class Tape(object):
 
     def evaluate_tlm(self):
         self._reverse_computation = False
+        self._evaluate_tlm = True
         for i in self._bar("Evaluating TLM").iter(
             range(len(self._blocks))
         ):

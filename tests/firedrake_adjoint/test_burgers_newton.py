@@ -75,7 +75,7 @@ def test_burgers_newton(solve_type, checkpointing):
         tape.enable_checkpointing(Revolve(steps, steps // 3))
     elif checkpointing == "Multistage":
         tape.enable_checkpointing(
-            MultistageCheckpointSchedule(steps, steps // 3, 0)
+            MultistageCheckpointSchedule(steps, steps // 3, steps // 2)
         )
     elif checkpointing == "SingleMemory":
         tape.enable_checkpointing(SingleMemoryStorageSchedule())
