@@ -2,8 +2,8 @@ from enum import Enum
 import sys
 from functools import singledispatchmethod
 from checkpoint_schedules import (
-    Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType,
-    MixedCheckpointSchedule)
+    Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType
+)
 
 
 class CheckpointError(RuntimeError):
@@ -142,9 +142,10 @@ class CheckpointManager:
             ):
                 self.tape.timesteps[timestep].checkpoint()
 
-            if (not cp_action.write_adj_deps
-                or(cp_action.write_adj_deps
-                   and cp_action.storage != StorageType.WORK)
+            if (
+                not cp_action.write_adj_deps
+                or (cp_action.write_adj_deps
+                    and cp_action.storage != StorageType.WORK)
             ):
                 # Remove unnecessary variables from previous steps.
                 for var in self.tape.timesteps[timestep - 1].checkpointable_state:
