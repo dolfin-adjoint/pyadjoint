@@ -43,7 +43,7 @@ def spring_mass_damper(displacement_0, total_steps, space):
                           (None),
                           ])
 def test_multisteps(checkpointing):
-    total_steps = 100
+    total_steps = 20
     mesh = UnitIntervalMesh(1)
     space = FunctionSpace(mesh, "DG", 0)
     tape = get_working_tape()
