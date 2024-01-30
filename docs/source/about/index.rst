@@ -1,4 +1,4 @@
-.. title:: dolfin-adjoint about
+.. title:: pyadjoint about
 
 ***************
 About pyadjoint
