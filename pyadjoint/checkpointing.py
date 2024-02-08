@@ -152,11 +152,12 @@ class CheckpointManager:
         if timestep in cp_action and timestep < self.total_steps:
             self.tape.get_blocks().append_step()
             # Get the storage type of every single timestep.
-            self.tape.timesteps[timestep]._storage_type = StorageType.NONE
             if cp_action.write_ics and timestep == cp_action.n0:
                 self.tape.timesteps[timestep]._storage_type = cp_action.storage
-            if cp_action.write_adj_deps:
+            elif cp_action.write_adj_deps:
                 self.tape.timesteps[timestep]._storage_type = cp_action.storage
+            else:
+                self.tape.timesteps[timestep]._storage_type = StorageType.NONE
             return True
         else:
             return False
@@ -187,7 +188,6 @@ class CheckpointManager:
                                     max=self.total_steps) as bar:
             # Restore the initial condition to advance the forward model
             # from the step 0.
-            self.tape._recomputation = True
             current_step = self.tape.timesteps[self.forward_schedule[0].n0]
             current_step.restore_from_checkpoint()
             for cp_action in self.forward_schedule:
@@ -331,6 +331,7 @@ class CheckpointManager:
         current_step = self.tape.timesteps[cp_action.n]
         current_step.restore_from_checkpoint()
         current_step.delete_checkpoint()
+        self.tape.timesteps[cp_action.n]._storage_type = StorageType.NONE
 
     @process_operation.register(EndForward)
     def _(self, cp_action, bar, **kwargs):

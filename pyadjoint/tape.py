@@ -162,8 +162,7 @@ class Tape(object):
     __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks", "_nodes",
                  "_tf_registered_blocks", "_bar", "_package_data",
                  "_checkpoint_manager", "latest_checkpoint",
-                 "_eagerly_checkpoint_outputs", "_reverse_computation",
-                 "_recomputation", "_evaluate_tlm"]
+                 "_eagerly_checkpoint_outputs"]
 
     def __init__(self, blocks=None, package_data=None):
         # Initialize the list of blocks on the tape.
@@ -182,10 +181,6 @@ class Tape(object):
         self._checkpoint_manager = None
         # Whether to store the adjoint dependencies.
         self._eagerly_checkpoint_outputs = False
-        # Whether the reverse computation is being executed.
-        self._reverse_computation = False
-        self._recomputation = False
-        self._evaluate_tlm = False
 
     def clear_tape(self):
         """Clear the tape."""
@@ -326,7 +321,6 @@ class Tape(object):
             adjoint components are relevant for computing the final target
             adjoint values.
         """
-        self._reverse_computation = True
         if self._checkpoint_manager:
             self._checkpoint_manager.evaluate_adj(last_block, markings)
         else:
@@ -336,15 +330,12 @@ class Tape(object):
                 self._blocks[i].evaluate_adj(markings=markings)
 
     def evaluate_tlm(self):
-        self._reverse_computation = False
-        self._evaluate_tlm = True
         for i in self._bar("Evaluating TLM").iter(
             range(len(self._blocks))
         ):
             self._blocks[i].evaluate_tlm()
 
     def evaluate_hessian(self, markings=False):
-        self._reverse_computation = True
         for i in self._bar("Evaluating Hessian").iter(
             range(len(self._blocks) - 1, -1, -1)
         ):
@@ -709,6 +700,11 @@ class Tape(object):
     @progress_bar.setter
     def progress_bar(self, bar):
         self._bar = bar
+
+    @property
+    def checkpoint_manager(self):
+        """Return the checkpoint manager associated with the tape."""
+        return self._checkpoint_manager
 
 
 class _NullProgressBar:

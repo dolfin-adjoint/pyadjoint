@@ -133,7 +133,7 @@ def test_checkpointing_validity(solve_type, checkpointing):
     tape = get_working_tape()
     tape.progress_bar = ProgressBar
     x, = SpatialCoordinate(mesh)
-    ic = project(sin(2. * pi * x), V)
+    ic = project(sin(pi * x), V)
 
     val0 = J(ic, solve_type, False)
     Jhat = ReducedFunctional(val0, Control(ic))
@@ -155,10 +155,10 @@ def test_checkpointing_validity(solve_type, checkpointing):
         tape.enable_checkpointing(NoneCheckpointSchedule())
     elif checkpointing == "Mixed":
         tape.enable_checkpointing(
-            MixedCheckpointSchedule(steps, steps // 3, storage=StorageType.RAM)
+            MixedCheckpointSchedule(steps, steps // 3, storage=StorageType.DISK)
             )
     x, = SpatialCoordinate(mesh)
-    ic = project(sin(2. * pi * x), V)
+    ic = project(sin(pi * x), V)
     val1 = J(ic, solve_type, True)
     Jhat = ReducedFunctional(val1, Control(ic))
     if checkpointing != "NoneAdjointCompute":
