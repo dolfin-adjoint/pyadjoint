@@ -24,6 +24,6 @@ setup(name='pyadjoint',
       package_dir={'pyadjoint': 'pyadjoint',
                    'firedrake_adjoint': 'firedrake_adjoint',
                    'numpy_adjoint': 'numpy_adjoint'},
-      install_requires=['scipy>=1.0'],
+      install_requires=['scipy>=1.0', 'checkpoint-schedules'],
       extras_require=extras
       )
