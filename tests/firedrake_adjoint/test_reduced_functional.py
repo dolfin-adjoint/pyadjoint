@@ -9,21 +9,24 @@ from numpy.random import rand
 def test_constant():
     mesh = IntervalMesh(10, 0, 1)
     V = FunctionSpace(mesh, "Lagrange", 1)
+    R = FunctionSpace(mesh, "R", 0)
 
-    c = Constant(1, domain=mesh)
+    c = Function(R).assign(1)
     f = Function(V)
     f.vector()[:] = 1
 
     u = Function(V)
     v = TestFunction(V)
-    bc = DirichletBC(V, Constant(1, domain=mesh), "on_boundary")
+    bv = Function(R).assign(1)
+    bc = DirichletBC(V, bv, "on_boundary")
 
     F = inner(grad(u), grad(v))*dx - f**2*v*dx
     solve(F == 0, u, bc)
 
     J = assemble(c**2*u*dx)
     Jhat = ReducedFunctional(J, Control(c))
-    assert taylor_test(Jhat, c, Constant(1, domain=mesh)) > 1.9
+    m = Function(R).assign(1)
+    assert taylor_test(Jhat, c, m) > 1.9
 
 
 def test_function():
@@ -54,6 +57,7 @@ def test_wrt_function_dirichlet_boundary(control):
     mesh = UnitSquareMesh(10,10)
 
     V = FunctionSpace(mesh,"CG",1)
+    R = FunctionSpace(mesh,"R",0)
     u = TrialFunction(V)
     u_ = Function(V)
     v = TestFunction(V)
@@ -64,8 +68,8 @@ def test_wrt_function_dirichlet_boundary(control):
     bc2 = DirichletBC(V, 2, 2)
     bc = [bc1,bc2]
 
-    g1 = Constant(2, domain=mesh)
-    g2 = Constant(1, domain=mesh)
+    g1 = Function(R).assign(2)
+    g2 = Function(R).assign(1)
     f = Function(V)
     f.vector()[:] = 10
 
@@ -166,10 +170,11 @@ def test_mixed_boundary():
 def test_assemble_recompute():
     mesh = UnitSquareMesh(10, 10)
     V = FunctionSpace(mesh, "CG", 1)
+    R = FunctionSpace(mesh, "R", 0)
 
     f = Function(V)
     f.vector()[:] = 2
-    expr = Constant(assemble(f**2*dx), domain=mesh)
+    expr = Function(R).assign(assemble(f**2*dx))
     J = assemble(expr**2*dx(domain=mesh))
     Jhat = ReducedFunctional(J, Control(f))
 

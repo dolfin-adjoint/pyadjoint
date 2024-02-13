@@ -30,7 +30,7 @@ def main(ic, fnsplit=True):
     v = TestFunction(V2)
 
     if fnsplit:
-        ic_u = ic.split()[0]
+        ic_u = ic.sub(0)
     else:
         ic_u = split(ic)[0]
 
@@ -88,8 +88,9 @@ def test_fn_split_no_annotate(Z):
     w = TrialFunction(V2)
     v = TestFunction(V2)
 
-    ic_u = ic.split(annotate=True)[0]
-    ic_uv = ic.split(annotate=False)[0]
+    ic_u = ic.sub(0)
+    with stop_annotating():
+        ic_uv = ic.sub(0)
 
     mass = inner(w, v) * dx
     rhs = inner(ic_u, v) * dx
@@ -108,23 +109,26 @@ def test_fn_split_no_annotate(Z):
 
 def test_split_subvariables_update(Z):
     z = Function(Z)
-    u = z.split()[0]
+    u = z.sub(0)
     u.project(Constant(1.))
     assert np.allclose(z.sub(0).vector().dat.data, u.vector().dat.data)
 
 def test_merge_blocks():
     mesh = UnitSquareMesh(1,1)
     V = FunctionSpace(mesh, 'CG', 1)
+    R = FunctionSpace(mesh, 'R', 0)
     W = V * V
     w = Function(W)
-    w1, w2 = w.split()
-    w1_const = Constant(0.1, domain=mesh)
-    w2_const = Constant(0.2, domain=mesh)
+    w1, w2 = w.sub(0), w.sub(1)
+    w1_const = Function(R).assign(0.1)
+    w2_const = Function(R).assign(0.2)
     w1.project(w1_const)
     w2.project(w2_const)
     J = assemble(w1*w1*dx)
     c = Control(w1_const)
     rf = ReducedFunctional(J, c)
-    assert taylor_test(rf, Constant(0.3, domain=mesh), Constant(0.01, domain=mesh)) > 1.95
+    m = Function(R).assign(0.3)
+    h = Function(R).assign(0.01)
+    assert taylor_test(rf, m, h) > 1.95
 
 
