@@ -197,8 +197,7 @@ def test_wrt_constant():
     u = TrialFunction(V)
     u_ = Function(V)
     v = TestFunction(V)
-    bv = Function(R, val=1)
-    bc = DirichletBC(V, bv, "on_boundary")
+    bc = DirichletBC(V, Function(R, val=1), "on_boundary")
 
     def J(c):
         a = inner(grad(u), grad(v))*dx
