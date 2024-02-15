@@ -154,8 +154,7 @@ def test_nonlinear():
 
     u = Function(V)
     v = TestFunction(V)
-    bv = Function(R, val=1)
-    bc = DirichletBC(V, bv, "on_boundary")
+    bc = DirichletBC(V, Function(R, val=1), "on_boundary")
 
     F = inner(grad(u), grad(v)) * dx - u**2*v*dx - f * v * dx
     solve(F == 0, u, bc)
