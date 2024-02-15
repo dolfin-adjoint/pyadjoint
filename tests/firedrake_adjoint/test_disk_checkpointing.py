@@ -19,7 +19,7 @@ def adjoint_example(fine, coarse):
     # AssembleBlock
     m = assemble(interpolate(sin(4*pi*x)*cos(4*pi*y), cg_space))
 
-    u, v = w.sub(0), w.sub(1)
+    u, v = w.subfunctions
     # FunctionAssignBlock, FunctionMergeBlock
     v.assign(m)
     # FunctionSplitBlock, GenericSolveBlock
