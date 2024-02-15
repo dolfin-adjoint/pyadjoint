@@ -119,7 +119,7 @@ def test_merge_blocks():
     R = FunctionSpace(mesh, 'R', 0)
     W = V * V
     w = Function(W)
-    w1, w2 = w.sub(0), w.sub(1)
+    w1, w2 = w.subfunctions
     w1_const = Function(R).assign(0.1)
     w2_const = Function(R).assign(0.2)
     w1.project(w1_const)
