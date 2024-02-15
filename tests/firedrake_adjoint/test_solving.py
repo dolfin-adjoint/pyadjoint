@@ -16,7 +16,7 @@ def test_linear_problem():
     u = TrialFunction(V)
     u_ = Function(V)
     v = TestFunction(V)
-    bv = Function(R).assign(1)
+    bv = Function(R, val=1)
     bc = DirichletBC(V, bv, "on_boundary")
 
     def J(f):
@@ -67,8 +67,7 @@ def test_nonlinear_problem():
 
     u = Function(V)
     v = TestFunction(V)
-    bv  = Function(R).assign(1)
-    bc = DirichletBC(V, bv, "on_boundary")
+    bc = DirichletBC(V, Function(R, val=1), "on_boundary")
 
     def J(f):
         a = f*inner(grad(u), grad(v))*dx + u**2*v*dx - f*v*dx
@@ -172,8 +171,8 @@ def test_wrt_function_neumann_boundary():
     bc2 = DirichletBC(V, 2, 2)
     bc = [bc1,bc2]
 
-    g1 = Function(R).assign(2)
-    g2 = Function(R).assign(1)
+    g1 = Function(R, val=2)
+    g2 = Function(R, val=1)
     f = Function(V)
     f.vector()[:] = 10
 
@@ -193,12 +192,12 @@ def test_wrt_constant():
     V = FunctionSpace(mesh, "Lagrange", 1)
     R = FunctionSpace(mesh, "R", 0)
 
-    c = Function(R).assign(1)
+    c = Function(R, val=1)
 
     u = TrialFunction(V)
     u_ = Function(V)
     v = TestFunction(V)
-    bv = Function(R).assign(1)
+    bv = Function(R, val=1)
     bc = DirichletBC(V, bv, "on_boundary")
 
     def J(c):
@@ -224,8 +223,8 @@ def test_wrt_constant_neumann_boundary():
     bc2 = DirichletBC(V, 2, 2)
     bc = [bc1,bc2]
 
-    g1 = Function(R).assign(2)
-    g2 = Function(R).assign(1)
+    g1 = Function(R, val=2)
+    g2 = Function(R, val=1)
     f = Function(V)
     f.vector()[:] = 10
 
@@ -259,7 +258,7 @@ def test_time_dependent():
     # Some variables
     T = 0.2
     dt = 0.1
-    f = Function(R).assign(1)
+    f = Function(R, val=1)
 
     def J(f):
         u_1 = Function(V)
@@ -289,7 +288,7 @@ def test_two_nonlinear_solves():
     u0 = Function(V)
     u1 = Function(V)
 
-    ui = Function(R).assign(2.0)
+    ui = Function(R, val=2.0)
     c = Control(ui)
     u0.assign(ui)
     F = dot(v, (u1-u0))*dx - dot(v, u0*u1)*dx

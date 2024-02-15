@@ -82,18 +82,18 @@ def test_assign_tlm_with_constant():
     x = SpatialCoordinate(mesh)
     f = assemble(interpolate(x[0], V))
     g = assemble(interpolate(sin(x[0]), V))
-    c = Function(R).assign(5.0)
+    c = Function(R, val=5.0)
 
     u = Function(V)
     u.interpolate(c * f**2)
 
-    c.block_variable.tlm_value = Function(R).assign(0.3)
+    c.block_variable.tlm_value = Function(R, val=0.3)
     tape = get_working_tape()
     tape.evaluate_tlm()
     assert_allclose(u.block_variable.tlm_value.dat.data, 0.3 * f.dat.data ** 2)
 
     tape.reset_tlm_values()
-    c.block_variable.tlm_value = Function(R).assign(0.4)
+    c.block_variable.tlm_value = Function(R, val=0.4)
     f.block_variable.tlm_value = g
     tape.evaluate_tlm()
     assert_allclose(u.block_variable.tlm_value.dat.data, 0.4 * f.dat.data ** 2 + 10. * f.dat.data * g.dat.data)
@@ -147,8 +147,8 @@ def test_assign_with_constant():
     R = FunctionSpace(mesh, "R", 0)
     x = SpatialCoordinate(mesh)
     f = assemble(interpolate(x[0], V))
-    c = Function(R).assign(3.0)
-    d = Function(R).assign(2.0)
+    c = Function(R, val=3.0)
+    d = Function(R, val=2.0)
     u = Function(V)
 
     u.assign(c*f+d**3)
@@ -201,7 +201,7 @@ def test_assign_constant_scale():
     V = VectorFunctionSpace(mesh, "CG", 1)
     R = FunctionSpace(mesh, "R", 0)
     f = Function(V)
-    c = Function(R).assign(2.0)
+    c = Function(R, val=2.0)
     x, y = SpatialCoordinate(mesh)
     g = assemble(interpolate(as_vector([sin(y)+x, cos(x)*y]), V))
 
@@ -210,8 +210,7 @@ def test_assign_constant_scale():
     J = assemble(inner(f, f) ** 2  * dx)
 
     rf = ReducedFunctional(J, Control(c))
-    h = Constant(0.1)
-    r = taylor_to_dict(rf, c, h)
+    r = taylor_to_dict(rf, c, Constant(0.1))
 
     assert min(r["R0"]["Rate"]) > 0.9
     assert min(r["R1"]["Rate"]) > 1.9

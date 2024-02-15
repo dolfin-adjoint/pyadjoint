@@ -11,22 +11,20 @@ def test_constant():
     V = FunctionSpace(mesh, "Lagrange", 1)
     R = FunctionSpace(mesh, "R", 0)
 
-    c = Function(R).assign(1)
+    c = Function(R, val=1)
     f = Function(V)
     f.vector()[:] = 1
 
     u = Function(V)
     v = TestFunction(V)
-    bv = Function(R).assign(1)
-    bc = DirichletBC(V, bv, "on_boundary")
+    bc = DirichletBC(V, Function(R, val=1), "on_boundary")
 
     F = inner(grad(u), grad(v))*dx - f**2*v*dx
     solve(F == 0, u, bc)
 
     J = assemble(c**2*u*dx)
     Jhat = ReducedFunctional(J, Control(c))
-    m = Function(R).assign(1)
-    assert taylor_test(Jhat, c, m) > 1.9
+    assert taylor_test(Jhat, c, Function(R, val=1)) > 1.9
 
 
 def test_function():
@@ -68,8 +66,8 @@ def test_wrt_function_dirichlet_boundary(control):
     bc2 = DirichletBC(V, 2, 2)
     bc = [bc1,bc2]
 
-    g1 = Function(R).assign(2)
-    g2 = Function(R).assign(1)
+    g1 = Function(R, val=2)
+    g2 = Function(R, val=1)
     f = Function(V)
     f.vector()[:] = 10
 
