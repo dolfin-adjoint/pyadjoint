@@ -9,9 +9,10 @@ from firedrake.adjoint import *
 def test_optimisation_constant_control():
     """This tests a list of controls in a minimisation (through scipy L-BFGS-B)"""
     mesh = UnitSquareMesh(1, 1)
+    R = FunctionSpace(mesh, "R", 0)
 
     n = 3
-    x = [Constant(0., domain=mesh) for i in range(n)]
+    x = [Function(R) for i in range(n)]
     c = [Control(xi) for xi in x]
 
     # Rosenbrock function https://en.wikipedia.org/wiki/Rosenbrock_function

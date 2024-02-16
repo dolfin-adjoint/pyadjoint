@@ -46,8 +46,8 @@ def test_tlm_bc():
     set_working_tape(tape)
     mesh = IntervalMesh(10, 0, 1)
     V = FunctionSpace(mesh, "Lagrange", 1)
-
-    c = Constant(1, domain=mesh)
+    R = FunctionSpace(mesh, "R", 0)
+    c = Function(R, val=1)
     f = Function(V)
     f.vector()[:] = 1
 
@@ -63,7 +63,7 @@ def test_tlm_bc():
 
     # Need to specify the domain for the constant as `ufl.action`, which requires `ufl.Constant`
     # to have a function space, will be applied on the tlm value.
-    c.block_variable.tlm_value = Constant(1, domain=mesh)
+    c.block_variable.tlm_value = Function(R, val=1)
     tape.evaluate_tlm()
 
     assert (taylor_test(Jhat, Constant(c), Constant(1), dJdm=J.block_variable.tlm_value) > 1.9)
@@ -212,9 +212,10 @@ def test_projection():
     set_working_tape(tape)
     mesh = UnitSquareMesh(10, 10)
     V = FunctionSpace(mesh, "CG", 1)
+    R = FunctionSpace(mesh, "R", 0)
 
     bc = DirichletBC(V, Constant(1), "on_boundary")
-    k = Constant(2.0, domain=mesh)
+    k = Function(R, val=2)
     x, y = SpatialCoordinate(mesh)
     expr = sin(k*x)
     f = project(expr, V)

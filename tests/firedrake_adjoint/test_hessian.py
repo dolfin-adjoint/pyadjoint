@@ -107,8 +107,8 @@ def test_function():
 
     mesh = IntervalMesh(10, 0, 1)
     V = FunctionSpace(mesh, "Lagrange", 2)
-
-    c = Constant(4, domain=mesh)
+    R = FunctionSpace(mesh, "R", 0)
+    c = Function(R, val=4)
     control_c = Control(c)
     f = Function(V)
     f.vector()[:] = 3
@@ -116,7 +116,7 @@ def test_function():
 
     u = Function(V)
     v = TestFunction(V)
-    bc = DirichletBC(V, Constant(1, domain=mesh), "on_boundary")
+    bc = DirichletBC(V, Function(R, val=1), "on_boundary")
 
     F = inner(grad(u), grad(v)) * dx + u**2*v*dx - f ** 2 * v * dx - c**2*v*dx
     solve(F == 0, u, bc)
@@ -127,7 +127,7 @@ def test_function():
     dJdc, dJdf = compute_gradient(J, [control_c, control_f])
 
     # Step direction for derivatives and convergence test
-    h_c = Constant(1.0, domain=mesh)
+    h_c = Function(R, val=1.0) 
     h_f = Function(V)
     h_f.vector()[:] = 10*rng.random(V.dim())
 
@@ -148,13 +148,13 @@ def test_nonlinear():
 
     mesh = UnitSquareMesh(10, 10)
     V = FunctionSpace(mesh, "Lagrange", 1)
-
+    R = FunctionSpace(mesh, "R", 0)
     f = Function(V)
     f.vector()[:] = 5
 
     u = Function(V)
     v = TestFunction(V)
-    bc = DirichletBC(V, Constant(1, domain=mesh), "on_boundary")
+    bc = DirichletBC(V, Function(R, val=1), "on_boundary")
 
     F = inner(grad(u), grad(v)) * dx - u**2*v*dx - f * v * dx
     solve(F == 0, u, bc)

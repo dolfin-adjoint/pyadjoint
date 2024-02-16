@@ -9,14 +9,14 @@ from numpy.testing import assert_approx_equal
 def test_linear_problem():
     mesh = IntervalMesh(10, 0, 1)
     V = FunctionSpace(mesh, "Lagrange", 1)
-
+    R = FunctionSpace(mesh, "R", 0)
     f = Function(V)
     f.vector()[:] = 1
 
     u = TrialFunction(V)
     u_ = Function(V)
     v = TestFunction(V)
-    bc = DirichletBC(V, Constant(1, domain=mesh), "on_boundary")
+    bc = DirichletBC(V, Function(R, val=1), "on_boundary")
 
     def J(f):
         a = inner(grad(u), grad(v))*dx
@@ -60,13 +60,13 @@ def test_nonlinear_problem():
     """This tests whether nullspace and solver_parameters are passed on in adjoint solves"""
     mesh = IntervalMesh(10, 0, 1)
     V = FunctionSpace(mesh, "Lagrange", 1)
-
+    R = FunctionSpace(mesh, "R", 0)
     f = Function(V)
     f.vector()[:] = 1
 
     u = Function(V)
     v = TestFunction(V)
-    bc = DirichletBC(V, Constant(1, domain=mesh), "on_boundary")
+    bc = DirichletBC(V, Function(R, val=1), "on_boundary")
 
     def J(f):
         a = f*inner(grad(u), grad(v))*dx + u**2*v*dx - f*v*dx
@@ -160,6 +160,7 @@ def test_wrt_function_neumann_boundary():
     mesh = UnitSquareMesh(10,10)
 
     V = FunctionSpace(mesh,"CG",1)
+    R = FunctionSpace(mesh,"R",0)
     u = TrialFunction(V)
     u_ = Function(V)
     v = TestFunction(V)
@@ -169,8 +170,8 @@ def test_wrt_function_neumann_boundary():
     bc2 = DirichletBC(V, 2, 2)
     bc = [bc1,bc2]
 
-    g1 = Constant(2, domain=mesh)
-    g2 = Constant(1, domain=mesh)
+    g1 = Function(R, val=2)
+    g2 = Function(R, val=1)
     f = Function(V)
     f.vector()[:] = 10
 
@@ -188,13 +189,14 @@ def test_wrt_function_neumann_boundary():
 def test_wrt_constant():
     mesh = IntervalMesh(10, 0, 1)
     V = FunctionSpace(mesh, "Lagrange", 1)
+    R = FunctionSpace(mesh, "R", 0)
 
-    c = Constant(1, domain=mesh)
+    c = Function(R, val=1)
 
     u = TrialFunction(V)
     u_ = Function(V)
     v = TestFunction(V)
-    bc = DirichletBC(V, Constant(1, domain=mesh), "on_boundary")
+    bc = DirichletBC(V, Function(R, val=1), "on_boundary")
 
     def J(c):
         a = inner(grad(u), grad(v))*dx
@@ -209,6 +211,7 @@ def test_wrt_constant_neumann_boundary():
     mesh = UnitSquareMesh(10,10)
 
     V = FunctionSpace(mesh,"CG",1)
+    R = FunctionSpace(mesh,"R",0)
     u = TrialFunction(V)
     u_ = Function(V)
     v = TestFunction(V)
@@ -218,8 +221,8 @@ def test_wrt_constant_neumann_boundary():
     bc2 = DirichletBC(V, 2, 2)
     bc = [bc1,bc2]
 
-    g1 = Constant(2, domain=mesh)
-    g2 = Constant(1, domain=mesh)
+    g1 = Function(R, val=2)
+    g2 = Function(R, val=1)
     f = Function(V)
     f.vector()[:] = 10
 
@@ -240,6 +243,7 @@ def test_time_dependent():
 
     # Defining function space, test and trial functions
     V = FunctionSpace(mesh,"CG",1)
+    R = FunctionSpace(mesh,"R",0)
     u = TrialFunction(V)
     u_ = Function(V)
     v = TestFunction(V)
@@ -252,7 +256,7 @@ def test_time_dependent():
     # Some variables
     T = 0.2
     dt = 0.1
-    f = Constant(1, domain=mesh)
+    f = Function(R, val=1)
 
     def J(f):
         u_1 = Function(V)
@@ -277,11 +281,12 @@ def test_two_nonlinear_solves():
     # regression test for firedrake issue #1841
     mesh = UnitSquareMesh(1,1)
     V = FunctionSpace(mesh, "CG", 1)
+    R = FunctionSpace(mesh, "R", 0)
     v = TestFunction(V)
     u0 = Function(V)
     u1 = Function(V)
 
-    ui = Constant(2.0, domain=mesh)
+    ui = Function(R, val=2.0)
     c = Control(ui)
     u0.assign(ui)
     F = dot(v, (u1-u0))*dx - dot(v, u0*u1)*dx
