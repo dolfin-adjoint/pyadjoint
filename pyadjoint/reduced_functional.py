@@ -206,10 +206,13 @@ class ReducedFunctional(object):
         blocks = self.tape.get_blocks()
         with self.marked_controls():
             with stop_annotating():
-                for i in self.tape._bar("Evaluating functional").iter(
-                    range(len(blocks))
-                ):
-                    blocks[i].recompute()
+                if self.tape._checkpoint_manager:
+                    self.tape._checkpoint_manager.recompute(self.functional)
+                else:
+                    for i in self.tape._bar("Evaluating functional").iter(
+                        range(len(blocks))
+                    ):
+                        blocks[i].recompute()
 
         # ReducedFunctional can result in a scalar or an assembled 1-form
         func_value = self.functional.block_variable.saved_output

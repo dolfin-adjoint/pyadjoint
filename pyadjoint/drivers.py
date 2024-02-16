@@ -26,7 +26,8 @@ def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
 
     with stop_annotating():
         with tape.marked_nodes(m):
-            tape.evaluate_adj(markings=True)
+            with marked_controls(m):
+                tape.evaluate_adj(markings=True)
 
     grads = [i.get_derivative(options=options) for i in m]
     return m.delist(grads)
@@ -91,3 +92,26 @@ def solve_adjoint(J, tape=None, adj_value=1.0):
 
     with stop_annotating():
         tape.evaluate_adj(markings=False)
+
+
+class marked_controls:
+    """A context manager for marking controls.
+
+    Note:
+        This is a context manager for marking whether the class:'BlockVariable' is
+        a control. On exiting the context, the class:'BlockVariable' that were
+        marked as controls are automatically unmarked.
+
+    Args:
+        controls (list): A list of :class:`Control` to mark within the context manager.
+    """
+    def __init__(self, controls):
+        self.controls = controls
+
+    def __enter__(self):
+        for control in self.controls:
+            control.mark_as_control()
+
+    def __exit__(self, *args):
+        for control in self.controls:
+            control.unmark_as_control()
