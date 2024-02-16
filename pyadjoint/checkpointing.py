@@ -104,7 +104,7 @@ class CheckpointManager:
     @singledispatchmethod
     def process_taping(self, cp_action, timestep):
         """Implement checkpointing schedule actions while taping.
-        
+
         A single-dispatch generic function.
 
         Note:
