@@ -6,7 +6,9 @@ from contextlib import contextmanager
 from functools import wraps
 from itertools import chain
 from abc import ABC, abstractmethod
-
+from typing import Optional
+from collections.abc import Iterable
+from .checkpointing import CheckpointManager, CheckpointError
 
 _working_tape = None
 _annotation_enabled = False
@@ -160,11 +162,13 @@ class Tape(object):
 
     """
     __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks", "_nodes",
-                 "_tf_registered_blocks", "_bar", "_package_data"]
+                 "_tf_registered_blocks", "_bar", "_package_data",
+                 "_checkpoint_manager", "latest_checkpoint",
+                 "_eagerly_checkpoint_outputs"]
 
     def __init__(self, blocks=None, package_data=None):
         # Initialize the list of blocks on the tape.
-        self._blocks = [] if blocks is None else blocks
+        self._blocks = TimeStepSequence(blocks=blocks)
         # Dictionary of TensorFlow tensors. Key is id(block).
         self._tf_tensors = {}
         # Keep a list of blocks that has been added to the TensorFlow graph
@@ -174,12 +178,54 @@ class Tape(object):
         # Hook location for packages which need to store additional data on the
         # tape. Packages should store the data under a "packagename" key.
         self._package_data = package_data or {}
+        # Default to checkpointing all block variables.
+        self.latest_checkpoint = float("inf")
+        self._checkpoint_manager = None
+        # Whether to store the adjoint dependencies.
+        self._eagerly_checkpoint_outputs = False
 
     def clear_tape(self):
+        """Clear the tape."""
         self.reset_variables()
-        self._blocks = []
+        self._blocks = TimeStepSequence()
         for data in self._package_data.values():
             data.clear()
+        self._checkpoint_manager = None
+
+    @property
+    def latest_timestep(self):
+        """The current time step to which blocks will be added."""
+        return max(len(self._blocks.steps) - 1, 0)
+
+    def end_timestep(self):
+        """Mark the end of a timestep when taping the forward model."""
+        if self._checkpoint_manager:
+            self._checkpoint_manager.end_timestep(self.latest_timestep)
+        else:
+            self._blocks.append_step()
+
+    def timestepper(self, iterable):
+        """Return an iterator that advances the tape timestep.
+
+        Note:
+            This method facilitates taping timestepping simulations so that recompute
+            checkpointing can be used on the tape. For example, a simulation with
+            10 timesteps might use a timestepping loop of this form::
+
+                tape = get_working_tape()
+
+                for timestep in tape.timestepper(range(10)):
+                    ...
+
+            This has the effect of calling `tape.end_timestep()` after each iteration.
+
+        Args:
+            iterable (iterable): The iterable definining the sequence of timesteps.
+
+        Returns:
+            TapeTimeStepper: An iterator that advances the tape timestep.
+        """
+        return TapeTimeStepper(self, iterable)
 
     def reset_blocks(self):
         """Calls the Block.reset method of all blocks on the tape.
@@ -199,6 +245,39 @@ class Tape(object):
 
         # len() is computed in constant time, so this should be fine.
         return len(self._blocks) - 1
+
+    def add_to_checkpointable_state(self, block_var, last_used):
+        """Add a block variable into the checkpointable state set.
+
+        Note:
+            `checkpointable_state` is a set of block variables which are needed
+            to restart from the start of a timestep.
+
+        Args:
+            block_var (BlockVariable): The block variable to add.
+            last_used (int): The last timestep in which the block variable was used.
+        """
+        if not self.timesteps:
+            self._blocks.append_step()
+        for step in self.timesteps[last_used + 1:]:
+            step.checkpointable_state.add(block_var)
+
+    def enable_checkpointing(self, schedule):
+        """Enable checkpointing on the adjoint evaluation.
+
+        A checkpoint manager able to execute the forward and adjoint computations
+        according to the schedule provided by checkpoint_schedules package.
+
+        Args:
+            schedule (checkpoint_schedules.schedule): A schedule provided by the
+            checkpoint_schedules package.
+            max_n (int, optional): The number of total steps.
+        """
+        if self._blocks:
+            raise CheckpointError(
+                "Checkpointing must be enabled before any blocks are added to the tape."
+            )
+        self._checkpoint_manager = CheckpointManager(schedule, self)
 
     def get_blocks(self, tag=None):
         """Returns a list of the blocks on the tape.
@@ -226,10 +305,21 @@ class Tape(object):
         return tags
 
     def evaluate_adj(self, last_block=0, markings=False):
-        for i in self._bar("Evaluating adjoint").iter(
-            range(len(self._blocks) - 1, last_block - 1, -1)
-        ):
-            self._blocks[i].evaluate_adj(markings=markings)
+        """Evaluate the adjoint of the tape.
+
+        Args:
+            last_block (int, optional): The index of the last block to evaluate.
+            markings (bool, optional): If True, then each `BlockVariable` of the current block
+                will have set `marked_in_path` attribute indicating whether their adjoint
+                components are relevant for computing the final target adjoint values.
+        """
+        if self._checkpoint_manager:
+            self._checkpoint_manager.evaluate_adj(last_block, markings)
+        else:
+            for i in self._bar("Evaluating adjoint").iter(
+                range(len(self._blocks) - 1, last_block - 1, -1)
+            ):
+                self._blocks[i].evaluate_adj(markings=markings)
 
     def evaluate_tlm(self):
         for i in self._bar("Evaluating TLM").iter(
@@ -264,7 +354,7 @@ class Tape(object):
         """
         # TODO: Offer deepcopying. But is it feasible memory wise to copy all checkpoints?
         return Tape(
-            blocks=self._blocks[:],
+            blocks=self._blocks,
             package_data={k: v.copy() for k, v in self._package_data.items()}
         )
 
@@ -319,40 +409,60 @@ class Tape(object):
     def optimize_for_controls(self, controls):
         # TODO: Consider if we want Enlist wherever it is possible. Like in this case.
         # TODO: Consider warning/message on empty tape.
-        blocks = self.get_blocks()
         nodes = set([control.block_variable for control in controls])
-        valid_blocks = []
+        discarded_variables = set()
+        optimized_timesteps = TimeStepSequence()
 
-        for block in blocks:
-            depends_on_control = False
-            for dep in block.get_dependencies():
-                if dep in nodes:
-                    depends_on_control = True
+        for step in self._blocks.steps:
+            optimized_timesteps.append_step()
 
-            if depends_on_control:
-                for output in block.get_outputs():
-                    if output in nodes:
-                        raise RuntimeError("Control depends on another control.")
-                    nodes.add(output)
-                valid_blocks.append(block)
-        self._blocks = valid_blocks
+            for block in step:
+                depends_on_control = False
+                for dep in block.get_dependencies():
+                    if dep in nodes:
+                        depends_on_control = True
+                        break
+
+                if depends_on_control:
+                    for output in block.get_outputs():
+                        if output in nodes:
+                            raise RuntimeError("Control depends on another control.")
+                        nodes.add(output)
+                    optimized_timesteps.append(block)
+                else:
+                    discarded_variables.union(block.get_outputs())
+            optimized_timesteps.steps[-1].checkpointable_state = \
+                step.checkpointable_state - discarded_variables
+
+        self._blocks = optimized_timesteps
 
     def optimize_for_functionals(self, functionals):
-        blocks = self.get_blocks()
-        nodes = set([functional.block_variable for functional in functionals])
-        valid_blocks = []
+        retained_nodes = set([functional.block_variable
+                             for functional in functionals]
+                             )
+        optimized_timesteps = []
 
-        for block in reversed(blocks):
-            produces_functional = False
-            for dep in block.get_outputs():
-                if dep in nodes:
-                    produces_functional = True
+        for step in reversed(self._blocks.steps):
+            current_blocks = []
+            for block in reversed(step):
+                produces_functional = False
+                for dep in block.get_outputs():
+                    if dep in retained_nodes:
+                        produces_functional = True
 
-            if produces_functional:
-                for dep in block.get_dependencies():
-                    nodes.add(dep)
-                valid_blocks.append(block)
-        self._blocks = list(reversed(valid_blocks))
+                if produces_functional:
+                    for dep in block.get_dependencies():
+                        retained_nodes.add(dep)
+                    current_blocks.append(block)
+            optimized_timesteps.append(TimeStep(reversed(current_blocks)))
+
+        optimized_timesteps.reverse()
+
+        for step, new_step in zip(self._blocks.steps, optimized_timesteps):
+            new_step.checkpointable_state = \
+                step.checkpointable_state & retained_nodes
+
+        self._blocks = TimeStepSequence(steps=optimized_timesteps)
 
     @contextmanager
     def marked_nodes(self, controls):
@@ -362,6 +472,11 @@ class Tape(object):
         yield
         for node in nodes:
             node.marked_in_path = False
+
+    @property
+    def timesteps(self):
+        """Return the list of time steps on this tape."""
+        return self._blocks.steps
 
     def _valid_tf_scope_name(self, name):
         """Return a valid TensorFlow scope name"""
@@ -594,6 +709,105 @@ class _NullProgressBar:
 
     def iter(self, iterator):
         return iterator
+
+
+class TapeTimeStepper:
+    """Iterator wrapper which advances the timestep after each iteration."""
+    def __init__(self, tape, iterable):
+        self.tape = tape
+        self.iterator = tape.progress_bar("Taping forward").iter(iterable)
+        self._first = True
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self._first:
+            self._first = False
+        else:
+            self.tape.end_timestep()
+        return next(self.iterator)
+
+
+class TimeStep(list):
+    """A list of blocks in a single time step, plus associated metadata."""
+    def __init__(self, blocks=()):
+        super().__init__(blocks)
+        # The set of block variables which are needed to restart from the start
+        # of this timestep.
+        self.checkpointable_state = set()
+        # A dictionary mapping the block variables in the checkpointable state
+        # to their checkpoint values.
+        self._checkpoint = {}
+
+    def copy(self, blocks=None):
+        out = TimeStep(blocks or self)
+        out.checkpointable_state = self.checkpointable_state
+        return out
+
+    def checkpoint(self):
+        """Store a copy of the checkpoints in the checkpointable state."""
+
+        with stop_annotating():
+            self._checkpoint = {
+                var: var.saved_output._ad_create_checkpoint()
+                for var in self.checkpointable_state
+            }
+
+    def restore_from_checkpoint(self):
+        """Restore the block var checkpoints from the timestep checkpoint."""
+
+        for var in self._checkpoint:
+            var.checkpoint = self._checkpoint[var]
+
+    def delete_checkpoint(self):
+        """Delete the stored checkpoint references."""
+        self._checkpoint = {}
+
+
+class TimeStepSequence(list):
+    """A list of Blocks separated into timesteps to facilitate checkpointing.
+
+    This behaves like a list of blocks. To access a list of the timesteps, use
+    the :attr:`steps` property.
+    """
+
+    def __init__(self, blocks=None, steps: Optional[Iterable[Iterable[TimeStep]]] = None):
+        # Keep both per-timestep and unified block lists.
+        if steps and blocks:
+            raise ValueError("set blocks or steps but not both.")
+        elif isinstance(blocks, TimeStepSequence):
+            self._steps = [step.copy() for step in blocks._steps]
+        elif blocks:
+            self._steps = [TimeStep(blocks)]
+        else:
+            self._steps = list(step.copy() for step in steps) if steps else []
+        super().__init__(chain.from_iterable(self._steps))
+
+    @property
+    def steps(self):
+        return self._steps
+
+    def append(self, other):
+        """Add a new block to the sequence and to the current TimeStep."""
+        if not self.steps:
+            self.append_step()
+        self._steps[-1].append(other)
+        super().append(other)
+
+    def append_step(self, step=None):
+        """Add a new TimeStep."""
+        self._steps.append(step or TimeStep())
+
+    def __setitem__(self, key, value):
+        raise ValueError(
+            "Unable to set arbitrary blocks. Try appending instead."
+        )
+
+    def __delitem__(self, key, value):
+        raise ValueError(
+            "Unable to delete blocks from sequence."
+        )
 
 
 class TapePackageData(ABC):
