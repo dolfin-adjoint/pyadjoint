@@ -352,4 +352,5 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'numpy': ('https://numpy.org/doc/stable/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/', None),
+    'checkpoint_schedules': ('https://www.firedrakeproject.org/checkpoint_schedules/', None),
 }
