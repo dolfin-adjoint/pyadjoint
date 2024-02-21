@@ -9,6 +9,7 @@ from firedrake.adjoint import *
     "constant assign",
     "function assign",
     "project",
+    "interpolate_method",
     "supermesh project",
     "project method",
     "supermesh project method",
@@ -34,6 +35,8 @@ def test_tags(tag):
         f2.assign(1.0)
         if tag == "function assign":
             f1.assign(f2, ad_block_tag=tag)
+        elif tag == "interpolate_method":
+            f1.interpolate(f2, ad_block_tag=tag)
         elif "project method" in tag:
             f1.project(f2, ad_block_tag=tag)
         elif "project" in tag:
