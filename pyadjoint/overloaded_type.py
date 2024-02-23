@@ -308,6 +308,18 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
+    def _ad_str(self):
+        """Return the string representation of the block variable.
+
+        For simple scalar types this might be the string representation of the
+        stored value. For more complex objects it is likely to be based on a
+        name attached to this instance.
+
+        Returns:
+            str: A human readable serialisation of this variable.
+        """
+        return str(self)
+
 
 class FloatingType(OverloadedType):
     def __init__(self, *args, **kwargs):
