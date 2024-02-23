@@ -34,15 +34,12 @@ def J(ic, solve_type, checkpointing):
          + u*u.dx(0)*v + nu*u.dx(0)*v.dx(0))*dx
     bc = DirichletBC(V, 0.0, "on_boundary")
 
-    t = 0.0
     if solve_type == "NLVS":
         problem = NonlinearVariationalProblem(F, u, bcs=bc)
         solver = NonlinearVariationalSolver(problem)
 
     tape = get_working_tape()
-    t += float(timestep)
-    for t in tape.timestepper(range(steps)):
-        print(float(timestep)*t)
+    for _ in tape.timestepper(range(steps)):
         if solve_type == "NLVS":
             solver.solve()
         else:
@@ -81,7 +78,7 @@ def test_burgers_newton(solve_type, checkpointing):
             schedule = NoneCheckpointSchedule()
         tape.enable_checkpointing(schedule)
     x, = SpatialCoordinate(mesh)
-    ic = project(sin(2.* pi * x), V)
+    ic = project(sin(2. * pi * x), V)
     val = J(ic, solve_type, checkpointing)
     if checkpointing:
         assert len(tape.timesteps) == steps
