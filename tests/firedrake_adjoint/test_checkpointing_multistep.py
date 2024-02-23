@@ -57,6 +57,7 @@ def test_multisteps():
     assert np.allclose(dJ.dat.data_ro[:], J_hat.derivative().dat.data_ro[:])
     taylor_test(J_hat, displacement_0, Function(V).assign(1, annotate=False))
 
+
 def test_validity():
     tape = get_working_tape()
     tape.progress_bar = ProgressBar
@@ -76,5 +77,3 @@ def test_validity():
     val_recomputed = J_hat(displacement_0)
     assert np.allclose(val_recomputed, val_recomputed0)
     assert np.allclose(dJ.dat.data_ro[:], dJ0.dat.data_ro[:])
-
-test_multisteps()
