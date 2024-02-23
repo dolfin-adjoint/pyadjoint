@@ -1,9 +1,7 @@
 from enum import Enum
 import sys
 from functools import singledispatchmethod
-from checkpoint_schedules import (
-    Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType)
-from checkpoint_schedules import Revolve, MultistageCheckpointSchedule
+from checkpoint_schedules import Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType
 
 
 class CheckpointError(RuntimeError):
@@ -166,7 +164,7 @@ class CheckpointManager:
                     for output in block.get_outputs():
                         output._checkpoint = None
 
-        if timestep in cp_action:
+        if timestep in cp_action and timestep < self.total_timesteps:
             self.tape.get_blocks().append_step()
             if cp_action.write_ics:
                 self.tape.latest_checkpoint = cp_action.n0
@@ -198,7 +196,6 @@ class CheckpointManager:
             current_step = self.tape.timesteps[self.forward_schedule[0].n0]
             current_step.restore_from_checkpoint()
             for cp_action in self.forward_schedule:
-                self._current_action = cp_action
                 self.process_operation(cp_action, bar, functional=functional)
 
     def evaluate_adj(self, last_block, markings):
@@ -269,9 +266,8 @@ class CheckpointManager:
             for block in current_step:
                 block.recompute()
             if (
-                (cp_action.write_adj_deps and step == cp_action.n1 - 1
-                    and cp_action.storage != StorageType.WORK)
-                or (cp_action.write_ics and step == cp_action.n0)
+                (cp_action.write_ics and step == cp_action.n0)
+                or (cp_action.write_adj_deps and step == cp_action.n1 - 1 and cp_action.storage != StorageType.WORK)
             ):
                 # Store in RAM the checkpoint data required for restarting the forward model or
                 # computing the adjoint model.
