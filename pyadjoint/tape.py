@@ -775,7 +775,7 @@ class TimeStepSequence(list):
         or another TimeStepSequence to copy from.
         steps (list[TimeStep], optional): If provided, `steps` should be a list of :class:`TimeStep` to copy from.
 
-    Atributes:
+    Attributes:
         steps (list[TimeStep]): A list of timesteps.
     """
 
