@@ -5,6 +5,7 @@ import threading
 from contextlib import contextmanager
 from functools import wraps
 from itertools import chain
+from typing import Optional, Iterable
 from abc import ABC, abstractmethod
 from .checkpointing import CheckpointManager, CheckpointError
 
@@ -778,7 +779,7 @@ class TimeStepSequence(list):
         steps (list[TimeStep]): A list of timesteps.
     """
 
-    def __init__(self, blocks=None, steps=None):
+    def __init__(self, blocks=None, steps: Optional[Iterable[Iterable[TimeStep]]] = None):
         # Keep both per-timestep and unified block lists.
         if steps and blocks:
             raise ValueError("set blocks or steps but not both.")
