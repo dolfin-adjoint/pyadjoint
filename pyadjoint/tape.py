@@ -5,9 +5,8 @@ import threading
 from contextlib import contextmanager
 from functools import wraps
 from itertools import chain
+from typing import Optional, Iterable
 from abc import ABC, abstractmethod
-from typing import Optional
-from collections.abc import Iterable
 from .checkpointing import CheckpointManager, CheckpointError
 
 _working_tape = None
@@ -770,6 +769,14 @@ class TimeStepSequence(list):
 
     This behaves like a list of blocks. To access a list of the timesteps, use
     the :attr:`steps` property.
+
+    Args:
+        blocks (list[Block] or TimeStepSequence, optional): If provided, `blocks` can be a list of :class:`Block`
+        or another TimeStepSequence to copy from.
+        steps (list[TimeStep], optional): If provided, `steps` should be a list of :class:`TimeStep` to copy from.
+
+    Attributes:
+        steps (list[TimeStep]): A list of timesteps.
     """
 
     def __init__(self, blocks=None, steps: Optional[Iterable[Iterable[TimeStep]]] = None):
