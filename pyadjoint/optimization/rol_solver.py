@@ -83,6 +83,13 @@ try:
             return res
 
         def dual(self):
+            """Create a dual vector.
+
+            This is a `ROLVector` in the dual space of the current `ROLVector`.
+
+            Returns:
+                ROLVector: A `ROLVector` in dual space.
+            """
             dat = []
             for x in self.dat:
                 dat.append(x.riesz_representation())
@@ -129,6 +136,14 @@ try:
             self.con.jacobian_action(x.dat, v.dat[0], jv.dat)
 
         def applyAdjointJacobian(self, jv, v, x, tol):
+            """
+
+            Args:
+                jv (ROLVector): The result of the adjoint action in primal space.
+                v (ROLVector):
+                x (ROLVector):
+                tol (float):
+            """
             tmp = jv.dual().clone()
             self.con.jacobian_adjoint_action(x.dat, v.dat, tmp.dat[0])
             jv.dat = jv.riesz_map(tmp.dat)
