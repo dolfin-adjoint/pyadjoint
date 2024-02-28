@@ -20,14 +20,16 @@ from firedrake import *
 # lazy evaluation mode.
 parameters["pyop2_options"]["lazy_evaluation"] = False
 
-from firedrake_adjoint import *
+from firedrake.adjoint import *
+from firedrake.__future__ import interpolate
 
 try:
     import ROL
 except ImportError:
     info_red("""This example depends on ROL.""")
     raise
-
+# Starting the annotation.
+continue_annotation()
 mu = Constant(1.0)                   # viscosity
 alphaunderbar = 2.5 * mu / (100**2)  # parameter for \alpha
 alphabar = 2.5 * mu / (0.01**2)      # parameter for \alpha
@@ -79,7 +81,7 @@ def forward(rho):
     return w
 
 if __name__ == "__main__":
-    rho = interpolate(Constant(float(V)/delta), A)
+    rho = assemble(interpolate(Constant(float(V)/delta), A))
     w   = forward(rho)
     (u, p) = split(w)
 
@@ -128,11 +130,9 @@ if __name__ == "__main__":
 
     solver = ROLSolver(problem, params, inner_product="L2")
     rho_opt = solver.solve()
-
+    get_working_tape().clear_tape()
     q.assign(0.1)
     rho.assign(rho_opt)
-    get_working_tape().clear_tape()
-
     w = forward(rho)
     (u, p) = split(w)
 
@@ -154,4 +154,3 @@ if __name__ == "__main__":
     rho_opt = solver.solve()
     rho_viz.assign(rho_opt)
     controls.write(rho_viz)
-
