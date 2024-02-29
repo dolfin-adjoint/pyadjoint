@@ -28,8 +28,7 @@ try:
 except ImportError:
     info_red("""This example depends on ROL.""")
     raise
-# Starting the annotation.
-continue_annotation()
+
 mu = Constant(1.0)                   # viscosity
 alphaunderbar = 2.5 * mu / (100**2)  # parameter for \alpha
 alphabar = 2.5 * mu / (0.01**2)      # parameter for \alpha
@@ -81,6 +80,7 @@ def forward(rho):
     return w
 
 if __name__ == "__main__":
+    continue_annotation()
     rho = assemble(interpolate(Constant(float(V)/delta), A))
     w   = forward(rho)
     (u, p) = split(w)
@@ -130,9 +130,9 @@ if __name__ == "__main__":
 
     solver = ROLSolver(problem, params, inner_product="L2")
     rho_opt = solver.solve()
-    get_working_tape().clear_tape()
     q.assign(0.1)
-    rho.assign(rho_opt)
+    rho.interpolate(rho_opt)
+    get_working_tape().clear_tape()
     w = forward(rho)
     (u, p) = split(w)
 

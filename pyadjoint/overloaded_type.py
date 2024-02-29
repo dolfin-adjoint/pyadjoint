@@ -63,6 +63,7 @@ def register_overloaded_type(overloaded_type, classes=None):
         _overloaded_types[classes] = overloaded_type
     return overloaded_type
 
+
 class OverloadedType(object):
     """Base class for OverloadedType types.
 
@@ -128,7 +129,7 @@ class OverloadedType(object):
             OverloadedType: The Riesz representation of the overloaded object.
         """
         raise NotImplementedError(f"OverloadedType._riesz_representation not defined for class {type(self)}.")
-    
+
     def _ad_create_checkpoint(self):
         """This method must be overridden.
 
