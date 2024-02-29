@@ -59,7 +59,7 @@ jobs:
       - run:
           name: Install dolfin-adjoint
           command: |
-            git clone https://github.com/Ig-dolci/dolfin-adjoint/tree/main ~/dolfin-adjoint
+            git clone https://github.com/Ig-dolci/dolfin-adjoint.git ~/dolfin-adjoint
             python3 -m pip install -e ~/dolfin-adjoint[all]
 
       - run:
