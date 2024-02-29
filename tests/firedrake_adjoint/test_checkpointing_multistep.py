@@ -55,7 +55,7 @@ def test_multisteps():
     assert(np.allclose(J_hat(displacement_0), val))
     # Test recompute adjoint-based gradient
     assert np.allclose(dJ.dat.data_ro[:], J_hat.derivative().dat.data_ro[:])
-    taylor_test(J_hat, displacement_0, Function(V).assign(1, annotate=False))
+    assert taylor_test(J_hat, displacement_0, Function(V).assign(1, annotate=False)) > 1.9
 
 
 def test_validity():
