@@ -64,6 +64,22 @@ def register_overloaded_type(overloaded_type, classes=None):
     return overloaded_type
 
 
+def _riesz_representation(self, riesz_map={}):
+        """This method must be overridden.
+
+        Should implement a way to convert `self` onto its dual space with respect to
+        a certain Riesz map.
+
+        Args:
+            riesz_map (dict): A dictionary with the Riesz map. This dictionary should have for instance
+            the norm used to have the riesz representation of self.
+
+        Returns:
+            OverloadedType: An `self` in its dual space.
+
+        """
+        raise NotImplementedError(f"OverloadedType._ad_convert_type not defined for class {type(self)}.")
+
 class OverloadedType(object):
     """Base class for OverloadedType types.
 

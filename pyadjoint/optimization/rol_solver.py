@@ -82,17 +82,15 @@ try:
                 res += x._ad_dot(y, options=opts)
             return res
 
-        def dual(self):
+        def dual(self) -> "ROLVector":
             """Create a dual vector.
 
-            This is a `ROLVector` in the dual space of the current `ROLVector`.
-
-            Returns:
-                ROLVector: A `ROLVector` in dual space.
+            This is a `ROLVector` in the dual space of the current `ROLVector`, which is in the primal space.
             """
             dat = []
+            opts = {"riesz_map": self.inner_product}
             for x in self.dat:
-                dat.append(x.riesz_representation())
+                dat.append(x._riesz_representation(options=opts))
             return ROLVector(dat, inner_product=self.inner_product)
 
         def norm(self):
@@ -136,15 +134,7 @@ try:
             self.con.jacobian_action(x.dat, v.dat[0], jv.dat)
 
         def applyAdjointJacobian(self, jv, v, x, tol):
-            """
-
-            Args:
-                jv (ROLVector): The result of the adjoint action in primal space.
-                v (ROLVector):
-                x (ROLVector):
-                tol (float):
-            """
-            tmp = jv.dual().clone()
+            tmp = jv.dual()
             self.con.jacobian_adjoint_action(x.dat, v.dat, tmp.dat[0])
             jv.dat = jv.riesz_map(tmp.dat)
 
