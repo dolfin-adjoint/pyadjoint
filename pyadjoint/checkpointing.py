@@ -284,17 +284,13 @@ class CheckpointManager:
                 (cp_action.write_adj_deps and cp_action.storage != StorageType.WORK)
                 or not cp_action.write_adj_deps
             ):
+                to_keep = set()
                 if step < (self.total_timesteps - 1):
                     next_step = self.tape.timesteps[step + 1]
                     # The checkpointable state set of the current step.
                     to_keep = next_step.checkpointable_state
-                    next_step = self.tape.timesteps[step + 1]
                 if functional:
-                    # `to_keep` holds the required blocks for restarting the forward model from a step `n`.
-                    if to_keep:
-                        to_keep = to_keep.union([functional.block_variable])
-                    else:
-                        to_keep = {functional.block_variable}
+                    to_keep = to_keep.union([functional.block_variable])
                 for block in current_step:
                     # Remove unnecessary variables from previous steps.
                     for bv in block.get_outputs():
