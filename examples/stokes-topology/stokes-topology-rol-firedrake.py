@@ -20,8 +20,7 @@ from firedrake import *
 # lazy evaluation mode.
 parameters["pyop2_options"]["lazy_evaluation"] = False
 
-from firedrake.adjoint import *
-from firedrake.__future__ import interpolate
+from firedrake_adjoint import *
 
 try:
     import ROL
@@ -80,8 +79,7 @@ def forward(rho):
     return w
 
 if __name__ == "__main__":
-    continue_annotation()
-    rho = assemble(interpolate(Constant(float(V)/delta), A))
+    rho = interpolate(Constant(float(V)/delta), A)
     w   = forward(rho)
     (u, p) = split(w)
 
@@ -130,9 +128,11 @@ if __name__ == "__main__":
 
     solver = ROLSolver(problem, params, inner_product="L2")
     rho_opt = solver.solve()
+
     q.assign(0.1)
-    rho.interpolate(rho_opt)
+    rho.assign(rho_opt)
     get_working_tape().clear_tape()
+
     w = forward(rho)
     (u, p) = split(w)
 
@@ -154,3 +154,4 @@ if __name__ == "__main__":
     rho_opt = solver.solve()
     rho_viz.assign(rho_opt)
     controls.write(rho_viz)
+

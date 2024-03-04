@@ -83,9 +83,7 @@ try:
             return res
 
         def dual(self) -> "ROLVector":
-            """Create a dual vector.
-
-            This is a `ROLVector` in the dual space of the current `ROLVector`, which is in the primal space.
+            """Create a new `ROLVector` in the dual space of the current `self`.
             """
             dat = []
             opts = {"riesz_map": self.inner_product}
