@@ -137,8 +137,9 @@ try:
             jv.dat = jv.riesz_map(tmp.dat)
 
         def applyAdjointHessian(self, ahuv, u, v, x, tol):
-            self.con.hessian_action(x.dat, u.dat[0], v.dat, ahuv.dat[0])
-            ahuv.dat = ahuv.riesz_map(ahuv.dat)
+            tmp = ahuv.dual()
+            self.con.hessian_action(x.dat, u.dat[0], v.dat, tmp.dat[0])
+            ahuv.dat = ahuv.riesz_map(tmp.dat)
 
     class ROLSolver(OptimizationSolver):
         """
