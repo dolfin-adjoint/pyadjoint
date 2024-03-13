@@ -116,7 +116,7 @@ class OverloadedType(object):
         """
         raise NotImplementedError(f"OverloadedType._ad_convert_type not defined for class {type(self)}.")
 
-    def _riesz_representation(self, options={}):
+    def _ad_riesz_representation(self, options={}):
         """This method must be overridden.
 
         Should implement a way to return the Riesz representation of the overloaded object.
