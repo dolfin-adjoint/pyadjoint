@@ -88,7 +88,7 @@ try:
             dat = []
             opts = {"riesz_map": self.inner_product}
             for x in self.dat:
-                dat.append(x._riesz_representation(options=opts))
+                dat.append(x._ad_riesz_representation(options=opts))
             return ROLVector(dat, inner_product=self.inner_product)
 
         def norm(self):
