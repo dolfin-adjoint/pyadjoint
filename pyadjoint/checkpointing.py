@@ -257,7 +257,10 @@ class CheckpointManager:
     def _(self, cp_action, bar, functional=None, **kwargs):
         for step in cp_action:
             if self.mode == Mode.RECOMPUTE:
-                bar.next()
+                try:
+                    bar.next()
+                except AttributeError:
+                    pass
             # Get the blocks of the current step.
             current_step = self.tape.timesteps[step]
             for block in current_step:
@@ -290,7 +293,10 @@ class CheckpointManager:
     @process_operation.register(Reverse)
     def _(self, cp_action, bar, markings, functional=None, **kwargs):
         for step in cp_action:
-            bar.next()
+            try:
+                bar.next()
+            except AttributeError:
+                pass
             # Get the blocks of the current step.
             current_step = self.tape.timesteps[step]
             for block in reversed(current_step):
