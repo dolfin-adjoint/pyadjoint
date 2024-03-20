@@ -214,8 +214,7 @@ class CheckpointManager:
         if self.mode not in (Mode.EVALUATED, Mode.FINISHED_RECORDING):
             raise CheckpointError("Evaluate Functional before calling gradient.")
 
-        with self.tape.progress_bar("Evaluating Adjoint",
-                                    max=self.timesteps) as bar:
+        with self.tape.progress_bar("Evaluating Adjoint", max=self.timesteps) as bar:
             if self.adjoint_evaluated:
                 reverse_iterator = iter(self.reverse_schedule)
             while not isinstance(self._current_action, EndReverse):
@@ -257,7 +256,8 @@ class CheckpointManager:
     def _(self, cp_action, bar, functional=None, **kwargs):
         for step in cp_action:
             if self.mode == Mode.RECOMPUTE:
-                bar.next()
+                if bar:
+                    bar.next()
             # Get the blocks of the current step.
             current_step = self.tape.timesteps[step]
             for block in current_step:
@@ -290,7 +290,8 @@ class CheckpointManager:
     @process_operation.register(Reverse)
     def _(self, cp_action, bar, markings, functional=None, **kwargs):
         for step in cp_action:
-            bar.next()
+            if bar:
+                bar.next()
             # Get the blocks of the current step.
             current_step = self.tape.timesteps[step]
             for block in reversed(current_step):
