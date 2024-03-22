@@ -215,3 +215,33 @@ def test_assign_constant_scale():
     assert min(r["R0"]["Rate"]) > 0.9
     assert min(r["R1"]["Rate"]) > 1.9
     assert min(r["R2"]["Rate"]) > 2.9
+
+
+def test_assign_cofunction():
+    # Cofunction assign test using 1D heat equation.
+    mesh = IntervalMesh(10, 0, 1)
+    x, = SpatialCoordinate(mesh)
+    V = FunctionSpace(mesh, "CG", 1)
+    ic = project(sin(pi * x), V)
+    u = TrialFunction(V)
+    v = TestFunction(V)
+    u_np1 = Function(V)
+    u_n = Function(V).assign(ic)
+    bc = DirichletBC(V, 0.0, "on_boundary")
+    F = (u - u_n) / Constant(0.001) * v * dx + Constant(0.005) * inner(grad(u_n), grad(v)) * dx
+    vom_mesh = VertexOnlyMesh(mesh, [[0.5]])
+    vom_space = FunctionSpace(vom_mesh, "DG", 0)
+    point_source = assemble(Constant(1.0) * TestFunction(vom_space)*dx)
+    f_delta = Cofunction(V.dual()).interpolate(point_source)
+    f = Cofunction(V.dual())
+    linear_problem = LinearVariationalProblem(lhs(F), rhs(F) + f, u_np1, bcs=bc)
+    linear_solver = LinearVariationalSolver(linear_problem)
+    for t in range(2):
+        f.assign(assemble(exp(-t) * f_delta))
+        linear_solver.solve()
+        u_n.assign(u_np1)
+    J_val = assemble(u_np1*u_np1*dx)
+    J_hat = ReducedFunctional(J_val, Control(ic))
+    assert taylor_test(J_hat, ic, Function(V).assign(0.1)) > 1.9
+
+
