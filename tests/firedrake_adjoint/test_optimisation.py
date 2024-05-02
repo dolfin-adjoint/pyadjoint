@@ -6,6 +6,44 @@ import numpy as np
 from firedrake import *
 from firedrake.adjoint import *
 from pyadjoint import MinimizationProblem, TAOSolver
+from pyadjoint.optimization.tao_solver import PETScVecInterface
+
+
+def test_petsc_roundtrip_single():
+    mesh = UnitIntervalMesh(10)
+    X = SpatialCoordinate(mesh)
+    space_1 = FunctionSpace(mesh, "Lagrange", 1)
+    space_2 = FunctionSpace(mesh, "Lagrange", 2)
+
+    u_1 = Function(space_1).interpolate(X[0])
+    u_2 = Function(space_2).interpolate(-1 - X[0])
+
+    for m in [u_1, u_2]:
+        vec_interface = PETScVecInterface(m)
+        x = vec_interface.new_petsc()
+        m_test = Function(m.function_space())
+        vec_interface.to_petsc(x, m)
+        vec_interface.from_petsc(x, m_test)
+        assert (m.dat.data_ro == m_test.dat.data_ro).all()
+
+
+def test_petsc_roundtrip_multiple():
+    mesh = UnitIntervalMesh(10)
+    X = SpatialCoordinate(mesh)
+    space_1 = FunctionSpace(mesh, "Lagrange", 1)
+    space_2 = FunctionSpace(mesh, "Lagrange", 2)
+
+    u_1 = Function(space_1).interpolate(X[0])
+    u_2 = Function(space_2).interpolate(-1 - X[0])
+
+    vec_interface = PETScVecInterface((u_1, u_2))
+    x = vec_interface.new_petsc()
+    u_1_test = Function(space_1)
+    u_2_test = Function(space_2)
+    vec_interface.to_petsc(x, (u_1, u_2))
+    vec_interface.from_petsc(x, (u_1_test, u_2_test))
+    assert (u_1.dat.data_ro == u_1_test.dat.data_ro).all()
+    assert (u_2.dat.data_ro == u_2_test.dat.data_ro).all()
 
 
 def minimize_tao(rf):
