@@ -54,7 +54,7 @@ def minimize_tao(rf):
 
 @pytest.mark.parametrize("minimize", [minimize, minimize_tao])
 def test_optimisation_constant_control(minimize):
-    """This tests a list of controls in a minimisation (through scipy L-BFGS-B)"""
+    """This tests a list of controls in a minimisation"""
     mesh = UnitSquareMesh(1, 1)
     R = FunctionSpace(mesh, "R", 0)
 
