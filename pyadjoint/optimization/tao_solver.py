@@ -29,9 +29,9 @@ class PETScVecInterface:
         for x in X:
             indices.append((n, n + x._ad_dim()))
             n += x._ad_dim()
-        if comm.size > 0:
-            import mpi4py.MPI as MPI
-            N = comm.allreduce(n, op=MPI.SUM)
+        if comm.size > 1:
+            raise NotImplementedError("Serial only")
+        N = n
 
         self._comm = comm
         self._indices = tuple(indices)
