@@ -10,7 +10,7 @@ except ModuleNotFoundError:
 
 
 class PETScVecInterface:
-    def __init__(self, X, *, comm=None, dtype=None):
+    def __init__(self, X, *, comm=None):
         if PETSc is None:
             raise RuntimeError("PETSc not available")
 
@@ -19,9 +19,6 @@ class PETScVecInterface:
             comm = PETSc.COMM_WORLD
         if hasattr(comm, "tompi4py"):
             comm = comm.tompi4py()
-        if dtype is None:
-            dtype = PETSc.ScalarType
-        dtype = np.dtype(dtype)
 
         indices = []
         n = 0
@@ -33,7 +30,6 @@ class PETScVecInterface:
             N = comm.allreduce(n, op=MPI.SUM)
 
         self._comm = comm
-        self._dtype = dtype
         self._indices = tuple(indices)
         self._n = n
         self._N = N
@@ -41,10 +37,6 @@ class PETScVecInterface:
     @property
     def comm(self):
         return self._comm
-
-    @property
-    def dtype(self):
-        return self._dtype
 
     @property
     def indices(self):
@@ -73,8 +65,6 @@ class PETScVecInterface:
         if len(X) != len(self.indices):
             raise ValueError("Invalid length")
         for (i0, i1), x in zip(self.indices, X):
-            # if not np.can_cast(...):
-            #     raise ValueError("Invalid dtype")
             if x._ad_dim() != i1 - i0:
                 raise ValueError("Invalid length")
 
@@ -86,12 +76,10 @@ class PETScVecInterface:
         if len(Y) != len(self.indices):
             raise ValueError("Invalid length")
         for (i0, i1), y in zip(self.indices, Y):
-            # if not np.can_cast(...):
-            #     raise ValueError("Invalid dtype")
             if y._ad_dim() != i1 - i0:
                 raise ValueError("Invalid length")
 
-        x_a = np.zeros(self.n, dtype=self.dtype)
+        x_a = np.zeros(self.n, dtype=PETSc.ScalarType)
         for (i0, i1), y in zip(self.indices, Y):
             x_a[i0:i1] = y._ad_to_list(y)
         x.setArray(x_a)
