@@ -5,9 +5,17 @@ from numpy.testing import assert_allclose
 import numpy as np
 from firedrake import *
 from firedrake.adjoint import *
+from pyadjoint import MinimizationProblem, TAOSolver
 
 
-def test_optimisation_constant_control():
+def minimize_tao(rf):
+    problem = MinimizationProblem(rf)
+    solver = TAOSolver(problem, {})
+    solver.solve()
+
+
+@pytest.mark.parametrize("minimize", [minimize, minimize_tao])
+def test_optimisation_constant_control(minimize):
     """This tests a list of controls in a minimisation (through scipy L-BFGS-B)"""
     mesh = UnitSquareMesh(1, 1)
     R = FunctionSpace(mesh, "R", 0)
@@ -34,7 +42,8 @@ def _simple_helmholz_model(V, source):
     return u
 
 
-def test_simple_inversion():
+@pytest.mark.parametrize("minimize", [minimize, minimize_tao])
+def test_simple_inversion(minimize):
     """Test inversion of source term in helmholze eqn."""
     mesh = UnitIntervalMesh(10)
     V = FunctionSpace(mesh, "CG", 1)
