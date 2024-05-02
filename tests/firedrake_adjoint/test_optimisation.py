@@ -46,13 +46,27 @@ def test_petsc_roundtrip_multiple():
     assert (u_2.dat.data_ro == u_2_test.dat.data_ro).all()
 
 
-def minimize_tao(rf):
+def minimize_tao_lmvm(rf):
     problem = MinimizationProblem(rf)
-    solver = TAOSolver(problem, {})
-    solver.solve()
+    solver = TAOSolver(problem, {"tao_type": "lmvm",
+                                 "tao_gatol": 1.0e-7,
+                                 "tao_grtol": 0.0,
+                                 "tao_gttol": 0.0})
+    return solver.solve()
 
 
-@pytest.mark.parametrize("minimize", [minimize, minimize_tao])
+def minimize_tao_nls(rf):
+    problem = MinimizationProblem(rf)
+    solver = TAOSolver(problem, {"tao_type": "nls",
+                                 "tao_gatol": 1.0e-7,
+                                 "tao_grtol": 0.0,
+                                 "tao_gttol": 0.0})
+    return solver.solve()
+
+
+@pytest.mark.parametrize("minimize", [minimize,
+                                      minimize_tao_lmvm,
+                                      minimize_tao_nls])
 def test_optimisation_constant_control(minimize):
     """This tests a list of controls in a minimisation"""
     mesh = UnitSquareMesh(1, 1)
@@ -80,7 +94,9 @@ def _simple_helmholz_model(V, source):
     return u
 
 
-@pytest.mark.parametrize("minimize", [minimize, minimize_tao])
+@pytest.mark.parametrize("minimize", [minimize,
+                                      minimize_tao_lmvm,
+                                      minimize_tao_nls])
 def test_simple_inversion(minimize):
     """Test inversion of source term in helmholze eqn."""
     mesh = UnitIntervalMesh(10)

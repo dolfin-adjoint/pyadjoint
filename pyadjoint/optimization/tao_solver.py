@@ -1,3 +1,6 @@
+from functools import cached_property
+import weakref
+
 from ..enlisting import Enlist
 from .optimization_solver import OptimizationSolver
 
@@ -85,12 +88,183 @@ class PETScVecInterface:
         x.setArray(x_a)
 
 
+class PETScOptions:
+    def __init__(self, options_prefix):
+        if PETSc is None:
+            raise RuntimeError("PETSc not available")
+
+        self.options_prefix = options_prefix
+        self._options = PETSc.Options()
+        self._keys = {}  # Use dict as an ordered set
+
+        def finalize_callback(options_prefix, options, keys):
+            for key in keys:
+                key = f"{options_prefix:s}{key:s}"
+                if key in options:
+                    del options[key]
+
+        finalize = weakref.finalize(
+            self, finalize_callback,
+            self.options_prefix, self._options, self._keys)
+        finalize.atexit = False
+
+    def __getitem__(self, key):
+        if key not in self._keys:
+            raise KeyError(key)
+        return self._options[f"{self.options_prefix:s}{key:s}"]
+
+    def __setitem__(self, key, value):
+        self._keys[key] = None
+        self._options[f"{self.options_prefix:s}{key:s}"] = value
+
+    def __delitem__(self, key):
+        del self._keys[key]
+        del self._options[f"{self.options_prefix:s}{key:s}"]
+
+    def clear(self):
+        for key in tuple(self._keys):
+            del self[key]
+
+    def update(self, d):
+        for key, value in d.items():
+            self[key] = value
+
+
+class TAOObjective:
+    def __init__(self, rf):
+        self.reduced_functional = rf
+
+    def objective_gradient(self, M):
+        M = Enlist(M)
+        J = self.reduced_functional(tuple(m._ad_copy() for m in M))
+        _ = self.reduced_functional.derivative()
+        dJ = tuple(m.control.block_variable.adj_value
+                   for m in self.reduced_functional.controls)
+        return J, M.delist(dJ)
+
+    def hessian(self, M, M_dot):
+        M = Enlist(M)
+        M_dot = Enlist(M_dot)
+        J = self.reduced_functional(tuple(m._ad_copy() for m in M))
+        _ = self.reduced_functional.hessian(tuple(m_dot._ad_copy() for m_dot in M_dot))
+        ddJ = tuple(m.control.block_variable.hessian_value
+                    for m in self.reduced_functional.controls)
+        return J, M.delist(ddJ)
+
+    def new_M(self):
+        # Not initialized to zero
+        return tuple(m.control._ad_copy()
+                     for m in self.reduced_functional.controls)
+
+    def new_M_dual(self):
+        # Not initialized to zero, requires adjoint or Hessian action values to
+        # have already been computed
+        M_dual = []
+        for m in self.reduced_functional.controls:
+            bv = m.control.block_variable
+            if bv.adj_value is not None:
+                M_dual.append(bv.adj_value)
+            elif bv.hessian_value is not None:
+                M_dual.append(bv.hessian_value)
+            else:
+                raise RuntimeError("Unable to instantiate new dual space "
+                                   "object")
+        return tuple(m_dual._ad_copy() for m_dual in M_dual)
+
+
 class TAOSolver(OptimizationSolver):
     """Use TAO to solve an optimization problem.
     """
 
-    def __init__(self, problem, parameters):
+    def __init__(self, problem, parameters, *, comm=None, inner_product="L2"):
+        if PETSc is None:
+            raise RuntimeError("PETSc not available")
+
+        if comm is None:
+            comm = PETSc.COMM_WORLD
+        if hasattr(comm, "tompi4py"):
+            comm = comm.tompi4py()
+
+        taoobjective = TAOObjective(problem.reduced_functional)
+
+        vec_interface = PETScVecInterface(
+            tuple(m.control for m in taoobjective.reduced_functional.controls),
+            comm=comm)
+        n, N = vec_interface.n, vec_interface.N
+        to_petsc, from_petsc = vec_interface.to_petsc, vec_interface.from_petsc
+        M = taoobjective.new_M()
+
+        tao = PETSc.TAO().create(comm=comm)
+
+        def objective_gradient(tao, x, g):
+            from_petsc(x, M)
+            J_val, dJ = taoobjective.objective_gradient(M)
+            to_petsc(g, dJ)
+            return J_val
+
+        tao.setObjectiveGradient(objective_gradient, None)
+
+        def hessian(tao, x, H, P):
+            H.getPythonContext().set_M(x)
+
+        class Hessian:
+            def __init__(self):
+                self._shift = 0.0
+
+            @cached_property
+            def _M(self):
+                return taoobjective.new_M()
+
+            def set_M(self, x):
+                from_petsc(x, self._M)
+
+            def shift(self, A, alpha):
+                self._shift += alpha
+
+            def mult(self, A, x, y):
+                M_dot = taoobjective.new_M()
+                from_petsc(x, M_dot)
+                _, ddJ = taoobjective.hessian(self._M, M_dot)
+                to_petsc(y, ddJ)
+                if self._shift != 0.0:
+                    y.axpy(self._shift, x)
+
+        H_matrix = PETSc.Mat().createPython(((n, N), (n, N)),
+                                            Hessian(), comm=comm)
+        H_matrix.setOption(PETSc.Mat.Option.SYMMETRIC, True)
+        H_matrix.setUp()
+        tao.setHessian(hessian, H_matrix)
+
+        class GradientNorm:
+            def mult(self, A, x, y):
+                dJ = taoobjective.new_M_dual()
+                from_petsc(x, dJ)
+                assert len(M) == len(dJ)
+                dJ = tuple(m._ad_convert_type(dJ_, {"riesz_representation": inner_product})
+                           for m, dJ_ in zip(M, dJ))
+                to_petsc(y, dJ)
+
+        M_inv_matrix = PETSc.Mat().createPython(((n, N), (n, N)),
+                                                GradientNorm(), comm=comm)
+        M_inv_matrix.setOption(PETSc.Mat.Option.SYMMETRIC, True)
+        M_inv_matrix.setUp()
+        tao.setGradientNorm(M_inv_matrix)
+
+        options = PETScOptions(f"_pyadjoint__{tao.name:s}_")
+        options.update(parameters)
+        tao.setOptionsPrefix(options.options_prefix)
+
+        tao.setFromOptions()
+
         super().__init__(problem, parameters)
+        self.taoobjective = taoobjective
+        self.vec_interface = vec_interface
+        self.tao = tao
 
     def solve(self):
-        raise NotImplementedError
+        M = self.taoobjective.new_M()
+        x = self.vec_interface.new_petsc()
+        self.vec_interface.to_petsc(x, M)
+        self.tao.solve(x)
+        self.vec_interface.from_petsc(x, M)
+        return self.taoobjective.reduced_functional.controls.delist(M)
