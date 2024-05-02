@@ -127,3 +127,26 @@ def test_simple_inversion(minimize):
     x = minimize(rf, derivative_options={"riesz_representation": "H1"})
     # Assert that the optimisation does not converge for H1 representation
     assert not np.allclose(x.dat.data, source_ref.dat.data, rtol=1e-2)
+
+
+def test_tao_bounds():
+    mesh = UnitIntervalMesh(11)
+    X = SpatialCoordinate(mesh)
+    space = FunctionSpace(mesh, "Lagrange", 1)
+    u = Function(space, name="u")
+    u_ref = Function(space, name="u_ref").interpolate(0.5 - X[0])
+    
+    J = assemble((u - u_ref) ** 2 * dx)
+    rf = ReducedFunctional(J, Control(u))
+
+    lb = 0.5 - 7.0 / 11.0
+    problem = MinimizationProblem(rf, bounds=(lb, None))
+    solver = TAOSolver(problem, {"tao_type": "bnls",
+                                 "tao_gatol": 1.0e-7,
+                                 "tao_grtol": 0.0,
+                                 "tao_gttol": 0.0})
+    u_opt = solver.solve()
+
+    u_ref_bound = u_ref.copy(deepcopy=True)
+    u_ref_bound.dat.data[:] = np.maximum(u_ref_bound.dat.data_ro, lb)
+    assert_allclose(u_opt.dat.data_ro, u_ref_bound.dat.data_ro, rtol=1.0e-2)

@@ -2,6 +2,7 @@ from functools import cached_property
 import weakref
 
 from ..enlisting import Enlist
+from .optimization_problem import MinimizationProblem
 from .optimization_solver import OptimizationSolver
 
 
@@ -180,6 +181,11 @@ class TAOSolver(OptimizationSolver):
         if PETSc is None:
             raise RuntimeError("PETSc not available")
 
+        if not isinstance(problem, MinimizationProblem):
+            raise TypeError("MinimizationProblem required")
+        if problem.constraints is not None:
+            raise NotImplementedError("Constraints not implemented")
+
         if comm is None:
             comm = PETSc.COMM_WORLD
         if hasattr(comm, "tompi4py"):
@@ -249,6 +255,21 @@ class TAOSolver(OptimizationSolver):
         M_inv_matrix.setOption(PETSc.Mat.Option.SYMMETRIC, True)
         M_inv_matrix.setUp()
         tao.setGradientNorm(M_inv_matrix)
+
+        if problem.bounds is not None:
+            def convert_bound(m, b, default):
+                if b is None:
+                    b = default
+                return m._ad_convert_type(b)
+
+            x_lb = vec_interface.new_petsc()
+            x_ub = vec_interface.new_petsc()
+            assert len(M) == len(problem.bounds)
+            to_petsc(x_lb, tuple(convert_bound(m, lb, np.finfo(PETSc.ScalarType).min)
+                                 for m, (lb, _) in zip(M, problem.bounds)))
+            to_petsc(x_ub, tuple(convert_bound(m, ub, np.finfo(PETSc.ScalarType).max)
+                                 for m, (_, ub) in zip(M, problem.bounds)))
+            tao.setVariableBounds(x_lb, x_ub)
 
         options = PETScOptions(f"_pyadjoint__{tao.name:s}_")
         options.update(parameters)
