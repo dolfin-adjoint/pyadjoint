@@ -129,15 +129,9 @@ class OverloadedType(object):
 
         """
         raise NotImplementedError
-    
+
     def _ad_checkpoint_to_clear(self, to_keep=None):
         """This method must be overridden.
-
-        Should implement a way to clear the checkpoint for the overloaded object.
-
-        Returns:
-            None
-
         """
         raise NotImplementedError
 
@@ -339,7 +333,7 @@ class FloatingType(OverloadedType):
         block_variable = OverloadedType.create_block_variable(self)
         block_variable.floating_type = True
         return block_variable
-    
+
     def _ad_checkpoint_to_clear(self, to_keep=None):
         return self
 

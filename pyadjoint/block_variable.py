@@ -70,7 +70,6 @@ class BlockVariable(object):
             # For instance, when the checkpoint is a float type.
             self._checkpoint = None
 
-
     def will_add_as_dependency(self):
         overwrite = self.output._ad_will_add_as_dependency()
         overwrite = bool(overwrite)

@@ -354,7 +354,6 @@ class AddBlock(FloatOperatorBlock):
         return hessian_inputs[0]
 
 
-
 class SubBlock(FloatOperatorBlock):
     operator = staticmethod(float.__sub__)
     symbol = "-"
