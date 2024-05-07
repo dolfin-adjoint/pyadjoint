@@ -61,6 +61,16 @@ class BlockVariable(object):
         else:
             return self.output
 
+    def clear_checkpoint(self, to_keep=None):
+        try:
+            if self._checkpoint._ad_checkpoint_to_clear(to_keep=to_keep) == self.checkpoint:
+                self._checkpoint = None
+        except AttributeError:
+            # For the case where the checkpoint does not have a clear method.
+            # For instance, when the checkpoint is a float type.
+            self._checkpoint = None
+
+
     def will_add_as_dependency(self):
         overwrite = self.output._ad_will_add_as_dependency()
         overwrite = bool(overwrite)

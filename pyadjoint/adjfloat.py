@@ -98,6 +98,9 @@ class AdjFloat(OverloadedType, float):
         # Floats are immutable.
         return self
 
+    def _ad_checkpoint_to_clear(self, to_keep=None):
+        return self
+
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
 
@@ -239,6 +242,9 @@ class FloatOperatorBlock(Block):
     def recompute_component(self, inputs, block_variable, idx, prepared):
         return self.operator(*(term.saved_output for term in self.terms))
 
+    def _ad_checkpoint_to_clear(self, to_keep=None):
+        return self
+
     def __str__(self):
         return f"{self.terms[0]} {self.symbol} {self.terms[1]}"
 
@@ -346,6 +352,7 @@ class AddBlock(FloatOperatorBlock):
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
         return hessian_inputs[0]
+
 
 
 class SubBlock(FloatOperatorBlock):
