@@ -57,18 +57,30 @@ class BlockVariable(object):
     @property
     def saved_output(self):
         if self.checkpoint is not None:
-            return self.output._ad_restore_at_checkpoint(self.checkpoint)
+            if self.output is not None:
+                return self.output._ad_restore_at_checkpoint(self.checkpoint)
+            else:
+                return self.checkpoint._ad_restore_at_checkpoint(self.checkpoint)
         else:
             return self.output
 
     def clear_checkpoint(self, to_keep=None):
-        try:
-            if self._checkpoint._ad_checkpoint_to_clear(to_keep=to_keep) == self.checkpoint:
+        if self._checkpoint is not None:
+            try:
+                if self._checkpoint._ad_checkpoint_to_clear(to_keep=to_keep) == self._checkpoint:
+                    self._checkpoint = None
+                    # If is float type, then we have a bug.
+            except AttributeError:
+                # For the case where the checkpoint does not have a clear method.
+                # For instance, when the checkpoint is a float type.
                 self._checkpoint = None
-        except AttributeError:
-            # For the case where the checkpoint does not have a clear method.
-            # For instance, when the checkpoint is a float type.
-            self._checkpoint = None
+        else:
+            try:
+                output = self.output._ad_checkpoint_to_clear(to_keep=to_keep)
+                if bool(output == self.output):
+                    self.output = None
+            except AttributeError:
+                self._checkpoint = None
 
     def will_add_as_dependency(self):
         overwrite = self.output._ad_will_add_as_dependency()
