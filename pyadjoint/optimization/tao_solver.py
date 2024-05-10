@@ -282,7 +282,8 @@ class TAOSolver(OptimizationSolver):
         self.tao = tao
 
     def solve(self):
-        M = self.taoobjective.new_M()
+        M = tuple(m.tape_value()._ad_copy()
+                  for m in self.taoobjective.reduced_functional.controls)
         x = self.vec_interface.new_petsc()
         self.vec_interface.to_petsc(x, M)
         self.tao.solve(x)
