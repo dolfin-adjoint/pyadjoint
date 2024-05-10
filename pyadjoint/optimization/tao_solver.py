@@ -27,10 +27,13 @@ class PETScVecInterface:
         indices = []
         n = 0
         for x in X:
-            indices.append((n, n + x._ad_dim()))
+            y = x._ad_copy()
+            # Global vector
+            y_a = np.zeros(y._ad_dim(), dtype=PETSc.ScalarType)
+            _, x_n = y._ad_assign_numpy(y, y_a, offset=0)
+            del y, y_a
+            indices.append((n, n + x_n))
             n += x._ad_dim()
-        if comm.size > 1:
-            raise NotImplementedError("Serial only")
         N = n
 
         self._comm = comm
@@ -73,7 +76,7 @@ class PETScVecInterface:
                 raise ValueError("Invalid length")
 
         for (i0, _), x in zip(self.indices, X):
-            x._ad_assign_numpy(x, y_a, offset=i0)
+            _, _ = x._ad_assign_numpy(x, y_a, offset=i0)
 
     def to_petsc(self, x, Y):
         Y = Enlist(Y)
