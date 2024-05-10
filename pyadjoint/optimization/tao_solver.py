@@ -26,6 +26,7 @@ class PETScVecInterface:
 
         indices = []
         n = 0
+        N = 0
         for x in X:
             y = x._ad_copy()
             # Global vector
@@ -34,7 +35,7 @@ class PETScVecInterface:
             del y, y_a
             indices.append((n, n + x_n))
             n += x_n
-        N = n
+            N += x._ad_dim()
 
         self._comm = comm
         self._indices = tuple(indices)
