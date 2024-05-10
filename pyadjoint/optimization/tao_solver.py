@@ -33,7 +33,7 @@ class PETScVecInterface:
             _, x_n = y._ad_assign_numpy(y, y_a, offset=0)
             del y, y_a
             indices.append((n, n + x_n))
-            n += x._ad_dim()
+            n += x_n
         N = n
 
         self._comm = comm
