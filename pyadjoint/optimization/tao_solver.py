@@ -72,20 +72,15 @@ class PETScVecInterface:
             raise ValueError("Invalid shape")
         if len(X) != len(self.indices):
             raise ValueError("Invalid length")
-        for (i0, i1), x in zip(self.indices, X):
-            if x._ad_dim() != i1 - i0:
-                raise ValueError("Invalid length")
 
-        for (i0, _), x in zip(self.indices, X):
-            _, _ = x._ad_assign_numpy(x, y_a, offset=i0)
+        for (i0, i1), x in zip(self.indices, X):
+            _, x_i1 = x._ad_assign_numpy(x, y_a, offset=i0)
+            assert i1 == x_i1
 
     def to_petsc(self, x, Y):
         Y = Enlist(Y)
         if len(Y) != len(self.indices):
             raise ValueError("Invalid length")
-        for (i0, i1), y in zip(self.indices, Y):
-            if y._ad_dim() != i1 - i0:
-                raise ValueError("Invalid length")
 
         x_a = np.zeros(self.n, dtype=PETSc.ScalarType)
         for (i0, i1), y in zip(self.indices, Y):
