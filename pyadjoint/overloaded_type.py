@@ -130,7 +130,7 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
-    def _ad_checkpoint_to_clear(self, to_keep=None):
+    def _ad_is_to_clear_checkpoint(self, to_keep=None):
         """This method must be overridden.
         """
         raise NotImplementedError
