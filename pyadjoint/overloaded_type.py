@@ -334,7 +334,7 @@ class FloatingType(OverloadedType):
         block_variable.floating_type = True
         return block_variable
 
-    def _ad_checkpoint_to_clear(self, to_keep=None):
+    def _ad_is_to_clear_checkpoint(self, to_keep=None):
         return self
 
     def _ad_will_add_as_dependency(self):
