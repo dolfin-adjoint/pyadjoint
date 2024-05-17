@@ -1,4 +1,5 @@
 from .tape import no_annotations, get_working_tape
+import weakref
 
 
 class BlockVariable(object):
@@ -7,11 +8,20 @@ class BlockVariable(object):
     """
 
     def __init__(self, output):
-        self.output = output
+        if output._ad_use_weakref():
+            self._output = weakref.ref(output)
+            self._output_weakref = True
+        else:
+            self._output = output
+            self._output_weakref = False
         self.adj_value = None
         self.tlm_value = None
         self.hessian_value = None
+        # Holds an OverloadedType object that is a checkpoint of the output.
         self._checkpoint = None
+        # Flag to indicate if the OverloadedType object has been checkpointed
+        # in checkpointing algorithm.
+        self._checkpointed = False
         self.is_control = False
         self.floating_type = False
         # Helper flag for use during tape traversals.
@@ -20,6 +30,13 @@ class BlockVariable(object):
         self.creation_timestep = -1
         # The timestep during which this variable was last used as an input.
         self.last_use = -1
+
+    @property
+    def output(self):
+        if self._output_weakref:
+            return self._output()
+        else:
+            return self._output
 
     def add_adj_output(self, val):
         if self.adj_value is None:
@@ -53,6 +70,16 @@ class BlockVariable(object):
     def save_output(self, overwrite=True):
         if overwrite or self.checkpoint is None:
             self._checkpoint = self.output._ad_create_checkpoint()
+    
+    @no_annotations
+    def clear_checkpoint(self):
+        if self.output is not None:
+            # Clear the checkpoint oly if the output is still alive.
+            self._checkpoint = None
+        elif self._checkpointed:
+            self._checkpoint = None
+        else:
+            pass
 
     @property
     def saved_output(self):
@@ -88,6 +115,10 @@ class BlockVariable(object):
     @property
     def checkpoint(self):
         return self._checkpoint
+    
+    @property
+    def checkpointed(self):
+        return self._checkpointed
 
     @checkpoint.setter
     def checkpoint(self, value):

@@ -130,6 +130,22 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
+    def _ad_use_weakref(self, weakref=False):
+        """This method can be overridden.
+
+        Should implement a way to determine if the object should be stored as a weak reference.
+
+        Returns:
+            bool: True if the object should be stored as a weak reference.
+
+        """
+        return weakref
+
+    def _ad_is_to_clear_checkpoint(self, to_keep=None):
+        """This method must be overridden.
+        """
+        raise NotImplementedError
+
     def _ad_restore_at_checkpoint(self, checkpoint):
         """This method must be overridden.
 
@@ -328,6 +344,9 @@ class FloatingType(OverloadedType):
         block_variable = OverloadedType.create_block_variable(self)
         block_variable.floating_type = True
         return block_variable
+
+    def _ad_is_to_clear_checkpoint(self, to_keep=None):
+        return self
 
     def _ad_will_add_as_dependency(self):
         if self._ad_floating_active:
