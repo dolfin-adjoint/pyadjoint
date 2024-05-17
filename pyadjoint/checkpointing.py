@@ -268,7 +268,7 @@ class CheckpointManager:
                     for var in current_step.checkpointable_state:
                         if var.checkpoint:
                             current_step._checkpoint.update(
-                                {var: var.checkpoint}
+                                {var: var.checkpoint._ad_create_checkpoint()}
                             )
                 if not cp_action.write_adj_deps:
                     next_step = self.tape.timesteps[step + 1]

@@ -130,14 +130,11 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
-    def _ad_use_weakref(self, weakref=False):
-        """This method can be overridden.
-
-        Should implement a way to determine if the object should be stored as a weak reference.
+    def _ad_use_output_weakref(self, weakref=False):
+        """This method verifies if an output should be stored as a weak reference.
 
         Returns:
-            bool: True if the object should be stored as a weak reference.
-
+            bool: Whether the output should be stored as a weak reference.
         """
         return weakref
 

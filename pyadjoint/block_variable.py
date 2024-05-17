@@ -8,7 +8,7 @@ class BlockVariable(object):
     """
 
     def __init__(self, output):
-        if output._ad_use_weakref():
+        if output._ad_use_output_weakref():
             self._output = weakref.ref(output)
             self._output_weakref = True
         else:
@@ -68,7 +68,7 @@ class BlockVariable(object):
 
     @no_annotations
     def save_output(self, overwrite=True):
-        if overwrite or self.checkpoint is None:
+        if overwrite or self.checkpoint is None and not self._checkpointed:
             self._checkpoint = self.output._ad_create_checkpoint()
     
     @no_annotations
