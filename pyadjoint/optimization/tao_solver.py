@@ -12,6 +12,11 @@ try:
 except ModuleNotFoundError:
     PETSc = None
 
+__all__ = \
+    [
+        "TAOSolver"
+    ]
+
 
 class PETScVecInterface:
     def __init__(self, X, *, comm=None):
@@ -146,12 +151,12 @@ class TAOObjective:
     def hessian(self, M, M_dot):
         M = Enlist(M)
         M_dot = Enlist(M_dot)
-        J = self.reduced_functional(tuple(m._ad_copy() for m in M))
+        _ = self.reduced_functional(tuple(m._ad_copy() for m in M))
         _ = self.reduced_functional.derivative()
         _ = self.reduced_functional.hessian(tuple(m_dot._ad_copy() for m_dot in M_dot))
         ddJ = tuple(m.control.block_variable.hessian_value
                     for m in self.reduced_functional.controls)
-        return J, M.delist(ddJ)
+        return M.delist(ddJ)
 
     def new_M(self):
         # Not initialized to zero
@@ -176,6 +181,13 @@ class TAOObjective:
 
 class TAOSolver(OptimizationSolver):
     """Use TAO to solve an optimization problem.
+
+    Args:
+        problem (MinimizationProblem): Defines the optimization problem to be
+            solved.
+        comm (petsc4py.PETSc.Comm or mpi4py.MPI.Comm): Communicator.
+        inner_product (str): Defines the Riesz map. Used to define the
+            inner product for derivatives with respect to the control.
     """
 
     def __init__(self, problem, parameters, *, comm=None, inner_product="L2"):
@@ -199,11 +211,11 @@ class TAOSolver(OptimizationSolver):
             comm=comm)
         n, N = vec_interface.n, vec_interface.N
         to_petsc, from_petsc = vec_interface.to_petsc, vec_interface.from_petsc
-        M = taoobjective.new_M()
 
         tao = PETSc.TAO().create(comm=comm)
 
         def objective_gradient(tao, x, g):
+            M = taoobjective.new_M()
             from_petsc(x, M)
             J_val, dJ = taoobjective.objective_gradient(M)
             to_petsc(g, dJ)
@@ -231,7 +243,7 @@ class TAOSolver(OptimizationSolver):
             def mult(self, A, x, y):
                 M_dot = taoobjective.new_M()
                 from_petsc(x, M_dot)
-                _, ddJ = taoobjective.hessian(self._M, M_dot)
+                ddJ = taoobjective.hessian(self._M, M_dot)
                 to_petsc(y, ddJ)
                 if self._shift != 0.0:
                     y.axpy(self._shift, x)
@@ -246,9 +258,9 @@ class TAOSolver(OptimizationSolver):
             def mult(self, A, x, y):
                 dJ = taoobjective.new_M_dual()
                 from_petsc(x, dJ)
-                assert len(M) == len(dJ)
+                assert len(taoobjective.reduced_functional.controls) == len(dJ)
                 dJ = tuple(m._ad_convert_type(dJ_, {"riesz_representation": inner_product})
-                           for m, dJ_ in zip(M, dJ))
+                           for m, dJ_ in zip(taoobjective.reduced_functional.controls, dJ))
                 to_petsc(y, dJ)
 
         M_inv_matrix = PETSc.Mat().createPython(((n, N), (n, N)),
@@ -265,11 +277,11 @@ class TAOSolver(OptimizationSolver):
 
             x_lb = vec_interface.new_petsc()
             x_ub = vec_interface.new_petsc()
-            assert len(M) == len(problem.bounds)
+            assert len(taoobjective.reduced_functional.controls) == len(problem.bounds)
             to_petsc(x_lb, tuple(convert_bound(m, lb, np.finfo(PETSc.ScalarType).min)
-                                 for m, (lb, _) in zip(M, problem.bounds)))
+                                 for m, (lb, _) in zip(taoobjective.reduced_functional.controls, problem.bounds)))
             to_petsc(x_ub, tuple(convert_bound(m, ub, np.finfo(PETSc.ScalarType).max)
-                                 for m, (_, ub) in zip(M, problem.bounds)))
+                                 for m, (_, ub) in zip(taoobjective.reduced_functional.controls, problem.bounds)))
             tao.setVariableBounds(x_lb, x_ub)
 
         options = PETScOptions(f"_pyadjoint__{tao.name:s}_")
@@ -284,6 +296,12 @@ class TAOSolver(OptimizationSolver):
         self.tao = tao
 
     def solve(self):
+        """Solve the optimisation problem.
+
+        Returns:
+            OverloadedType or tuple[OverloadedType]: The solution.
+        """
+
         M = tuple(m.tape_value()._ad_copy()
                   for m in self.taoobjective.reduced_functional.controls)
         x = self.vec_interface.new_petsc()
