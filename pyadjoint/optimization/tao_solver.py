@@ -146,6 +146,7 @@ class TAOObjective:
         M = Enlist(M)
         M_dot = Enlist(M_dot)
         J = self.reduced_functional(tuple(m._ad_copy() for m in M))
+        _ = self.reduced_functional.derivative()
         _ = self.reduced_functional.hessian(tuple(m_dot._ad_copy() for m_dot in M_dot))
         ddJ = tuple(m.control.block_variable.hessian_value
                     for m in self.reduced_functional.controls)
