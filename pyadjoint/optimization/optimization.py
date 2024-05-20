@@ -74,8 +74,8 @@ def minimize_scipy_generic(rf_np, method, bounds=None, **kwargs):
         kwargs["options"]["disp"] = False
         """
     else:
-        # Print out progress information by default
-        if "disp" not in kwargs["options"]:
+        # Print out progess if requested.
+        if "disp" in kwargs["options"]:
             kwargs["options"]["disp"] = True
 
     # Make the default SLSLQP options more verbose
