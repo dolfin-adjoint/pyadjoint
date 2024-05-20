@@ -75,7 +75,8 @@ class PETScVecInterface:
 
         for (i0, i1), x in zip(self.indices, X):
             _, x_i1 = x._ad_assign_numpy(x, y_a, offset=i0)
-            assert i1 == x_i1
+            if i1 != x_i1:
+                raise ValueError("Invalid index")
 
     def to_petsc(self, x, Y):
         Y = Enlist(Y)
