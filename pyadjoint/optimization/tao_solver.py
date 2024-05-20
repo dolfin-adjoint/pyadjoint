@@ -283,6 +283,8 @@ class TAOSolver(OptimizationSolver):
             to_petsc(x_ub, tuple(convert_bound(m, ub, np.finfo(PETSc.ScalarType).max)
                                  for m, (_, ub) in zip(taoobjective.reduced_functional.controls, problem.bounds)))
             tao.setVariableBounds(x_lb, x_ub)
+            x_lb.destroy()
+            x_ub.destroy()
 
         options = PETScOptions(f"_pyadjoint__{tao.name:s}_")
         options.update(parameters)
@@ -294,6 +296,13 @@ class TAOSolver(OptimizationSolver):
         self.taoobjective = taoobjective
         self.vec_interface = vec_interface
         self.tao = tao
+
+        def finalize_callback(tao):
+            tao.destroy()
+
+        finalize = weakref.finalize(self, finalize_callback,
+                                    tao)
+        finalize.atexit = False
 
     def solve(self):
         """Solve the optimisation problem.
@@ -308,4 +317,5 @@ class TAOSolver(OptimizationSolver):
         self.vec_interface.to_petsc(x, M)
         self.tao.solve(x)
         self.vec_interface.from_petsc(x, M)
+        x.destroy()
         return self.taoobjective.reduced_functional.controls.delist(M)
