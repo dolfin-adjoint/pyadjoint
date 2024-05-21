@@ -10,10 +10,8 @@ class BlockVariable(object):
     def __init__(self, output):
         if output._ad_use_output_weakref():
             self._output = weakref.ref(output)
-            self._output_weakref = True
         else:
             self._output = output
-            self._output_weakref = False
         self.adj_value = None
         self.tlm_value = None
         self.hessian_value = None
@@ -33,7 +31,7 @@ class BlockVariable(object):
 
     @property
     def output(self):
-        if self._output_weakref:
+        if isinstance(self._output, weakref.ref):
             return self._output()
         else:
             return self._output
@@ -84,7 +82,7 @@ class BlockVariable(object):
     @property
     def saved_output(self):
         if self.checkpoint is not None:
-            return self.output._ad_restore_at_checkpoint(self.checkpoint)
+            return self.checkpoint._ad_restore_at_checkpoint(self.checkpoint)
         else:
             return self.output
 
