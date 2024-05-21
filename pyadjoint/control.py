@@ -1,5 +1,5 @@
 from .overloaded_type import OverloadedType, create_overloaded_object
-import logging
+import warnings
 
 
 class Control(object):
@@ -47,13 +47,13 @@ class Control(object):
 
     def get_derivative(self, options={}):
         if self.block_variable.adj_value is None:
-            logging.warning("Adjoint value is None, is the functional independent of the control variable?")
+            warnings.warn("Adjoint value is None, is the functional independent of the control variable?")
             return self.control._ad_convert_type(0., options=options)
         return self.control._ad_convert_type(self.block_variable.adj_value, options=options)
 
     def get_hessian(self, options={}):
         if self.block_variable.adj_value is None:
-            logging.warning("Hessian value is None, is the functional independent of the control variable?")
+            warnings.warn("Hessian value is None, is the functional independent of the control variable?")
             return self.control._ad_convert_type(0., options=options)
         return self.control._ad_convert_type(self.block_variable.hessian_value, options=options)
 
