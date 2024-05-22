@@ -21,8 +21,10 @@ def test_sin_weak_spatial():
     computed = Jhat.derivative().vector().get_local()
     
     V = TestFunction(S)
-    dJV = div(V)*sin(x[0])*dx + V[0]*cos(x[0])*dx
-    actual = assemble(dJV).vector().get_local()
+    # Derivative (Cofunction)
+    dJV = assemble(div(V)*sin(x[0])*dx + V[0]*cos(x[0])*dx)
+    # Apply L2 riesz representation to obtain the gradient.
+    actual = dJV.riesz_representation().vector().get_local()
     assert np.allclose(computed, actual, rtol=1e-14)
 
 
@@ -80,7 +82,7 @@ def test_shape_hessian():
     h.interpolate(as_vector((cos(x[2]), A*cos(x[1]), A*x[1])))
 
     # Second order taylor
-    dJdm = Jhat.derivative().vector().inner(h.vector())
+    dJdm = assemble(inner(Jhat.derivative(), h)*dx)
     Hm = compute_hessian(J, c, h).vector().inner(h.vector())
     r2 = taylor_test(Jhat, s, h, dJdm=dJdm, Hm=Hm)
     assert(r2 > 2.9)
@@ -105,11 +107,10 @@ def test_PDE_hessian_neumann():
     V = FunctionSpace(mesh, "CG", 1)
     u, v = TrialFunction(V), TestFunction(V)
     a = inner(grad(u), grad(v))*dx + u*v*dx
-    l = f*v*dx
     u = Function(V)
-    solve(a==l, u, solver_parameters={'ksp_type':'preonly', 'pc_type':'lu',
-                                          "mat_type": "aij",
-                                          "pc_factor_mat_solver_type": "mumps"})
+    solve(a==f*v*dx, u, solver_parameters={'ksp_type':'preonly', 'pc_type':'lu',
+                                            "mat_type": "aij",
+                                            "pc_factor_mat_solver_type": "mumps"})
     J = assemble(u*dx(domain=mesh))
     c = Control(s)
     Jhat = ReducedFunctional(J, c)
@@ -119,7 +120,7 @@ def test_PDE_hessian_neumann():
     h.interpolate(as_vector((A*x[2], A*cos(x[1]), A*x[0])))
 
     # Finite difference
-    r0 = taylor_test(Jhat, s, h, dJdm=0)
+    r0 = taylor_test(Jhat, s, h, dJdm=0.)
     Jhat(s)
     assert(r0>0.95)
 
@@ -136,8 +137,8 @@ def test_PDE_hessian_neumann():
     Jhat(s)
 
     # # Second order taylor
-    dJdm = Jhat.derivative().vector().inner(h.vector())
-    Hm = compute_hessian(J, c, h).vector().inner(h.vector())
+    dJdm = assemble(inner(Jhat.derivative(), h)*dx)
+    Hm = assemble(inner(compute_hessian(J, c, h), h)*dx)
     r2 = taylor_test(Jhat, s, h, dJdm=dJdm, Hm=Hm)
     assert(r2>2.95)
 
@@ -190,8 +191,8 @@ def test_PDE_hessian_dirichlet():
     Jhat(s)
 
     # # Second order taylor
-    dJdm = Jhat.derivative().vector().inner(h.vector())
-    Hm = compute_hessian(J, c, h).vector().inner(h.vector())
+    dJdm = assemble(inner(Jhat.derivative(), h)*dx)
+    Hm = assemble(inner(compute_hessian(J, c, h), h)*dx)
     r2 = taylor_test(Jhat, s, h, dJdm=dJdm, Hm=Hm)
     assert(r2>2.95)
 
