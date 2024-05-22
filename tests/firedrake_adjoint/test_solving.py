@@ -281,12 +281,12 @@ def test_two_nonlinear_solves():
     # regression test for firedrake issue #1841
     mesh = UnitSquareMesh(1,1)
     V = FunctionSpace(mesh, "CG", 1)
-    R = FunctionSpace(mesh, "R", 0)
     v = TestFunction(V)
     u0 = Function(V)
     u1 = Function(V)
 
-    ui = Function(R, val=2.0)
+    ui = Function(V)
+    ui.assign(2.0)
     c = Control(ui)
     u0.assign(ui)
     F = dot(v, (u1-u0))*dx - dot(v, u0*u1)*dx
@@ -297,7 +297,7 @@ def test_two_nonlinear_solves():
     solver.solve()
     J = assemble(dot(u1, u1)*dx)
     rf = ReducedFunctional(J, c)
-    assert taylor_test(rf, ui, Constant(0.1)) > 1.95
+    assert taylor_test(rf, ui, Function(V).assign(0.1)) > 1.95
 
 
 def convergence_rates(E_values, eps_values):
