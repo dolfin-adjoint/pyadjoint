@@ -257,12 +257,12 @@ class TAOSolver(OptimizationSolver):
 
         class GradientNorm:
             def mult(self, A, x, y):
-                dJ = taoobjective.new_M_dual()
-                from_petsc(x, dJ)
-                assert len(taoobjective.reduced_functional.controls) == len(dJ)
-                dJ = tuple(m._ad_convert_type(dJ_, {"riesz_representation": inner_product})
-                           for m, dJ_ in zip(taoobjective.reduced_functional.controls, dJ))
-                to_petsc(y, dJ)
+                X = taoobjective.new_M_dual()
+                from_petsc(x, X)
+                assert len(taoobjective.reduced_functional.controls) == len(X)
+                X = tuple(m._ad_convert_type(x, {"riesz_representation": inner_product})
+                           for m, x in zip(taoobjective.reduced_functional.controls, X))
+                to_petsc(y, X)
 
         M_inv_matrix = PETSc.Mat().createPython(((n, N), (n, N)),
                                                 GradientNorm(), comm=comm)
@@ -293,16 +293,57 @@ class TAOSolver(OptimizationSolver):
 
         tao.setFromOptions()
 
+        x = vec_interface.new_petsc()
+        tao.setSolution(x)
+        tao.setUp()
+
+        if tao.getType() in {PETSc.TAO.Type.LMVM, PETSc.TAO.Type.BLMVM}:
+            class InitialHessian:
+                pass
+
+            class InitialHessianPreconditioner:
+                def apply(self, pc, x, y):
+                    X = taoobjective.new_M_dual()
+                    from_petsc(x, X)
+                    assert len(taoobjective.reduced_functional.controls) == len(X)
+                    X = tuple(m._ad_convert_type(x, {"riesz_representation": inner_product})
+                               for m, x in zip(taoobjective.reduced_functional.controls, X))
+                    to_petsc(y, X)
+
+            B_0_matrix = PETSc.Mat().createPython(((n, N), (n, N)),
+                                                  InitialHessian(), comm=comm)
+            B_0_matrix.setOption(PETSc.Mat.Option.SYMMETRIC, True)
+            B_0_matrix.setUp()
+
+            B_0_matrix_pc = PETSc.PC().createPython(InitialHessianPreconditioner(),
+                                                    comm=comm)
+            B_0_matrix_pc.setOperators(B_0_matrix)
+            B_0_matrix_pc.setUp()
+
+            tao.setLMVMH0(B_0_matrix)
+            ksp = tao.getLMVMH0KSP()
+            ksp.setType(PETSc.KSP.Type.PREONLY)
+            ksp.setTolerances(rtol=0.0, atol=0.0, divtol=None, max_it=1)
+            ksp.setPC(B_0_matrix_pc)
+            ksp.setUp()
+        else:
+            B_0_matrix = None
+            B_0_matrix_pc = None
+
         super().__init__(problem, parameters)
         self.taoobjective = taoobjective
         self.vec_interface = vec_interface
         self.tao = tao
+        self.x = x
 
-        def finalize_callback(tao):
-            tao.destroy()
+        def finalize_callback(*args):
+            for arg in args:
+                if arg is not None:
+                    arg.destroy()
 
-        finalize = weakref.finalize(self, finalize_callback,
-                                    tao)
+        finalize = weakref.finalize(
+            self, finalize_callback,
+            tao, H_matrix, M_inv_matrix, x, B_0_matrix_pc, B_0_matrix)
         finalize.atexit = False
 
     def solve(self):
@@ -314,9 +355,7 @@ class TAOSolver(OptimizationSolver):
 
         M = tuple(m.tape_value()._ad_copy()
                   for m in self.taoobjective.reduced_functional.controls)
-        x = self.vec_interface.new_petsc()
-        self.vec_interface.to_petsc(x, M)
-        self.tao.solve(x)
-        self.vec_interface.from_petsc(x, M)
-        x.destroy()
+        self.vec_interface.to_petsc(self.x, M)
+        self.tao.solve()
+        self.vec_interface.from_petsc(self.x, M)
         return self.taoobjective.reduced_functional.controls.delist(M)
