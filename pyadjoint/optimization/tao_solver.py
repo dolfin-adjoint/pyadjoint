@@ -261,7 +261,7 @@ class TAOSolver(OptimizationSolver):
                 from_petsc(x, X)
                 assert len(taoobjective.reduced_functional.controls) == len(X)
                 X = tuple(m._ad_convert_type(x, {"riesz_representation": inner_product})
-                           for m, x in zip(taoobjective.reduced_functional.controls, X))
+                          for m, x in zip(taoobjective.reduced_functional.controls, X))
                 to_petsc(y, X)
 
         M_inv_matrix = PETSc.Mat().createPython(((n, N), (n, N)),
@@ -307,7 +307,7 @@ class TAOSolver(OptimizationSolver):
                     from_petsc(x, X)
                     assert len(taoobjective.reduced_functional.controls) == len(X)
                     X = tuple(m._ad_convert_type(x, {"riesz_representation": inner_product})
-                               for m, x in zip(taoobjective.reduced_functional.controls, X))
+                              for m, x in zip(taoobjective.reduced_functional.controls, X))
                     to_petsc(y, X)
 
             B_0_matrix = PETSc.Mat().createPython(((n, N), (n, N)),
