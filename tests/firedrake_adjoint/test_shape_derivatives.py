@@ -107,10 +107,11 @@ def test_PDE_hessian_neumann():
     V = FunctionSpace(mesh, "CG", 1)
     u, v = TrialFunction(V), TestFunction(V)
     a = inner(grad(u), grad(v))*dx + u*v*dx
+    l = f*v*dx
     u = Function(V)
-    solve(a==f*v*dx, u, solver_parameters={'ksp_type':'preonly', 'pc_type':'lu',
-                                            "mat_type": "aij",
-                                            "pc_factor_mat_solver_type": "mumps"})
+    solve(a==l, u, solver_parameters={'ksp_type':'preonly', 'pc_type':'lu',
+                                        "mat_type": "aij",
+                                        "pc_factor_mat_solver_type": "mumps"})
     J = assemble(u*dx(domain=mesh))
     c = Control(s)
     Jhat = ReducedFunctional(J, c)
@@ -120,7 +121,7 @@ def test_PDE_hessian_neumann():
     h.interpolate(as_vector((A*x[2], A*cos(x[1]), A*x[0])))
 
     # Finite difference
-    r0 = taylor_test(Jhat, s, h, dJdm=0.)
+    r0 = taylor_test(Jhat, s, h, dJdm=0)
     Jhat(s)
     assert(r0>0.95)
 
