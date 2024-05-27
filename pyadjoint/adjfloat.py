@@ -98,6 +98,9 @@ class AdjFloat(OverloadedType, float):
         # Floats are immutable.
         return self
 
+    def _ad_is_to_clear_checkpoint(self, to_keep=None):
+        return True
+
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
 
@@ -237,7 +240,10 @@ class FloatOperatorBlock(Block):
             self.add_dependency(dep)
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        return self.operator(*(term.saved_output for term in self.terms))
+        output = self.operator(*(term.saved_output for term in self.terms))
+        if isinstance(output, float):
+            return AdjFloat(output)
+        return output
 
     def __str__(self):
         return f"{self.terms[0]} {self.symbol} {self.terms[1]}"

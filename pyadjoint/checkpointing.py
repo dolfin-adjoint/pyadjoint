@@ -285,7 +285,7 @@ class CheckpointManager:
                                 bv.clear_checkpoint()
                     # Remove unnecessary variables from previous steps.
                     for var in (current_step.checkpointable_state - to_keep):
-                        var.clear_checkpoint()
+                        var.clear_checkpoint(to_keep=to_keep)
 
     @process_operation.register(Reverse)
     def _(self, cp_action, bar, markings, functional=None, **kwargs):

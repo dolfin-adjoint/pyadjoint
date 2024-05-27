@@ -17,8 +17,8 @@ class BlockVariable(object):
         self.hessian_value = None
         # Holds an OverloadedType object that is a checkpoint of the output.
         self._checkpoint = None
-        # Flag to indicate if the OverloadedType object has been checkpointed
-        # in checkpointing algorithm.
+        # This attribute is used to indicate that this block variable checkpoint
+        # has been in checkpointing algorithm.
         self._checkpointed = False
         self.is_control = False
         self.floating_type = False
@@ -66,18 +66,15 @@ class BlockVariable(object):
 
     @no_annotations
     def save_output(self, overwrite=True):
-        if overwrite or self.checkpoint is None and not self._checkpointed:
+        if overwrite or (self.checkpoint is None and not self._checkpointed):
             self._checkpoint = self.output._ad_create_checkpoint()
     
     @no_annotations
-    def clear_checkpoint(self):
-        if self.output is not None:
+    def clear_checkpoint(self, to_keep=None):
+        if self.checkpoint is not None:
             # Clear the checkpoint oly if the output is still alive.
-            self._checkpoint = None
-        elif self._checkpointed:
-            self._checkpoint = None
-        else:
-            pass
+            if self._checkpoint._ad_is_to_clear_checkpoint(to_keep=to_keep):
+                self._checkpoint = None
 
     @property
     def saved_output(self):
@@ -116,6 +113,8 @@ class BlockVariable(object):
     
     @property
     def checkpointed(self):
+        # A property to indicate that this block variable has been checkpointed
+        # in the checkpointing algorithm.
         return self._checkpointed
 
     @checkpoint.setter

@@ -130,13 +130,13 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
-    def _ad_use_output_weakref(self, weakref=False):
+    def _ad_use_output_weakref(self, use_weakref=False):
         """This method verifies if an output should be stored as a weak reference.
 
         Returns:
             bool: Whether the output should be stored as a weak reference.
         """
-        return weakref
+        return use_weakref
 
     def _ad_is_to_clear_checkpoint(self, to_keep=None):
         """This method must be overridden.
