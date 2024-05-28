@@ -20,6 +20,9 @@ class BlockVariable(object):
         self.creation_timestep = -1
         # The timestep during which this variable was last used as an input.
         self.last_use = -1
+        # This attribute is used to indicate that this block variable checkpoint
+        # has been in checkpointing algorithm.
+        self._checkpointed = False
 
     def add_adj_output(self, val):
         if self.adj_value is None:
@@ -51,7 +54,7 @@ class BlockVariable(object):
 
     @no_annotations
     def save_output(self, overwrite=True):
-        if overwrite or self.checkpoint is None:
+        if overwrite or (self.checkpoint is None and not self._checkpointed):
             self._checkpoint = self.output._ad_create_checkpoint()
 
     @property
