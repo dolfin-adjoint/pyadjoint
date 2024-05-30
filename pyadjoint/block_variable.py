@@ -60,10 +60,7 @@ class BlockVariable(object):
     @property
     def saved_output(self):
         if self.checkpoint is not None:
-            if self.output is not None:
-                return self.output._ad_restore_at_checkpoint(self.checkpoint)
-            else:
-                return self.checkpoint._ad_restore_at_checkpoint(self.checkpoint)
+            return self.output._ad_restore_at_checkpoint(self.checkpoint)
         else:
             return self.output
 
@@ -71,13 +68,6 @@ class BlockVariable(object):
         if self._checkpoint is not None:
             if self._checkpoint._ad_is_to_clear_checkpoint(to_keep=to_keep):
                 self._checkpoint = None
-        # else:
-        #     try:
-        #         output = self.output._ad_checkpoint_to_clear(to_keep=to_keep)
-        #         if bool(output == self.output):
-        #             self.output = None
-        #     except AttributeError:
-        #         self._checkpoint = None
 
     def will_add_as_dependency(self):
         overwrite = self.output._ad_will_add_as_dependency()
