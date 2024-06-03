@@ -131,9 +131,17 @@ class OverloadedType(object):
         raise NotImplementedError
 
     def _ad_is_to_clear_checkpoint(self, to_keep=None):
-        """This method must be overridden.
+        """Method called when checkpoint is about to be cleared in checkpointing algorithm.
+
+        This method should be overridden if the default behaviour is not compatible with this OverloadedType.
+
+        Args:
+            to_keep (list, optional): A list of checkpoints that should be kept.
+
+        Returns:
+            bool: True if the checkpoint should be cleared.
         """
-        raise NotImplementedError
+        return True
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         """This method must be overridden.
@@ -333,9 +341,6 @@ class FloatingType(OverloadedType):
         block_variable = OverloadedType.create_block_variable(self)
         block_variable.floating_type = True
         return block_variable
-
-    def _ad_is_to_clear_checkpoint(self, to_keep=None):
-        return self
 
     def _ad_will_add_as_dependency(self):
         if self._ad_floating_active:
