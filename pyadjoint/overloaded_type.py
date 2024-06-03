@@ -135,8 +135,11 @@ class OverloadedType(object):
 
         This method should be overridden if the default behaviour is not compatible with this OverloadedType.
 
+        Note:
+            This method allows to check if the checkpoint is in the set of checkpoints that should be kept.
+
         Args:
-            to_keep (list, optional): A list of checkpoints that should be kept.
+            to_keep (set, optional): A set of checkpoints that should be kept.
 
         Returns:
             bool: True if the checkpoint should be cleared.
