@@ -242,9 +242,6 @@ class FloatOperatorBlock(Block):
             return AdjFloat(output)
         return output
 
-    def _ad_is_to_clear_checkpoint(self, to_keep=None):
-        return True
-
     def __str__(self):
         return f"{self.terms[0]} {self.symbol} {self.terms[1]}"
 

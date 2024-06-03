@@ -750,12 +750,8 @@ class TimeStep(list):
         with stop_annotating():
             for var in self.checkpointable_state:
                 if var.saved_output is not None:
-                    # Save the output is None when checkpoint is DelegateCheckpoint
-                    # This code is causing a many tests error
-                    # This avoid to checkpoint the same variable twice here
-                    # More thought...
                     checkpoint = var.saved_output._ad_create_checkpoint()
-                    if not var._checkpointed and var.checkpoint is not None:
+                    if not var._checkpointed and checkpoint is not None:
                         self._checkpoint[var] = checkpoint
                         var._checkpointed = True
 
