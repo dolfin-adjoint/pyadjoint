@@ -73,7 +73,7 @@ def test_shape_hessian():
     s = Function(S,name="deform")
 
     mesh.coordinates.assign(mesh.coordinates + s)
-    J = assemble(sin(x[1])* dx(domain=mesh))
+    J = assemble(cos(x[1])* dx(domain=mesh))
     c = Control(s)
     Jhat = ReducedFunctional(J, c)
 
@@ -83,11 +83,12 @@ def test_shape_hessian():
 
     # Second order taylor
     dJdm = assemble(inner(Jhat.derivative(), h)*dx)
-    Hm = compute_hessian(J, c, h).vector().inner(h.vector())
+    Hm = assemble(inner(compute_hessian(J, c, h), h)*dx)
     r2 = taylor_test(Jhat, s, h, dJdm=dJdm, Hm=Hm)
+    print(r2)
     assert(r2 > 2.9)
     Jhat(s)
-    dJdmm_exact = derivative(derivative(sin(x[1])* dx(domain=mesh),x,h), x, h)
+    dJdmm_exact = derivative(derivative(cos(x[1]) * dx(domain=mesh), x, h), x, h)
     assert(np.isclose(assemble(dJdmm_exact), Hm))
 
 
