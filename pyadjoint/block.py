@@ -1,6 +1,6 @@
 from .tape import no_annotations
 from html import escape
-import weakref
+
 
 class Block(object):
     """Base class for all Tape Block types.
@@ -351,9 +351,8 @@ class Block(object):
                                               out,
                                               idx,
                                               prepared)
-            if output is not None and output != out.checkpoint:
-                out._checkpointed = False
-                out.checkpoint = weakref.ref(output)
+            if output is not None:
+                out.checkpoint = output
 
     def prepare_recompute_component(self, inputs, relevant_outputs):
         """Runs preparations before `recompute_component` is ran.
