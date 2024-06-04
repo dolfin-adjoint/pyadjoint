@@ -758,7 +758,7 @@ class TimeStep(list):
     def restore_from_checkpoint(self):
         """Restore the block var checkpoints from the timestep checkpoint."""
 
-        for var in self._checkpoint:
+        for var, _ in self._checkpoint.items():
             var.checkpoint = self._checkpoint[var]
 
     def delete_checkpoint(self):

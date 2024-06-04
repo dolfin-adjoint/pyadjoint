@@ -264,11 +264,14 @@ class CheckpointManager:
 
             if cp_action.write_ics:
                 if step == cp_action.n0:
+                    mode_to_keep = self.mode
+                    self.mode = Mode.RECORD
                     for var in current_step.checkpointable_state:
-                        if var.checkpoint:
-                            current_step._checkpoint.update(
-                                {var: var.checkpoint}
-                            )
+                        if var.checkpoint is not None and not var._checkpointed:
+                            if var.saved_output is not None:
+                                current_step._checkpoint.update({var: var.checkpoint})
+                                var._checkpointed = True
+                    self.mode = mode_to_keep
                 if not cp_action.write_adj_deps:
                     next_step = self.tape.timesteps[step + 1]
                     # The checkpointable state set of the current step.

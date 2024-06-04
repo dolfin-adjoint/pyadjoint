@@ -23,6 +23,7 @@ class BlockVariable(object):
         # This attribute is used to indicate that this block variable checkpoint
         # has been in checkpointing algorithm.
         self._checkpointed = False
+        self._recompute_checkpointed = False
 
     def add_adj_output(self, val):
         if self.adj_value is None:
@@ -94,6 +95,9 @@ class BlockVariable(object):
 
     @property
     def checkpoint(self):
+        import weakref
+        if isinstance(self._checkpoint, weakref.ref):
+            return self._checkpoint()
         return self._checkpoint
 
     @checkpoint.setter
