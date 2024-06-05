@@ -3,7 +3,7 @@ import pytest
 pytest.importorskip("firedrake")
 
 from numpy.random import rand
-from numpy.testing import assert_approx_equal
+from numpy.testing import assert_allclose
 
 from firedrake import *
 from firedrake.adjoint import *
@@ -22,8 +22,8 @@ def test_assemble_0_forms():
     # where stored as a Function instead of Vector()
     s = a1 + a2 + 2.0 * a3
     rf = ReducedFunctional(s, Control(u))
-    # derivative is: (1+2*u+6*u**2)*dx - summing is equivalent to testing with 1
-    assert_approx_equal(rf.derivative().vector().sum(), 1. + 2. * 4 + 6 * 16.)
+    dJdm = rf.derivative()
+    assert_allclose(dJdm.dat.data_ro, 1. + 2. * 4. + 6. * 16.)
 
 
 def test_assemble_0_forms_mixed():
@@ -41,7 +41,9 @@ def test_assemble_0_forms_mixed():
     s -= a3  # this is done deliberately to end up with an adj_input of 0.0 for the a3 AssembleBlock
     rf = ReducedFunctional(s, Control(u))
     # derivative is: (1+4*u)*dx - summing is equivalent to testing with 1
-    assert_approx_equal(rf.derivative().vector().sum(), 1. + 4. * 7)
+    dJdm = rf.derivative()
+    assert_allclose(dJdm.dat.data_ro[0], 1. + 4. * 7)
+    assert_allclose(dJdm.dat.data_ro[1], 0.0)
 
 
 def test_assemble_1_forms_adjoint():
