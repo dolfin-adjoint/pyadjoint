@@ -40,9 +40,17 @@ try:
                     self._val = self.rf(x.dat)
                     self._tape_trial = self.rf.tape.checkpoint_block_vars(self.rf.controls)
                 elif flag == ROL.UpdateType.Revert:
-                    # revert back to the cached value
-                    self._val = self._cache
-                    self.rf.tape.restore_block_vars(self._tape_cache)
+                    # If we have cached value revert back to the cached value from _cache
+                    if hasattr(self, "_tape_cache"):
+                        self._val = self._cache
+                        self.rf.tape.restore_block_vars(self._tape_cache)
+                    # else (e.g., when we are unfortunate and restore from a reverted checkpoint)
+                    # repopulate the tape for x.dat, and put them on _cache and _tape_cache
+                    # as they were the last UpdateType.Accept values
+                    else:
+                        self._val = self.rf(x.dat)
+                        self._cache = self._val
+                        self._tape_cache = self._tape_trial
 
                 self._flag = flag
 
