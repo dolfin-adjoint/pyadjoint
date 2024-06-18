@@ -1,5 +1,5 @@
 import pytest
-from math import log
+import math
 from numpy.testing import assert_approx_equal
 from numpy.random import rand
 from pyadjoint import *
@@ -155,6 +155,34 @@ def test_float_neg():
     assert rf2.derivative() == - 2.0
 
 
+def test_float_logexp():
+    a = AdjFloat(3.0)
+    b = exp(a)
+    c = log(b)
+    assert_approx_equal(c, 3.0)
+
+    b = log(a)
+    c = exp(b)
+    assert c, 3.0
+
+    rf = ReducedFunctional(c, Control(a))
+    assert_approx_equal(rf(a), 3.0)
+    assert_approx_equal(rf(AdjFloat(1.0)), 1.0)
+    assert_approx_equal(rf(AdjFloat(9.0)), 9.0)
+
+    assert_approx_equal(rf.derivative(), 1.0)
+
+    a = AdjFloat(3.0)
+    b = exp(a)
+    rf = ReducedFunctional(b, Control(a))
+    assert_approx_equal(rf.derivative(), math.exp(3.0))
+
+    a = AdjFloat(2.0)
+    b = log(a)
+    rf = ReducedFunctional(b, Control(a))
+    assert_approx_equal(rf.derivative(), 1./2.)
+
+
 def test_float_exponentiation():
     a = AdjFloat(3.0)
     b = AdjFloat(2.0)
@@ -172,7 +200,7 @@ def test_float_exponentiation():
     assert rf(AdjFloat(1.0)) == 1.0
     assert rf(AdjFloat(2.0)) == 4.0
     # d(a**a)/da = dexp(a log(a))/da = a**a * (log(a) + 1)
-    assert_approx_equal(rf.derivative(), 4.0 * (log(2.0)+1.0))
+    assert_approx_equal(rf.derivative(), 4.0 * (math.log(2.0)+1.0))
 
     # TODO: __rpow__ is not yet implemented
 

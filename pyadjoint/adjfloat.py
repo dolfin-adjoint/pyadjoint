@@ -192,7 +192,7 @@ class ExpBlock(Block):
         return _exp(input0) * hessian
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        return _exp(inputs)
+        return _exp(inputs[0])
 
 
 class LogBlock(Block):
@@ -217,7 +217,7 @@ class LogBlock(Block):
         return -hessian / input0 / input0
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        return _log(inputs)
+        return _log(inputs[0])
 
 
 _min = min

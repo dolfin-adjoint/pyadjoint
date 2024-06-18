@@ -11,7 +11,7 @@ from .block import Block
 from .tape import (Tape,
                    set_working_tape, get_working_tape, no_annotations,
                    annotate_tape, stop_annotating, pause_annotation, continue_annotation)
-from .adjfloat import AdjFloat
+from .adjfloat import AdjFloat, exp, log
 from .reduced_functional import ReducedFunctional
 from .drivers import compute_gradient, compute_hessian, solve_adjoint
 from .verification import taylor_test, taylor_to_dict
