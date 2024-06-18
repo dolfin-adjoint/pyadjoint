@@ -136,7 +136,7 @@ def minimize_scipy_generic(rf_np, method, bounds=None, derivative_options=None, 
     return m
 
 
-def minimize_custom(rf_np, bounds=None, **kwargs):
+def minimize_custom(rf_np, bounds=None, derivative_options=None, **kwargs):
     """ Interface to the user-provided minimisation method """
 
     try:
@@ -152,7 +152,7 @@ def minimize_custom(rf_np, bounds=None, **kwargs):
     m_global = rf_np.obj_to_array(m)
     J = rf_np.__call__
 
-    dJ = lambda m: rf_np.derivative(m, forget=None)
+    dJ = lambda m: rf_np.derivative(m, forget=None, options=derivative_options)
     H = rf_np.hessian
 
     if bounds is not None:
@@ -255,7 +255,7 @@ def minimize(rf, method='L-BFGS-B', scale=1.0, **kwargs):
         return opt
 
 
-def maximize(rf, method='L-BFGS-B', scale=1.0, **kwargs):
+def maximize(rf, method='L-BFGS-B', scale=1.0, derivative_options=None, **kwargs):
     """ Solves the maximisation problem with PDE constraint:
 
            max_m func(u, m)
@@ -274,6 +274,7 @@ def maximize(rf, method='L-BFGS-B', scale=1.0, **kwargs):
         * 'method' specifies the optimization method to be used to solve the problem.
             The available methods can be listed with the print_optimization_methods function.
         * 'scale' is a factor to scale to problem (default: 1.0).
+        * 'derivative_options' is a dictionary of options that can be passed to the derivative function.
         * 'bounds' is an optional keyword parameter to support control constraints: bounds = (lb, ub).
             lb and ub must be of the same type than the parameters m.
 
@@ -282,7 +283,7 @@ def maximize(rf, method='L-BFGS-B', scale=1.0, **kwargs):
         For detailed information about which arguments are supported for each optimization method,
         please refer to the documentaton of the optimization algorithm.
         """
-    return minimize(rf, method, scale=-scale, **kwargs)
+    return minimize(rf, method, scale=-scale, derivative_options=derivative_options, **kwargs)
 
 
 minimise = minimize
