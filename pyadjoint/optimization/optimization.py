@@ -33,7 +33,7 @@ def serialise_bounds(rf_np, bounds):
     return np.array(bounds_arr).T
 
 
-def minimize_scipy_generic(rf_np, method, bounds=None, **kwargs):
+def minimize_scipy_generic(rf_np, method, bounds=None, derivative_options=None, **kwargs):
     """Interface to the generic minimize method in scipy
 
     """
@@ -61,7 +61,7 @@ def minimize_scipy_generic(rf_np, method, bounds=None, **kwargs):
     m = [p.tape_value() for p in rf_np.controls]
     m_global = rf_np.obj_to_array(m)
     J = rf_np.__call__
-    dJ = lambda m: rf_np.derivative(m, forget=forget, project=project, options=kwargs.get("options", {}))
+    dJ = lambda m: rf_np.derivative(m, forget=forget, project=project, options=derivative_options)
     H = rf_np.hessian
 
     if "options" not in kwargs:
