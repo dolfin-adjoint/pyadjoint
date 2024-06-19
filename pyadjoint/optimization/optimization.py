@@ -274,7 +274,7 @@ def maximize(rf, method='L-BFGS-B', scale=1.0, derivative_options=None, **kwargs
         * 'method' specifies the optimization method to be used to solve the problem.
             The available methods can be listed with the print_optimization_methods function.
         * 'scale' is a factor to scale to problem (default: 1.0).
-        * 'derivative_options' is a dictionary of options that can be passed to the derivative function.
+        * 'derivative_options' is a dictionary of options that will be passed to the `rf.derivative`.
         * 'bounds' is an optional keyword parameter to support control constraints: bounds = (lb, ub).
             lb and ub must be of the same type than the parameters m.
 
