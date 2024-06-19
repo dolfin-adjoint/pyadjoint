@@ -7,23 +7,23 @@ from firedrake import *
 from firedrake.adjoint import *
 
 
-# def test_optimisation_constant_control():
-#     """This tests a list of controls in a minimisation (through scipy L-BFGS-B)"""
-#     mesh = UnitSquareMesh(1, 1)
-#     R = FunctionSpace(mesh, "R", 0)
+def test_optimisation_constant_control():
+    """This tests a list of controls in a minimisation (through scipy L-BFGS-B)"""
+    mesh = UnitSquareMesh(1, 1)
+    R = FunctionSpace(mesh, "R", 0)
 
-#     n = 3
-#     x = [Function(R) for i in range(n)]
-#     c = [Control(xi) for xi in x]
+    n = 3
+    x = [Function(R) for i in range(n)]
+    c = [Control(xi) for xi in x]
 
-#     # Rosenbrock function https://en.wikipedia.org/wiki/Rosenbrock_function
-#     # with minimum at x = (1, 1, 1, ...)
-#     f = sum(100*(x[i+1] - x[i]**2)**2 + (1 - x[i])**2 for i in range(n-1))
+    # Rosenbrock function https://en.wikipedia.org/wiki/Rosenbrock_function
+    # with minimum at x = (1, 1, 1, ...)
+    f = sum(100*(x[i+1] - x[i]**2)**2 + (1 - x[i])**2 for i in range(n-1))
 
-#     J = assemble(f * dx(domain=mesh))
-#     rf = ReducedFunctional(J, c)
-#     result = minimize(rf)
-#     assert_allclose([float(xi) for xi in result], 1., rtol=1e-4)
+    J = assemble(f * dx(domain=mesh))
+    rf = ReducedFunctional(J, c)
+    result = minimize(rf)
+    assert_allclose([float(xi) for xi in result], 1., rtol=1e-4)
 
 
 def _simple_helmholz_model(V, source):
