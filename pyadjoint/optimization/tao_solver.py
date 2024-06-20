@@ -20,6 +20,15 @@ __all__ = \
 
 
 class PETScVecInterface:
+    """Interface for conversion between :class:`OverloadedType` objects and
+    :class:`petsc4py.PETSc.Vec` objects.
+
+    Args:
+        X (OverloadedType or Sequence[OverloadedType]): One or more variables
+            defining the size of data to be stored.
+        comm (petsc4py.PETSc.Comm or mpi4py.MPI.Comm): Communicator.
+    """
+
     def __init__(self, X, *, comm=None):
         if PETSc is None:
             raise RuntimeError("PETSc not available")
@@ -50,27 +59,55 @@ class PETScVecInterface:
 
     @property
     def comm(self):
+        """Communicator.
+        """
+
         return self._comm
 
     @property
     def indices(self):
+        """Local index ranges for variables.
+        """
+
         return self._indices
 
     @property
     def n(self):
+        """Total number of process local degrees of freedom, summed over all
+        variables.
+        """
+
         return self._n
 
     @property
     def N(self):
+        """Total number of global degrees of freedom, summed over all
+        variables.
+        """
+
         return self._N
 
     def new_petsc(self):
+        """Construct a new :class:`petsc4py.PETSc.Vec`.
+
+        Returns:
+            petsc4py.PETSc.Vec: The new :class:`petsc4py.PETSc.Vec`.
+        """
+
         vec = PETSc.Vec().create(comm=self.comm)
         vec.setSizes((self.n, self.N))
         vec.setUp()
         return vec
 
     def from_petsc(self, y, X):
+        """Copy data from a :class:`petsc4py.PETSc.Vec` to variables.
+        
+        Args:
+            y (petsc4py.PETSc.Vec): The input :class:`petsc4py.PETSc.Vec`.
+            X (OverloadedType or Sequence[OverloadedType]): The output
+                variables.
+        """
+
         X = Enlist(X)
         y_a = y.getArray(True)
 
@@ -85,6 +122,14 @@ class PETScVecInterface:
                 raise ValueError("Invalid index")
 
     def to_petsc(self, x, Y):
+        """Copy data from variables to a :class:`petsc4py.PETSc.Vec`.
+        
+        Args:
+            x (petsc4py.PETSc.Vec): The output :class:`petsc4py.PETSc.Vec`.
+            Y (numbers.Complex, OverloadedType or Sequence[OverloadedType]):
+                Values for input variables.
+        """
+
         Y = Enlist(Y)
         if len(Y) != len(self.indices):
             raise ValueError("Invalid length")
@@ -189,6 +234,7 @@ class TAOSolver(OptimizationSolver):
     Args:
         problem (MinimizationProblem): Defines the optimization problem to be
             solved.
+        parameters (Mapping): TAO options.
         comm (petsc4py.PETSc.Comm or mpi4py.MPI.Comm): Communicator.
         convert_options (Mapping): Defines the `options` argument to
             :meth:`OverloadedType._ad_convert_type`.
