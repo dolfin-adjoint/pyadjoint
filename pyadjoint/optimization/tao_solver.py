@@ -289,10 +289,6 @@ class TAOSolver(OptimizationSolver):
 
         tao.setFromOptions()
 
-        x = vec_interface.new_petsc()
-        tao.setSolution(x)
-        tao.setUp()
-
         if tao.getType() in {PETSc.TAO.Type.LMVM, PETSc.TAO.Type.BLMVM}:
             class InitialHessian:
                 pass
@@ -326,6 +322,10 @@ class TAOSolver(OptimizationSolver):
             B_0_matrix = None
             B_0_matrix_pc = None
 
+        x = vec_interface.new_petsc()
+        tao.setSolution(x)
+        tao.setUp()
+
         super().__init__(problem, parameters)
         self.taoobjective = taoobjective
         self.vec_interface = vec_interface
@@ -339,7 +339,7 @@ class TAOSolver(OptimizationSolver):
 
         finalize = weakref.finalize(
             self, finalize_callback,
-            tao, H_matrix, M_inv_matrix, x, B_0_matrix_pc, B_0_matrix)
+            tao, H_matrix, M_inv_matrix, B_0_matrix_pc, B_0_matrix, x)
         finalize.atexit = False
 
     def solve(self):
