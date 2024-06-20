@@ -108,7 +108,7 @@ class PETScVecInterface:
 
     def from_petsc(self, y, X):
         """Copy data from a :class:`petsc4py.PETSc.Vec` to variables.
-        
+
         Args:
             y (petsc4py.PETSc.Vec): The input :class:`petsc4py.PETSc.Vec`.
             X (OverloadedType or Sequence[OverloadedType]): The output
@@ -130,7 +130,7 @@ class PETScVecInterface:
 
     def to_petsc(self, x, Y):
         """Copy data from variables to a :class:`petsc4py.PETSc.Vec`.
-        
+
         Args:
             x (petsc4py.PETSc.Vec): The output :class:`petsc4py.PETSc.Vec`.
             Y (numbers.Complex, OverloadedType or Sequence[OverloadedType]):
