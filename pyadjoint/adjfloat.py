@@ -1,3 +1,4 @@
+from functools import wraps
 from .block import Block
 from .overloaded_type import OverloadedType, register_overloaded_type, create_overloaded_object
 from .tape import get_working_tape, annotate_tape, stop_annotating
@@ -134,6 +135,7 @@ _exp = math.exp
 _log = math.log
 
 
+@wraps(_exp)
 def exp(a, **kwargs):
     annotate = annotate_tape(kwargs)
     if annotate:
@@ -153,6 +155,7 @@ def exp(a, **kwargs):
 
 
 def log(a, **kwargs):
+    """Return the natural logarithm of a."""
     annotate = annotate_tape(kwargs)
     if annotate:
         a = create_overloaded_object(a)
