@@ -43,8 +43,8 @@ def test_simple_solve():
     tape.evaluate_adj()
 
     m = f.copy(deepcopy=True)
-    dJdm = Jhat.derivative().vector().inner(h.vector())
-    Hm = Jhat.hessian(h).vector().inner(h.vector())
+    dJdm = assemble(inner(Jhat.derivative(), h)*dx)
+    Hm = assemble(inner(Jhat.hessian(h), h)*dx)
     assert taylor_test(Jhat, m, h, dJdm=dJdm, Hm=Hm) > 2.9
 
 
@@ -133,14 +133,12 @@ def test_function():
 
     # Total derivative
     dJdc, dJdf = compute_gradient(J, [control_c, control_f])
-    dJdm = dJdc.vector().inner(h_c) + dJdf.vector().inner(h_f)
+    dJdm = assemble(dJdc * h_c * dx + dJdf * h_f * dx)
 
     # Hessian
     Hcc, Hff = compute_hessian(J, [control_c, control_f], [h_c, h_f])
-    Hm = Hff.vector().inner(h_f.vector()) + Hcc.vector().inner(h_c.vector())
-
+    Hm = assemble(Hcc * h_c * dx + Hff * h_f * dx)
     assert taylor_test(Jhat, [c, f], [h_c, h_f], dJdm=dJdm, Hm=Hm) > 2.9
-
 
 def test_nonlinear():
     tape = Tape()

@@ -15,3 +15,5 @@ dist/*
 *.xml
 *.msh
 
+dist/
+build/

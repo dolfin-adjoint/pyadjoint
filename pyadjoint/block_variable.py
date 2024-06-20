@@ -82,7 +82,7 @@ class BlockVariable(object):
             self.save_output()
 
     def __str__(self):
-        return str(self.output)
+        return str(self.output._ad_str)
 
     @property
     def checkpoint(self):

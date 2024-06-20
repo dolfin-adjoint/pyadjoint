@@ -55,7 +55,7 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         return numpy.array(m_global, dtype="d")
 
     @no_annotations
-    def derivative(self, m_array=None, forget=True, project=False):
+    def derivative(self, m_array=None, forget=True, project=False, options=None):
         """ An implementation of the reduced functional derivative evaluation
             that accepts the controls as an array of scalars. If no control values are given,
             the result is derivative at the lastest forward run.
@@ -67,7 +67,7 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         # TODO: No good way to check. Is it ok to always assume `m_array` is the same as used last in __call__?
         # if m_array is not None:
         #    self.__call__(m_array)
-        dJdm = self.rf.derivative()
+        dJdm = self.rf.derivative(options=options)
         dJdm = Enlist(dJdm)
 
         m_global = []
