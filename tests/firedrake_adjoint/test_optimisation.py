@@ -46,21 +46,23 @@ def test_petsc_roundtrip_multiple():
     assert (u_2.dat.data_ro == u_2_test.dat.data_ro).all()
 
 
-def minimize_tao_lmvm(rf):
+def minimize_tao_lmvm(rf, *, convert_options=None):
     problem = MinimizationProblem(rf)
     solver = TAOSolver(problem, {"tao_type": "lmvm",
                                  "tao_gatol": 1.0e-7,
                                  "tao_grtol": 0.0,
-                                 "tao_gttol": 0.0})
+                                 "tao_gttol": 0.0},
+                       convert_options=convert_options)
     return solver.solve()
 
 
-def minimize_tao_nls(rf):
+def minimize_tao_nls(rf, *, convert_options=None):
     problem = MinimizationProblem(rf)
     solver = TAOSolver(problem, {"tao_type": "nls",
                                  "tao_gatol": 1.0e-7,
                                  "tao_grtol": 0.0,
-                                 "tao_gttol": 0.0})
+                                 "tao_gttol": 0.0},
+                       convert_options=convert_options)
     return solver.solve()
 
 
@@ -94,10 +96,7 @@ def _simple_helmholz_model(V, source):
     return u
 
 
-@pytest.mark.parametrize("minimize", [minimize,
-                                      minimize_tao_lmvm,
-                                      minimize_tao_nls])
-def test_simple_inversion(minimize):
+def test_simple_inversion():
     """Test inversion of source term in helmholze eqn."""
     mesh = UnitIntervalMesh(10)
     V = FunctionSpace(mesh, "CG", 1)
@@ -119,14 +118,35 @@ def test_simple_inversion(minimize):
     rf = ReducedFunctional(J, c)
 
     x = minimize(rf)
+
+
+@pytest.mark.parametrize("minimize", [minimize_tao_lmvm,
+                                      minimize_tao_nls])
+@pytest.mark.parametrize("riesz_representation", [None, "l2", "L2", "H1"])
+def test_tao_simple_inversion(minimize, riesz_representation):
+    """Test inversion of source term in helmholze eqn using TAO."""
+    mesh = UnitIntervalMesh(10)
+    V = FunctionSpace(mesh, "CG", 1)
+    ref = Function(V)
+    source_ref = Function(V)
+    x = SpatialCoordinate(mesh)
+    source_ref.interpolate(cos(pi*x**2))
+
+    # compute reference solution
+    with stop_annotating():
+        u_ref = _simple_helmholz_model(V, source_ref)
+
+    # now rerun annotated model with zero source
+    source = Function(V)
+    c = Control(source)
+    u = _simple_helmholz_model(V, source)
+
+    J = assemble(1e6 * (u - u_ref)**2*dx)
+    rf = ReducedFunctional(J, c)
+
+    x = minimize(rf, convert_options=(None if riesz_representation is None
+                                      else {"riesz_representation": riesz_representation}))
     assert_allclose(x.dat.data, source_ref.dat.data, rtol=1e-2)
-    rf(source)
-    x = minimize(rf, derivative_options={"riesz_representation": "l2"})
-    assert_allclose(x.dat.data, source_ref.dat.data, rtol=1e-2)
-    rf(source)
-    x = minimize(rf, derivative_options={"riesz_representation": "H1"})
-    # Assert that the optimisation does not converge for H1 representation
-    assert not np.allclose(x.dat.data, source_ref.dat.data, rtol=1e-2)
 
 
 def test_tao_bounds():

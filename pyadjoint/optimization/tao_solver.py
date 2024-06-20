@@ -190,11 +190,11 @@ class TAOSolver(OptimizationSolver):
         problem (MinimizationProblem): Defines the optimization problem to be
             solved.
         comm (petsc4py.PETSc.Comm or mpi4py.MPI.Comm): Communicator.
-        inner_product (str): Defines the Riesz map. Used to define the
-            inner product for derivatives with respect to the control.
+        convert_options (Mapping): Defines the `options` argument to
+            :meth:`OverloadedType._ad_convert_type`.
     """
 
-    def __init__(self, problem, parameters, *, comm=None, inner_product="L2"):
+    def __init__(self, problem, parameters, *, comm=None, convert_options=None):
         if PETSc is None:
             raise RuntimeError("PETSc not available")
 
@@ -207,6 +207,8 @@ class TAOSolver(OptimizationSolver):
             comm = PETSc.COMM_WORLD
         if hasattr(comm, "tompi4py"):
             comm = comm.tompi4py()
+        if convert_options is None:
+            convert_options = {}
 
         taoobjective = TAOObjective(problem.reduced_functional)
 
@@ -264,7 +266,7 @@ class TAOSolver(OptimizationSolver):
                 X = taoobjective.new_M_dual()
                 from_petsc(x, X)
                 assert len(taoobjective.reduced_functional.controls) == len(X)
-                X = tuple(m._ad_convert_type(x, {"riesz_representation": inner_product})
+                X = tuple(m._ad_convert_type(x, options=convert_options)
                           for m, x in zip(taoobjective.reduced_functional.controls, X))
                 to_petsc(y, X)
 
@@ -298,7 +300,7 @@ class TAOSolver(OptimizationSolver):
                     X = taoobjective.new_M_dual()
                     from_petsc(x, X)
                     assert len(taoobjective.reduced_functional.controls) == len(X)
-                    X = tuple(m._ad_convert_type(x, {"riesz_representation": inner_product})
+                    X = tuple(m._ad_convert_type(x, options=convert_options)
                               for m, x in zip(taoobjective.reduced_functional.controls, X))
                     to_petsc(y, X)
 
