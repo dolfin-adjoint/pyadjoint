@@ -96,7 +96,7 @@ class CheckpointManager:
         if not self._schedule.max_n:
             # Inform the schedule that the forward model has finished.
             self._schedule.finalize(len(self.tape.timesteps))
-            # Get the total number of timesteps.
+            # `self._schedule.finalize` updates `self._schedule.max_n`.
             self.total_timesteps = self._schedule.max_n
         while self.mode != Mode.EVALUATED:
             self.end_timestep(current_timestep)
@@ -144,11 +144,11 @@ class CheckpointManager:
 
         if timestep > cp_action.n0:
             if cp_action.write_ics and timestep == (cp_action.n0 + 1):
-                # Store the checkpointint data in RAM. That is a required data for restarting the forward model
+                # Store the checkpoint data. This is the required data for restarting the forward model
                 # from the step `n0`.
                 self.tape.timesteps[timestep - 1].checkpoint()
             if (cp_action.write_adj_deps and timestep == (cp_action.n1 - 1) and cp_action.storage != StorageType.WORK):
-                # Store the checkpointint data in RAM. That is a required data for computing the adjoint model
+                # Store the checkpoint data. This is the required data for computing the adjoint model
                 # from the step `n1`.
                 self.tape.timesteps[timestep].checkpoint()
 
@@ -196,6 +196,7 @@ class CheckpointManager:
             current_step = self.tape.timesteps[self.forward_schedule[0].n0]
             current_step.restore_from_checkpoint()
             for cp_action in self.forward_schedule:
+                self._current_action = cp_action
                 self.process_operation(cp_action, bar, functional=functional)
 
     def evaluate_adj(self, last_block, markings):
@@ -267,14 +268,16 @@ class CheckpointManager:
                 block.recompute()
             if (
                 (cp_action.write_ics and step == cp_action.n0)
-                or (cp_action.write_adj_deps and step == cp_action.n1 - 1 and cp_action.storage != StorageType.WORK)
+                or (cp_action.write_adj_deps and step == cp_action.n1 - 1
+                    and cp_action.storage != StorageType.WORK)
             ):
-                # Store in RAM the checkpoint data required for restarting the forward model or
-                # computing the adjoint model.
-                # If `cp_action.write_ics` is `True`, the checkpointed data will restart the forward model
-                # from the step `n0`.
-                # If `cp_action.write_adj_deps` is `True`, the checkpointed data will be used for computing
-                # the adjoint model from the step `n1`.
+                # Store the checkpoint data required for restarting the
+                # forward model or computing the adjoint model.
+                # If `cp_action.write_ics` is `True`, the checkpointed data
+                # will restart the forward model from the step `n0`.
+                # If `cp_action.write_adj_deps` is `True`, the checkpointed
+                # data will be used for computing the adjoint model from the
+                # step `n1`.
                 for var in current_step.checkpointable_state:
                     if var.checkpoint:
                         current_step._checkpoint.update(
