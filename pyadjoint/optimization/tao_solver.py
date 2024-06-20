@@ -1,4 +1,5 @@
 from functools import cached_property
+import numbers
 import weakref
 
 from ..enlisting import Enlist
@@ -90,7 +91,10 @@ class PETScVecInterface:
 
         x_a = np.zeros(self.n, dtype=PETSc.ScalarType)
         for (i0, i1), y in zip(self.indices, Y):
-            x_a[i0:i1] = y._ad_to_list(y)
+            if isinstance(y, numbers.Complex):
+                x_a[i0:i1] = y
+            else:
+                x_a[i0:i1] = y._ad_to_list(y)
         x.setArray(x_a)
 
 
@@ -271,18 +275,10 @@ class TAOSolver(OptimizationSolver):
         tao.setGradientNorm(M_inv_matrix)
 
         if problem.bounds is not None:
-            def convert_bound(m, b, default):
-                if b is None:
-                    b = default
-                return m._ad_convert_type(b)
-
             x_lb = vec_interface.new_petsc()
             x_ub = vec_interface.new_petsc()
-            assert len(taoobjective.reduced_functional.controls) == len(problem.bounds)
-            to_petsc(x_lb, tuple(convert_bound(m, lb, np.finfo(PETSc.ScalarType).min)
-                                 for m, (lb, _) in zip(taoobjective.reduced_functional.controls, problem.bounds)))
-            to_petsc(x_ub, tuple(convert_bound(m, ub, np.finfo(PETSc.ScalarType).max)
-                                 for m, (_, ub) in zip(taoobjective.reduced_functional.controls, problem.bounds)))
+            to_petsc(x_lb, tuple(np.finfo(PETSc.ScalarType).min if lb is None else lb for lb, _ in problem.bounds))
+            to_petsc(x_ub, tuple(np.finfo(PETSc.ScalarType).max if ub is None else ub for _, ub in problem.bounds))
             tao.setVariableBounds(x_lb, x_ub)
             x_lb.destroy()
             x_ub.destroy()
