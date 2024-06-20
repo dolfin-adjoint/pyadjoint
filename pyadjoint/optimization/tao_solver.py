@@ -23,6 +23,10 @@ class PETScVecInterface:
     """Interface for conversion between :class:`OverloadedType` objects and
     :class:`petsc4py.PETSc.Vec` objects.
 
+    This uses the generic interface provided by :class:`OverloadedType`.
+    Currently this requires the allocation of a global vector when
+    instantiating the :class:`VecInterface`.
+
     Args:
         X (OverloadedType or Sequence[OverloadedType]): One or more variables
             defining the size of data to be stored.
@@ -44,7 +48,10 @@ class PETScVecInterface:
         N = 0
         for x in X:
             y = x._ad_copy()
-            # Global vector
+            # We need to determine the local number degrees of freedom.
+            # Currently the only way to do this using OverloadedType is via
+            # OverloadedType._ad_assign_numpy, which requires allocation of a
+            # global vector.
             y_a = np.zeros(y._ad_dim(), dtype=PETSc.ScalarType)
             _, x_n = y._ad_assign_numpy(y, y_a, offset=0)
             del y, y_a
