@@ -68,32 +68,40 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         # if m_array is not None:
         #    self.__call__(m_array)
         dJdm = self.rf.derivative(options=options)
-        dJdm = Enlist(dJdm)
+        if options:
+            dJdm = Enlist(dJdm)
 
         m_global = []
         for i, control in enumerate(self.controls):
             # This is a little ugly, but we need to go through the control to get to the OverloadedType.
             # There is no guarantee that dJdm[i] is an OverloadedType and not a backend type.
-            m_global += control.fetch_numpy(dJdm[i])
+            if options:
+                m_global += control.fetch_numpy(dJdm[i])
+            else:
+                m_global += control.fetch_numpy(control.block_variable.adj_value)
 
         return numpy.array(m_global, dtype="d")
 
     @no_annotations
-    def hessian(self, m_array, m_dot_array):
+    def hessian(self, m_array, m_dot_array, options=None):
         """ An implementation of the reduced functional hessian action evaluation
             that accepts the controls as an array of scalars. If m_array is None,
             the Hessian action at the latest forward run is returned. """
         # Calling derivative is needed, see i.e. examples/stokes-shape-opt
         self.derivative()
         m_copies = [control.copy_data() for control in self.controls]
-        Hm = self.rf.hessian(self.set_local(m_copies, m_dot_array))
-        Hm = Enlist(Hm)
+        Hm = self.rf.hessian(self.set_local(m_copies, m_dot_array), options=options)
+        if options:
+            Hm = Enlist(Hm)
 
         m_global = []
         for i, control in enumerate(self.controls):
             # This is a little ugly, but we need to go through the control to get to the OverloadedType.
             # There is no guarantee that dJdm[i] is an OverloadedType and not a backend type.
-            m_global += control.fetch_numpy(Hm[i])
+            if options:
+                m_global += control.fetch_numpy(Hm[i])
+            else:
+                m_global += control.fetch_numpy(control.block_variable.hessian_value)
 
         tape = get_working_tape()
         tape.reset_variables()
