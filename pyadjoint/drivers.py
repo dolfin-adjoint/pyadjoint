@@ -2,23 +2,28 @@ from .enlisting import Enlist
 from .tape import get_working_tape, stop_annotating
 
 
-def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
+def compute_gradient(J, m, tape=None, adj_value=1.0, apply_riesz=False):
     """
     Compute the gradient of J with respect to the initialisation value of m,
     that is the value of m at its creation.
 
     Args:
-        J (AdjFloat):  The objective functional.
+        J (OverloadedType):  The objective functional.
         m (list or instance of Control): The (list of) controls.
-        options (dict): A dictionary of options. To find a list of available options
-            have a look at the specific control type.
         tape: The tape to use. Default is the current tape.
+        adj_value: The adjoint value to the result. Required if the functional
+            is not scalar-valued, or if the functional is not the final stage 
+            in the computation of an outer functional.
+        apply_riesz: If True, apply the Riesz map of each control in order
+            to return a primal gradient rather than a derivative in the
+            dual space.
 
     Returns:
-        OverloadedType: The derivative with respect to the control. Should be an instance of the same type as
-            the control.
+        OverloadedType: The derivative with respect to the control.
+            If apply_riesz is False, should be an instance of the type dual
+            to that of the control. If apply_riesz is true should have the
+            same type as the control.
     """
-    options = options or {}
     tape = tape or get_working_tape()
     tape.reset_variables()
     J.block_variable.adj_value = adj_value
@@ -29,28 +34,31 @@ def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
             with marked_controls(m):
                 tape.evaluate_adj(markings=True)
 
-    grads = [i.get_derivative(options=options) for i in m]
+    grads = [i.get_derivative(apply_riesz=apply_riesz) for i in m]
     return m.delist(grads)
 
 
-def compute_hessian(J, m, m_dot, options=None, tape=None):
+def compute_hessian(J, m, m_dot, tape=None, apply_riesz=False):
     """
     Compute the Hessian of J in a direction m_dot at the current value of m
 
     Args:
         J (AdjFloat):  The objective functional.
         m (list or instance of Control): The (list of) controls.
-        m_dot (list or instance of the control type): The direction in which to compute the Hessian.
-        options (dict): A dictionary of options. To find a list of available options
-            have a look at the specific control type.
+        m_dot (list or instance of the control type): The direction in which to
+            compute the Hessian.
         tape: The tape to use. Default is the current tape.
+        apply_riesz: If True, apply the Riesz map of each control in order
+            to return the (primal) Riesz representer of the Hessian
+            action.
 
     Returns:
-        OverloadedType: The second derivative with respect to the control in direction m_dot. Should be an instance of
-            the same type as the control.
+        OverloadedType: The action of the Hessian in the direction m_dot.
+            If apply_riesz is False, should be an instance of the type dual
+            to that of the control. If apply_riesz is true should have the
+            same type as the control.
     """
     tape = tape or get_working_tape()
-    options = options or {}
 
     tape.reset_tlm_values()
     tape.reset_hessian_values()
@@ -68,7 +76,7 @@ def compute_hessian(J, m, m_dot, options=None, tape=None):
         with tape.marked_nodes(m):
             tape.evaluate_hessian(markings=True)
 
-    r = [v.get_hessian(options=options) for v in m]
+    r = [v.get_hessian(apply_riesz=apply_riesz) for v in m]
     return m.delist(r)
 
 

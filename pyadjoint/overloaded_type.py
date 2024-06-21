@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod 
 from .block_variable import BlockVariable
 from .tape import get_working_tape
 
@@ -64,7 +65,7 @@ def register_overloaded_type(overloaded_type, classes=None):
     return overloaded_type
 
 
-class OverloadedType(object):
+class OverloadedType(ABC):
     """Base class for OverloadedType types.
 
     The purpose of each OverloadedType is to extend a type such that
@@ -93,10 +94,29 @@ class OverloadedType(object):
         """
         return cls(obj)
 
+    @classmethod
+    @abstractmethod
+    def _ad_init_zero(cls, dual=False):
+        """Return a new overloaded zero of the appropriate type.
+
+        If `dual` is `True`, return a zero of the dual type to this type. If
+        the type is self-dual, this parameter is ignored. Note that by
+        linearity there is no need to provide a riesz map in this case.
+
+        Args:
+            dual: Whether to return a primal or dual zero.
+
+        Returns:
+            OverloadedType: An object of the relevant type with the value zero.
+
+        """
+        return cls(obj)
+
     def create_block_variable(self):
         self.block_variable = BlockVariable(self)
         return self.block_variable
 
+    @abstractmethod
     def _ad_convert_type(self, value, options={}):
         """This method must be overridden.
 
@@ -116,6 +136,7 @@ class OverloadedType(object):
         """
         raise NotImplementedError(f"OverloadedType._ad_convert_type not defined for class {type(self)}.")
 
+    @abstractmethod
     def _ad_create_checkpoint(self):
         """This method must be overridden.
 
@@ -130,6 +151,7 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
+    @abstractmethod
     def _ad_restore_at_checkpoint(self, checkpoint):
         """This method must be overridden.
 
@@ -142,6 +164,7 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
+    @abstractmethod
     def _ad_mul(self, other):
         """This method must be overridden.
 
@@ -175,6 +198,7 @@ class OverloadedType(object):
         """
         self *= other
 
+    @abstractmethod
     def _ad_add(self, other):
         """This method must be overridden.
 
@@ -208,6 +232,7 @@ class OverloadedType(object):
         """
         self += other
 
+    @abstractmethod
     def _ad_dot(self, other):
         """This method must be overridden.
 
@@ -272,6 +297,7 @@ class OverloadedType(object):
         raise NotImplementedError
 
     @staticmethod
+    @abstractmethod
     def _ad_assign_numpy(dst, src, offset):
         """This method must be overridden.
 
@@ -299,6 +325,7 @@ class OverloadedType(object):
         raise NotImplementedError
 
     @staticmethod
+    @abstractmethod
     def _ad_to_list(m):
         """This method must be overridden.
 
@@ -316,6 +343,7 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
+    @abstractmethod
     def _ad_copy(self):
         """This method must be overridden.
 
@@ -327,6 +355,7 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
+    @abstractmethod
     def _ad_dim(self):
         """This method must be overridden.
 

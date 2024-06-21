@@ -41,54 +41,32 @@ class AbstractReducedFunctional(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def derivative(self, adj_input=1.0):
+    def derivative(self, adj_input=1.0, apply_reisz=False):
         """Return the derivative of the functional w.r.t. the control.
 
-        Using the adjoint method, the derivative of the functional with
-        respect to the control, around the last supplied value of the
-        control, is computed and returned.
-
-        Historically, this has returned the gradient vector. This is now
-        deprecated and new implementations should return the covector.
+        Using the adjoint method, the derivative of the functional with respect
+        to the control, around the last supplied value of the control, is
+        computed and returned.
 
         Args:
-            adj_input: The adjoint value to the result. Required if the
-                is not scalar-valued, or if the functional is not the final
-                stage in the computation of an outer functional.
+            adj_input: The adjoint value to the functional result. Required if
+                the functional is not scalar-valued, or if the functional is an
+                intermediate result in the computation of an outer functional.
+            apply_riesz: If True, apply the Riesz map of each control in order
+                to return a primal gradient rather than a derivative in the
+                dual space.
 
         Returns:
             OverloadedType: The derivative with respect to the control.
-                Should be an instance of the type dual to that of the control.
+                If apply_riesz is False, should be an instance of the type dual
+                to that of the control. If apply_riesz is true should have the
+                same type as the control.
 
         """
         raise NotImplementedError
 
     @abstractmethod
-    def gradient(self, adj_input=1.0, options={}):
-        """Return the gradient of the functional w.r.t. the control.
-
-        Using the adjoint method, the gradient of the functional with
-        respect to the control, around the last supplied value of the
-        control, is computed and returned.
-
-        This should return the Riesz representer of the derivative in the
-        appropriate inner product.
-
-        Args:
-            adj_input: The adjoint value to the result. Required if the
-                is not scalar-valued, or if the functional is not the final
-                stage in the computation of an outer functional.
-            options (dict): A dictionary of options. To find a list of
-                available options have a look at the specific control type.
-
-        Returns:
-            OverloadedType: The derivative with respect to the control.
-                Should be an instance of the same type as the control.
-
-        """
-        raise NotImplementedError
-
-    def hessian(self, m_dot):
+    def hessian(self, m_dot, apply_reisz=False):
         """Return the action of the Hessian of the functional.
 
         The Hessian is evaluate w.r.t. the control on a vector m_dot.
@@ -97,16 +75,19 @@ class AbstractReducedFunctional(ABC):
         functional with respect to the control, around the last supplied value
         of the control, is computed and returned.
 
-        Historically, this has returned the gradient vector. This is now
-        deprecated and new implementations should return the covector.
-
         Args:
             m_dot ([OverloadedType]): The direction in which to compute the
                 action of the Hessian.
+            apply_riesz: If True, apply the Riesz map of each control in order
+                to return the (primal) Riesz representer of the Hessian
+                action.
 
         Returns:
             OverloadedType: The action of the Hessian in the direction m_dot.
-                Should be an instance of the same type as the control.
+                If apply_riesz is False, should be an instance of the type dual
+                to that of the control. If apply_riesz is true should have the
+                same type as the control.
+
         """
         raise NotImplementedError
 
@@ -216,29 +197,7 @@ class ReducedFunctional(AbstractReducedFunctional):
             self.derivative_cb_post = _get_pack_derivative_components(
                 controls, derivative_components)
 
-    def derivative(self, adj_input=1.0, options={}):
-        """Return the derivative of the functional w.r.t. the control.
-
-        Using the adjoint method, the derivative of the functional with
-        respect to the control, around the last supplied value of the
-        control, is computed and returned.
-
-        Args:
-            adj_input: The adjoint value to the result. Required if the
-                is not scalar-valued, or if the functional is not the final
-                stage in the computation of an outer functional.
-            options (dict): A dictionary of options. To find a list of
-                available options have a look at the specific control type.
-
-        Returns:
-            OverloadedType: The derivative with respect to the control.
-                Should be an instance of the same type as the control.
-
-        """
-
-
-    def _derivative_implementation(self, adj_input, options, reisz)
-        # Call callback
+    def derivative(self, adj_input=1.0, apply_riesz=False):
         values = [c.tape_value() for c in self.controls]
         controls = self.derivative_cb_pre(self.controls)
 
@@ -274,31 +233,13 @@ class ReducedFunctional(AbstractReducedFunctional):
         return self.controls.delist(derivatives)
 
     @no_annotations
-    def hessian(self, m_dot, options={}):
-        """Return the action of the Hessian of the functional.
-
-        The Hessian is computed w.r.t. the control on a vector m_dot.
-
-        Using the second-order adjoint method, the action of the Hessian of the
-        functional with respect to the control, around the last supplied value
-        of the control, is computed and returned.
-
-        Args:
-            m_dot ([OverloadedType]): The direction in which to compute the
-                action of the Hessian.
-            options (dict): A dictionary of options. To find a list of
-                available options have a look at the specific control type.
-
-        Returns:
-            OverloadedType: The action of the Hessian in the direction m_dot.
-                Should be an instance of the same type as the control.
-        """
+    def hessian(self, m_dot, apply_riesz=False):
         # Call callback
         values = [c.tape_value() for c in self.controls]
         self.hessian_cb_pre(self.controls.delist(values))
 
         r = compute_hessian(self.functional, self.controls, m_dot,
-                            options=options, tape=self.tape)
+                            tape=self.tape, apply_riesz=apply_riesz)
 
         # Call callback
         self.hessian_cb_post(self.functional.block_variable.checkpoint,

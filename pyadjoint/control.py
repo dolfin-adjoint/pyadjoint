@@ -1,3 +1,4 @@
+from typing import Any
 from .overloaded_type import OverloadedType, create_overloaded_object
 import logging
 
@@ -5,9 +6,9 @@ import logging
 class Control(object):
     """Defines a control variable from an OverloadedType.
 
-    The control object references a specific node on the Tape.
-    For mutable OverloadedType instances the Control only represents
-    the value at the time of initialization.
+    The control object references a specific node on the Tape. For mutable
+    OverloadedType instances the Control only represents the value at the time
+    of initialization.
 
     Example:
         Given a mutable OverloadedType instance u.
@@ -25,18 +26,22 @@ class Control(object):
         >>> c2.data()
         3.0
 
-        Now c1 represents the node prior to the add_in_place Block,
-        while c2 represents the node after the add_in_place Block.
-        Creating a `ReducedFunctional` with c2 as Control results in
-        a reduced problem without the add_in_place Block, while a ReducedFunctional
-        with c1 as Control results in a forward model including the add_in_place.
+        Now c1 represents the node prior to the add_in_place Block, while c2
+        represents the node after the add_in_place Block. Creating a
+        `ReducedFunctional` with c2 as Control results in a reduced problem
+        without the add_in_place Block, while a ReducedFunctional with c1 as
+        Control results in a forward model including the add_in_place.
 
     Args:
-        control (OverloadedType): The OverloadedType instance to define this control from.
+        control: The OverloadedType instance to define this control from.
+        riesz_map: Parameters controlling how to find the Riesz representer of
+            a dual (adjoint) variable to this control. The permitted values are
+            backend-dependent.
 
     """
-    def __init__(self, control):
+    def __init__(self, control: OverloadedType, riesz_map=None: Any):
         self.control = control
+        self.riesz_map = None
         self.block_variable = control.block_variable
 
     def data(self):
@@ -45,17 +50,25 @@ class Control(object):
     def tape_value(self):
         return create_overloaded_object(self.block_variable.saved_output)
 
-    def get_derivative(self, options={}):
+    def get_derivative(self, apply_riesz=False):
         if self.block_variable.adj_value is None:
             logging.warning("Adjoint value is None, is the functional independent of the control variable?")
-            return self.control._ad_convert_type(0., options=options)
-        return self.control._ad_convert_type(self.block_variable.adj_value, options=options)
+            return self.control._ad_init_zero(dual=not apply_riesz)
+        elif apply_riesz:
+            return self.control._ad_convert_riesz(
+                self.block_variable.adj_value, riesz_map=self.riesz_map)
+        else:
+            return self.control.adj_value
 
-    def get_hessian(self, options={}):
+    def get_hessian(self, apply_reisz=False):
         if self.block_variable.adj_value is None:
             logging.warning("Hessian value is None, is the functional independent of the control variable?")
-            return self.control._ad_convert_type(0., options=options)
-        return self.control._ad_convert_type(self.block_variable.hessian_value, options=options)
+            return self.control._ad_init_zero(dual=not apply_riesz)
+        elif apply_riesz:
+            return self.control._ad_convert_riesz(
+                self.block_variable.hessian_value, riesz_map=self.riesz_map)
+        else:
+            return self.control.hessian_value
 
     def update(self, value):
         # In the future we might want to call a static method
