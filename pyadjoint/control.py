@@ -36,7 +36,7 @@ class Control(object):
         control: The OverloadedType instance to define this control from.
         riesz_map: Parameters controlling how to find the Riesz representer of
             a dual (adjoint) variable to this control. The permitted values are
-            backend-dependent.
+            type-dependent.
 
     """
     def __init__(self, control: OverloadedType, riesz_map=None: Any):
