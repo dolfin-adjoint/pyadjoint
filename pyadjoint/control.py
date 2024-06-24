@@ -39,7 +39,7 @@ class Control(object):
             type-dependent.
 
     """
-    def __init__(self, control: OverloadedType, riesz_map=None: Any):
+    def __init__(self, control: OverloadedType, riesz_map: Any = None):
         self.control = control
         self.riesz_map = None
         self.block_variable = control.block_variable
@@ -58,9 +58,9 @@ class Control(object):
             return self.control._ad_convert_riesz(
                 self.block_variable.adj_value, riesz_map=self.riesz_map)
         else:
-            return self.control.adj_value
+            return self.control._ad_init_object(self.block_variable.adj_value)
 
-    def get_hessian(self, apply_reisz=False):
+    def get_hessian(self, apply_riesz=False):
         if self.block_variable.adj_value is None:
             logging.warning("Hessian value is None, is the functional independent of the control variable?")
             return self.control._ad_init_zero(dual=not apply_riesz)
@@ -68,7 +68,9 @@ class Control(object):
             return self.control._ad_convert_riesz(
                 self.block_variable.hessian_value, riesz_map=self.riesz_map)
         else:
-            return self.control.hessian_value
+            return self.control._ad_init_object(
+                self.block_variable.hessian_value
+            )
 
     def update(self, value):
         # In the future we might want to call a static method

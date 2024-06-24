@@ -179,7 +179,7 @@ class ReducedFunctional(AbstractReducedFunctional):
             raise TypeError("Functional must be an OverloadedType.")
         self.functional = functional
         self.tape = get_working_tape() if tape is None else tape
-        self.controls = Enlist(controls)
+        self._controls = Enlist(controls)
         self.derivative_components = derivative_components
         self.scale = scale
         self.eval_cb_pre = eval_cb_pre
@@ -196,6 +196,10 @@ class ReducedFunctional(AbstractReducedFunctional):
             # post callback
             self.derivative_cb_post = _get_pack_derivative_components(
                 controls, derivative_components)
+
+    @property
+    def controls(self) -> list[Control]:
+        return self._controls
 
     def derivative(self, adj_input=1.0, apply_riesz=False):
         values = [c.tape_value() for c in self.controls]
@@ -214,10 +218,9 @@ class ReducedFunctional(AbstractReducedFunctional):
 
         derivatives = compute_gradient(self.functional,
                                        controls,
-                                       options=options,
                                        tape=self.tape,
                                        adj_value=adj_value,
-                                       reisz=reisz)
+                                       apply_riesz=apply_riesz)
 
         # Call callback
         derivatives = self.derivative_cb_post(
