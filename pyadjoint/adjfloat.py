@@ -1,6 +1,8 @@
+from functools import wraps
 from .block import Block
 from .overloaded_type import OverloadedType, register_overloaded_type, create_overloaded_object
 from .tape import get_working_tape, annotate_tape, stop_annotating
+import math
 
 
 def annotate_operator(operator):
@@ -127,6 +129,98 @@ class AdjFloat(OverloadedType, float):
     def _ad_str(self):
         """Return the string of the taped value of this variable."""
         return str(self.block_variable.saved_output)
+
+
+_exp = math.exp
+_log = math.log
+
+
+@wraps(_exp)
+def exp(a, **kwargs):
+    annotate = annotate_tape(kwargs)
+    if annotate:
+        a = create_overloaded_object(a)
+
+        block = ExpBlock(a)
+        tape = get_working_tape()
+        tape.add_block(block)
+
+    with stop_annotating():
+        out = _exp(a)
+    out = AdjFloat(out)
+
+    if annotate:
+        block.add_output(out.block_variable)
+    return out
+
+
+def log(a, **kwargs):
+    """Return the natural logarithm of a."""
+    annotate = annotate_tape(kwargs)
+    if annotate:
+        a = create_overloaded_object(a)
+
+        block = LogBlock(a)
+        tape = get_working_tape()
+        tape.add_block(block)
+
+    with stop_annotating():
+        out = _log(a)
+    out = AdjFloat(out)
+
+    if annotate:
+        block.add_output(out.block_variable)
+    return out
+
+
+class ExpBlock(Block):
+    def __init__(self, a):
+        super().__init__()
+        self.add_dependency(a)
+
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        adj_input = adj_inputs[0]
+        input0 = inputs[0]
+        return _exp(input0) * adj_input
+
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        tlm_input = tlm_inputs[0]
+        input0 = inputs[0]
+        return _exp(input0) * tlm_input
+
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+                                   relevant_dependencies, prepared=None):
+        input0 = inputs[0]
+        hessian = hessian_inputs[0]
+        return _exp(input0) * hessian
+
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        return _exp(inputs[0])
+
+
+class LogBlock(Block):
+    def __init__(self, a):
+        super().__init__()
+        self.add_dependency(a)
+
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        adj_input = adj_inputs[0]
+        input0 = inputs[0]
+        return adj_input / input0
+
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        tlm_input = tlm_inputs[0]
+        input0 = inputs[0]
+        return tlm_input / input0
+
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+                                   relevant_dependencies, prepared=None):
+        input0 = inputs[0]
+        hessian = hessian_inputs[0]
+        return -hessian / input0 / input0
+
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        return _log(inputs[0])
 
 
 _min = min
