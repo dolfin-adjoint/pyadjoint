@@ -259,6 +259,7 @@ class CheckpointManager:
     @process_operation.register(Forward)
     def _(self, cp_action, bar, functional=None, **kwargs):
         step = cp_action.n0
+        #  In a dynamic schedule `cp_action` can be unbounded so we also need to check `self.total_timesteps`.
         while step in cp_action and step < self.total_timesteps:
             if self.mode == Mode.RECOMPUTE:
                 bar.next()
