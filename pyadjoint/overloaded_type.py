@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod 
 from .block_variable import BlockVariable
 from .tape import get_working_tape
 
@@ -65,7 +64,7 @@ def register_overloaded_type(overloaded_type, classes=None):
     return overloaded_type
 
 
-class OverloadedType(ABC):
+class OverloadedType:
     """Base class for OverloadedType types.
 
     The purpose of each OverloadedType is to extend a type such that
@@ -95,7 +94,6 @@ class OverloadedType(ABC):
         return cls(obj)
 
     @classmethod
-    @abstractmethod
     def _ad_init_zero(cls, dual=False):
         """Return a new overloaded zero of the appropriate type.
 
@@ -116,7 +114,6 @@ class OverloadedType(ABC):
         self.block_variable = BlockVariable(self)
         return self.block_variable
 
-    @abstractmethod
     def _ad_convert_riesz(self, value, riesz_map=None):
         """Apply a Riesz map to convert an adjoint result to a primal variable.
 
@@ -132,7 +129,6 @@ class OverloadedType(ABC):
         """
         raise NotImplementedError(f"OverloadedType._ad_convert_type not defined for class {type(self)}.")
 
-    @abstractmethod
     def _ad_create_checkpoint(self):
         """This method must be overridden.
 
@@ -147,7 +143,6 @@ class OverloadedType(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def _ad_restore_at_checkpoint(self, checkpoint):
         """This method must be overridden.
 
@@ -160,7 +155,6 @@ class OverloadedType(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def _ad_mul(self, other):
         """This method must be overridden.
 
@@ -194,7 +188,6 @@ class OverloadedType(ABC):
         """
         self *= other
 
-    @abstractmethod
     def _ad_add(self, other):
         """This method must be overridden.
 
@@ -228,7 +221,6 @@ class OverloadedType(ABC):
         """
         self += other
 
-    @abstractmethod
     def _ad_dot(self, other):
         """This method must be overridden.
 
@@ -293,7 +285,6 @@ class OverloadedType(ABC):
         raise NotImplementedError
 
     @staticmethod
-    @abstractmethod
     def _ad_assign_numpy(dst, src, offset):
         """This method must be overridden.
 
@@ -321,7 +312,6 @@ class OverloadedType(ABC):
         raise NotImplementedError
 
     @staticmethod
-    @abstractmethod
     def _ad_to_list(m):
         """This method must be overridden.
 
@@ -339,7 +329,6 @@ class OverloadedType(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def _ad_copy(self):
         """This method must be overridden.
 
@@ -351,7 +340,6 @@ class OverloadedType(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def _ad_dim(self):
         """This method must be overridden.
 
