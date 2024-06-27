@@ -46,10 +46,7 @@ class PETScVecInterface:
         n = 0
         N = 0
         for x in X:
-            y = x._ad_copy()
-            y_a = np.zeros(y._ad_dim(), dtype=PETSc.ScalarType)
-            _, x_n = y._ad_assign_numpy(y, y_a, offset=0)
-            del y, y_a
+            x_n = x._ad_local_size()
             indices.append((n, n + x_n))
             n += x_n
             N += x._ad_dim()
@@ -58,6 +55,7 @@ class PETScVecInterface:
         self._indices = tuple(indices)
         self._n = n
         self._N = N
+        self._index_concatenated_vecs = None
 
     @property
     def comm(self):
@@ -115,13 +113,10 @@ class PETScVecInterface:
 
         if y_a.shape != (self.n,):
             raise ValueError("Invalid shape")
-        if len(X) != len(self.indices):
+        if len(X) != len(self._index_concatenated_vecs):
             raise ValueError("Invalid length")
-
-        for (i0, i1), x in zip(self.indices, X):
-            _, x_i1 = x._ad_assign_numpy(x, y_a, offset=i0)
-            if i1 != x_i1:
-                raise ValueError("Invalid index")
+        for i, x in enumerate(X):
+            x._ad_petsc_vec().setArray(y_a[self._index_concatenated_vecs[i]])
 
     def to_petsc(self, x, Y):
         """Copy data from variables to a :class:`petsc4py.PETSc.Vec`.
@@ -135,14 +130,24 @@ class PETScVecInterface:
         Y = Enlist(Y)
         if len(Y) != len(self.indices):
             raise ValueError("Invalid length")
+        x.setArray(
+            self.concatenate_vecs([y._ad_petsc_vec() for y in Y]).getArray()
+        )
 
-        x_a = np.zeros(self.n, dtype=PETSc.ScalarType)
-        for (i0, i1), y in zip(self.indices, Y):
-            if isinstance(y, numbers.Complex):
-                x_a[i0:i1] = y
-            else:
-                x_a[i0:i1] = y._ad_to_list(y)
-        x.setArray(x_a)
+    def concatenate_vecs(self, vecs):
+        """Concatenate Vecs into a single Vec.
+
+        Args:
+            Y (`petsc4py.PETSc.Vec` or sequence of `petsc4py.PETSc.Vec`):
+            The input Vecs to concatenate.
+        """
+        if not all(isinstance(vec, PETSc.Vec) for vec in vecs):
+            raise ValueError("vecs should be a sequence of PETSc.Vec objects")
+
+        vecs = Enlist(vecs)
+        concatenated_vec, set_indexes = PETSc.Vec().concatenate(vecs)
+        self._index_concatenated_vecs = [set_indexes[i].array for i in range(len(vecs))]
+        return concatenated_vec
 
 
 class PETScOptions:
@@ -265,7 +270,6 @@ class TAOSolver(OptimizationSolver):
             comm=comm)
         n, N = vec_interface.n, vec_interface.N
         to_petsc, from_petsc = vec_interface.to_petsc, vec_interface.from_petsc
-
         tao = PETSc.TAO().create(comm=comm)
 
         def objective_gradient(tao, x, g):
@@ -325,10 +329,34 @@ class TAOSolver(OptimizationSolver):
         tao.setGradientNorm(M_inv_matrix)
 
         if problem.bounds is not None:
-            x_lb = vec_interface.new_petsc()
-            x_ub = vec_interface.new_petsc()
-            to_petsc(x_lb, tuple(np.finfo(PETSc.ScalarType).min if lb is None else lb for lb, _ in problem.bounds))
-            to_petsc(x_ub, tuple(np.finfo(PETSc.ScalarType).max if ub is None else ub for _, ub in problem.bounds))
+            if not all(len(bound) == 2 for bound in problem.bounds):
+                raise ValueError("Each bound should be a tuple of length 2 (lb, ub)")
+            if not len(problem.bounds) == len(problem.reduced_functional.controls):
+                raise ValueError(
+                    "bounds should be of length number of controls of the ReducedFunctional"
+                )
+
+            array_size = problem.reduced_functional.controls[0]._ad_local_size()
+            concatenate_vecs = vec_interface.concatenate_vecs
+            x_lb = concatenate_vecs(
+                tuple(
+                    PETSc.Vec().createWithArray(
+                        np.full((array_size,), np.finfo(PETSc.ScalarType).max,
+                                dtype=PETSc.ScalarType)
+                    ) if lb is None else lb._ad_petsc_vec()
+                    for lb, _ in problem.bounds
+                )
+            )
+            x_ub = concatenate_vecs(
+                tuple(
+                    PETSc.Vec().createWithArray(
+                        np.full((array_size,), np.finfo(PETSc.ScalarType).max,
+                                dtype=PETSc.ScalarType)
+                    ) if ub is None else ub._ad_petsc_vec()
+                    for _, ub in problem.bounds
+                )
+            )
+
             tao.setVariableBounds(x_lb, x_ub)
             x_lb.destroy()
             x_ub.destroy()
@@ -398,9 +426,10 @@ class TAOSolver(OptimizationSolver):
         Returns:
             OverloadedType or tuple[OverloadedType]: The solution.
         """
-
-        M = tuple(m.tape_value()._ad_copy()
-                  for m in self.taoobjective.reduced_functional.controls)
+        M = tuple(
+            m.tape_value()._ad_copy()
+            for m in self.taoobjective.reduced_functional.controls
+        )
         self.vec_interface.to_petsc(self.x, M)
         self.tao.solve()
         self.vec_interface.from_petsc(self.x, M)
