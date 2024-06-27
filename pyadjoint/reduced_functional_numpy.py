@@ -1,5 +1,5 @@
 from __future__ import print_function
-from .reduced_functional import ReducedFunctional
+from .reduced_functional import AbstractReducedFunctional, ReducedFunctional
 from .tape import no_annotations, get_working_tape
 from .enlisting import Enlist
 from .control import Control
@@ -8,7 +8,7 @@ from .adjfloat import AdjFloat
 import numpy
 
 
-class ReducedFunctionalNumPy(ReducedFunctional):
+class ReducedFunctionalNumPy(AbstractReducedFunctional):
     """This class implements the reduced functional for given functional and
     controls based on numpy data structures.
 
@@ -23,6 +23,10 @@ class ReducedFunctionalNumPy(ReducedFunctional):
                                            controls=controls,
                                            tape=tape)
         self.rf = functional
+
+    @property
+    def controls(self) -> list[Control]:
+        return self.rf._controls
 
     def __getattr__(self, item):
         return getattr(self.rf, item)
@@ -55,19 +59,14 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         return numpy.array(m_global, dtype="d")
 
     @no_annotations
-    def derivative(self, m_array=None, forget=True, project=False, options=None):
-        """ An implementation of the reduced functional derivative evaluation
-            that accepts the controls as an array of scalars. If no control values are given,
-            the result is derivative at the latest forward run.
-        """
+    def derivative(self, adj_input=1.0, apply_riesz=True):
 
-        # In the case that the control values have changed since the last forward run,
-        # we first need to rerun the forward model with the new controls to have the
-        # correct forward solutions
-        # TODO: No good way to check. Is it ok to always assume `m_array` is the same as used last in __call__?
-        # if m_array is not None:
-        #    self.__call__(m_array)
-        dJdm = self.rf.derivative(options=options)
+        if not apply_riesz:
+            raise ValueError(
+                "ReducedFunctionalNumpy only returns primal gradients."
+            )
+
+        dJdm = self.rf.derivative(adj_input, apply_riesz)
         dJdm = Enlist(dJdm)
 
         m_global = []
@@ -79,14 +78,18 @@ class ReducedFunctionalNumPy(ReducedFunctional):
         return numpy.array(m_global, dtype="d")
 
     @no_annotations
-    def hessian(self, m_array, m_dot_array):
-        """ An implementation of the reduced functional hessian action evaluation
-            that accepts the controls as an array of scalars. If m_array is None,
-            the Hessian action at the latest forward run is returned. """
+    def hessian(self, m_dot_array, apply_riesz=True):
+
+        if not apply_riesz:
+            raise ValueError(
+                "ReducedFunctionalNumpy only returns primal gradients."
+            )
+
         # Calling derivative is needed, see i.e. examples/stokes-shape-opt
         self.derivative()
         m_copies = [control.copy_data() for control in self.controls]
-        Hm = self.rf.hessian(self.set_local(m_copies, m_dot_array))
+        Hm = self.rf.hessian(self.set_local(m_copies, m_dot_array),
+                             apply_riesz)
         Hm = Enlist(Hm)
 
         m_global = []
