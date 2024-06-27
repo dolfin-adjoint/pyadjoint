@@ -319,6 +319,14 @@ class OverloadedType(object):
             str: A human readable serialisation of this variable.
         """
         return str(self)
+    
+    def _ad_petsc_vec(self):
+        """Return a PETSc Vec representation of the object.
+
+        Returns:
+            PETSc Vec: A PETSc Vec representation of the object.
+        """
+        raise NotImplementedError
 
 
 class FloatingType(OverloadedType):

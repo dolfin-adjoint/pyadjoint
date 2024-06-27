@@ -721,12 +721,11 @@ class TapeTimeStepper:
         return self
 
     def __next__(self):
-        step = next(self.iterator)
         if self._first:
             self._first = False
         else:
             self.tape.end_timestep()
-        return step
+        return next(self.iterator)
 
 
 class TimeStep(list):

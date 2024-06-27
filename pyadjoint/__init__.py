@@ -11,7 +11,7 @@ from .block import Block
 from .tape import (Tape,
                    set_working_tape, get_working_tape, no_annotations,
                    annotate_tape, stop_annotating, pause_annotation, continue_annotation)
-from .adjfloat import AdjFloat, exp, log
+from .adjfloat import AdjFloat
 from .reduced_functional import ReducedFunctional
 from .drivers import compute_gradient, compute_hessian, solve_adjoint
 from .verification import taylor_test, taylor_to_dict
@@ -21,5 +21,6 @@ from .optimization.optimization import minimize, maximize, print_optimization_me
 from .optimization.optimization_problem import MinimizationProblem
 from .optimization.ipopt_solver import IPOPTSolver
 from .optimization.rol_solver import ROLSolver
+from .optimization.tao_solver import TAOSolver
 from .optimization.constraints import InequalityConstraint, EqualityConstraint
 from .optimization.moola_problem import MoolaOptimizationProblem
