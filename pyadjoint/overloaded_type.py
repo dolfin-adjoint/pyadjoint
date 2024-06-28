@@ -320,6 +320,17 @@ class OverloadedType(object):
         """
         return str(self)
 
+    def _ad_petsc_vec(self):
+        """This method must be overridden.
+
+        The method should implement a routine to return a PETSc Vec object.
+
+        Returns:
+            PETSc.Vec: A PETSc Vec object containing the data of the overloaded.
+
+        """
+        raise NotImplementedError
+
 
 class FloatingType(OverloadedType):
     def __init__(self, *args, **kwargs):
