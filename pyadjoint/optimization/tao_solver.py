@@ -46,7 +46,7 @@ class PETScVecInterface:
         n = 0
         N = 0
         for x in X:
-            x_n = x._ad_local_size()
+            x_n = x._ad_petsc_vec().getSizes()[0]
             indices.append((n, n + x_n))
             n += x_n
             N += x._ad_dim()
@@ -123,7 +123,7 @@ class PETScVecInterface:
 
         Args:
             x (petsc4py.PETSc.Vec): The output :class:`petsc4py.PETSc.Vec`.
-            Y (numbers.Complex, OverloadedType or Sequence[OverloadedType]):
+            Y (OverloadedType or Sequence[OverloadedType]):
                 Values for input variables.
         """
 
@@ -336,30 +336,26 @@ class TAOSolver(OptimizationSolver):
                     "bounds should be of length number of controls of the ReducedFunctional"
                 )
 
-            array_size = problem.reduced_functional.controls[0]._ad_local_size()
             concatenate_vecs = vec_interface.concatenate_vecs
-            x_lb = concatenate_vecs(
-                tuple(
-                    PETSc.Vec().createWithArray(
-                        np.full((array_size,), np.finfo(PETSc.ScalarType).max,
-                                dtype=PETSc.ScalarType)
-                    ) if lb is None else lb._ad_petsc_vec()
-                    for lb, _ in problem.bounds
-                )
-            )
-            x_ub = concatenate_vecs(
-                tuple(
-                    PETSc.Vec().createWithArray(
-                        np.full((array_size,), np.finfo(PETSc.ScalarType).max,
-                                dtype=PETSc.ScalarType)
-                    ) if ub is None else ub._ad_petsc_vec()
-                    for _, ub in problem.bounds
-                )
-            )
+            x_lb = ()
+            x_ub = ()
+            for i, (lb, ub) in enumerate(problem.bounds):
+                array_size = problem.reduced_functional.controls[i]._ad_petsc_vec().getSizes()[0]
+                if lb is None:
+                    lb = np.finfo(PETSc.ScalarType).max
+                if ub is None:
+                    ub = np.finfo(PETSc.ScalarType).max
+                x_lb += (PETSc.Vec().createWithArray(
+                    np.full((array_size,), lb, dtype=PETSc.ScalarType)
+                ),)
+                x_ub += (PETSc.Vec().createWithArray(
+                    np.full((array_size,), ub, dtype=PETSc.ScalarType)
+                ),)
 
-            tao.setVariableBounds(x_lb, x_ub)
-            x_lb.destroy()
-            x_ub.destroy()
+            tao.setVariableBounds(concatenate_vecs(x_lb), concatenate_vecs(x_ub))
+            for x_lb_vec, x_ub_vec in zip(x_lb, x_ub):
+                x_lb_vec.destroy()
+                x_ub_vec.destroy()
 
         options = PETScOptions(f"_pyadjoint__{tao.name:s}_")
         options.update(parameters)
