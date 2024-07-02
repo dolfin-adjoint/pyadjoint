@@ -320,10 +320,21 @@ class OverloadedType(object):
         """
         return str(self)
 
-    def _ad_petsc_vec(self):
+    def _ad_petsc_vec_read_only(self):
         """This method must be overridden.
 
-        The method should implement a routine to return a PETSc Vec object.
+        The method should implement a routine to return a read only PETSc Vec object.
+
+        Returns:
+            PETSc.Vec: A PETSc Vec object containing the data of the overloaded.
+
+        """
+        raise NotImplementedError
+
+    def _ad_petsc_vec_write_only(self):
+        """This method must be overridden.
+
+        The method should implement a routine to return a write only PETSc Vec object.
 
         Returns:
             PETSc.Vec: A PETSc Vec object containing the data of the overloaded.
