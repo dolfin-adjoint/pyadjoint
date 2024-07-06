@@ -259,7 +259,8 @@ class Tape(object):
         if not self.timesteps:
             self._blocks.append_step()
         for step in self.timesteps[last_used + 1:]:
-            step.checkpointable_state.add(block_var)
+            if block_var not in step.checkpointable_state:
+                step.checkpointable_state.add(block_var)
 
     def enable_checkpointing(self, schedule):
         """Enable checkpointing on the adjoint evaluation.
@@ -747,12 +748,10 @@ class TimeStep(list):
 
     def checkpoint(self):
         """Store a copy of the checkpoints in the checkpointable state."""
-
         with stop_annotating():
-            self._checkpoint = {
-                var: var.saved_output._ad_create_checkpoint()
-                for var in self.checkpointable_state
-            }
+            for var in self.checkpointable_state:
+                if var._checkpoint is not None:
+                    self._checkpoint[var] = var._checkpoint._ad_create_checkpoint()
 
     def restore_from_checkpoint(self):
         """Restore the block var checkpoints from the timestep checkpoint."""
