@@ -77,3 +77,32 @@ def test_validity():
     val_recomputed = J_hat(displacement_0)
     assert np.allclose(val_recomputed, val_recomputed0)
     assert np.allclose(dJ.dat.data_ro[:], dJ0.dat.data_ro[:])
+
+
+def test_checkpointing_delegate_cofunction():
+    tape = get_working_tape()
+    n_steps = 3
+    tape.enable_checkpointing(Revolve(n_steps, 3))
+
+    mesh = UnitSquareMesh(1, 1)
+    V = FunctionSpace(mesh, "R", 0)
+    v = TestFunction(V)
+    c = Constant(1.0)
+    b = c * v * dx
+    u1 = Cofunction(V.dual(), name="u1")
+    sol = Function(V, name="sol")
+    u = TrialFunction(V)
+    u0 = assemble(b)
+    J = 0
+    for i in tape.timestepper(iter(range(n_steps))):
+        u1.assign(i * u0)
+        solve(u * v * dx == u1, sol)
+        print(sol)
+        J += assemble(sol * sol * dx)
+        print(J)
+    J_hat = ReducedFunctional(J, Control(c))
+    print(J_hat(c))
+    assert np.isclose(J_hat(c), J)
+
+continue_annotation()
+test_checkpointing_delegate_cofunction()

@@ -143,23 +143,26 @@ class CheckpointManager:
         self.tape._eagerly_checkpoint_outputs = cp_action.write_adj_deps
 
         if timestep > cp_action.n0:
-            if cp_action.storage != StorageType.WORK:
-                if cp_action.write_ics and timestep == (cp_action.n0 + 1):
-                    # Store the checkpoint data. This is the required data for
-                    # restarting the forward model from the step `n0`.
-                    self.tape.timesteps[timestep - 1].checkpoint()
-                if cp_action.write_adj_deps and timestep == (cp_action.n1 - 1):
-                    # Store the checkpoint data. This is the required data for
-                    # computing the adjoint model from the step `n1`.
-                    self.tape.timesteps[timestep].checkpoint()
+            if cp_action.write_ics and timestep == (cp_action.n0 + 1):
+                # Store the checkpoint data. This is the required data for restarting the forward model
+                # from the step `n0`.
+                self.tape.timesteps[timestep - 1].checkpoint()
+            if (cp_action.write_adj_deps and timestep == (cp_action.n1 - 1) and cp_action.storage != StorageType.WORK):
+                # Store the checkpoint data. This is the required data for computing the adjoint model
+                # from the step `n1`.
+                self.tape.timesteps[timestep].checkpoint()
 
-                if cp_action.write_adj_deps:
-                    self._clear_checkpoint(timestep - 1, clear_adj_deps=True)
-                if cp_action.write_ics:
-                    self._clear_checkpoint(timestep - 1, clear_checkpointable_state=True)
-
-        if not cp_action.write_adj_deps:
-            self._clear_checkpoint(timestep)
+            if (
+                (cp_action.write_adj_deps and cp_action.storage != StorageType.WORK)
+                or not cp_action.write_adj_deps
+            ):
+                # Remove unnecessary variables in working memory from previous steps.
+                for var in self.tape.timesteps[timestep - 1].checkpointable_state:
+                    var._checkpoint = None
+                for block in self.tape.timesteps[timestep - 1]:
+                    # Remove unnecessary variables from previous steps.
+                    for output in block.get_outputs():
+                        output._checkpoint = None
 
         if timestep in cp_action and timestep < self.total_timesteps:
             self.tape.get_blocks().append_step()
@@ -168,38 +171,6 @@ class CheckpointManager:
             return True
         else:
             return False
-
-    def _clear_checkpoint(self, step, **kwargs):
-        clear_checkpointable_state = kwargs.get("clear_checkpointable_state", False)
-        clear_adj_deps = kwargs.get("clear_adj_deps", False)
-        if self.mode == Mode.RECORD:
-            if clear_checkpointable_state:
-                for var in self.tape.timesteps[step].checkpointable_state:
-                    var._checkpoint = None
-            if clear_adj_deps:
-                for block in self.tape.timesteps[step]:
-                    for output in block.get_outputs():
-                        output._checkpoint = None
-        elif self.mode == Mode.RECOMPUTE:
-            to_keep = set()
-            if step < (self.total_timesteps - 1):
-                next_step = self.tape.timesteps[step + 1]
-                # The checkpointable state set of the current step.
-                to_keep = next_step.checkpointable_state
-            functional = kwargs.get("functional")
-            if functional:
-                to_keep = to_keep.union([functional.block_variable])
-            current_step = self.tape.timesteps[step]
-            if clear_adj_deps:
-                # Remove unnecessary variables from previous steps.
-                for block in current_step:
-                    for bv in block.get_outputs():
-                        if bv not in to_keep:
-                            bv._checkpoint = None
-            if clear_checkpointable_state:
-                # Remove unnecessary variables from previous steps.
-                for var in (current_step.checkpointable_state - to_keep):
-                    var._checkpoint = None
 
     @process_taping.register(EndForward)
     def _(self, cp_action, timestep):
@@ -290,27 +261,55 @@ class CheckpointManager:
         step = cp_action.n0
         #  In a dynamic schedule `cp_action` can be unbounded so we also need to check `self.total_timesteps`.
         while step in cp_action and step < self.total_timesteps:
-            if self.mode == Mode.RECOMPUTE:
+            if self.mode == Mode.RECOMPUTE and bar:
                 bar.next()
             # Get the blocks of the current step.
             current_step = self.tape.timesteps[step]
             for block in current_step:
                 block.recompute()
-            if cp_action.storage != StorageType.WORK:
-                if cp_action.write_ics and step == cp_action.n0:
-                    current_step.checkpoint()
-                if cp_action.write_adj_deps and step == cp_action.n1 - 1:
-                    current_step.checkpoint()
-                if cp_action.write_adj_deps:
-                    self._clear_checkpoint(step, clear_adj_deps=True)
-                if cp_action.write_ics:
-                    self._clear_checkpoint(step, clear_checkpointable_state=True)
+            if (
+                (cp_action.write_ics and step == cp_action.n0)
+                or (cp_action.write_adj_deps and step == cp_action.n1 - 1
+                    and cp_action.storage != StorageType.WORK)
+            ):
+                # Store the checkpoint data required for restarting the
+                # forward model or computing the adjoint model.
+                # If `cp_action.write_ics` is `True`, the checkpointed data
+                # will restart the forward model from the step `n0`.
+                # If `cp_action.write_adj_deps` is `True`, the checkpointed
+                # data will be used for computing the adjoint model from the
+                # step `n1`.
+                for var in current_step.checkpointable_state:
+                    if var.checkpoint:
+                        current_step._checkpoint.update(
+                            {var: var.checkpoint}
+                        )
+            if (
+                (cp_action.write_adj_deps and cp_action.storage != StorageType.WORK)
+                or not cp_action.write_adj_deps
+            ):
+                to_keep = set()
+                if step < (self.total_timesteps - 1):
+                    next_step = self.tape.timesteps[step + 1]
+                    # The checkpointable state set of the current step.
+                    to_keep = next_step.checkpointable_state
+                if functional:
+                    to_keep = to_keep.union([functional.block_variable])
+                for block in current_step:
+                    # Remove unnecessary variables from previous steps.
+                    for bv in block.get_outputs():
+                        if bv not in to_keep:
+                            bv._checkpoint = None
+                # Remove unnecessary variables from previous steps.
+                for var in (current_step.checkpointable_state - to_keep):
+                    var._checkpoint = None
             step += 1
 
     @process_operation.register(Reverse)
     def _(self, cp_action, bar, markings, functional=None, **kwargs):
         for step in cp_action:
-            bar.next()
+            if bar:
+                bar.next()
             # Get the blocks of the current step.
             current_step = self.tape.timesteps[step]
             for block in reversed(current_step):
@@ -324,7 +323,6 @@ class CheckpointManager:
                     if not var.is_control:
                         var.reset_variables(("adjoint", "hessian"))
                 if cp_action.clear_adj_deps:
-                    self._clear_checkpoint(step, clear_checkpointable_state=True) 
                     to_keep = current_step.checkpointable_state
                     if functional:
                         to_keep = to_keep.union([functional.block_variable])
