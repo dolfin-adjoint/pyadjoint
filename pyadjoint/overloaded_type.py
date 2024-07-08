@@ -332,7 +332,7 @@ class OverloadedType(object):
         raise NotImplementedError
 
     def _ad_petsc_vec_write_only(self):
-        """This method must be overridden.
+        """This method should be overwritten by types which can return a PETSc Vec.
 
         The method should implement a routine to write only a PETSc Vec object.
 
