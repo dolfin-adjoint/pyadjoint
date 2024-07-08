@@ -97,12 +97,6 @@ def test_checkpointing_delegate_cofunction():
     for i in tape.timestepper(iter(range(n_steps))):
         u1.assign(Constant(i) * u0)
         solve(u * v * dx == u1, sol)
-        print(sol)
         J += assemble(sol * sol * dx)
-        print(J)
     J_hat = ReducedFunctional(J, Control(c))
-    print(J_hat(c))
     assert np.isclose(J_hat(c), J)
-
-continue_annotation()
-test_checkpointing_delegate_cofunction()
