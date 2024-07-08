@@ -321,7 +321,7 @@ class OverloadedType(object):
         return str(self)
 
     def _ad_petsc_vec_read_only(self):
-        """This method must be overridden.
+        """This method should be overwritten by types which can return a PETSc Vec.
 
         The method should implement a routine to return a read only a PETSc Vec object.
 
