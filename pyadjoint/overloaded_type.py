@@ -308,6 +308,7 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
+    @property
     def _ad_str(self):
         """Return the string representation of the block variable.
 
