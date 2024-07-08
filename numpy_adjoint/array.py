@@ -11,7 +11,7 @@ class ndarray(OverloadedType, numpy.ndarray):
 
     @classmethod
     def _ad_init_object(cls, obj):
-        return cls(obj.shape, numpy.float_, buffer=obj)
+        return cls(obj.shape, obj.dtype, buffer=obj)
 
     def _ad_create_checkpoint(self):
         return self.copy()
