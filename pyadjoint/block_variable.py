@@ -65,7 +65,6 @@ class BlockVariable(object):
         overwrite = self.output._ad_will_add_as_dependency()
         overwrite = bool(overwrite)
         tape = get_working_tape()
-        self.last_use = tape.latest_timestep - 1
         if self.last_use < tape.latest_checkpoint:
             self.save_output(overwrite=overwrite)
         tape.add_to_checkpointable_state(self, self.last_use)

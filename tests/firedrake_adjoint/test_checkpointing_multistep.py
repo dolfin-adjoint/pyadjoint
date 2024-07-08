@@ -82,7 +82,7 @@ def test_validity():
 def test_checkpointing_delegate_cofunction():
     tape = get_working_tape()
     n_steps = 3
-    tape.enable_checkpointing(Revolve(n_steps, 3))
+    tape.enable_checkpointing(Revolve(n_steps, n_steps))
 
     mesh = UnitSquareMesh(1, 1)
     V = FunctionSpace(mesh, "R", 0)
@@ -95,7 +95,7 @@ def test_checkpointing_delegate_cofunction():
     u0 = assemble(b)
     J = 0
     for i in tape.timestepper(iter(range(n_steps))):
-        u1.assign(i * u0)
+        u1.assign(Constant(i) * u0)
         solve(u * v * dx == u1, sol)
         print(sol)
         J += assemble(sol * sol * dx)

@@ -750,7 +750,8 @@ class TimeStep(list):
         """Store a copy of the checkpoints in the checkpointable state."""
         with stop_annotating():
             for var in self.checkpointable_state:
-                if var._checkpoint is not None:
+                checkpoint = var.saved_output
+                if checkpoint is not None:
                     self._checkpoint[var] = var._checkpoint._ad_create_checkpoint()
 
     def restore_from_checkpoint(self):
