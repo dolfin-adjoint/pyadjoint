@@ -93,9 +93,10 @@ class OverloadedType:
         """
         return cls(obj)
 
-    @classmethod
-    def _ad_init_zero(cls, dual=False):
-        """Return a new overloaded zero of the appropriate type.
+    def _ad_init_zero(self, dual=False):
+        """This method must be overridden.
+
+        Return a new overloaded zero of the appropriate type.
 
         If `dual` is `True`, return a zero of the dual type to this type. If
         the type is self-dual, this parameter is ignored. Note that by
@@ -108,7 +109,7 @@ class OverloadedType:
             OverloadedType: An object of the relevant type with the value zero.
 
         """
-        return cls(obj)
+        raise NotImplementedError
 
     def create_block_variable(self):
         self.block_variable = BlockVariable(self)
