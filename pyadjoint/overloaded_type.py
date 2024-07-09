@@ -323,22 +323,36 @@ class OverloadedType(object):
     def _ad_petsc_vec_read_only(self):
         """This method should be overwritten by types which can return a PETSc Vec.
 
-        The method should implement a routine to return a read only a PETSc Vec object.
+        This method must be used as a context manager.
+
+        Usage:
+
+        .. code-block:: python
+
+                with OverloadedType._ad_petsc_vec_read_only() as vec:
+                    # Do something with vec
 
         Returns:
-            PETSc.Vec: A PETSc Vec object containing the data of the overloaded.
-
+            PETSc.Vec: A PETSc Vec object containing the read-only data of the overloaded
+            instance, excluding halo data.
         """
         raise NotImplementedError
 
     def _ad_petsc_vec_write_only(self):
         """This method should be overwritten by types which can return a PETSc Vec.
 
-        The method should implement a routine to write only a PETSc Vec object.
+        This method must be used as a context manager.
+
+        Usage:
+
+        .. code-block:: python
+
+                with OverloadedType._ad_petsc_vec_write_only() as vec:
+                    # Do something with vec
 
         Returns:
-            PETSc.Vec: A PETSc Vec object containing the data of the overloaded.
-
+            PETSc.Vec: A PETSc Vec object containing the write-only data of the overloaded
+            instance, excluding halo data.
         """
         raise NotImplementedError
 
