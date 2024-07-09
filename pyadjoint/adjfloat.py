@@ -93,7 +93,7 @@ class AdjFloat(OverloadedType, float):
     def __pow__(self, power):
         return PowBlock(self, power)
 
-    def _ad_init_zero(dual=False):
+    def _ad_init_zero(self, dual=False):
         return type(self)(0.)
 
     def _ad_convert_riesz(self, value, riesz_map=None):
