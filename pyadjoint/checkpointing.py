@@ -2,7 +2,6 @@ from enum import Enum
 import sys
 from functools import singledispatchmethod
 from checkpoint_schedules import Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType
-from checkpoint_schedules import SingleStorageSchedule
 
 
 class CheckpointError(RuntimeError):
@@ -156,7 +155,7 @@ class CheckpointManager:
             self.tape.timesteps[timestep - 1].checkpoint(
                 checkpointable_state=_store_checkpointable_state,
                 adj_deps=_store_adj_deps,
-                )
+            )
             # Remove unnecessary variables in working memory from previous steps.
             for var in self.tape.timesteps[timestep - 1].checkpointable_state:
                 if var.checkpoint:
@@ -265,8 +264,6 @@ class CheckpointManager:
         while step in cp_action and step < self.total_timesteps:
             if self.mode == CheckpointingMode.RECOMPUTE and bar:
                 bar.next()
-            _store_checkpointable_state = False
-            _store_adj_deps = False
             # Get the blocks of the current step.
             current_step = self.tape.timesteps[step]
             for block in current_step:
@@ -277,7 +274,6 @@ class CheckpointManager:
                     # forward model or computing the adjoint model.
                     # If `cp_action.write_ics` is `True`, the checkpointed data
                     # will restart the forward model from the step `n0`.
-                    _store_checkpointable_state = True
                     for var in current_step.checkpointable_state:
                         if var.checkpoint:
                             current_step._checkpoint.update(

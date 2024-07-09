@@ -129,7 +129,7 @@ class OverloadedType(object):
 
         """
         raise NotImplementedError
-    
+
     def _ad_clear_checkpoint(self):
         """Return a value to set the checkpoint to when it is cleared.
 
