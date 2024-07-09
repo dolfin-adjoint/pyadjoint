@@ -129,6 +129,14 @@ class OverloadedType(object):
 
         """
         raise NotImplementedError
+    
+    def _ad_clear_checkpoint(self):
+        """Return a value to set the checkpoint to when it is cleared.
+
+        Returns:
+            None: The default value to set the checkpoint to when it is cleared.
+        """
+        return None
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         """This method must be overridden.

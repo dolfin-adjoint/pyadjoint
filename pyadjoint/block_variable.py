@@ -80,6 +80,7 @@ class BlockVariable(object):
             self._checkpoint = None
         if tape._eagerly_checkpoint_outputs:
             self.save_output()
+        tape.add_to_adjoint_dependencies(self, self.last_use - 1)
 
     def __str__(self):
         return str(self.output._ad_str)

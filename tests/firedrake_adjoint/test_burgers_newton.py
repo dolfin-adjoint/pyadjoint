@@ -8,7 +8,7 @@ pytest.importorskip("firedrake")
 from firedrake import *
 from firedrake.adjoint import *
 from checkpoint_schedules import Revolve, SingleMemoryStorageSchedule, MixedCheckpointSchedule,\
-    NoneCheckpointSchedule, StorageType, SingleStorageSchedule
+    NoneCheckpointSchedule, StorageType
 import numpy as np
 set_log_level(CRITICAL)
 continue_annotation()
@@ -46,7 +46,7 @@ def J(ic, solve_type, checkpointing):
             solve(F == 0, u, bc)
         u_.assign(u)
 
-    return assemble(u_*u_*dx)
+    return assemble(u_*u_*dx + ic*ic*dx)
 
 
 @pytest.mark.parametrize("solve_type, checkpointing",
@@ -131,7 +131,3 @@ def test_checkpointing_validity(solve_type, checkpointing):
     assert len(tape.timesteps) == steps
     assert np.allclose(val0, val1)
     assert np.allclose(dJ0.dat.data_ro[:], Jhat.derivative().dat.data_ro[:])
-
-
-if __name__ == "__main__":
-    test_burgers_newton("solve", "Revolve")
