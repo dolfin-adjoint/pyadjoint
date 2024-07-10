@@ -1,5 +1,7 @@
-from .tape import no_annotations, reverse_over_forward_enabled
+from contextlib import ExitStack
 from html import escape
+
+from .tape import no_annotations, reverse_over_forward_enabled
 
 
 class Block(object):
@@ -84,7 +86,10 @@ class Block(object):
 
         if reverse_over_forward_enabled():
             if len(self._outputs) == self._n_outputs:
-                self.solve_tlm()
+                with ExitStack() as stack:
+                    for output in self._outputs:
+                        stack.enter_context(output.restore_output())
+                    self.solve_tlm()
             elif len(self._outputs) > self._n_outputs:
                 raise RuntimeError("Unexpected output")
 
