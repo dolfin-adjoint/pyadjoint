@@ -161,7 +161,7 @@ class CheckpointManager:
                 var._checkpoint = var.output._ad_clear_checkpoint(var.checkpoint)
             for block in self.tape.timesteps[timestep - 1]:
                 for output in block.get_outputs():
-                    output.output._ad_clear_checkpoint(output.checkpoint)
+                    output.checkpoint = output.output._ad_clear_checkpoint(output.checkpoint)
 
         if timestep in cp_action and timestep < self.total_timesteps:
             self.tape.get_blocks().append_step()
