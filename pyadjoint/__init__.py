@@ -10,7 +10,10 @@ __email__ = 'sebastkm@math.uio.no'
 from .block import Block
 from .tape import (Tape,
                    set_working_tape, get_working_tape, no_annotations,
-                   annotate_tape, stop_annotating, pause_annotation, continue_annotation)
+                   annotate_tape, stop_annotating, pause_annotation, continue_annotation,
+                   no_reverse_over_forward, reverse_over_forward_enabled,
+                   stop_reverse_over_forward, pause_reverse_over_forward,
+                   continue_reverse_over_forward)
 from .adjfloat import AdjFloat, exp, log
 from .reduced_functional import ReducedFunctional
 from .drivers import compute_gradient, compute_hessian, solve_adjoint

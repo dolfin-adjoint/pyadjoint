@@ -11,6 +11,7 @@ from .checkpointing import CheckpointManager, CheckpointError
 
 _working_tape = None
 _annotation_enabled = False
+_reverse_over_forward_enabled = False
 
 
 def get_working_tape():
@@ -134,6 +135,67 @@ def annotate_tape(kwargs=None):
         return False
 
     return annotate
+
+
+def pause_reverse_over_forward():
+    """Disable reverse-over-forward AD.
+    """
+
+    global _reverse_over_forward_enabled
+    _reverse_over_forward_enabled = False
+
+
+def continue_reverse_over_forward():
+    """Enable reverse-over-forward AD.
+
+    Returns:
+        bool: True
+    """
+
+    global _reverse_over_forward_enabled
+    _reverse_over_forward_enabled = True
+    # Following continue_annotation behavior
+    return _reverse_over_forward_enabled
+
+
+@contextmanager
+def stop_reverse_over_forward():
+    """Return a callable used to construct a context manager within which
+    reverse-over-forward AD is disabled.
+
+    Returns:
+        callable: Callable which returns a context manager.
+    """
+
+    global _reverse_over_forward_enabled
+    reverse_over_forward_enabled = _reverse_over_forward_enabled
+    _reverse_over_forward_enabled = False
+    try:
+        yield
+    finally:
+        _reverse_over_forward_enabled = reverse_over_forward_enabled
+
+
+def no_reverse_over_forward(function):
+    """Decorator to disable reverse-over-forward AD for the decorated callable.
+
+    Args:
+        function (callable): The callable.
+    Returns:
+        callable: Callable for which reverse-over-forward AD is disabled.
+    """
+
+    return stop_reverse_over_forward()(function)
+
+
+def reverse_over_forward_enabled():
+    """Return whether reverse-over-forward AD is enabled.
+
+    Returns:
+        bool: Whether reverse-over-forward AD is enabled.
+    """
+
+    return _reverse_over_forward_enabled
 
 
 def _find_relevant_nodes(tape, controls):
