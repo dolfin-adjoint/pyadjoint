@@ -85,10 +85,14 @@ class Block(object):
 
         if reverse_over_forward_enabled():
             if len(self._outputs) == self._n_outputs:
-                with ExitStack() as stack:
-                    for output in self._outputs:
-                        stack.enter_context(output.restore_output())
-                    self.solve_tlm()
+                if any(dep.tlm_value is not None for dep in self.get_dependencies()):
+                    with ExitStack() as stack:
+                        for output in self._outputs:
+                            stack.enter_context(output.restore_output())
+                        self.solve_tlm()
+                else:
+                    for x in self.get_outputs():
+                        x.tlm_value = None
             elif len(self._outputs) > self._n_outputs:
                 raise RuntimeError("Unexpected output")
 
