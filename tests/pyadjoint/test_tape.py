@@ -3,7 +3,7 @@ import pytest
 from pyadjoint import *  # noqa: F403
 
 
-@pytest.fixture(autouse=True, scope="module")
+@pytest.fixture(autouse=True)
 def _():
     pause_reverse_over_forward()
     yield
