@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 
-from .tape import no_annotations, get_working_tape
+from .tape import no_annotations, get_working_tape, stop_annotating
 
 
 class BlockVariable(object):
@@ -108,9 +108,10 @@ class BlockVariable(object):
         if self.output is self.saved_output:
             yield
         else:
-            old_value = self.output._ad_copy()
-            self.output._ad_assign(self.saved_output)
-            try:
-                yield
-            finally:
-                self._output._ad_assign(old_value)
+            with stop_annotating():
+                old_value = self.output._ad_copy()
+                self.output._ad_assign(self.saved_output)
+                try:
+                    yield
+                finally:
+                    self.output._ad_assign(old_value)
