@@ -81,7 +81,6 @@ class Block(object):
         if reverse_over_forward_enabled() and len(self._outputs) >= self._n_outputs:
             raise RuntimeError("Unexpected output")
 
-        obj.will_add_as_output()
         self._outputs.append(obj)
 
         if reverse_over_forward_enabled():
@@ -92,6 +91,8 @@ class Block(object):
                     self.solve_tlm()
             elif len(self._outputs) > self._n_outputs:
                 raise RuntimeError("Unexpected output")
+
+        obj.will_add_as_output()
 
     def get_outputs(self):
         """Returns the list of block outputs.
