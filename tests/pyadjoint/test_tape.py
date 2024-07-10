@@ -1,4 +1,13 @@
+import pytest
+
 from pyadjoint import *  # noqa: F403
+
+
+@pytest.fixture(autouse=True, scope="module")
+def _():
+    pause_reverse_over_forward()
+    yield
+    pause_reverse_over_forward()
 
 
 def test_reverse_over_forward_configuration():
