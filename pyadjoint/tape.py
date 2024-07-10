@@ -771,21 +771,28 @@ class TimeStep(list):
             adj_deps (bool, optional): If True, store the adjoint dependencies required
             to compute the adjoint of a timestep.
         """
-
         with stop_annotating():
             if checkpointable_state:
                 for var in self.checkpointable_state:
-                    if var.checkpoint is not None:
-                        self._checkpoint[var] = var.checkpoint._ad_create_checkpoint()
+                    checkpoint = var.checkpoint
+                    if checkpoint is None:
+                        checkpoint = var.output._ad_create_checkpoint()
+                        if checkpoint is not None:
+                            raise ValueError("This block variable should have a checkpoint at this point.")
+                    self._checkpoint[var] = checkpoint
             if adj_deps:
                 for var in self.adjoint_dependencies:
-                    if var.checkpoint is not None:
-                        self._checkpoint[var] = var.checkpoint._ad_create_checkpoint()
+                    checkpoint = var.checkpoint
+                    if checkpoint is None:
+                        checkpoint = var.output._ad_create_checkpoint()
+                        if checkpoint is not None:
+                            raise ValueError("This block variable should have a checkpoint at this point.")
+                    self._checkpoint[var] = checkpoint
 
     def restore_from_checkpoint(self):
         """Restore the block var checkpoints from the timestep checkpoint."""
 
-        for var, _ in self._checkpoint.items():
+        for var in self._checkpoint:
             var.checkpoint = self._checkpoint[var]
 
     def delete_checkpoint(self):

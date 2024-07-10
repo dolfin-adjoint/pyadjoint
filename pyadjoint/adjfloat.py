@@ -100,6 +100,10 @@ class AdjFloat(OverloadedType, float):
         # Floats are immutable.
         return self
 
+    def _ad_clear_checkpoint(self, checkpoint):
+        checkpoint = None
+        return checkpoint
+
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
 

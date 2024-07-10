@@ -158,12 +158,10 @@ class CheckpointManager:
             )
             # Remove unnecessary variables in working memory from previous steps.
             for var in self.tape.timesteps[timestep - 1].checkpointable_state:
-                if var.checkpoint:
-                    var._checkpoint = var.checkpoint._ad_clear_checkpoint()
+                var._checkpoint = var.output._ad_clear_checkpoint(var.checkpoint)
             for block in self.tape.timesteps[timestep - 1]:
                 for output in block.get_outputs():
-                    if output.checkpoint:
-                        output._checkpoint = output.checkpoint._ad_clear_checkpoint()
+                    output.output._ad_clear_checkpoint(output.checkpoint)
 
         if timestep in cp_action and timestep < self.total_timesteps:
             self.tape.get_blocks().append_step()
@@ -301,12 +299,10 @@ class CheckpointManager:
                     # Remove unnecessary variables from previous steps.
                     for bv in block.get_outputs():
                         if bv not in to_keep:
-                            if bv.checkpoint:
-                                bv._checkpoint = bv._checkpoint._ad_clear_checkpoint()
+                            bv._checkpoint = bv.output._ad_clear_checkpoint(bv.checkpoint)
                 # Remove unnecessary variables from previous steps.
                 for var in (current_step.checkpointable_state - to_keep):
-                    if var.checkpoint:
-                        var._checkpoint = var._checkpoint._ad_clear_checkpoint()
+                    var._checkpoint = var.output._ad_clear_checkpoint(bv.checkpoint)
             step += 1
 
     @process_operation.register(Reverse)
@@ -332,8 +328,7 @@ class CheckpointManager:
                         to_keep = to_keep.union([functional.block_variable])
                     for output in block.get_outputs():
                         if output not in to_keep:
-                            if output.checkpoint:
-                                output._checkpoint = output._checkpoint._ad_clear_checkpoint()
+                            output._checkpoint = output.output._ad_clear_checkpoint(output.checkpoint)
 
     @process_operation.register(Copy)
     def _(self, cp_action, bar, **kwargs):

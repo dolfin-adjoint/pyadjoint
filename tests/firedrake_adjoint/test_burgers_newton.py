@@ -8,7 +8,7 @@ pytest.importorskip("firedrake")
 from firedrake import *
 from firedrake.adjoint import *
 from checkpoint_schedules import Revolve, SingleMemoryStorageSchedule, MixedCheckpointSchedule,\
-    NoneCheckpointSchedule, StorageType
+    NoneCheckpointSchedule, StorageType, SingleStorageSchedule
 import numpy as np
 set_log_level(CRITICAL)
 continue_annotation()
@@ -46,7 +46,7 @@ def J(ic, solve_type, checkpointing):
             solve(F == 0, u, bc)
         u_.assign(u)
 
-    return assemble(u_*u_*dx + ic*ic*dx)
+    return assemble(u_*u_*dx)
 
 
 @pytest.mark.parametrize("solve_type, checkpointing",
@@ -55,6 +55,8 @@ def J(ic, solve_type, checkpointing):
                           ("NLVS", "Revolve"),
                           ("solve", "SingleMemory"),
                           ("NLVS", "SingleMemory"),
+                          ("solve", "SingleStorage"),
+                          ("NLVS", "SingleStorage"),
                           ("solve", "NoneAdjoint"),
                           ("NLVS", "NoneAdjoint"),
                           ("solve", "Mixed"),
@@ -72,6 +74,8 @@ def test_burgers_newton(solve_type, checkpointing):
             schedule = Revolve(steps, steps//3)
         if checkpointing == "SingleMemory":
             schedule = SingleMemoryStorageSchedule()
+        if checkpointing == "SingleStorage":
+            schedule = SingleStorageSchedule(move_data=True)
         if checkpointing == "Mixed":
             schedule = MixedCheckpointSchedule(steps, steps//3, storage=StorageType.RAM)
         if checkpointing == "NoneAdjoint":
@@ -131,3 +135,8 @@ def test_checkpointing_validity(solve_type, checkpointing):
     assert len(tape.timesteps) == steps
     assert np.allclose(val0, val1)
     assert np.allclose(dJ0.dat.data_ro[:], Jhat.derivative().dat.data_ro[:])
+
+
+if __name__ == "__main__":
+    continue_annotation()
+    test_burgers_newton("solve", "Revolve")
