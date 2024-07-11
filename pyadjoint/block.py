@@ -87,8 +87,8 @@ class Block(object):
             if len(self._outputs) == self._n_outputs:
                 if any(dep.tlm_value is not None for dep in self.get_dependencies()):
                     with ExitStack() as stack:
-                        for output in self._outputs:
-                            stack.enter_context(output.restore_output())
+                        for dep in self.get_dependencies():
+                            stack.enter_context(dep.restore_output())
                         self.solve_tlm()
                 else:
                     for x in self.get_outputs():

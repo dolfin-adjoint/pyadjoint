@@ -98,8 +98,8 @@ class BlockVariable(object):
 
     @contextmanager
     def restore_output(self):
-        """Return a context manager which can be used to temporarily restore the
-        value of `self.output` to `self.block_variable.saved_output`.
+        """Return a context manager which can be used to temporarily restore
+        the value of `self.output` to `self.block_variable.saved_output`.
 
         Returns:
             The context manager
@@ -111,7 +111,8 @@ class BlockVariable(object):
             with stop_annotating():
                 old_value = self.output._ad_copy()
                 self.output._ad_assign(self.saved_output)
-                try:
-                    yield
-                finally:
+            try:
+                yield
+            finally:
+                with stop_annotating():
                     self.output._ad_assign(old_value)
