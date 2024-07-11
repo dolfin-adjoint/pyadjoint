@@ -625,6 +625,14 @@ class NegBlock(FloatOperatorBlock):
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
         return float.__neg__(tlm_inputs[0])
 
+    def solve_tlm(self):
+        x, = self.get_outputs()
+        a, = self.get_dependencies()
+        if a.tlm_value is None:
+            x.tlm_value = None
+        else:
+            x.tlm_value = -a.tlm_value
+
     def evaluate_hessian(self, markings=False):
         hessian_input = self.get_outputs()[0].hessian_value
         if hessian_input is None:

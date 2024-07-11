@@ -49,3 +49,12 @@ def test_add(a_val, tlm_a_val, b_val, tlm_b_val):
     b.block_variable.tlm_value = AdjFloat(tlm_b_val)
     x = a + b
     assert x.block_variable.tlm_value == tlm_a_val + tlm_b_val
+
+
+@pytest.mark.parametrize("a_val", [2.0, -2.0])
+@pytest.mark.parametrize("tlm_a_val", [3.5, -3.5])
+def test_neg(a_val, tlm_a_val):
+    a = AdjFloat(a_val)
+    a.block_variable.tlm_value = AdjFloat(tlm_a_val)
+    x = -a
+    assert x.block_variable.tlm_value == -tlm_a_val
