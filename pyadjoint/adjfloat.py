@@ -493,6 +493,19 @@ class SubBlock(FloatOperatorBlock):
         if tlm_input_1 is not None:
             output.add_tlm_output(float.__neg__(tlm_input_1))
 
+    def solve_tlm(self):
+        x, = self.get_outputs()
+        a, b = self.get_dependencies()
+        if a.tlm_value is None:
+            if b.tlm_value is None:
+                x.tlm_value = None
+            else:
+                x.tlm_value = -b.tlm_value
+        elif b.tlm_value is None:
+            x.tlm_value = a.tlm_value
+        else:
+            x.tlm_value = a.tlm_value - b.tlm_value
+
     def evaluate_hessian(self, markings=False):
         hessian_input = self.get_outputs()[0].hessian_value
         if hessian_input is None:
