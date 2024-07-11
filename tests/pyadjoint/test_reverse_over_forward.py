@@ -54,7 +54,8 @@ def test_add(a_val, tlm_a_val, b_val, tlm_b_val):
         assert x.block_variable.tlm_value is None
     else:
         assert (x.block_variable.tlm_value ==
-                (0.0 if tlm_a_val is None else tlm_a_val) + (0.0 if tlm_b_val is None else tlm_b_val))
+                (0.0 if tlm_a_val is None else tlm_a_val)
+                + (0.0 if tlm_b_val is None else tlm_b_val))
 
 
 @pytest.mark.parametrize("a_val", [2.0, -2.0])
@@ -73,7 +74,28 @@ def test_sub(a_val, tlm_a_val, b_val, tlm_b_val):
         assert x.block_variable.tlm_value is None
     else:
         assert (x.block_variable.tlm_value ==
-                (0.0 if tlm_a_val is None else tlm_a_val) - (0.0 if tlm_b_val is None else tlm_b_val))
+                (0.0 if tlm_a_val is None else tlm_a_val)
+                - (0.0 if tlm_b_val is None else tlm_b_val))
+
+
+@pytest.mark.parametrize("a_val", [2.0, -2.0])
+@pytest.mark.parametrize("tlm_a_val", [3.5, -3.5, None])
+@pytest.mark.parametrize("b_val", [4.25, -4.25])
+@pytest.mark.parametrize("tlm_b_val", [5.8125, -5.8125, None])
+def test_mul(a_val, tlm_a_val, b_val, tlm_b_val):
+    a = AdjFloat(a_val)
+    if tlm_a_val is not None:
+        a.block_variable.tlm_value = AdjFloat(tlm_a_val)
+    b = AdjFloat(b_val)
+    if tlm_b_val is not None:
+        b.block_variable.tlm_value = AdjFloat(tlm_b_val)
+    x = a * b
+    if tlm_a_val is None and tlm_b_val is None:
+        assert x.block_variable.tlm_value is None
+    else:
+        assert (x.block_variable.tlm_value ==
+                b_val * (0.0 if tlm_a_val is None else tlm_a_val)
+                + a_val * (0.0 if tlm_b_val is None else tlm_b_val))
 
 
 @pytest.mark.parametrize("a_val", [2.0, -2.0])

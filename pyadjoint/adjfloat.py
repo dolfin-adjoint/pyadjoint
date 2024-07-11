@@ -440,6 +440,15 @@ class PowBlock(FloatOperatorBlock):
             exponent.add_hessian_output(float.__mul__(base.tlm_value, mixed))
 
 
+def sum_tlm_terms(terms):
+    if len(terms) == 0:
+        return None
+    elif len(terms) == 1:
+        return AdjFloat(terms[0])
+    else:
+        return sum(terms[1:], start=terms[0])
+
+
 class AddBlock(FloatOperatorBlock):
     operator = staticmethod(float.__add__)
     symbol = "+"
@@ -462,12 +471,7 @@ class AddBlock(FloatOperatorBlock):
         x, = self.get_outputs()
         terms = tuple(dep.tlm_value for dep in self.get_dependencies()
                       if dep.tlm_value is not None)
-        if len(terms) == 0:
-            x.tlm_value = None
-        elif len(terms) == 1:
-            x.tlm_value = AdjFloat(terms[0])
-        else:
-            x.tlm_value = sum(terms[1:], start=terms[0])
+        x.tlm_value = sum_tlm_terms(terms)
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
@@ -533,6 +537,16 @@ class MulBlock(FloatOperatorBlock):
 
             tlm_output += float.__mul__(tlm_input, self.terms[j].saved_output)
         return tlm_output
+
+    def solve_tlm(self):
+        x, = self.get_outputs()
+        a, b = self.get_dependencies()
+        terms = []
+        if a.tlm_value is not None:
+            terms.append(b.output * a.tlm_value)
+        if b.tlm_value is not None:
+            terms.append(a.output * b.tlm_value)
+        x.tlm_value = sum_tlm_terms(terms)
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
