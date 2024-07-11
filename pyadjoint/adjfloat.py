@@ -188,6 +188,14 @@ class ExpBlock(Block):
         input0 = inputs[0]
         return _exp(input0) * tlm_input
 
+    def solve_tlm(self):
+        x, = self.get_outputs()
+        a, = self.get_dependencies()
+        if a.tlm_value is None:
+            x.tlm_value = None
+        else:
+            x.tlm_value = exp(a.output) * a.tlm_value
+
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
         input0 = inputs[0]
