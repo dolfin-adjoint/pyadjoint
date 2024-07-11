@@ -221,6 +221,14 @@ class LogBlock(Block):
         input0 = inputs[0]
         return tlm_input / input0
 
+    def solve_tlm(self):
+        x, = self.get_outputs()
+        a, = self.get_dependencies()
+        if a.tlm_value is None:
+            x.tlm_value = None
+        else:
+            x.tlm_value = a.tlm_value / a.output
+
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
         input0 = inputs[0]
