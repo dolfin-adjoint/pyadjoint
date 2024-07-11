@@ -610,6 +610,16 @@ class DivBlock(FloatOperatorBlock):
                 ))
             ))
 
+    def solve_tlm(self):
+        x, = self.get_outputs()
+        a, b = self.get_dependencies()
+        terms = []
+        if a.tlm_value is not None:
+            terms.append(a.tlm_value / b.output)
+        if b.tlm_value is not None:
+            terms.append((-a.output / (b.output ** 2)) * b.tlm_value)
+        x.tlm_value = sum_tlm_terms(terms)
+
     def evaluate_hessian(self, markings=False):
         output = self.get_outputs()[0]
         hessian_input = output.hessian_value
