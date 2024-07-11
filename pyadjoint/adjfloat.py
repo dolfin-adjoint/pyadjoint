@@ -65,6 +65,10 @@ class AdjFloat(OverloadedType, float):
         return DivBlock(self, other)
 
     @annotate_operator
+    def __pos__(self):
+        return PosBlock(self)
+
+    @annotate_operator
     def __neg__(self):
         return NegBlock(self)
 
@@ -362,7 +366,7 @@ def sum_tlm_terms(terms):
     if len(terms) == 0:
         return None
     elif len(terms) == 1:
-        return AdjFloat(terms[0])
+        return +terms[0]
     else:
         return sum(terms[1:], start=terms[0])
 
@@ -650,6 +654,35 @@ class DivBlock(FloatOperatorBlock):
             numerator.add_hessian_output(float.__mul__(denominator.tlm_value, mixed))
         if numerator.tlm_value is not None:
             denominator.add_hessian_output(float.__mul__(numerator.tlm_value, mixed))
+
+
+class PosBlock(FloatOperatorBlock):
+    operator = staticmethod(float.__pos__)
+    symbol = "+"
+
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        return float.__pos__(adj_inputs[0])
+
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        return float.__pos__(tlm_inputs[0])
+
+    def solve_tlm(self):
+        x, = self.get_outputs()
+        a, = self.get_dependencies()
+        if a.tlm_value is None:
+            x.tlm_value = None
+        else:
+            x.tlm_value = +a.tlm_value
+
+    def evaluate_hessian(self, markings=False):
+        hessian_input = self.get_outputs()[0].hessian_value
+        if hessian_input is None:
+            return
+
+        self.terms[0].add_hessian_output(float.__pos__(hessian_input))
+
+    def __str__(self):
+        return f"{self.symbol} {self.terms[0]}"
 
 
 class NegBlock(FloatOperatorBlock):
