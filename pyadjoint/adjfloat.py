@@ -305,6 +305,14 @@ class MinBlock(Block):
         idx = 0 if inputs[0] <= inputs[1] else 1
         return tlm_inputs[idx]
 
+    def solve_tlm(self):
+        x, = self.get_outputs()
+        a, b = self.get_dependencies()
+        if a.output <= b.output:
+            x.tlm_value = +a.tlm_value
+        else:
+            x.tlm_value = +b.tlm_value
+
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
         return self.evaluate_adj_component(inputs, hessian_inputs, block_variable, idx, prepared)
@@ -326,6 +334,14 @@ class MaxBlock(Block):
             return adj_input
         else:
             return 0.
+
+    def solve_tlm(self):
+        x, = self.get_outputs()
+        a, b = self.get_dependencies()
+        if a.output >= b.output:
+            x.tlm_value = +a.tlm_value
+        else:
+            x.tlm_value = +b.tlm_value
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
         idx = 0 if inputs[0] >= inputs[1] else 1

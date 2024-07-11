@@ -41,6 +41,48 @@ def test_log(a_val, tlm_a_val):
 
 @pytest.mark.parametrize("a_val", [2.0, 3.0])
 @pytest.mark.parametrize("tlm_a_val", [3.5, -3.5])
+@pytest.mark.parametrize("c", [0, 1])
+def test_min_left(a_val, tlm_a_val, c):
+    a = AdjFloat(a_val)
+    a.block_variable.tlm_value = AdjFloat(tlm_a_val)
+    b = AdjFloat(a_val + c)
+    x = min(a, b)
+    assert x.block_variable.tlm_value == tlm_a_val
+
+
+@pytest.mark.parametrize("b_val", [2.0, 3.0])
+@pytest.mark.parametrize("tlm_b_val", [3.5, -3.5])
+def test_min_right(b_val, tlm_b_val):
+    a = AdjFloat(b_val + 1)
+    b = AdjFloat(b_val)
+    b.block_variable.tlm_value = AdjFloat(tlm_b_val)
+    x = min(a, b)
+    assert x.block_variable.tlm_value == tlm_b_val
+
+
+@pytest.mark.parametrize("a_val", [2.0, 3.0])
+@pytest.mark.parametrize("tlm_a_val", [3.5, -3.5])
+@pytest.mark.parametrize("c", [0, -1])
+def test_max_left(a_val, tlm_a_val, c):
+    a = AdjFloat(a_val)
+    a.block_variable.tlm_value = AdjFloat(tlm_a_val)
+    b = AdjFloat(a_val + c)
+    x = max(a, b)
+    assert x.block_variable.tlm_value == tlm_a_val
+
+
+@pytest.mark.parametrize("b_val", [2.0, 3.0])
+@pytest.mark.parametrize("tlm_b_val", [3.5, -3.5])
+def test_max_right(b_val, tlm_b_val):
+    a = AdjFloat(b_val - 1)
+    b = AdjFloat(b_val)
+    b.block_variable.tlm_value = AdjFloat(tlm_b_val)
+    x = max(a, b)
+    assert x.block_variable.tlm_value == tlm_b_val
+
+
+@pytest.mark.parametrize("a_val", [2.0, 3.0])
+@pytest.mark.parametrize("tlm_a_val", [3.5, -3.5])
 @pytest.mark.parametrize("b_val", [4.25, 5.25])
 @pytest.mark.parametrize("tlm_b_val", [5.8125, -5.8125])
 def test_pow(a_val, tlm_a_val, b_val, tlm_b_val):
