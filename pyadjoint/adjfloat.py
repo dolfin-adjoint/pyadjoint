@@ -458,6 +458,17 @@ class AddBlock(FloatOperatorBlock):
             tlm_output += tlm_input
         return tlm_output
 
+    def solve_tlm(self):
+        x, = self.get_outputs()
+        terms = tuple(dep.tlm_value for dep in self.get_dependencies()
+                      if dep.tlm_value is not None)
+        if len(terms) == 0:
+            x.tlm_value = None
+        elif len(terms) == 1:
+            x.tlm_value = AdjFloat(terms[0])
+        else:
+            x.tlm_value = sum(terms[1:], start=terms[0])
+
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
         return hessian_inputs[0]
