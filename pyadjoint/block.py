@@ -1,7 +1,7 @@
 from contextlib import ExitStack
 from html import escape
 
-from .tape import no_annotations, reverse_over_forward_enabled
+from .tape import no_annotations, reverse_over_forward_enabled, stop_reverse_over_forward
 
 
 class Block(object):
@@ -89,7 +89,8 @@ class Block(object):
                     with ExitStack() as stack:
                         for dep in self.get_dependencies():
                             stack.enter_context(dep.restore_output())
-                        self.solve_tlm()
+                        with stop_reverse_over_forward():
+                            self.solve_tlm()
                 else:
                     for x in self.get_outputs():
                         x.tlm_value = None
