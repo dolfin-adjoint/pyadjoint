@@ -25,7 +25,7 @@ def test_exp(a_val, tlm_a_val):
     x = exp(a)
     _ = compute_gradient(x.block_variable.tlm_value, Control(a))
     adj_value = a.block_variable.adj_value
-    assert adj_value == exp(a_val) * tlm_a_val
+    assert np.allclose(adj_value, exp(a_val) * tlm_a_val)
 
 
 @pytest.mark.parametrize("a_val", [2.0, 3.0])
@@ -36,7 +36,7 @@ def test_log(a_val, tlm_a_val):
     x = log(a)
     _ = compute_gradient(x.block_variable.tlm_value, Control(a))
     adj_value = a.block_variable.adj_value
-    assert adj_value == -tlm_a_val / (a_val ** 2)
+    assert np.allclose(adj_value, -tlm_a_val / (a_val ** 2))
 
 
 @pytest.mark.parametrize("a_val", [2.0, 3.0])
