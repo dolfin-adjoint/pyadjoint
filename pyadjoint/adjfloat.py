@@ -358,6 +358,15 @@ class FloatOperatorBlock(Block):
         return f"{self.terms[0]} {self.symbol} {self.terms[1]}"
 
 
+def sum_tlm_terms(terms):
+    if len(terms) == 0:
+        return None
+    elif len(terms) == 1:
+        return AdjFloat(terms[0])
+    else:
+        return sum(terms[1:], start=terms[0])
+
+
 class PowBlock(FloatOperatorBlock):
     operator = staticmethod(float.__pow__)
     symbol = "**"
@@ -394,6 +403,16 @@ class PowBlock(FloatOperatorBlock):
             exponent_adj = float.__mul__(float.__mul__(exponent.tlm_value, log(base_value)),
                                          float.__pow__(base_value, exponent_value))
             output.add_tlm_output(exponent_adj)
+
+    def solve_tlm(self):
+        x, = self.get_outputs()
+        a, b = self.get_dependencies()
+        terms = []
+        if a.tlm_value is not None:
+            terms.append(b.output * (a.output ** (b.output - 1)) * a.tlm_value)
+        if b.tlm_value is not None:
+            terms.append(log(a.output) * (a.output ** b.output) * a.tlm_value)
+        x.tlm_value = sum_tlm_terms(terms)
 
     def evaluate_hessian(self, markings=False):
         output = self.get_outputs()[0]
@@ -438,15 +457,6 @@ class PowBlock(FloatOperatorBlock):
             base.add_hessian_output(float.__mul__(exponent.tlm_value, mixed))
         if base.tlm_value is not None:
             exponent.add_hessian_output(float.__mul__(base.tlm_value, mixed))
-
-
-def sum_tlm_terms(terms):
-    if len(terms) == 0:
-        return None
-    elif len(terms) == 1:
-        return AdjFloat(terms[0])
-    else:
-        return sum(terms[1:], start=terms[0])
 
 
 class AddBlock(FloatOperatorBlock):

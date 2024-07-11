@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 
+import numpy as np
 import pytest
 
 from pyadjoint import *
@@ -36,6 +37,34 @@ def test_log(a_val, tlm_a_val):
     _ = compute_gradient(x.block_variable.tlm_value, Control(a))
     adj_value = a.block_variable.adj_value
     assert adj_value == -tlm_a_val / (a_val ** 2)
+
+
+@pytest.mark.parametrize("a_val", [2.0, 3.0])
+@pytest.mark.parametrize("tlm_a_val", [3.5, -3.5])
+@pytest.mark.parametrize("b_val", [4.25, 5.25])
+@pytest.mark.parametrize("tlm_b_val", [5.8125, -5.8125])
+def test_pow(a_val, tlm_a_val, b_val, tlm_b_val):
+    a = AdjFloat(a_val)
+    a.block_variable.tlm_value = AdjFloat(tlm_a_val)
+    b = AdjFloat(b_val)
+    b.block_variable.tlm_value = AdjFloat(tlm_b_val)
+    x = a ** b
+    J_hat = ReducedFunctional(x.block_variable.tlm_value, Control(a))
+    assert taylor_test(J_hat, a, AdjFloat(1.0)) > 1.9
+    J_hat = ReducedFunctional(x.block_variable.tlm_value, Control(b))
+    assert taylor_test(J_hat, b, AdjFloat(1.0)) > 1.9
+
+
+@pytest.mark.parametrize("a_val", [2.0, 3.0])
+@pytest.mark.parametrize("tlm_a_val", [3.5, -3.5])
+def test_a_pow_a(a_val, tlm_a_val):
+    a = AdjFloat(a_val)
+    a.block_variable.tlm_value = AdjFloat(tlm_a_val)
+    x = a ** a
+    _ = compute_gradient(x.block_variable.tlm_value, Control(a))
+    adj_value = a.block_variable.adj_value
+    assert np.allclose(
+        adj_value, ((1 + log(a_val)) ** 2 + (1 / a_val)) * (a_val ** a_val) * tlm_a_val)
 
 
 @pytest.mark.parametrize("a_val", [2.0, -2.0])
