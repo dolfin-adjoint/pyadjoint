@@ -378,15 +378,6 @@ class FloatOperatorBlock(Block):
         return f"{self.terms[0]} {self.symbol} {self.terms[1]}"
 
 
-def sum_tlm_terms(terms):
-    if len(terms) == 0:
-        return None
-    elif len(terms) == 1:
-        return +terms[0]
-    else:
-        return sum(terms[1:], start=terms[0])
-
-
 class PowBlock(FloatOperatorBlock):
     operator = staticmethod(float.__pow__)
     symbol = "**"
@@ -432,7 +423,7 @@ class PowBlock(FloatOperatorBlock):
             terms.append(b.output * (a.output ** (b.output - 1)) * a.tlm_value)
         if b.tlm_value is not None:
             terms.append(log(a.output) * (a.output ** b.output) * b.tlm_value)
-        x.tlm_value = sum_tlm_terms(terms)
+        x.tlm_value = None if len(terms) == 0 else sum(terms[1:], start=terms[0])
 
     def evaluate_hessian(self, markings=False):
         output = self.get_outputs()[0]
@@ -501,7 +492,12 @@ class AddBlock(FloatOperatorBlock):
         x, = self.get_outputs()
         terms = tuple(dep.tlm_value for dep in self.get_dependencies()
                       if dep.tlm_value is not None)
-        x.tlm_value = sum_tlm_terms(terms)
+        if len(terms) == 0:
+            x.tlm_value = None
+        elif len(terms) == 1:
+            x.tlm_value = +terms[0]
+        else:
+            x.tlm_value = sum(terms[1:], start=terms[0])
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
@@ -536,7 +532,7 @@ class SubBlock(FloatOperatorBlock):
             else:
                 x.tlm_value = -b.tlm_value
         elif b.tlm_value is None:
-            x.tlm_value = a.tlm_value
+            x.tlm_value = +a.tlm_value
         else:
             x.tlm_value = a.tlm_value - b.tlm_value
 
@@ -576,7 +572,7 @@ class MulBlock(FloatOperatorBlock):
             terms.append(b.output * a.tlm_value)
         if b.tlm_value is not None:
             terms.append(a.output * b.tlm_value)
-        x.tlm_value = sum_tlm_terms(terms)
+        x.tlm_value = None if len(terms) == 0 else sum(terms[1:], start=terms[0])
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
@@ -634,7 +630,7 @@ class DivBlock(FloatOperatorBlock):
             terms.append(a.tlm_value / b.output)
         if b.tlm_value is not None:
             terms.append((-a.output / (b.output ** 2)) * b.tlm_value)
-        x.tlm_value = sum_tlm_terms(terms)
+        x.tlm_value = None if len(terms) == 0 else sum(terms[1:], start=terms[0])
 
     def evaluate_hessian(self, markings=False):
         output = self.get_outputs()[0]
