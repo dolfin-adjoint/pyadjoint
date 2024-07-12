@@ -160,11 +160,11 @@ def continue_reverse_over_forward():
 
 @contextmanager
 def stop_reverse_over_forward():
-    """Return a callable used to construct a context manager within which
-    reverse-over-forward AD is disabled.
+    """Return a context manager used to temporarily disable
+    reverse-over-forward AD.
 
     Returns:
-        callable: Callable which returns a context manager.
+        The context manager.
     """
 
     global _reverse_over_forward_enabled
@@ -177,7 +177,8 @@ def stop_reverse_over_forward():
 
 
 def no_reverse_over_forward(function):
-    """Decorator to disable reverse-over-forward AD for the decorated callable.
+    """Decorator to temporarily disable reverse-over-forward AD for the
+    decorated callable.
 
     Args:
         function (callable): The callable.

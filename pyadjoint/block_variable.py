@@ -102,7 +102,7 @@ class BlockVariable(object):
         the value of `self.output` to `self.block_variable.saved_output`.
 
         Returns:
-            The context manager
+            The context manager.
         """
 
         if self.output is self.saved_output:
