@@ -431,7 +431,7 @@ class PowBlock(FloatOperatorBlock):
         if a.tlm_value is not None:
             terms.append(b.output * (a.output ** (b.output - 1)) * a.tlm_value)
         if b.tlm_value is not None:
-            terms.append(log(a.output) * (a.output ** b.output) * a.tlm_value)
+            terms.append(log(a.output) * (a.output ** b.output) * b.tlm_value)
         x.tlm_value = sum_tlm_terms(terms)
 
     def evaluate_hessian(self, markings=False):

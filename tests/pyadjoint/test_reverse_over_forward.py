@@ -105,33 +105,28 @@ def test_max_right(b_val, tlm_b_val):
 
 
 @pytest.mark.parametrize("a_val", [2.0, 3.0])
-@pytest.mark.parametrize("tlm_a_val", [3.5, -3.5])
+@pytest.mark.parametrize("tlm_a_val", [3.5, -3.5, None])
 @pytest.mark.parametrize("b_val", [4.25, 5.25])
-@pytest.mark.parametrize("tlm_b_val", [5.8125, -5.8125])
+@pytest.mark.parametrize("tlm_b_val", [5.8125, -5.8125, None])
 def test_pow(a_val, tlm_a_val, b_val, tlm_b_val):
     a = AdjFloat(a_val)
-    a.block_variable.tlm_value = AdjFloat(tlm_a_val)
+    if tlm_a_val is not None:
+        a.block_variable.tlm_value = AdjFloat(tlm_a_val)
     b = AdjFloat(b_val)
-    b.block_variable.tlm_value = AdjFloat(tlm_b_val)
+    if tlm_b_val is not None:
+        b.block_variable.tlm_value = AdjFloat(tlm_b_val)
     x = a ** b
-    J_hat = ReducedFunctional(x.block_variable.tlm_value, Control(a))
-    assert taylor_test(J_hat, a, AdjFloat(1.0)) > 1.9
-    J_hat = ReducedFunctional(x.block_variable.tlm_value, Control(b))
-    assert taylor_test(J_hat, b, AdjFloat(1.0)) > 1.9
-
-
-@pytest.mark.parametrize("a_val", [2.0, 3.0])
-@pytest.mark.parametrize("tlm_a_val", [3.5, -3.5])
-def test_a_pow_a(a_val, tlm_a_val):
-    a = AdjFloat(a_val)
-    a.block_variable.tlm_value = AdjFloat(tlm_a_val)
-    x = a ** a
-    stop_annotating()
-    _ = compute_gradient(x.block_variable.tlm_value, Control(a))
-    adj_value = a.block_variable.adj_value
-    assert np.allclose(
-        adj_value, ((1 + log(a_val)) ** 2 + (1 / a_val)) * (a_val ** a_val) * tlm_a_val)
-
+    if tlm_a_val is not None or tlm_b_val is not None:
+        _ = compute_gradient(x.block_variable.tlm_value, (Control(a), Control(b)))
+        assert np.allclose(
+            a.block_variable.adj_value,
+            b_val * (b_val - 1) * (a_val ** (b_val - 2)) * (0.0 if tlm_a_val is None else tlm_a_val)
+            + (1 + b_val * log(a_val)) * (a_val ** (b_val - 1)) * (0.0 if tlm_b_val is None else tlm_b_val))
+        assert np.allclose(
+            b.block_variable.adj_value,
+            (1 + b_val * log(a_val)) * (a_val ** (b_val - 1)) * (0.0 if tlm_a_val is None else tlm_a_val)
+            + (log(a_val) ** 2) * (a_val ** b_val) * (0.0 if tlm_b_val is None else tlm_b_val))
+        
 
 @pytest.mark.parametrize("a_val", [2.0, -2.0])
 @pytest.mark.parametrize("tlm_a_val", [3.5, -3.5, None])
