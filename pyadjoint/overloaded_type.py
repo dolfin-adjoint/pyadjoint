@@ -285,6 +285,18 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
+    def _ad_assign(self, other):
+        """This method must be overridden for mutable types.
+
+        In-place assignment.
+
+        Args:
+            other (object): The object assign to `self`, with the same type as
+                `self`.
+        """
+
+        raise NotImplementedError
+
     def _ad_copy(self):
         """This method must be overridden.
 

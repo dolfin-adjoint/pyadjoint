@@ -1,4 +1,6 @@
-from .tape import no_annotations, get_working_tape
+from contextlib import contextmanager
+
+from .tape import no_annotations, get_working_tape, stop_annotating
 
 
 class BlockVariable(object):
@@ -93,3 +95,24 @@ class BlockVariable(object):
         if self.is_control:
             return
         self._checkpoint = value
+
+    @contextmanager
+    def restore_output(self):
+        """Return a context manager which can be used to temporarily restore
+        the value of `self.output` to `self.block_variable.saved_output`.
+
+        Returns:
+            The context manager.
+        """
+
+        if self.output is self.saved_output:
+            yield
+        else:
+            with stop_annotating():
+                old_value = self.output._ad_copy()
+                self.output._ad_assign(self.saved_output)
+            try:
+                yield
+            finally:
+                with stop_annotating():
+                    self.output._ad_assign(old_value)
