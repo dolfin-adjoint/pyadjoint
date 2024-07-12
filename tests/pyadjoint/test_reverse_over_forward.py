@@ -116,6 +116,12 @@ def test_pow(a_val, tlm_a_val, b_val, tlm_b_val):
     if tlm_b_val is not None:
         b.block_variable.tlm_value = AdjFloat(tlm_b_val)
     x = a ** b
+    if tlm_a_val is None and tlm_b_val is None:
+        assert x.block_variable.tlm_value is None
+    else:
+        assert (x.block_variable.tlm_value ==
+                b_val * (a_val ** (b_val - 1)) * (0.0 if tlm_a_val is None else tlm_a_val)
+                + log(a_val) * (a_val ** b_val) * (0.0 if tlm_b_val is None else tlm_b_val))
     if tlm_a_val is not None or tlm_b_val is not None:
         _ = compute_gradient(x.block_variable.tlm_value, (Control(a), Control(b)))
         assert np.allclose(
@@ -152,12 +158,12 @@ def test_add(a_val, tlm_a_val, b_val, tlm_b_val):
         _ = compute_gradient(y.block_variable.tlm_value, (Control(a), Control(b)))
         assert np.allclose(
             a.block_variable.adj_value,
-            (6 * a_val + 6 * b_val) * (0.0 if tlm_a_val is None else tlm_a_val)
-            + (6 * a_val + 6 * b_val) * (0.0 if tlm_b_val is None else tlm_b_val))
+            6 * (a_val + b_val) * (0.0 if tlm_a_val is None else tlm_a_val)
+            + 6 * (a_val + b_val) * (0.0 if tlm_b_val is None else tlm_b_val))
         assert np.allclose(
             b.block_variable.adj_value,
-            (6 * a_val + 6 * b_val) * (0.0 if tlm_a_val is None else tlm_a_val)
-            + (6 * a_val + 6 * b_val) * (0.0 if tlm_b_val is None else tlm_b_val))
+            6 * (a_val + b_val) * (0.0 if tlm_a_val is None else tlm_a_val)
+            + 6 * (a_val + b_val) * (0.0 if tlm_b_val is None else tlm_b_val))
 
 
 @pytest.mark.parametrize("a_val", [2.0, -2.0])
@@ -184,12 +190,12 @@ def test_sub(a_val, tlm_a_val, b_val, tlm_b_val):
         _ = compute_gradient(y.block_variable.tlm_value, (Control(a), Control(b)))
         assert np.allclose(
             a.block_variable.adj_value,
-            (6 * a_val - 6 * b_val) * (0.0 if tlm_a_val is None else tlm_a_val)
-            + (-6 * a_val + 6 * b_val) * (0.0 if tlm_b_val is None else tlm_b_val))
+            6 * (a_val - b_val) * (0.0 if tlm_a_val is None else tlm_a_val)
+            - 6 * (a_val - b_val) * (0.0 if tlm_b_val is None else tlm_b_val))
         assert np.allclose(
             b.block_variable.adj_value,
-            (-6 * a_val + 6 * b_val) * (0.0 if tlm_a_val is None else tlm_a_val)
-            + (6 * a_val - 6 * b_val) * (0.0 if tlm_b_val is None else tlm_b_val))
+            - 6 * (a_val - b_val) * (0.0 if tlm_a_val is None else tlm_a_val)
+            + 6 * (a_val - b_val) * (0.0 if tlm_b_val is None else tlm_b_val))
 
 
 @pytest.mark.parametrize("a_val", [2.0, -2.0])
@@ -237,6 +243,12 @@ def test_div(a_val, tlm_a_val, b_val, tlm_b_val):
     if tlm_b_val is not None:
         b.block_variable.tlm_value = AdjFloat(tlm_b_val)
     x = (a ** 2) / b
+    if tlm_a_val is None and tlm_b_val is None:
+        assert x.block_variable.tlm_value is None
+    else:
+        assert (x.block_variable.tlm_value ==
+                (2 * a_val / b_val) * (0.0 if tlm_a_val is None else tlm_a_val)
+                - ((a_val ** 2) / (b_val ** 2)) * (0.0 if tlm_b_val is None else tlm_b_val))
     stop_annotating()
     if tlm_a_val is not None or tlm_b_val is not None:
         _ = compute_gradient(x.block_variable.tlm_value, (Control(a), Control(b)))
