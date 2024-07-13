@@ -279,6 +279,24 @@ class OverloadedType(object):
         raise NotImplementedError
 
     @staticmethod
+    def _ad_assign(dst, src):
+        """This method must be overridden.
+
+        The method should implement a routine for assigning the values from
+        a checkpoint `src` to the object. `src` should be an instance of the same
+        type as the implementing class.
+
+        Args:
+            src (obj): The object which should be assigned new values.
+
+        Returns:
+            obj: The object with the new values assigned.
+
+        """
+        raise NotImplementedError
+
+
+    @staticmethod
     def _ad_to_list(m):
         """This method must be overridden.
 

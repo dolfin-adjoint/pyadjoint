@@ -266,23 +266,17 @@ class CheckpointManager:
             current_step = self.tape.timesteps[step]
             for block in current_step:
                 block.recompute()
+            _store_checkpointable_state = False
+            _store_adj_deps = False
             if cp_action.storage != StorageType.WORK:
                 if (cp_action.write_ics and step == cp_action.n0):
-                    # Store the checkpoint data required for restarting the
-                    # forward model or computing the adjoint model.
-                    # If `cp_action.write_ics` is `True`, the checkpointed data
-                    # will restart the forward model from the step `n0`.
-                    for var in current_step.checkpointable_state:
-                        if var.checkpoint:
-                            current_step._checkpoint.update(
-                                {var: var.checkpoint}
-                            )
+                    _store_checkpointable_state = True
                 if cp_action.write_adj_deps:
-                    for var in current_step.adjoint_dependencies:
-                        if var.checkpoint:
-                            current_step._checkpoint.update(
-                                {var: var.checkpoint}
-                            )
+                    _store_adj_deps = True
+                current_step.checkpoint(
+                    checkpointable_state=_store_checkpointable_state,
+                    adj_deps=_store_adj_deps,
+                )
 
             if (
                 (cp_action.write_adj_deps and cp_action.storage != StorageType.WORK)

@@ -762,7 +762,7 @@ class TimeStep(list):
         out.checkpointable_state = self.checkpointable_state
         return out
 
-    def checkpoint(self, checkpointable_state=False, adj_deps=False):
+    def checkpoint(self, checkpointable_state, adj_deps):
         """Store a copy of the checkpoints in the checkpointable state.
 
         Args:
@@ -772,22 +772,48 @@ class TimeStep(list):
             to compute the adjoint of a timestep.
         """
         with stop_annotating():
-            if checkpointable_state:
-                for var in self.checkpointable_state:
-                    checkpoint = var.checkpoint
-                    if checkpoint is None:
-                        checkpoint = var.output._ad_create_checkpoint()
-                        if checkpoint is not None:
-                            raise ValueError("This block variable should have a checkpoint at this point.")
-                    self._checkpoint[var] = checkpoint
-            if adj_deps:
-                for var in self.adjoint_dependencies:
-                    checkpoint = var.checkpoint
-                    if checkpoint is None:
-                        checkpoint = var.output._ad_create_checkpoint()
-                        if checkpoint is not None:
-                            raise ValueError("This block variable should have a checkpoint at this point.")
-                    self._checkpoint[var] = checkpoint
+            if self._checkpoint:
+                if checkpointable_state:
+                    for var in self.checkpointable_state:
+                        self._checkpoint.update(
+                            {
+                                var: var.output._ad_assign(
+                                    self._checkpoint[var], var.checkpoint
+                                )
+                            }
+                        )
+                if adj_deps:
+                    for var in self.adjoint_dependencies:
+                        self._checkpoint.update(
+                            var.output._ad_assign(
+                                self._checkpoint[var], var.checkpoint
+                            )
+                        )
+            else:
+                if checkpointable_state:
+                    for var in self.checkpointable_state:
+                        checkpoint = var.checkpoint
+                        if checkpoint is None:
+                            checkpoint = var.output._ad_create_checkpoint()
+                            if checkpoint is not None:
+                                # Message should be more informative. Add block name.
+                                raise ValueError(
+                                    "This block variable" + str(var) + "should have a checkpoint at this point."
+                                )
+                        self._checkpoint[var] = checkpoint
+                if adj_deps:
+                    for var in self.adjoint_dependencies:
+                        checkpoint = var.checkpoint
+                        if checkpoint is None:
+                            checkpoint = var.output._ad_create_checkpoint()
+                            if checkpoint is not None:
+                                raise ValueError(
+                                    "This block variable should have a checkpoint at this point."
+                                )
+                        self._checkpoint[var] = checkpoint
+
+                
+
 
     def restore_from_checkpoint(self):
         """Restore the block var checkpoints from the timestep checkpoint."""

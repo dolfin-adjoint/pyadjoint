@@ -121,6 +121,11 @@ class AdjFloat(OverloadedType, float):
         dst = type(dst)(src[offset:offset + 1])
         offset += 1
         return dst, offset
+    
+    @staticmethod
+    def _ad_assign(dst, src):
+        dst = type(dst)(src)
+        return dst
 
     @staticmethod
     def _ad_to_list(value):
