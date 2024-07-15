@@ -772,18 +772,24 @@ class TimeStep(list):
             to compute the adjoint of a timestep.
         """
         with stop_annotating():
-            self.delete_checkpoint()
-            if checkpointable_state:
-                for var in self.checkpointable_state:
-                    if var.checkpoint is not None:
-                        self._checkpoint[var] = var.checkpoint
-            if adj_deps:
-                for var in self.adjoint_dependencies:
-                    if var.checkpoint is not None:
+            if self._checkpoint:
+                if checkpointable_state:
+                    for var in self.checkpointable_state:
+                        try:
+                            self._checkpoint.update({
+                                var: self._checkpoint[var]._ad_assign(var.checkpoint)
+                            })
+                        except AttributeError:
+                            # Probably None or not an OverloadedType.
+                            self._checkpoint.update({var: var.checkpoint})
+            else:
+                if checkpointable_state:
+                    for var in self.checkpointable_state:
                         self._checkpoint[var] = var.checkpoint
 
-                
-
+                if adj_deps:
+                    for var in self.adjoint_dependencies:
+                        self._checkpoint[var] = var.checkpoint
 
     def restore_from_checkpoint(self):
         """Restore the block var checkpoints from the timestep checkpoint."""

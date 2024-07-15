@@ -100,10 +100,6 @@ class AdjFloat(OverloadedType, float):
         # Floats are immutable.
         return self
 
-    def _ad_clear_checkpoint(self, checkpoint):
-        checkpoint = None
-        return checkpoint
-
     def _ad_restore_at_checkpoint(self, checkpoint):
         return checkpoint
 
@@ -121,6 +117,11 @@ class AdjFloat(OverloadedType, float):
         dst = type(dst)(src[offset:offset + 1])
         offset += 1
         return dst, offset
+
+    def _ad_assign(self, other):
+        # Floats are immutable.
+        # We return a new instance of the same type.
+        return type(self)(other)
 
     @staticmethod
     def _ad_to_list(value):
