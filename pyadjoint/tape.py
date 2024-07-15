@@ -772,45 +772,15 @@ class TimeStep(list):
             to compute the adjoint of a timestep.
         """
         with stop_annotating():
-            if self._checkpoint:
-                if checkpointable_state:
-                    for var in self.checkpointable_state:
-                        self._checkpoint.update(
-                            {
-                                var: var.output._ad_assign(
-                                    self._checkpoint[var], var.checkpoint
-                                )
-                            }
-                        )
-                if adj_deps:
-                    for var in self.adjoint_dependencies:
-                        self._checkpoint.update(
-                            var.output._ad_assign(
-                                self._checkpoint[var], var.checkpoint
-                            )
-                        )
-            else:
-                if checkpointable_state:
-                    for var in self.checkpointable_state:
-                        checkpoint = var.checkpoint
-                        if checkpoint is None:
-                            checkpoint = var.output._ad_create_checkpoint()
-                            if checkpoint is not None:
-                                # Message should be more informative. Add block name.
-                                raise ValueError(
-                                    "This block variable" + str(var) + "should have a checkpoint at this point."
-                                )
-                        self._checkpoint[var] = checkpoint
-                if adj_deps:
-                    for var in self.adjoint_dependencies:
-                        checkpoint = var.checkpoint
-                        if checkpoint is None:
-                            checkpoint = var.output._ad_create_checkpoint()
-                            if checkpoint is not None:
-                                raise ValueError(
-                                    "This block variable should have a checkpoint at this point."
-                                )
-                        self._checkpoint[var] = checkpoint
+            self.delete_checkpoint()
+            if checkpointable_state:
+                for var in self.checkpointable_state:
+                    if var.checkpoint is not None:
+                        self._checkpoint[var] = var.checkpoint
+            if adj_deps:
+                for var in self.adjoint_dependencies:
+                    if var.checkpoint is not None:
+                        self._checkpoint[var] = var.checkpoint
 
                 
 

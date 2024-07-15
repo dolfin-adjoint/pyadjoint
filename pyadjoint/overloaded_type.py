@@ -130,16 +130,20 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
-    def _ad_clear_checkpoint(self, checkpoint):
-        """Return a value to set the checkpoint to when it is cleared.
+    def _ad_value_to_clear_checkpoint(self, checkpoint):
+        """Return the value to be used when clearing the checkpoint.
 
-        This OverloadedType method also allows to check according the checkpoint
-        type if the value None is a valid value to set the checkpoint to.
+        This method should be overridden if the default behaviour is not
+        compatible with this OverloadedType.
+
+        Args:
+            checkpoint (:obj:`object`): The checkpoint to clear.
 
         Returns:
-            None: The default value to set the checkpoint to when it is cleared.
+            None: The value to be used when clearing the checkpoint.
         """
-        raise NotImplementedError
+        checkpoint = None
+        return checkpoint
 
     def _ad_restore_at_checkpoint(self, checkpoint):
         """This method must be overridden.
@@ -277,24 +281,6 @@ class OverloadedType(object):
 
         """
         raise NotImplementedError
-
-    @staticmethod
-    def _ad_assign(dst, src):
-        """This method must be overridden.
-
-        The method should implement a routine for assigning the values from
-        a checkpoint `src` to the object. `src` should be an instance of the same
-        type as the implementing class.
-
-        Args:
-            src (obj): The object which should be assigned new values.
-
-        Returns:
-            obj: The object with the new values assigned.
-
-        """
-        raise NotImplementedError
-
 
     @staticmethod
     def _ad_to_list(m):
