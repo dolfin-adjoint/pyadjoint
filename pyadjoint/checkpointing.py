@@ -8,7 +8,7 @@ class CheckpointError(RuntimeError):
     pass
 
 
-class CheckpointingMode(Enum):
+class Mode(Enum):
     """The mode of the checkpoint manager.
 
     RECORD: The forward model is being taped.
@@ -69,7 +69,7 @@ class CheckpointManager:
             # `self.total_timesteps` to the maximum value of the `sys.maxsize` to indicate that
             # the total number of timesteps is not known.
             self.total_timesteps = sys.maxsize
-        self.mode = CheckpointingMode.RECORD
+        self.mode = Mode.RECORD
         self._current_action = next(self._schedule)
         self.forward_schedule.append(self._current_action)
         # Tell the tape to only checkpoint input data until told otherwise.
@@ -82,9 +82,9 @@ class CheckpointManager:
         Args:
             timestep (int): The current timestep.
         """
-        if self.mode == CheckpointingMode.EVALUATED:
+        if self.mode == Mode.EVALUATED:
             raise CheckpointError("Not enough timesteps in schedule.")
-        elif self.mode != CheckpointingMode.RECORD:
+        elif self.mode != Mode.RECORD:
             raise CheckpointError(f"Cannot end timestep in {self.mode}")
         while not self.process_taping(self._current_action, timestep + 1):
             self._current_action = next(self._schedule)
@@ -98,7 +98,7 @@ class CheckpointManager:
             self._schedule.finalize(len(self.tape.timesteps))
             # `self._schedule.finalize` updates `self._schedule.max_n`.
             self.total_timesteps = self._schedule.max_n
-        while self.mode != CheckpointingMode.EVALUATED:
+        while self.mode != Mode.EVALUATED:
             self.end_timestep(current_timestep)
             current_timestep += 1
 
@@ -183,7 +183,7 @@ class CheckpointManager:
             raise CheckpointError(
                 "The correct number of forward steps has notbeen taken."
             )
-        self.mode = CheckpointingMode.EVALUATED
+        self.mode = Mode.EVALUATED
         return True
 
     def recompute(self, functional=None):
@@ -192,10 +192,10 @@ class CheckpointManager:
         Args:
             functional (BlockVariable): The functional to be evaluated.
         """
-        if self.mode == CheckpointingMode.RECORD:
+        if self.mode == Mode.RECORD:
             # Finalise the taping process.
             self.end_taping()
-        self.mode = CheckpointingMode.RECOMPUTE
+        self.mode = Mode.RECOMPUTE
         with self.tape.progress_bar("Evaluating Functional", max=self.total_timesteps) as bar:
             # Restore the initial condition to advance the forward model from the step 0.
             current_step = self.tape.timesteps[self.forward_schedule[0].n0]
@@ -218,11 +218,11 @@ class CheckpointManager:
             raise NotImplementedError(
                 "Only the first block can be evaluated at present."
             )
-        if self.mode == CheckpointingMode.RECORD:
+        if self.mode == Mode.RECORD:
             # Finalise the taping process.
             self.end_taping()
 
-        if self.mode not in (CheckpointingMode.EVALUATED, CheckpointingMode.FINISHED_RECORDING):
+        if self.mode not in (Mode.EVALUATED, Mode.FINISHED_RECORDING):
             raise CheckpointError("Evaluate Functional before calling gradient.")
 
         with self.tape.progress_bar("Evaluating Adjoint", max=self.total_timesteps) as bar:
@@ -238,7 +238,7 @@ class CheckpointManager:
 
             # Only set the mode after the first backward in order to handle
             # that step correctly.
-            self.mode = CheckpointingMode.EVALUATE_ADJOINT
+            self.mode = Mode.EVALUATE_ADJOINT
 
     @singledispatchmethod
     def process_operation(self, cp_action, bar, **kwargs):
@@ -266,7 +266,7 @@ class CheckpointManager:
         step = cp_action.n0
         #  In a dynamic schedule `cp_action` can be unbounded so we also need to check `self.total_timesteps`.
         while step in cp_action and step < self.total_timesteps:
-            if self.mode == CheckpointingMode.RECOMPUTE and bar:
+            if self.mode == Mode.RECOMPUTE and bar:
                 bar.next()
             # Get the blocks of the current step.
             current_step = self.tape.timesteps[step]
@@ -353,11 +353,11 @@ class CheckpointManager:
 
     @process_operation.register(EndForward)
     def _(self, cp_action, bar, **kwargs):
-        self.mode = CheckpointingMode.EVALUATED
+        self.mode = Mode.EVALUATED
 
     @process_operation.register(EndReverse)
     def _(self, cp_action, bar, **kwargs):
         if self._schedule.is_exhausted:
-            self.mode = CheckpointingMode.EXHAUSTED
+            self.mode = Mode.EXHAUSTED
         else:
-            self.mode = CheckpointingMode.EVALUATED
+            self.mode = Mode.EVALUATED

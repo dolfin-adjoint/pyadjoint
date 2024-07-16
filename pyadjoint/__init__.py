@@ -17,7 +17,6 @@ from .drivers import compute_gradient, compute_hessian, solve_adjoint
 from .verification import taylor_test, taylor_to_dict
 from .overloaded_type import OverloadedType, create_overloaded_object
 from .control import Control
-from .checkpointing import CheckpointingMode
 from .optimization.optimization import minimize, maximize, print_optimization_methods
 from .optimization.optimization_problem import MinimizationProblem
 from .optimization.ipopt_solver import IPOPTSolver
