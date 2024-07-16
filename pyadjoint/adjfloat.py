@@ -118,6 +118,11 @@ class AdjFloat(OverloadedType, float):
         offset += 1
         return dst, offset
 
+    def _ad_assign(self, other):
+        # Floats are immutable.
+        # We return a new instance of the same type.
+        return type(self)(other)
+
     @staticmethod
     def _ad_to_list(value):
         return [value]
@@ -336,7 +341,10 @@ class FloatOperatorBlock(Block):
             self.add_dependency(dep)
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        return self.operator(*(term.saved_output for term in self.terms))
+        output = self.operator(*(term.saved_output for term in self.terms))
+        if isinstance(output, float):
+            return AdjFloat(output)
+        return output
 
     def __str__(self):
         return f"{self.terms[0]} {self.symbol} {self.terms[1]}"
