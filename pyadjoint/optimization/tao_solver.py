@@ -340,7 +340,7 @@ class TAOSolver(OptimizationSolver):
             x_lb = ()
             x_ub = ()
             for i, (lb, ub) in enumerate(problem.bounds):
-                array_size = problem.reduced_functional.controls[i]._ad_petsc_vec().getSizes()[0]
+                array_size = problem.reduced_functional.controls[i]._ad_petsc_vec().getLocalSize()
                 if lb is None:
                     lb = np.finfo(PETSc.ScalarType).max
                 if ub is None:
