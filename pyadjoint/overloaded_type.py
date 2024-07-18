@@ -240,13 +240,27 @@ class OverloadedType(object):
         """
         return True
     
-    def _ad_petsc_vec(self):
+    def _ad_vec_to_petsc(self):
         """This method must be overridden.
 
-        The method should implement a routine to return a PETSc Vec object.
+        This method should implement a routine to return a new instance that is
+        a copy of the PETSc Vec associated with the overloaded object.
 
         Returns:
-            PETSc.Vec: A PETSc Vec object containing the data of the overloaded.
+            PETSc.Vec: A new instance that is a copy of the PETSc Vec of the
+                overloaded object.
+        """
+        raise NotImplementedError
+
+    def _ad_vec_from_petsc(self, vec):
+        """This method must be overridden.
+
+        The method should implement a routine to update the PETSc Vec associated
+        with the overloaded object from the given PETSc Vec `vec`.
+
+        Args:
+            vec (PETSc.Vec): The PETSc Vec from which to update the `self`
+                associated PETSc Vec.
 
         """
         raise NotImplementedError

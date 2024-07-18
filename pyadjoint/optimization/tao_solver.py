@@ -37,25 +37,34 @@ class PETScVecInterface:
             raise RuntimeError("PETSc not available")
 
         X = Enlist(X)
+        vecs, indices = self._get_vecs_indexes(X)
+        _, isis = PETSc.Vec().concatenate(vecs)
+        self._concatenate_vecs = vecs
+        self._isis_concatenated_vecs = [i for i in isis]
         if comm is None:
             comm = PETSc.COMM_WORLD
         if hasattr(comm, "tompi4py"):
             comm = comm.tompi4py()
-
-        indices = []
         n = 0
         N = 0
-        for x in X:
-            x_n = x._ad_petsc_vec().getSizes()[0]
-            indices.append((n, n + x_n))
-            n += x_n
+        for x, i in zip(X, indices):
+            indices.append((n, n + i))
+            n += i
             N += x._ad_dim()
-
+    
         self._comm = comm
         self._indices = tuple(indices)
         self._n = n
         self._N = N
-        self._index_concatenated_vecs = None
+
+    def _get_vecs_indexes(self, X):
+        indices = []
+        vecs = []
+        for x in X:
+            vec = x._ad_vec_to_petsc()
+            indices.append(vec.getLocalSize())
+            vecs.append(vec)
+        return vecs, indices
 
     @property
     def comm(self):
@@ -68,7 +77,6 @@ class PETScVecInterface:
     def indices(self):
         """Local index ranges for variables.
         """
-
         return self._indices
 
     @property
@@ -109,14 +117,10 @@ class PETScVecInterface:
         """
 
         X = Enlist(X)
-        y_a = y.getArray(True)
-
-        if y_a.shape != (self.n,):
-            raise ValueError("Invalid shape")
-        if len(X) != len(self._index_concatenated_vecs):
+        if len(X) != len(self._isis_concatenated_vecs):
             raise ValueError("Invalid length")
-        for i, x in enumerate(X):
-            x._ad_petsc_vec().setArray(y_a[self._index_concatenated_vecs[i]])
+        for iset, x in zip(self._isis_concatenated_vecs, X):
+            x._ad_vec_from_petsc(y.getSubVector(iset))
 
     def to_petsc(self, x, Y):
         """Copy data from variables to a :class:`petsc4py.PETSc.Vec`.
@@ -128,26 +132,10 @@ class PETScVecInterface:
         """
 
         Y = Enlist(Y)
-        if len(Y) != len(self.indices):
-            raise ValueError("Invalid length")
-        x.setArray(
-            self.concatenate_vecs([y._ad_petsc_vec() for y in Y]).getArray()
-        )
-
-    def concatenate_vecs(self, vecs):
-        """Concatenate Vecs into a single Vec.
-
-        Args:
-            Y (`petsc4py.PETSc.Vec` or sequence of `petsc4py.PETSc.Vec`):
-            The input Vecs to concatenate.
-        """
-        if not all(isinstance(vec, PETSc.Vec) for vec in vecs):
-            raise ValueError("vecs should be a sequence of PETSc.Vec objects")
-
-        vecs = Enlist(vecs)
-        concatenated_vec, set_indexes = PETSc.Vec().concatenate(vecs)
-        self._index_concatenated_vecs = [set_indexes[i].array for i in range(len(vecs))]
-        return concatenated_vec
+        for iset, y in zip(self._isis_concatenated_vecs, Y):
+            v_i = x.getSubVector(iset)
+            y._ad_vec_to_petsc().copy(result=v_i)
+            x.restoreSubVector(iset, v_i)
 
 
 class PETScOptions:
@@ -336,26 +324,28 @@ class TAOSolver(OptimizationSolver):
                     "bounds should be of length number of controls of the ReducedFunctional"
                 )
 
-            concatenate_vecs = vec_interface.concatenate_vecs
-            x_lb = ()
-            x_ub = ()
-            for i, (lb, ub) in enumerate(problem.bounds):
-                array_size = problem.reduced_functional.controls[i]._ad_petsc_vec().getLocalSize()
-                if lb is None:
-                    lb = np.finfo(PETSc.ScalarType).max
-                if ub is None:
-                    ub = np.finfo(PETSc.ScalarType).max
-                x_lb += (PETSc.Vec().createWithArray(
-                    np.full((array_size,), lb, dtype=PETSc.ScalarType)
-                ),)
-                x_ub += (PETSc.Vec().createWithArray(
-                    np.full((array_size,), ub, dtype=PETSc.ScalarType)
-                ),)
+            new_concatenate_vecs_lb = vec_interface.new_petsc()
+            new_concatenate_vecs_ub = vec_interface.new_petsc()
+            # WIP
+            # x_lb = ()
+            # x_ub = ()
+            # for i, (lb, ub) in enumerate(problem.bounds):
+            #     array_size = vec_interface.indices[i]
+            #     if lb is None:
+            #         lb = np.finfo(PETSc.ScalarType).max
+            #     if ub is None:
+            #         ub = np.finfo(PETSc.ScalarType).max
+            #     x_lb += (PETSc.Vec().createWithArray(
+            #         np.full((array_size,), lb, dtype=PETSc.ScalarType)
+            #     ),)
+            #     x_ub += (PETSc.Vec().createWithArray(
+            #         np.full((array_size,), ub, dtype=PETSc.ScalarType)
+            #     ),)
 
-            tao.setVariableBounds(concatenate_vecs(x_lb), concatenate_vecs(x_ub))
-            for x_lb_vec, x_ub_vec in zip(x_lb, x_ub):
-                x_lb_vec.destroy()
-                x_ub_vec.destroy()
+            tao.setVariableBounds(new_concatenate_vecs_lb, new_concatenate_vecs_ub)
+            # for x_lb_vec, x_ub_vec in zip(x_lb, x_ub):
+            #     x_lb_vec.destroy()
+            #     x_ub_vec.destroy()
 
         options = PETScOptions(f"_pyadjoint__{tao.name:s}_")
         options.update(parameters)
