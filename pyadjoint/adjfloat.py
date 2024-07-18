@@ -129,13 +129,11 @@ class AdjFloat(OverloadedType, float):
     def _ad_str(self):
         """Return the string of the taped value of this variable."""
         return str(self.block_variable.saved_output)
-    
-    def _ad_petsc_vec(self):
-        try:
-            from petsc4py import PETSc
-        except ModuleNotFoundError:
-            raise ImportError("petsc4py is required for this feature")
-        
+
+    def _ad_vec_to_petsc(self):
+        NotImplementedError("It requires more thought to return a PETSc Vec from `AdjFloat`")
+
+    def _ad_vec_from_petsc(self, vec):
         NotImplementedError("It requires more thought to return a PETSc Vec from `AdjFloat`")
 
 
