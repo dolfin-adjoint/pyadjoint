@@ -134,7 +134,7 @@ class AdjFloat(OverloadedType, float):
         NotImplementedError("It requires more thought to return a PETSc Vec from `AdjFloat`")
 
     def _ad_vec_from_petsc(self, vec):
-        NotImplementedError("It requires more thought to return a PETSc Vec from `AdjFloat`")
+        NotImplementedError("It requires more thought.")
 
 
 _exp = math.exp
