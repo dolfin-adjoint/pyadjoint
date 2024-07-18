@@ -1,4 +1,6 @@
 from functools import cached_property
+from sys import maxsize
+from enum import Enum
 import numbers
 import weakref
 
@@ -179,6 +181,9 @@ class PETScOptions:
         for key, value in d.items():
             self[key] = value
 
+class BoundType(Enum):
+    LOWER = 0
+    UPPER = 1
 
 class TAOObjective:
     def __init__(self, rf):
@@ -326,26 +331,27 @@ class TAOSolver(OptimizationSolver):
 
             new_concatenate_vecs_lb = vec_interface.new_petsc()
             new_concatenate_vecs_ub = vec_interface.new_petsc()
-            # WIP
-            # x_lb = ()
-            # x_ub = ()
-            # for i, (lb, ub) in enumerate(problem.bounds):
-            #     array_size = vec_interface.indices[i]
-            #     if lb is None:
-            #         lb = np.finfo(PETSc.ScalarType).max
-            #     if ub is None:
-            #         ub = np.finfo(PETSc.ScalarType).max
-            #     x_lb += (PETSc.Vec().createWithArray(
-            #         np.full((array_size,), lb, dtype=PETSc.ScalarType)
-            #     ),)
-            #     x_ub += (PETSc.Vec().createWithArray(
-            #         np.full((array_size,), ub, dtype=PETSc.ScalarType)
-            #     ),)
+            lbs = []
+            ubs = []
+            for bound, control in zip(
+                problem.bounds, taoobjective.reduced_functional.controls
+            ):
+                lb, ub = bound
+                lb = self._prepared_bound(
+                    control, lb, bound_type=BoundType.LOWER
+                )
+                ub = self._prepared_bound(
+                    control, ub, bound_type=BoundType.UPPER
+                )
+                
+                lbs.append(lb)
+                ubs.append(ub)
+            to_petsc(new_concatenate_vecs_lb, lbs)
+            to_petsc(new_concatenate_vecs_ub, ubs)
 
-            tao.setVariableBounds(new_concatenate_vecs_lb, new_concatenate_vecs_ub)
-            # for x_lb_vec, x_ub_vec in zip(x_lb, x_ub):
-            #     x_lb_vec.destroy()
-            #     x_ub_vec.destroy()
+            tao.setVariableBounds(
+                new_concatenate_vecs_lb, new_concatenate_vecs_ub
+            )
 
         options = PETScOptions(f"_pyadjoint__{tao.name:s}_")
         options.update(parameters)
@@ -406,6 +412,23 @@ class TAOSolver(OptimizationSolver):
             tao, H_matrix, M_inv_matrix, B_0_matrix_pc, B_0_matrix, x)
         finalize.atexit = False
 
+    def _prepared_bound(self, control, bound, bound_type=BoundType.UPPER):
+        if bound is None:
+            bound = control.control._ad_copy()
+            if bound_type == BoundType.LOWER:
+                bound._ad_assign(-maxsize)
+            else:
+                bound._ad_assign(maxsize)
+        elif isinstance(bound, numbers.Number):
+            bound_num = bound
+            bound = control.control._ad_copy()
+            bound._ad_assign(bound_num)
+        elif not isinstance(bound, type(control)):
+            raise TypeError(
+                "This bound {bound} should be None, a float, or a %s." % type(control)
+            )
+        return bound
+
     def solve(self):
         """Solve the optimisation problem.
 
@@ -420,3 +443,6 @@ class TAOSolver(OptimizationSolver):
         self.tao.solve()
         self.vec_interface.from_petsc(self.x, M)
         return self.taoobjective.reduced_functional.controls.delist(M)
+
+
+

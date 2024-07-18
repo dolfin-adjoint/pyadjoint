@@ -141,6 +141,17 @@ class OverloadedType(object):
 
         """
         raise NotImplementedError
+    
+    def _ad_assign(self, other):
+        """This method must be overridden.
+
+        The method should implement a routine for assigning the values from
+        another object `other` to `self`.
+
+        Args:
+            value (obj): The object which should be assigned to `self`.
+        """
+        raise NotImplementedError
 
     def _ad_mul(self, other):
         """This method must be overridden.
