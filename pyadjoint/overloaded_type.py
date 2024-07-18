@@ -141,7 +141,7 @@ class OverloadedType(object):
 
         """
         raise NotImplementedError
-    
+
     def _ad_assign(self, other):
         """This method must be overridden.
 
@@ -250,7 +250,7 @@ class OverloadedType(object):
 
         """
         return True
-    
+
     def _ad_vec_to_petsc(self):
         """This method must be overridden.
 

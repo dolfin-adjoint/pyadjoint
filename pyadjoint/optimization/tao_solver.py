@@ -9,7 +9,6 @@ from .optimization_problem import MinimizationProblem
 from .optimization_solver import OptimizationSolver
 
 
-import numpy as np
 try:
     import petsc4py.PETSc as PETSc
 except ModuleNotFoundError:
@@ -53,7 +52,7 @@ class PETScVecInterface:
             indices.append((n, n + i))
             n += i
             N += x._ad_dim()
-    
+
         self._comm = comm
         self._indices = tuple(indices)
         self._n = n
@@ -181,9 +180,11 @@ class PETScOptions:
         for key, value in d.items():
             self[key] = value
 
+
 class BoundType(Enum):
     LOWER = 0
     UPPER = 1
+
 
 class TAOObjective:
     def __init__(self, rf):
@@ -343,7 +344,7 @@ class TAOSolver(OptimizationSolver):
                 ub = self._prepared_bound(
                     control, ub, bound_type=BoundType.UPPER
                 )
-                
+
                 lbs.append(lb)
                 ubs.append(ub)
             to_petsc(new_concatenate_vecs_lb, lbs)
@@ -443,6 +444,3 @@ class TAOSolver(OptimizationSolver):
         self.tao.solve()
         self.vec_interface.from_petsc(self.x, M)
         return self.taoobjective.reduced_functional.controls.delist(M)
-
-
-
