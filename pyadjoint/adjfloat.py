@@ -130,7 +130,7 @@ class AdjFloat(OverloadedType, float):
         """Return the string of the taped value of this variable."""
         return str(self.block_variable.saved_output)
 
-    def _ad_vec_to_petsc(self):
+    def _ad_to_petsc(self):
         NotImplementedError("It requires more thought to return a PETSc Vec from `AdjFloat`")
 
     def _ad_from_petsc(self, vec):
