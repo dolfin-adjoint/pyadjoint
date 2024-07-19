@@ -62,7 +62,7 @@ class PETScVecInterface:
         indices = []
         vecs = []
         for x in X:
-            vec = x._ad_vec_to_petsc()
+            vec = x._ad_to_petsc()
             indices.append(vec.getLocalSize())
             vecs.append(vec)
         return vecs, indices
@@ -121,7 +121,7 @@ class PETScVecInterface:
         if len(X) != len(self._isis_concatenated_vecs):
             raise ValueError("Invalid length")
         for iset, x in zip(self._isis_concatenated_vecs, X):
-            x._ad_vec_from_petsc(y.getSubVector(iset))
+            x._ad_from_petsc(y.getSubVector(iset))
 
     def to_petsc(self, x, Y):
         """Copy data from variables to a :class:`petsc4py.PETSc.Vec`.
@@ -135,7 +135,7 @@ class PETScVecInterface:
         Y = Enlist(Y)
         for iset, y in zip(self._isis_concatenated_vecs, Y):
             v_i = x.getSubVector(iset)
-            y._ad_vec_to_petsc().copy(result=v_i)
+            y._ad_to_petsc().copy(result=v_i)
             x.restoreSubVector(iset, v_i)
 
 
