@@ -145,11 +145,13 @@ class OverloadedType(object):
     def _ad_assign(self, other):
         """This method must be overridden.
 
-        The method should implement a routine for assigning the values from
-        another object `other` to `self`.
+        The method should implement a routine for assigning other to `self`.
+
+        Note:
+            This method should not be employed for immutable types.
 
         Args:
-            value (obj): The object which should be assigned to `self`.
+            other (obj): The object which should be assigned to `self`.
         """
         raise NotImplementedError
 
@@ -251,7 +253,7 @@ class OverloadedType(object):
         """
         return True
 
-    def _ad_vec_to_petsc(self):
+    def _ad_to_petsc(self):
         """This method must be overridden.
 
         This method should implement a routine to return a new instance that is
@@ -263,7 +265,7 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
-    def _ad_vec_from_petsc(self, vec):
+    def _ad_from_petsc(self, vec):
         """This method must be overridden.
 
         The method should implement a routine to update the PETSc Vec associated
