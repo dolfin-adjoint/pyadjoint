@@ -1,8 +1,8 @@
-from functools import cached_property
-from sys import maxsize
 from enum import Enum
-import numbers
+from functools import cached_property
 import weakref
+
+import numpy as np
 
 from ..enlisting import Enlist
 from .optimization_problem import MinimizationProblem
@@ -20,12 +20,22 @@ __all__ = \
     ]
 
 
+def attach_destroy_finalizer(obj, *args):
+    def finalize_callback(*args):
+        for arg in args:
+            if arg is not None:
+                arg.destroy()
+
+    finalize = weakref.finalize(obj, finalize_callback,
+                                *args)
+    finalize.atexit = False
+
+
 class PETScVecInterface:
     """Interface for conversion between :class:`OverloadedType` objects and
     :class:`petsc4py.PETSc.Vec` objects.
 
     This uses the generic interface provided by :class:`OverloadedType`.
-    Currently this gathers values on all processes.
 
     Args:
         X (OverloadedType or Sequence[OverloadedType]): One or more variables
@@ -38,34 +48,25 @@ class PETScVecInterface:
             raise RuntimeError("PETSc not available")
 
         X = Enlist(X)
-        vecs, indices = self._get_vecs_indexes(X)
-        _, isis = PETSc.Vec().concatenate(vecs)
-        self._concatenate_vecs = vecs
-        self._isis_concatenated_vecs = [i for i in isis]
         if comm is None:
             comm = PETSc.COMM_WORLD
         if hasattr(comm, "tompi4py"):
             comm = comm.tompi4py()
-        n = 0
-        N = 0
-        for x, i in zip(X, indices):
-            indices.append((n, n + i))
-            n += i
-            N += x._ad_dim()
+
+        vecs = tuple(x._ad_to_petsc() for x in X)
+        n = sum(vec.getLocalSize() for vec in vecs)
+        N = sum(vec.getSize() for vec in vecs)
+        _, isets = PETSc.Vec().concatenate(vecs)
+        for vec in vecs:
+            vec.destroy()
+        del vecs
 
         self._comm = comm
-        self._indices = tuple(indices)
         self._n = n
         self._N = N
+        self._isets = isets
 
-    def _get_vecs_indexes(self, X):
-        indices = []
-        vecs = []
-        for x in X:
-            vec = x._ad_to_petsc()
-            indices.append(vec.getLocalSize())
-            vecs.append(vec)
-        return vecs, indices
+        attach_destroy_finalizer(self, *self._isets)
 
     @property
     def comm(self):
@@ -73,12 +74,6 @@ class PETScVecInterface:
         """
 
         return self._comm
-
-    @property
-    def indices(self):
-        """Local index ranges for variables.
-        """
-        return self._indices
 
     @property
     def n(self):
@@ -118,10 +113,12 @@ class PETScVecInterface:
         """
 
         X = Enlist(X)
-        if len(X) != len(self._isis_concatenated_vecs):
+        if len(X) != len(self._isets):
             raise ValueError("Invalid length")
-        for iset, x in zip(self._isis_concatenated_vecs, X):
-            x._ad_from_petsc(y.getSubVector(iset))
+        for iset, x in zip(self._isets, X):
+            y_sub = y.getSubVector(iset)
+            x._ad_from_petsc(y_sub)
+            y.restoreSubVector(iset, y_sub)
 
     def to_petsc(self, x, Y):
         """Copy data from variables to a :class:`petsc4py.PETSc.Vec`.
@@ -133,10 +130,12 @@ class PETScVecInterface:
         """
 
         Y = Enlist(Y)
-        for iset, y in zip(self._isis_concatenated_vecs, Y):
-            v_i = x.getSubVector(iset)
-            y._ad_to_petsc().copy(result=v_i)
-            x.restoreSubVector(iset, v_i)
+        for iset, y in zip(self._isets, Y):
+            x_sub = x.getSubVector(iset)
+            y_vec = y._ad_to_petsc()
+            y_vec.copy(result=x_sub)
+            y_vec.destroy()
+            x_sub.restoreSubVector(iset, x_sub)
 
 
 class PETScOptions:
@@ -144,9 +143,9 @@ class PETScOptions:
         if PETSc is None:
             raise RuntimeError("PETSc not available")
 
-        self.options_prefix = options_prefix
+        self._options_prefix = options_prefix
         self._options = PETSc.Options()
-        self._keys = {}  # Use dict as an ordered set
+        self._keys = {}
 
         def finalize_callback(options_prefix, options, keys):
             for key in keys:
@@ -156,8 +155,12 @@ class PETScOptions:
 
         finalize = weakref.finalize(
             self, finalize_callback,
-            self.options_prefix, self._options, self._keys)
+            self._options_prefix, self._options, self._keys)
         finalize.atexit = False
+
+    @property
+    def options_prefix(self):
+        return self._options_prefix
 
     def __getitem__(self, key):
         if key not in self._keys:
@@ -176,8 +179,8 @@ class PETScOptions:
         for key in tuple(self._keys):
             del self[key]
 
-    def update(self, d):
-        for key, value in d.items():
+    def update(self, other):
+        for key, value in other.items():
             self[key] = value
 
 
@@ -188,7 +191,11 @@ class BoundType(Enum):
 
 class TAOObjective:
     def __init__(self, rf):
-        self.reduced_functional = rf
+        self._reduced_functional = rf
+
+    @property
+    def reduced_functional(self):
+        return self._reduced_functional
 
     def objective_gradient(self, M):
         M = Enlist(M)
@@ -323,36 +330,24 @@ class TAOSolver(OptimizationSolver):
         tao.setGradientNorm(M_inv_matrix)
 
         if problem.bounds is not None:
-            if not all(len(bound) == 2 for bound in problem.bounds):
-                raise ValueError("Each bound should be a tuple of length 2 (lb, ub)")
-            if not len(problem.bounds) == len(problem.reduced_functional.controls):
-                raise ValueError(
-                    "bounds should be of length number of controls of the ReducedFunctional"
-                )
-
-            new_concatenate_vecs_lb = vec_interface.new_petsc()
-            new_concatenate_vecs_ub = vec_interface.new_petsc()
             lbs = []
             ubs = []
-            for bound, control in zip(
-                problem.bounds, taoobjective.reduced_functional.controls
-            ):
-                lb, ub = bound
+            assert len(problem.bounds) == len(problem.reduced_functional.controls)
+            for (lb, ub), control in zip(problem.bounds, taoobjective.reduced_functional.controls):
                 lb = self._prepared_bound(
-                    control, lb, bound_type=BoundType.LOWER
-                )
+                    control, lb, bound_type=BoundType.LOWER)
                 ub = self._prepared_bound(
-                    control, ub, bound_type=BoundType.UPPER
-                )
-
+                    control, ub, bound_type=BoundType.UPPER)
                 lbs.append(lb)
                 ubs.append(ub)
-            to_petsc(new_concatenate_vecs_lb, lbs)
-            to_petsc(new_concatenate_vecs_ub, ubs)
 
-            tao.setVariableBounds(
-                new_concatenate_vecs_lb, new_concatenate_vecs_ub
-            )
+            lb_vec = vec_interface.new_petsc()
+            ub_vec = vec_interface.new_petsc()
+            to_petsc(lb_vec, lbs)
+            to_petsc(ub_vec, ubs)
+            tao.setVariableBounds(lb_vec, ub_vec)
+            lb_vec.destroy()
+            ub_vec.destroy()
 
         options = PETScOptions(f"_pyadjoint__{tao.name:s}_")
         options.update(parameters)
@@ -398,36 +393,34 @@ class TAOSolver(OptimizationSolver):
         tao.setUp()
 
         super().__init__(problem, parameters)
-        self.taoobjective = taoobjective
-        self.vec_interface = vec_interface
-        self.tao = tao
-        self.x = x
+        self._taoobjective = taoobjective
+        self._vec_interface = vec_interface
+        self._tao = tao
+        self._x = x
 
-        def finalize_callback(*args):
-            for arg in args:
-                if arg is not None:
-                    arg.destroy()
+        attach_destroy_finalizer(
+            self, tao, H_matrix, M_inv_matrix, B_0_matrix_pc, B_0_matrix, x)
 
-        finalize = weakref.finalize(
-            self, finalize_callback,
-            tao, H_matrix, M_inv_matrix, B_0_matrix_pc, B_0_matrix, x)
-        finalize.atexit = False
+    @property
+    def taoobjective(self):
+        return self._taoobjective
 
-    def _prepared_bound(self, control, bound, bound_type=BoundType.UPPER):
+    @property
+    def tao(self):
+        return self._tao
+
+    @property
+    def x(self):
+        return self._x
+
+    @staticmethod
+    def _prepared_bound(control, bound, bound_type):
         if bound is None:
-            bound = control.control._ad_copy()
-            if bound_type == BoundType.LOWER:
-                bound._ad_assign(-maxsize)
-            else:
-                bound._ad_assign(maxsize)
-        elif isinstance(bound, numbers.Number):
-            bound_num = bound
-            bound = control.control._ad_copy()
-            bound._ad_assign(bound_num)
-        elif not isinstance(bound, type(control)):
-            raise TypeError(
-                "This bound {bound} should be None, a float, or a %s." % type(control)
-            )
+            bound = {BoundType.LOWER: np.finfo(PETSc.ScalarType).min,
+                     BoundType.UPPER: np.finfo(PETSc.ScalarType).max}[bound_type]
+        bound_val = bound
+        bound = control.control._ad_copy()
+        bound._ad_assign(bound_val)
         return bound
 
     def solve(self):
@@ -440,7 +433,7 @@ class TAOSolver(OptimizationSolver):
             m.tape_value()._ad_copy()
             for m in self.taoobjective.reduced_functional.controls
         )
-        self.vec_interface.to_petsc(self.x, M)
+        self._vec_interface.to_petsc(self.x, M)
         self.tao.solve()
-        self.vec_interface.from_petsc(self.x, M)
+        self._vec_interface.from_petsc(self.x, M)
         return self.taoobjective.reduced_functional.controls.delist(M)
