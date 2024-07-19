@@ -133,7 +133,7 @@ class AdjFloat(OverloadedType, float):
     def _ad_vec_to_petsc(self):
         NotImplementedError("It requires more thought to return a PETSc Vec from `AdjFloat`")
 
-    def _ad_vec_from_petsc(self, vec):
+    def _ad_from_petsc(self, vec):
         NotImplementedError("It requires more thought.")
 
 
