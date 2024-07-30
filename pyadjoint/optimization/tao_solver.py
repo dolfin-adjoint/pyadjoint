@@ -1,10 +1,11 @@
-from enum import Enum
 from functools import cached_property
+from numbers import Complex
 import weakref
 
 import numpy as np
 
 from ..enlisting import Enlist
+from ..overloaded_type import OverloadedType
 from .optimization_problem import MinimizationProblem
 from .optimization_solver import OptimizationSolver
 
@@ -117,20 +118,25 @@ class PETScVecInterface:
             y.restoreSubVector(iset, y_sub)
 
     def to_petsc(self, x, Y):
-        """Copy data from variables to a :class:`petsc4py.PETSc.Vec`.
+        """Copy data to a :class:`petsc4py.PETSc.Vec`.
 
         Args:
             x (petsc4py.PETSc.Vec): The output :class:`petsc4py.PETSc.Vec`.
-            Y (OverloadedType or Sequence[OverloadedType]):
+            Y (Complex, OverloadedType or Sequence[OverloadedType]):
                 Values for input variables.
         """
 
         Y = Enlist(Y)
         for iset, y in zip(self._isets, Y):
             x_sub = x.getSubVector(iset)
-            y_vec = y._ad_to_petsc()
-            y_vec.copy(result=x_sub)
-            y_vec.destroy()
+            if isinstance(y, Complex):
+                x_sub.set(y)
+            elif isinstance(y, OverloadedType):
+                y_vec = y._ad_to_petsc()
+                y_vec.copy(result=x_sub)
+                y_vec.destroy()
+            else:
+                raise TypeError(f"Unexpected type: {type(y)}")
             x_sub.restoreSubVector(iset, x_sub)
 
 
@@ -178,11 +184,6 @@ class PETScOptions:
     def update(self, other):
         for key, value in other.items():
             self[key] = value
-
-
-class BoundType(Enum):
-    LOWER = 0
-    UPPER = 1
 
 
 class TAOObjective:
@@ -384,10 +385,10 @@ class TAOSolver(OptimizationSolver):
             ubs = []
             assert len(problem.bounds) == len(problem.reduced_functional.controls)
             for (lb, ub), control in zip(problem.bounds, taoobjective.reduced_functional.controls):
-                lb = self._prepared_bound(
-                    control, lb, bound_type=BoundType.LOWER)
-                ub = self._prepared_bound(
-                    control, ub, bound_type=BoundType.UPPER)
+                if lb is None:
+                    lb = np.finfo(PETSc.ScalarType).min
+                if ub is None:
+                    ub = np.finfo(PETSc.ScalarType).max
                 lbs.append(lb)
                 ubs.append(ub)
 
@@ -472,16 +473,6 @@ class TAOSolver(OptimizationSolver):
         """
 
         return self._x
-
-    @staticmethod
-    def _prepared_bound(control, bound, bound_type):
-        if bound is None:
-            bound = {BoundType.LOWER: np.finfo(PETSc.ScalarType).min,
-                     BoundType.UPPER: np.finfo(PETSc.ScalarType).max}[bound_type]
-        bound_val = bound
-        bound = control.control._ad_copy()
-        bound._ad_assign(bound_val)
-        return bound
 
     def solve(self):
         """Solve the optimization problem.
