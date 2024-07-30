@@ -151,7 +151,7 @@ class PETScOptions:
 
         def finalize_callback(options_prefix, options, keys):
             for key in keys:
-                key = f"{options_prefix:s}{key:s}"
+                key = f"{options_prefix:s}{key}"
                 if key in options:
                     del options[key]
 
@@ -167,7 +167,7 @@ class PETScOptions:
     def __getitem__(self, key):
         if key not in self._keys:
             raise KeyError(key)
-        return self._options[f"{self.options_prefix:s}{key:s}"]
+        return self._options[f"{self.options_prefix:s}{key}"]
 
     def __setitem__(self, key, value):
         self._keys[key] = None
@@ -175,7 +175,7 @@ class PETScOptions:
 
     def __delitem__(self, key):
         del self._keys[key]
-        del self._options[f"{self.options_prefix:s}{key:s}"]
+        del self._options[f"{self.options_prefix:s}{key}"]
 
     def clear(self):
         for key in tuple(self._keys):
@@ -400,7 +400,7 @@ class TAOSolver(OptimizationSolver):
             lb_vec.destroy()
             ub_vec.destroy()
 
-        options = PETScOptions(f"_pyadjoint__{tao.name:s}_")
+        options = PETScOptions(f"_pyadjoint__{tao.name}_")
         options.update(parameters)
         tao.setOptionsPrefix(options.options_prefix)
 
