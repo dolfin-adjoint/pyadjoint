@@ -38,8 +38,8 @@ class PETScVecInterface:
     This uses the generic interface provided by :class:`OverloadedType`.
 
     Args:
-        X (OverloadedType or Sequence[OverloadedType]): One or more variables
-            defining the size of data to be stored.
+        X (OverloadedType or Sequence[OverloadedType]): Defines the data
+            layout.
         comm (petsc4py.PETSc.Comm or mpi4py.MPI.Comm): Communicator.
     """
 
@@ -77,13 +77,13 @@ class PETScVecInterface:
 
     @property
     def n(self):
-        """Total number of process local DoFs, summed over all variables."""
+        """Total number of process local DoFs."""
 
         return self._n
 
     @property
     def N(self):
-        """Total number of global DoFs, summed over all variables."""
+        """Total number of global DoFs."""
 
         return self._N
 
@@ -186,14 +186,37 @@ class BoundType(Enum):
 
 
 class TAOObjective:
+    """Utility class for computing functional values and associated
+    derivatives.
+
+    Args:
+        rf (ReducedFunctional): Defines the forward, and used to compute
+            derivative information.
+    """
+
     def __init__(self, rf):
         self._reduced_functional = rf
 
     @property
     def reduced_functional(self):
+        """:class:`.ReducedFunctional`. Defines the forward, and used to
+        compute derivative information.
+        """
+    
         return self._reduced_functional
 
     def objective_gradient(self, M):
+        """Evaluate the forward, and compute a first derivative.
+
+        Args:
+            M (OverloadedType or Sequence[OverloadedType]): Defines the control
+                value.
+        Returns:
+            AdjFloat: The value of the functional.
+            OverloadedType or Sequence[OverloadedType]: The (dual space)
+                derivative.
+        """
+
         M = Enlist(M)
         J = self.reduced_functional(tuple(m._ad_copy() for m in M))
         _ = self.reduced_functional.derivative()
@@ -202,6 +225,19 @@ class TAOObjective:
         return J, M.delist(dJ)
 
     def hessian(self, M, M_dot):
+        """Evaluate the forward, and compute a second derivative action on a
+        given direction.
+
+        Args:
+            M (OverloadedType or Sequence[OverloadedType]): Defines the control
+                value.
+            M_dot (OverloadedType or Sequence[OverloadedType]): Defines the
+                direction.
+        Returns:
+            OverloadedType or Sequence[OverloadedType]: The (dual space)
+                second derivative action on the given direction.
+        """
+
         M = Enlist(M)
         M_dot = Enlist(M_dot)
         _ = self.reduced_functional(tuple(m._ad_copy() for m in M))
@@ -212,11 +248,29 @@ class TAOObjective:
         return M.delist(ddJ)
 
     def new_M(self):
+        """Return a new variable or variables suitable for storing a control
+        value. Not initialized to zero.
+
+        Returns:
+            OverloadedType or Sequence[OverloadedType]: New variable or
+                variables suitable for storing a control value.
+        """
+
         # Not initialized to zero
         return tuple(m.control._ad_copy()
                      for m in self.reduced_functional.controls)
 
     def new_M_dual(self):
+        """Return a new variable or variables suitable for storing a value for
+        a (dual space) derivative of the functional with respect to the
+        control. Not initialized to zero.
+
+        Returns:
+            OverloadedType or Sequence[OverloadedType]: New variable or
+                variables suitable for storing a value for a (dual space)
+                derivative of the functional with respect to the control.
+        """
+
         # Not initialized to zero, requires adjoint or Hessian action values to
         # have already been computed
         M_dual = []
@@ -399,14 +453,24 @@ class TAOSolver(OptimizationSolver):
 
     @property
     def taoobjective(self):
+        """The :class:`.TAOObjective` used for the optimization.
+        """
+
         return self._taoobjective
 
     @property
     def tao(self):
+        """The :class:`petsc4py.PETSc.TAO` used for the optimization.
+        """
+
         return self._tao
 
     @property
     def x(self):
+        """The :class:`petsc4py.PETSc.Vec` used to store the solution to the
+        optimization problem.
+        """
+
         return self._x
 
     @staticmethod
@@ -420,7 +484,7 @@ class TAOSolver(OptimizationSolver):
         return bound
 
     def solve(self):
-        """Solve the optimisation problem.
+        """Solve the optimization problem.
 
         Returns:
             OverloadedType or tuple[OverloadedType]: The solution.
