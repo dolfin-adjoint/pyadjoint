@@ -203,7 +203,7 @@ class TAOObjective:
         """:class:`.ReducedFunctional`. Defines the forward, and used to
         compute derivative information.
         """
-    
+
         return self._reduced_functional
 
     def objective_gradient(self, M):
