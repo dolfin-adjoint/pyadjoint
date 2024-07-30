@@ -83,9 +83,7 @@ class PETScVecInterface:
 
     @property
     def N(self):
-        """Total number of global degrees of freedom, summed over all
-        variables.
-        """
+        """Total number of global DoFs, summed over all variables."""
 
         return self._N
 
