@@ -77,9 +77,7 @@ class PETScVecInterface:
 
     @property
     def n(self):
-        """Total number of process local degrees of freedom, summed over all
-        variables.
-        """
+        """Total number of process local DoFs, summed over all variables."""
 
         return self._n
 
