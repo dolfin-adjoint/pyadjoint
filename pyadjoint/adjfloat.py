@@ -131,10 +131,10 @@ class AdjFloat(OverloadedType, float):
         return str(self.block_variable.saved_output)
 
     def _ad_to_petsc(self):
-        NotImplementedError("It requires more thought to return a PETSc Vec from `AdjFloat`")
+        raise NotImplementedError("_ad_to_petsc not implemented for AdjFloat.")
 
     def _ad_from_petsc(self, vec):
-        NotImplementedError("It requires more thought.")
+        raise NotImplementedError("_ad_from_petsc not implemented for AdjFloat.")
 
 
 _exp = math.exp
