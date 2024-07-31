@@ -486,4 +486,6 @@ class TAOSolver(OptimizationSolver):
         self._vec_interface.to_petsc(self.x, M)
         self.tao.solve()
         self._vec_interface.from_petsc(self.x, M)
+        if self.tao.getConvergedReason() <= 0:
+            raise RuntimeError("Convergence failure")
         return self.taoobjective.reduced_functional.controls.delist(M)
