@@ -134,7 +134,7 @@ class PETScVecInterface:
             if isinstance(y, Complex):
                 x_sub.set(y)
             elif isinstance(y, OverloadedType):
-                x_sub = y._ad_to_petsc(vec=x_sub)
+                y._ad_to_petsc(vec=x_sub)
             else:
                 raise TypeError(f"Unexpected type: {type(y)}")
             x_sub.restoreSubVector(iset, x_sub)
