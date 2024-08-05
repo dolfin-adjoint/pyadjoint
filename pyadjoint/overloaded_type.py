@@ -240,7 +240,7 @@ class OverloadedType(object):
         """
         return True
 
-    def _ad_to_petsc(self):
+    def _ad_to_petsc(self, vec=None):
         """This method must be overridden.
 
         This method should implement a routine to return a new instance that is
