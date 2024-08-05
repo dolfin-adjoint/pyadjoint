@@ -243,8 +243,14 @@ class OverloadedType(object):
     def _ad_to_petsc(self, vec=None):
         """This method must be overridden.
 
-        This method should implement a routine to return a new instance that is
-        a copy of the PETSc Vec associated with the overloaded object.
+        If the `vec` parameter is not provided, this method returns a new
+        instance that is a copy of the PETSc Vec associated with the
+        OverloadedType object. If the `vec` parameter is supplied, the PETSc
+        Vec associated with the OverloadedType object is copied into the
+        provided `vec`.
+
+        Args:
+            vec (PETSc.Vec, optional): A PETSc Vec to copy the data into.
 
         Returns:
             PETSc.Vec: A new instance that is a copy of the PETSc Vec of the
