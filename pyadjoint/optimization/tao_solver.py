@@ -127,6 +127,8 @@ class PETScVecInterface:
         """
 
         Y = Enlist(Y)
+        if len(Y) != len(self._isets):
+            raise ValueError("Invalid length")
         for iset, y in zip(self._isets, Y):
             x_sub = x.getSubVector(iset)
             if isinstance(y, Complex):
