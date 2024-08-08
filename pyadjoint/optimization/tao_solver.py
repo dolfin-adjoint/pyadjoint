@@ -232,9 +232,11 @@ class OptionsManager(object):
     # What appeared on the commandline, we should never clear these.
     # They will override options passed in as a dict if an
     # options_prefix was supplied.
-    commandline_options = frozenset(PETSc.Options().getAll())
+    if PETSc is not None:
+        commandline_options = frozenset(PETSc.Options().getAll())
 
-    options_object = PETSc.Options()
+    if PETSc is not None:
+        options_object = PETSc.Options()
 
     count = itertools.count()
 
@@ -276,6 +278,9 @@ class OptionsManager(object):
     into the PETSc options database, by using the context manager.
     """
     def __init__(self, parameters, options_prefix):
+        if PETSc is None:
+            raise RuntimeError("PETSc not available")
+
         super().__init__()
         if parameters is None:
             parameters = {}
