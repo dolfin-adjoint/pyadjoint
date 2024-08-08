@@ -609,7 +609,7 @@ class TAOSolver(OptimizationSolver):
 
             # B_0_matrix is the initial Hessian approximation (following
             # Nocedal and Wright doi: 10.1007/978-0-387-40065-5 notation). This
-            # is H0 in PETSc.
+            # is H0 in PETSc/TAO.
 
             B_0_matrix = PETSc.Mat().createPython(((n, N), (n, N)),
                                                   InitialHessian(), comm=comm)
