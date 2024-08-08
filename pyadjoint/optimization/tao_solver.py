@@ -75,9 +75,6 @@ class PETScVecInterface:
         n = sum(vec.getLocalSize() for vec in vecs)
         N = sum(vec.getSize() for vec in vecs)
         _, isets = PETSc.Vec().concatenate(vecs)
-        for vec in vecs:
-            vec.destroy()
-        del vecs
 
         self._comm = comm
         self._n = n
@@ -560,8 +557,6 @@ class TAOSolver(OptimizationSolver):
             to_petsc(lb_vec, lbs)
             to_petsc(ub_vec, ubs)
             tao.setVariableBounds(lb_vec, ub_vec)
-            lb_vec.destroy()
-            ub_vec.destroy()
 
         options = OptionsManager(parameters, None)
         options.set_from_options(tao)
