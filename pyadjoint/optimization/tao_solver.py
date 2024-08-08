@@ -33,7 +33,7 @@ def attach_destroy_finalizer(obj, *args):
     different processes, e.g. due to garbage collection.
 
     Args:
-        X (object): A finalizer is attached to this object.
+        obj (object): A finalizer is attached to this object.
         args (Sequence[object]): The `destroy` method of each element is
             called when `obj` is destroyed (except at exit). Any `None`
             elements are ignored.
@@ -56,22 +56,22 @@ class PETScVecInterface:
     This uses the generic interface provided by :class:`OverloadedType`.
 
     Args:
-        X (OverloadedType or Sequence[OverloadedType]): Defines the data
+        x (OverloadedType or Sequence[OverloadedType]): Defines the data
             layout.
         comm (petsc4py.PETSc.Comm or mpi4py.MPI.Comm): Communicator.
     """
 
-    def __init__(self, X, *, comm=None):
+    def __init__(self, x, *, comm=None):
         if PETSc is None:
             raise RuntimeError("PETSc not available")
 
-        X = Enlist(X)
+        x = Enlist(x)
         if comm is None:
             comm = PETSc.COMM_WORLD
         if hasattr(comm, "tompi4py"):
             comm = comm.tompi4py()
 
-        vecs = tuple(x._ad_to_petsc() for x in X)
+        vecs = tuple(x_i._ad_to_petsc() for x_i in x)
         n = sum(vec.getLocalSize() for vec in vecs)
         N = sum(vec.getSize() for vec in vecs)
         _, isets = PETSc.Vec().concatenate(vecs)
@@ -114,43 +114,43 @@ class PETScVecInterface:
         vec.setUp()
         return vec
 
-    def from_petsc(self, y, X):
+    def from_petsc(self, y, x):
         """Copy data from a :class:`petsc4py.PETSc.Vec` to variables.
 
         Args:
             y (petsc4py.PETSc.Vec): The input :class:`petsc4py.PETSc.Vec`.
-            X (OverloadedType or Sequence[OverloadedType]): The output
+            x (OverloadedType or Sequence[OverloadedType]): The output
                 variables.
         """
 
-        X = Enlist(X)
-        if len(X) != len(self._isets):
+        x = Enlist(x)
+        if len(x) != len(self._isets):
             raise ValueError("Invalid length")
-        for iset, x in zip(self._isets, X):
+        for iset, x_i in zip(self._isets, x):
             y_sub = y.getSubVector(iset)
-            x._ad_from_petsc(y_sub)
+            x_i._ad_from_petsc(y_sub)
             y.restoreSubVector(iset, y_sub)
 
-    def to_petsc(self, x, Y):
+    def to_petsc(self, x, y):
         """Copy data to a :class:`petsc4py.PETSc.Vec`.
 
         Args:
             x (petsc4py.PETSc.Vec): The output :class:`petsc4py.PETSc.Vec`.
-            Y (Complex, OverloadedType or Sequence[OverloadedType]):
+            y (Complex, OverloadedType or Sequence[OverloadedType]):
                 Values for input variables.
         """
 
-        Y = Enlist(Y)
-        if len(Y) != len(self._isets):
+        y = Enlist(y)
+        if len(y) != len(self._isets):
             raise ValueError("Invalid length")
-        for iset, y in zip(self._isets, Y):
+        for iset, y_i in zip(self._isets, y):
             x_sub = x.getSubVector(iset)
-            if isinstance(y, Complex):
-                x_sub.set(y)
-            elif isinstance(y, OverloadedType):
-                y._ad_to_petsc(vec=x_sub)
+            if isinstance(y_i, Complex):
+                x_sub.set(y_i)
+            elif isinstance(y_i, OverloadedType):
+                y_i._ad_to_petsc(vec=x_sub)
             else:
-                raise TypeError(f"Unexpected type: {type(y)}")
+                raise TypeError(f"Unexpected type: {type(y_i)}")
             x_sub.restoreSubVector(iset, x_sub)
 
 
@@ -366,11 +366,11 @@ class TAOObjective:
 
         return self._reduced_functional
 
-    def objective_gradient(self, M):
+    def objective_gradient(self, m):
         """Evaluate the forward, and compute a first derivative.
 
         Args:
-            M (OverloadedType or Sequence[OverloadedType]): Defines the control
+            m (OverloadedType or Sequence[OverloadedType]): Defines the control
                 value.
         Returns:
             AdjFloat: The value of the functional.
@@ -378,37 +378,37 @@ class TAOObjective:
                 derivative.
         """
 
-        M = Enlist(M)
-        J = self.reduced_functional(tuple(m._ad_copy() for m in M))
+        m = Enlist(m)
+        J = self.reduced_functional(tuple(m_i._ad_copy() for m_i in m))
         _ = self.reduced_functional.derivative()
-        dJ = tuple(m.control.block_variable.adj_value
-                   for m in self.reduced_functional.controls)
-        return J, M.delist(dJ)
+        dJ = tuple(control.control.block_variable.adj_value
+                   for control in self.reduced_functional.controls)
+        return J, m.delist(dJ)
 
-    def hessian(self, M, M_dot):
+    def hessian(self, m, m_dot):
         """Evaluate the forward, and compute a second derivative action on a
         given direction.
 
         Args:
-            M (OverloadedType or Sequence[OverloadedType]): Defines the control
+            m (OverloadedType or Sequence[OverloadedType]): Defines the control
                 value.
-            M_dot (OverloadedType or Sequence[OverloadedType]): Defines the
+            m_dot (OverloadedType or Sequence[OverloadedType]): Defines the
                 direction.
         Returns:
             OverloadedType or Sequence[OverloadedType]: The (dual space)
                 second derivative action on the given direction.
         """
 
-        M = Enlist(M)
-        M_dot = Enlist(M_dot)
-        _ = self.reduced_functional(tuple(m._ad_copy() for m in M))
+        m = Enlist(m)
+        m_dot = Enlist(m_dot)
+        _ = self.reduced_functional(tuple(m_i._ad_copy() for m_i in m))
         _ = self.reduced_functional.derivative()
-        _ = self.reduced_functional.hessian(tuple(m_dot._ad_copy() for m_dot in M_dot))
-        ddJ = tuple(m.control.block_variable.hessian_value
-                    for m in self.reduced_functional.controls)
-        return M.delist(ddJ)
+        _ = self.reduced_functional.hessian(tuple(m_dot_i._ad_copy() for m_dot_i in m_dot))
+        ddJ = tuple(control.control.block_variable.hessian_value
+                    for control in self.reduced_functional.controls)
+        return m.delist(ddJ)
 
-    def new_M(self):
+    def new_control_variable(self):
         """Return a new variable or variables suitable for storing a control
         value. Not initialized to zero.
 
@@ -421,7 +421,7 @@ class TAOObjective:
         return tuple(m.control._ad_copy()
                      for m in self.reduced_functional.controls)
 
-    def new_M_dual(self):
+    def new_dual_control_variable(self):
         """Return a new variable or variables suitable for storing a value for
         a (dual space) derivative of the functional with respect to the
         control. Not initialized to zero.
@@ -434,17 +434,17 @@ class TAOObjective:
 
         # Not initialized to zero, requires adjoint or Hessian action values to
         # have already been computed
-        M_dual = []
-        for m in self.reduced_functional.controls:
-            bv = m.control.block_variable
+        m_dual = []
+        for control in self.reduced_functional.controls:
+            bv = control.control.block_variable
             if bv.adj_value is not None:
-                M_dual.append(bv.adj_value)
+                m_dual.append(bv.adj_value)
             elif bv.hessian_value is not None:
-                M_dual.append(bv.hessian_value)
+                m_dual.append(bv.hessian_value)
             else:
                 raise RuntimeError("Unable to instantiate new dual space "
                                    "object")
-        return tuple(m_dual._ad_copy() for m_dual in M_dual)
+        return tuple(m_dual_i._ad_copy() for m_dual_i in m_dual)
 
 
 class TAOSolver(OptimizationSolver):
@@ -485,36 +485,36 @@ class TAOSolver(OptimizationSolver):
         tao = PETSc.TAO().create(comm=comm)
 
         def objective_gradient(tao, x, g):
-            M = taoobjective.new_M()
-            from_petsc(x, M)
-            J_val, dJ = taoobjective.objective_gradient(M)
+            m = taoobjective.new_control_variable()
+            from_petsc(x, m)
+            J_val, dJ = taoobjective.objective_gradient(m)
             to_petsc(g, dJ)
             return J_val
 
         tao.setObjectiveGradient(objective_gradient, None)
 
         def hessian(tao, x, H, P):
-            H.getPythonContext().set_M(x)
+            H.getPythonContext().set_control_variable(x)
 
         class Hessian:
             def __init__(self):
                 self._shift = 0.0
 
             @cached_property
-            def _M(self):
-                return taoobjective.new_M()
+            def _m(self):
+                return taoobjective.new_control_variable()
 
-            def set_M(self, x):
-                from_petsc(x, self._M)
+            def set_control_variable(self, x):
+                from_petsc(x, self._m)
                 self._shift = 0.0
 
             def shift(self, A, alpha):
                 self._shift += alpha
 
             def mult(self, A, x, y):
-                M_dot = taoobjective.new_M()
-                from_petsc(x, M_dot)
-                ddJ = taoobjective.hessian(self._M, M_dot)
+                m_dot = taoobjective.new_control_variable()
+                from_petsc(x, m_dot)
+                ddJ = taoobjective.hessian(self._m, m_dot)
                 to_petsc(y, ddJ)
                 if self._shift != 0.0:
                     y.axpy(self._shift, x)
@@ -527,12 +527,12 @@ class TAOSolver(OptimizationSolver):
 
         class GradientNorm:
             def mult(self, A, x, y):
-                X = taoobjective.new_M_dual()
-                from_petsc(x, X)
-                assert len(taoobjective.reduced_functional.controls) == len(X)
-                X = tuple(m._ad_convert_type(x, options=convert_options)
-                          for m, x in zip(taoobjective.reduced_functional.controls, X))
-                to_petsc(y, X)
+                dJ = taoobjective.new_dual_control_variable()
+                from_petsc(x, dJ)
+                assert len(taoobjective.reduced_functional.controls) == len(dJ)
+                dJ = tuple(control._ad_convert_type(dJ_i, options=convert_options)
+                           for control, dJ_i in zip(taoobjective.reduced_functional.controls, dJ))
+                to_petsc(y, dJ)
 
         M_inv_matrix = PETSc.Mat().createPython(((n, N), (n, N)),
                                                 GradientNorm(), comm=comm)
@@ -567,12 +567,12 @@ class TAOSolver(OptimizationSolver):
 
             class InitialHessianPreconditioner:
                 def apply(self, pc, x, y):
-                    X = taoobjective.new_M_dual()
-                    from_petsc(x, X)
-                    assert len(taoobjective.reduced_functional.controls) == len(X)
-                    X = tuple(m._ad_convert_type(x, options=convert_options)
-                              for m, x in zip(taoobjective.reduced_functional.controls, X))
-                    to_petsc(y, X)
+                    dJ = taoobjective.new_dual_control_variable()
+                    from_petsc(x, dJ)
+                    assert len(taoobjective.reduced_functional.controls) == len(dJ)
+                    dJ = tuple(control._ad_convert_type(dJ_i, options=convert_options)
+                               for control, dJ_i in zip(taoobjective.reduced_functional.controls, dJ))
+                    to_petsc(y, dJ)
 
             B_0_matrix = PETSc.Mat().createPython(((n, N), (n, N)),
                                                   InitialHessian(), comm=comm)
@@ -635,12 +635,13 @@ class TAOSolver(OptimizationSolver):
         Returns:
             OverloadedType or tuple[OverloadedType]: The solution.
         """
-        M = tuple(
-            m.tape_value()._ad_copy()
-            for m in self.taoobjective.reduced_functional.controls)
-        self._vec_interface.to_petsc(self.x, M)
+
+        m = tuple(
+            control.tape_value()._ad_copy()
+            for control in self.taoobjective.reduced_functional.controls)
+        self._vec_interface.to_petsc(self.x, m)
         self.tao.solve()
-        self._vec_interface.from_petsc(self.x, M)
+        self._vec_interface.from_petsc(self.x, m)
         if self.tao.getConvergedReason() <= 0:
             raise RuntimeError("Convergence failure")
-        return self.taoobjective.reduced_functional.controls.delist(M)
+        return self.taoobjective.reduced_functional.controls.delist(m)
