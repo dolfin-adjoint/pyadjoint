@@ -410,12 +410,12 @@ class TAOObjective:
         return m.delist(ddJ)
 
     def new_control_variable(self):
-        """Return a new variable or variables suitable for storing a control
-        value. Not initialized to zero.
+        """Return new variables suitable for storing a control value. Not
+        initialized to zero.
 
         Returns:
-            OverloadedType or Sequence[OverloadedType]: New variable or
-                variables suitable for storing a control value.
+            tuple[OverloadedType]: New variables suitable for storing a control
+                value.
         """
 
         # Not initialized to zero
@@ -423,14 +423,14 @@ class TAOObjective:
                      for m in self.reduced_functional.controls)
 
     def new_dual_control_variable(self):
-        """Return a new variable or variables suitable for storing a value for
-        a (dual space) derivative of the functional with respect to the
-        control. Not initialized to zero.
+        """Return new variables suitable for storing a value for a (dual space)
+        derivative of the functional with respect to the control. Not
+        initialized to zero.
 
         Returns:
-            OverloadedType or Sequence[OverloadedType]: New variable or
-                variables suitable for storing a value for a (dual space)
-                derivative of the functional with respect to the control.
+            tuple[OverloadedType]: New variables suitable for storing a value
+                for a (dual space) derivative of the functional with respect to
+                the control.
         """
 
         # Not initialized to zero, requires adjoint or Hessian action values to
@@ -490,14 +490,16 @@ class TAOSolver(OptimizationSolver):
             comm = comm.tompi4py()
         if convert_options is None:
             convert_options = {}
+        convert_options = dict(convert_options)
 
         tao_objective = TAOObjective(problem.reduced_functional)
 
         vec_interface = PETScVecInterface(
-            tuple(m.control for m in tao_objective.reduced_functional.controls),
+            tuple(control.control for control in tao_objective.reduced_functional.controls),
             comm=comm)
         n, N = vec_interface.n, vec_interface.N
         to_petsc, from_petsc = vec_interface.to_petsc, vec_interface.from_petsc
+
         tao = PETSc.TAO().create(comm=comm)
 
         def objective_gradient(tao, x, g):
@@ -663,7 +665,7 @@ class TAOSolver(OptimizationSolver):
         """Solve the optimization problem.
 
         Returns:
-            OverloadedType or tuple[OverloadedType]: The solution.
+            OverloadedType or Sequence[OverloadedType]: The solution.
         """
 
         m = tuple(
