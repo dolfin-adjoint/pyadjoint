@@ -20,6 +20,7 @@ except ModuleNotFoundError:
 
 __all__ = \
     [
+        "TAOConvergenceError",
         "TAOSolver"
     ]
 
@@ -447,6 +448,21 @@ class TAOObjective:
         return tuple(m_dual_i._ad_copy() for m_dual_i in m_dual)
 
 
+class TAOConvergenceError(Exception):
+    """Raised if a TAO solve fails to converge.
+    """
+
+
+if PETSc is None:
+    _tao_reasons = {}
+else:
+    # Same approach as in _make_reasons in firedrake/solving_utils.py,
+    # Firedrake master branch 57e21cc8ebdb044c1d8423b48f3dbf70975d5548
+    _tao_reasons = {getattr(PETSc.TAO.ConvergedReason, key): key
+                    for key in dir(PETSc.TAO.ConvergedReason)
+                    if not key.startswith("_")}
+
+
 class TAOSolver(OptimizationSolver):
     """Use TAO to solve an optimization problem.
 
@@ -657,5 +673,8 @@ class TAOSolver(OptimizationSolver):
         self.tao.solve()
         self._vec_interface.from_petsc(self.x, m)
         if self.tao.getConvergedReason() <= 0:
-            raise RuntimeError("Convergence failure")
+            # Using the same format as Firedrake linear solver errors
+            raise TAOConvergenceError(
+                f"TAOSolver failed to converge after {self.tao.getIterationNumber()} iterations "
+                f"with reason: {_tao_reasons[self.tao.getConvergedReason()]}")
         return self.tao_objective.reduced_functional.controls.delist(m)
