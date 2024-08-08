@@ -475,19 +475,19 @@ class TAOSolver(OptimizationSolver):
         if convert_options is None:
             convert_options = {}
 
-        taoobjective = TAOObjective(problem.reduced_functional)
+        tao_objective = TAOObjective(problem.reduced_functional)
 
         vec_interface = PETScVecInterface(
-            tuple(m.control for m in taoobjective.reduced_functional.controls),
+            tuple(m.control for m in tao_objective.reduced_functional.controls),
             comm=comm)
         n, N = vec_interface.n, vec_interface.N
         to_petsc, from_petsc = vec_interface.to_petsc, vec_interface.from_petsc
         tao = PETSc.TAO().create(comm=comm)
 
         def objective_gradient(tao, x, g):
-            m = taoobjective.new_control_variable()
+            m = tao_objective.new_control_variable()
             from_petsc(x, m)
-            J_val, dJ = taoobjective.objective_gradient(m)
+            J_val, dJ = tao_objective.objective_gradient(m)
             to_petsc(g, dJ)
             return J_val
 
@@ -505,7 +505,7 @@ class TAOSolver(OptimizationSolver):
 
             @cached_property
             def _m(self):
-                return taoobjective.new_control_variable()
+                return tao_objective.new_control_variable()
 
             def set_control_variable(self, x):
                 from_petsc(x, self._m)
@@ -515,9 +515,9 @@ class TAOSolver(OptimizationSolver):
                 self._shift += alpha
 
             def mult(self, A, x, y):
-                m_dot = taoobjective.new_control_variable()
+                m_dot = tao_objective.new_control_variable()
                 from_petsc(x, m_dot)
-                ddJ = taoobjective.hessian(self._m, m_dot)
+                ddJ = tao_objective.hessian(self._m, m_dot)
                 to_petsc(y, ddJ)
                 if self._shift != 0.0:
                     y.axpy(self._shift, x)
@@ -533,11 +533,11 @@ class TAOSolver(OptimizationSolver):
             """
 
             def mult(self, A, x, y):
-                dJ = taoobjective.new_dual_control_variable()
+                dJ = tao_objective.new_dual_control_variable()
                 from_petsc(x, dJ)
-                assert len(taoobjective.reduced_functional.controls) == len(dJ)
+                assert len(tao_objective.reduced_functional.controls) == len(dJ)
                 dJ = tuple(control._ad_convert_type(dJ_i, options=convert_options)
-                           for control, dJ_i in zip(taoobjective.reduced_functional.controls, dJ))
+                           for control, dJ_i in zip(tao_objective.reduced_functional.controls, dJ))
                 to_petsc(y, dJ)
 
         M_inv_matrix = PETSc.Mat().createPython(((n, N), (n, N)),
@@ -550,7 +550,7 @@ class TAOSolver(OptimizationSolver):
             lbs = []
             ubs = []
             assert len(problem.bounds) == len(problem.reduced_functional.controls)
-            for (lb, ub), control in zip(problem.bounds, taoobjective.reduced_functional.controls):
+            for (lb, ub), control in zip(problem.bounds, tao_objective.reduced_functional.controls):
                 if lb is None:
                     lb = np.finfo(PETSc.ScalarType).min
                 if ub is None:
@@ -577,11 +577,11 @@ class TAOSolver(OptimizationSolver):
                 """
 
                 def apply(self, pc, x, y):
-                    dJ = taoobjective.new_dual_control_variable()
+                    dJ = tao_objective.new_dual_control_variable()
                     from_petsc(x, dJ)
-                    assert len(taoobjective.reduced_functional.controls) == len(dJ)
+                    assert len(tao_objective.reduced_functional.controls) == len(dJ)
                     dJ = tuple(control._ad_convert_type(dJ_i, options=convert_options)
-                               for control, dJ_i in zip(taoobjective.reduced_functional.controls, dJ))
+                               for control, dJ_i in zip(tao_objective.reduced_functional.controls, dJ))
                     to_petsc(y, dJ)
 
             # B_0_matrix is the initial Hessian approximation (following
@@ -613,7 +613,7 @@ class TAOSolver(OptimizationSolver):
         tao.setUp()
 
         super().__init__(problem, parameters)
-        self._taoobjective = taoobjective
+        self._tao_objective = tao_objective
         self._vec_interface = vec_interface
         self._tao = tao
         self._x = x
@@ -622,11 +622,11 @@ class TAOSolver(OptimizationSolver):
             self, tao, H_matrix, M_inv_matrix, B_0_matrix_pc, B_0_matrix, x)
 
     @property
-    def taoobjective(self):
+    def tao_objective(self):
         """The :class:`.TAOObjective` used for the optimization.
         """
 
-        return self._taoobjective
+        return self._tao_objective
 
     @property
     def tao(self):
@@ -652,10 +652,10 @@ class TAOSolver(OptimizationSolver):
 
         m = tuple(
             control.tape_value()._ad_copy()
-            for control in self.taoobjective.reduced_functional.controls)
+            for control in self.tao_objective.reduced_functional.controls)
         self._vec_interface.to_petsc(self.x, m)
         self.tao.solve()
         self._vec_interface.from_petsc(self.x, m)
         if self.tao.getConvergedReason() <= 0:
             raise RuntimeError("Convergence failure")
-        return self.taoobjective.reduced_functional.controls.delist(m)
+        return self.tao_objective.reduced_functional.controls.delist(m)
