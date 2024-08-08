@@ -497,6 +497,9 @@ class TAOSolver(OptimizationSolver):
             H.getPythonContext().set_control_variable(x)
 
         class Hessian:
+            """:class:`petsc4py.PETSc.Mat` context.
+            """
+
             def __init__(self):
                 self._shift = 0.0
 
@@ -526,6 +529,9 @@ class TAOSolver(OptimizationSolver):
         tao.setHessian(hessian, H_matrix)
 
         class GradientNorm:
+            """:class:`petsc4py.PETSc.Mat` context.
+            """
+
             def mult(self, A, x, y):
                 dJ = taoobjective.new_dual_control_variable()
                 from_petsc(x, dJ)
@@ -563,9 +569,13 @@ class TAOSolver(OptimizationSolver):
 
         if tao.getType() in {PETSc.TAO.Type.LMVM, PETSc.TAO.Type.BLMVM}:
             class InitialHessian:
-                pass
+                """:class:`petsc4py.PETSc.Mat` context.
+                """
 
             class InitialHessianPreconditioner:
+                """:class:`petsc4py.PETSc.PC` context.
+                """
+
                 def apply(self, pc, x, y):
                     dJ = taoobjective.new_dual_control_variable()
                     from_petsc(x, dJ)
