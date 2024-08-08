@@ -25,6 +25,20 @@ __all__ = \
 
 
 def attach_destroy_finalizer(obj, *args):
+    """Attach a finalizer to `obj` which calls the `destroy` method on each
+    element of `args`. Used to avoid potential memory leaks when PETSc objects
+    reference themselves via Python callbacks.
+
+    Note: May lead to deadlocks if `obj` is destroyed asynchronously on
+    different processes, e.g. due to garbage collection.
+
+    Args:
+        X (object): A finalizer is attached to this object.
+        args (Sequence[object]): The `destroy` method of each element is
+            called when `obj` is destroyed (except at exit). Any `None`
+            elements are ignored.
+    """
+
     def finalize_callback(*args):
         for arg in args:
             if arg is not None:
