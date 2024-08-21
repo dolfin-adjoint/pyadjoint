@@ -153,22 +153,15 @@ class CheckpointManager:
                 # computing the adjoint model from the step `n1`.
                 _store_adj_deps = True
             self.tape.timesteps[timestep - 1].checkpoint(
-                checkpointable_state=_store_checkpointable_state,
-                adj_deps=_store_adj_deps,
-            )
+                _store_checkpointable_state, _store_adj_deps)
             # Remove unnecessary variables in working memory from previous steps.
             for var in self.tape.timesteps[timestep - 1].checkpointable_state:
-                try:
-                    var._checkpoint = var.saved_output._ad_value_to_clear_checkpoint()
-                except AttributeError:
-                    print(f"Variable {var} has the checkpoint attribute set to {var.checkpoint}.")
+                var._checkpoint = var.output._ad_clear_checkpoint(
+                    var.checkpoint)
             for block in self.tape.timesteps[timestep - 1]:
                 for out in block.get_outputs():
-                    try:
-                        out._checkpoint = out.checkpoint._ad_value_to_clear_checkpoint()
-                    except AttributeError:
-                        print(f"Variable {out} has the checkpoint attribute set to {out.checkpoint}.")
-
+                    out._checkpoint = out.output._ad_clear_checkpoint(
+                        out.checkpoint)
         if timestep in cp_action and timestep < self.total_timesteps:
             self.tape.get_blocks().append_step()
             if cp_action.write_ics:
@@ -264,7 +257,8 @@ class CheckpointManager:
     @process_operation.register(Forward)
     def _(self, cp_action, bar, functional=None, **kwargs):
         step = cp_action.n0
-        #  In a dynamic schedule `cp_action` can be unbounded so we also need to check `self.total_timesteps`.
+        #  In a dynamic schedule `cp_action` can be unbounded so we also need
+        # to check `self.total_timesteps`.
         while step in cp_action and step < self.total_timesteps:
             if self.mode == Mode.RECOMPUTE and bar:
                 bar.next()
@@ -280,9 +274,7 @@ class CheckpointManager:
                 if cp_action.write_adj_deps:
                     _store_adj_deps = True
                 current_step.checkpoint(
-                    checkpointable_state=_store_checkpointable_state,
-                    adj_deps=_store_adj_deps,
-                )
+                    _store_checkpointable_state, _store_adj_deps)
 
             if (
                 (cp_action.write_adj_deps and cp_action.storage != StorageType.WORK)
@@ -299,17 +291,12 @@ class CheckpointManager:
                     # Remove unnecessary variables from previous steps.
                     for bv in block.get_outputs():
                         if bv not in to_keep:
-                            try:
-                                bv._checkpoint = bv.checkpoint._ad_value_to_clear_checkpoint()
-                            except AttributeError:
-                                bv._checkpoint = None
-                                print(f"Variable {bv} has the checkpoint attribute set to {bv.checkpoint}.")
+                            bv._checkpoint = bv.output._ad_clear_checkpoint(
+                                bv.checkpoint)
                 # Remove unnecessary variables from previous steps.
                 for var in (current_step.checkpointable_state - to_keep):
-                    try:
-                        var._checkpoint = var.checkpoint._ad_value_to_clear_checkpoint()
-                    except AttributeError:
-                        print(f"Variable {var} has the checkpoint attribute set to {var.checkpoint}.")
+                    var._checkpoint = var.output._ad_clear_checkpoint(
+                        var.checkpoint)
             step += 1
 
     @process_operation.register(Reverse)
@@ -335,10 +322,8 @@ class CheckpointManager:
                         to_keep = to_keep.union([functional.block_variable])
                     for out in block.get_outputs():
                         if out not in to_keep:
-                            try:
-                                out._checkpoint = out.checkpoint._ad_value_to_clear_checkpoint()
-                            except AttributeError:
-                                print(f"Variable {out} has the checkpoint attribute set to {out.checkpoint}.")
+                            out._checkpoint = out.output._ad_clear_checkpoint(
+                                out.checkpoint)
 
     @process_operation.register(Copy)
     def _(self, cp_action, bar, **kwargs):

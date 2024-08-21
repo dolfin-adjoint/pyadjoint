@@ -762,34 +762,25 @@ class TimeStep(list):
         out.checkpointable_state = self.checkpointable_state
         return out
 
-    def checkpoint(self, checkpointable_state, adj_deps):
+    def checkpoint(self, checkpointable_state, adj_dependencies):
         """Store a copy of the checkpoints in the checkpointable state.
 
         Args:
-            checkpointable_state (bool, optional): If True, store the checkpointable state
+            checkpointable_state (bool): If True, store the checkpointable state
             required to restart from the start of a timestep.
-            adj_deps (bool, optional): If True, store the adjoint dependencies required
+            adj_dependencies): (bool): If True, store the adjoint dependencies required
             to compute the adjoint of a timestep.
         """
         with stop_annotating():
-            if self._checkpoint:
-                if checkpointable_state:
-                    for var in self.checkpointable_state:
-                        try:
-                            self._checkpoint.update({
-                                var: self._checkpoint[var]._ad_assign(var.checkpoint)
-                            })
-                        except AttributeError:
-                            # Probably None or not an OverloadedType.
-                            self._checkpoint.update({var: var.checkpoint})
-            else:
-                if checkpointable_state:
-                    for var in self.checkpointable_state:
-                        self._checkpoint[var] = var.checkpoint
+            if checkpointable_state:
+                for var in self.checkpointable_state:
+                    self._checkpoint[var] = None
+                    self._checkpoint[var] = var.checkpoint
 
-                if adj_deps:
-                    for var in self.adjoint_dependencies:
-                        self._checkpoint[var] = var.checkpoint
+            if adj_dependencies:
+                for var in self.adjoint_dependencies:
+                    self._checkpoint[var] = None
+                    self._checkpoint[var] = var.checkpoint
 
     def restore_from_checkpoint(self):
         """Restore the block var checkpoints from the timestep checkpoint."""
