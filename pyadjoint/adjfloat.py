@@ -337,8 +337,6 @@ class FloatOperatorBlock(Block):
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
         output = self.operator(*(term.saved_output for term in self.terms))
-        if isinstance(output, float):
-            return AdjFloat(output)
         return output
 
     def __str__(self):
