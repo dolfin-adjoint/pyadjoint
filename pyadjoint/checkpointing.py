@@ -320,10 +320,10 @@ class CheckpointManager:
                     to_keep = current_step.checkpointable_state
                     if functional:
                         to_keep = to_keep.union([functional.block_variable])
-                    for out in block.get_outputs():
-                        if out not in to_keep:
-                            out._checkpoint = out.output._ad_clear_checkpoint(
-                                out.checkpoint)
+                    for output in block.get_outputs():
+                        if output not in to_keep:
+                            output._checkpoint = output.output._ad_clear_checkpoint(
+                                output.checkpoint)
 
     @process_operation.register(Copy)
     def _(self, cp_action, bar, **kwargs):

@@ -118,11 +118,6 @@ class AdjFloat(OverloadedType, float):
         offset += 1
         return dst, offset
 
-    def _ad_assign(self, other):
-        # Floats are immutable.
-        # We return a new instance of the same type.
-        return type(self)(other)
-
     @staticmethod
     def _ad_to_list(value):
         return [value]
