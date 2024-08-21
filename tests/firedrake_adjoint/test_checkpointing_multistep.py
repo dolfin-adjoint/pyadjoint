@@ -77,4 +77,3 @@ def test_validity():
     val_recomputed = J_hat(displacement_0)
     assert np.allclose(val_recomputed, val_recomputed0)
     assert np.allclose(dJ.dat.data_ro[:], dJ0.dat.data_ro[:])
-
