@@ -311,8 +311,11 @@ class CheckpointManager:
             # Output variables are used for the last time when running
             # backwards.
             for block in current_step:
+                # Clear the adjoint solution.
+                block.adj_sol = None
                 for var in block.get_outputs():
-                    var.checkpoint = None
+                    var.checkpoint = var.output._ad_clear_checkpoint(
+                        var.checkpoint)
                     var.reset_variables(("tlm",))
                     if not var.is_control:
                         var.reset_variables(("adjoint", "hessian"))

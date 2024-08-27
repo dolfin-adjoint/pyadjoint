@@ -774,12 +774,10 @@ class TimeStep(list):
         with stop_annotating():
             if checkpointable_state:
                 for var in self.checkpointable_state:
-                    self._checkpoint[var] = None
                     self._checkpoint[var] = var.checkpoint
 
             if adj_dependencies:
                 for var in self.adjoint_dependencies:
-                    self._checkpoint[var] = None
                     self._checkpoint[var] = var.checkpoint
 
     def restore_from_checkpoint(self):
