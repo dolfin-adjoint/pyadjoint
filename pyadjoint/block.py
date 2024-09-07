@@ -20,8 +20,9 @@ class Block(object):
         self._outputs = []
         self.block_helper = None
         self.tag = ad_block_tag
-        # The adjoint solution. It is stored only for the solve blocks.
-        self.adj_sol = None
+        # The adjoint state of the block. This is used to store the adjoint
+        # state, for instance to store the adjoint state of a solver.
+        self.adj_state = None
 
     @classmethod
     def pop_kwargs(cls, kwargs):
