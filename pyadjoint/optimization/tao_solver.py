@@ -463,8 +463,8 @@ if PETSc is None:
 else:
     # Same approach as in _make_reasons in firedrake/solving_utils.py,
     # Firedrake master branch 57e21cc8ebdb044c1d8423b48f3dbf70975d5548
-    _tao_reasons = {getattr(PETSc.TAO.ConvergedReason, key): key
-                    for key in dir(PETSc.TAO.ConvergedReason)
+    _tao_reasons = {getattr(PETSc.TAO.Reason, key): key
+                    for key in dir(PETSc.TAO.Reason)
                     if not key.startswith("_")}
 
 
