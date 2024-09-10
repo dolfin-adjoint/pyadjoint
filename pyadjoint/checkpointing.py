@@ -142,7 +142,7 @@ class CheckpointManager:
 
         self.tape._eagerly_checkpoint_outputs = cp_action.write_adj_deps
         _store_checkpointable_state = False
-        _store_adj_deps = False
+        _store_adj_dependencies = False
         if timestep > cp_action.n0 and cp_action.storage != StorageType.WORK:
             if cp_action.write_ics and timestep == (cp_action.n0 + 1):
                 # Store the checkpoint data. This is the required data for
@@ -151,17 +151,15 @@ class CheckpointManager:
             if cp_action.write_adj_deps:
                 # Store the checkpoint data. This is the required data for
                 # computing the adjoint model from the step `n1`.
-                _store_adj_deps = True
+                _store_adj_dependencies = True
             self.tape.timesteps[timestep - 1].checkpoint(
-                _store_checkpointable_state, _store_adj_deps)
+                _store_checkpointable_state, _store_adj_dependencies)
             # Remove unnecessary variables in working memory from previous steps.
             for var in self.tape.timesteps[timestep - 1].checkpointable_state:
-                var._checkpoint = var.output._ad_clear_checkpoint(
-                    var.checkpoint)
+                var._checkpoint = None
             for block in self.tape.timesteps[timestep - 1]:
                 for out in block.get_outputs():
-                    out._checkpoint = out.output._ad_clear_checkpoint(
-                        out.checkpoint)
+                    out._checkpoint = None
         if timestep in cp_action and timestep < self.total_timesteps:
             self.tape.get_blocks().append_step()
             if cp_action.write_ics:
@@ -267,14 +265,14 @@ class CheckpointManager:
             for block in current_step:
                 block.recompute()
             _store_checkpointable_state = False
-            _store_adj_deps = False
+            _store_adj_dependencies = False
             if cp_action.storage != StorageType.WORK:
                 if (cp_action.write_ics and step == cp_action.n0):
                     _store_checkpointable_state = True
                 if cp_action.write_adj_deps:
-                    _store_adj_deps = True
+                    _store_adj_dependencies = True
                 current_step.checkpoint(
-                    _store_checkpointable_state, _store_adj_deps)
+                    _store_checkpointable_state, _store_adj_dependencies)
 
             if (
                 (cp_action.write_adj_deps and cp_action.storage != StorageType.WORK)
@@ -291,15 +289,10 @@ class CheckpointManager:
                     # Remove unnecessary variables from previous steps.
                     for bv in block.get_outputs():
                         if bv not in to_keep:
-                            bv._checkpoint = bv.output._ad_clear_checkpoint(
-                                bv.checkpoint)
+                            bv._checkpoint = None
                 # Remove unnecessary variables from previous steps.
                 for var in (current_step.checkpointable_state - to_keep):
-                    # Additional check if the block variable checkpoint is not
-                    # a dependency of the next step block variables.
-                    var._checkpoint = var.output._ad_clear_checkpoint(
-                        var.checkpoint,
-                        options={"to_keep": to_keep})
+                    var._checkpoint = None
             step += 1
 
     @process_operation.register(Reverse)
@@ -314,11 +307,9 @@ class CheckpointManager:
             # Output variables are used for the last time when running
             # backwards.
             for block in current_step:
-                # Clear the adjoint solution.
-                block.adj_status = None
+                block.reset_adjoint_state()
                 for var in block.get_outputs():
-                    var.checkpoint = var.output._ad_clear_checkpoint(
-                        var.checkpoint)
+                    var.checkpoint = None
                     var.reset_variables(("tlm",))
                     if not var.is_control:
                         var.reset_variables(("adjoint", "hessian"))
@@ -328,8 +319,7 @@ class CheckpointManager:
                         to_keep = to_keep.union([functional.block_variable])
                     for output in block.get_outputs():
                         if output not in to_keep:
-                            output._checkpoint = output.output._ad_clear_checkpoint(
-                                output.checkpoint)
+                            output._checkpoint = None
 
     @process_operation.register(Copy)
     def _(self, cp_action, progress_bar, **kwargs):

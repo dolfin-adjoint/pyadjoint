@@ -12,7 +12,7 @@ class Block(object):
         :func:`evaluate_adj`
 
     """
-    __slots__ = ['_dependencies', '_outputs', 'block_helper']
+    __slots__ = ['_dependencies', '_outputs', 'block_helper', 'adj_state', 'tag']
     pop_kwargs_keys = []
 
     def __init__(self, ad_block_tag=None):
@@ -97,6 +97,12 @@ class Block(object):
 
         for output in self._outputs:
             output.reset_variables(types)
+
+    def reset_adjoint_state(self):
+        """Resets the adjoint state of the block.
+
+        """
+        self.adj_state = None
 
     @no_annotations
     def evaluate_adj(self, markings=False):
