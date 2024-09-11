@@ -141,29 +141,25 @@ class CheckpointManager:
             )
 
         self.tape._eagerly_checkpoint_outputs = cp_action.write_adj_deps
-
-        if timestep > cp_action.n0:
+        _store_checkpointable_state = False
+        _store_adj_dependencies = False
+        if timestep > cp_action.n0 and cp_action.storage != StorageType.WORK:
             if cp_action.write_ics and timestep == (cp_action.n0 + 1):
-                # Store the checkpoint data. This is the required data for restarting the forward model
-                # from the step `n0`.
-                self.tape.timesteps[timestep - 1].checkpoint()
-            if (cp_action.write_adj_deps and timestep == (cp_action.n1 - 1) and cp_action.storage != StorageType.WORK):
-                # Store the checkpoint data. This is the required data for computing the adjoint model
-                # from the step `n1`.
-                self.tape.timesteps[timestep].checkpoint()
-
-            if (
-                (cp_action.write_adj_deps and cp_action.storage != StorageType.WORK)
-                or not cp_action.write_adj_deps
-            ):
-                # Remove unnecessary variables in working memory from previous steps.
-                for var in self.tape.timesteps[timestep - 1].checkpointable_state:
-                    var._checkpoint = None
-                for block in self.tape.timesteps[timestep - 1]:
-                    # Remove unnecessary variables from previous steps.
-                    for output in block.get_outputs():
-                        output._checkpoint = None
-
+                # Store the checkpoint data. This is the required data for
+                # restarting the forward model from the step `n0`.
+                _store_checkpointable_state = True
+            if cp_action.write_adj_deps:
+                # Store the checkpoint data. This is the required data for
+                # computing the adjoint model from the step `n1`.
+                _store_adj_dependencies = True
+            self.tape.timesteps[timestep - 1].checkpoint(
+                _store_checkpointable_state, _store_adj_dependencies)
+            # Remove unnecessary variables in working memory from previous steps.
+            for var in self.tape.timesteps[timestep - 1].checkpointable_state:
+                var._checkpoint = None
+            for block in self.tape.timesteps[timestep - 1]:
+                for out in block.get_outputs():
+                    out._checkpoint = None
         if timestep in cp_action and timestep < self.total_timesteps:
             self.tape.get_blocks().append_step()
             if cp_action.write_ics:
@@ -191,13 +187,13 @@ class CheckpointManager:
             # Finalise the taping process.
             self.end_taping()
         self.mode = Mode.RECOMPUTE
-        with self.tape.progress_bar("Evaluating Functional", max=self.total_timesteps) as bar:
+        with self.tape.progress_bar("Evaluating Functional", max=self.total_timesteps) as progress_bar:
             # Restore the initial condition to advance the forward model from the step 0.
             current_step = self.tape.timesteps[self.forward_schedule[0].n0]
             current_step.restore_from_checkpoint()
             for cp_action in self.forward_schedule:
                 self._current_action = cp_action
-                self.process_operation(cp_action, bar, functional=functional)
+                self.process_operation(cp_action, progress_bar, functional=functional)
 
     def evaluate_adj(self, last_block, markings):
         """Evaluate the adjoint model.
@@ -220,23 +216,23 @@ class CheckpointManager:
         if self.mode not in (Mode.EVALUATED, Mode.FINISHED_RECORDING):
             raise CheckpointError("Evaluate Functional before calling gradient.")
 
-        with self.tape.progress_bar("Evaluating Adjoint", max=self.total_timesteps) as bar:
+        with self.tape.progress_bar("Evaluating Adjoint", max=self.total_timesteps) as progress_bar:
             if self.reverse_schedule:
                 for cp_action in self.reverse_schedule:
-                    self.process_operation(cp_action, bar, markings=markings)
+                    self.process_operation(cp_action, progress_bar, markings=markings)
             else:
                 while not isinstance(self._current_action, EndReverse):
                     cp_action = next(self._schedule)
                     self._current_action = cp_action
                     self.reverse_schedule.append(cp_action)
-                    self.process_operation(cp_action, bar, markings=markings)
+                    self.process_operation(cp_action, progress_bar, markings=markings)
 
             # Only set the mode after the first backward in order to handle
             # that step correctly.
             self.mode = Mode.EVALUATE_ADJOINT
 
     @singledispatchmethod
-    def process_operation(self, cp_action, bar, **kwargs):
+    def process_operation(self, cp_action, progress_bar, **kwargs):
         """A function used to process the forward and adjoint executions.
         This single-dispatch generic function is used in the `Blocks`
         recomputation and adjoint evaluation with checkpointing.
@@ -248,7 +244,7 @@ class CheckpointManager:
         Args:
             cp_action (checkpoint_schedules.CheckpointAction): A checkpoint action obtained from the
             `checkpoint_schedules`.
-            bar (progressbar.ProgressBar): A progress bar to display the progress of the reverse executions.
+            progress_bar (progressbar.ProgressBar): A progress bar to display the progress of the reverse executions.
             kwargs: Additional keyword arguments.
 
         Raises:
@@ -257,33 +253,27 @@ class CheckpointManager:
         raise CheckpointError(f"Unable to process {cp_action}.")
 
     @process_operation.register(Forward)
-    def _(self, cp_action, bar, functional=None, **kwargs):
+    def _(self, cp_action, progress_bar, functional=None, **kwargs):
         step = cp_action.n0
-        #  In a dynamic schedule `cp_action` can be unbounded so we also need to check `self.total_timesteps`.
+        #  In a dynamic schedule `cp_action` can be unbounded so we also need
+        # to check `self.total_timesteps`.
         while step in cp_action and step < self.total_timesteps:
-            if self.mode == Mode.RECOMPUTE:
-                bar.next()
+            if self.mode == Mode.RECOMPUTE and progress_bar:
+                progress_bar.next()
             # Get the blocks of the current step.
             current_step = self.tape.timesteps[step]
             for block in current_step:
                 block.recompute()
-            if (
-                (cp_action.write_ics and step == cp_action.n0)
-                or (cp_action.write_adj_deps and step == cp_action.n1 - 1
-                    and cp_action.storage != StorageType.WORK)
-            ):
-                # Store the checkpoint data required for restarting the
-                # forward model or computing the adjoint model.
-                # If `cp_action.write_ics` is `True`, the checkpointed data
-                # will restart the forward model from the step `n0`.
-                # If `cp_action.write_adj_deps` is `True`, the checkpointed
-                # data will be used for computing the adjoint model from the
-                # step `n1`.
-                for var in current_step.checkpointable_state:
-                    if var.checkpoint:
-                        current_step._checkpoint.update(
-                            {var: var.checkpoint}
-                        )
+            _store_checkpointable_state = False
+            _store_adj_dependencies = False
+            if cp_action.storage != StorageType.WORK:
+                if (cp_action.write_ics and step == cp_action.n0):
+                    _store_checkpointable_state = True
+                if cp_action.write_adj_deps:
+                    _store_adj_dependencies = True
+                current_step.checkpoint(
+                    _store_checkpointable_state, _store_adj_dependencies)
+
             if (
                 (cp_action.write_adj_deps and cp_action.storage != StorageType.WORK)
                 or not cp_action.write_adj_deps
@@ -306,9 +296,10 @@ class CheckpointManager:
             step += 1
 
     @process_operation.register(Reverse)
-    def _(self, cp_action, bar, markings, functional=None, **kwargs):
+    def _(self, cp_action, progress_bar, markings, functional=None, **kwargs):
         for step in cp_action:
-            bar.next()
+            if progress_bar:
+                progress_bar.next()
             # Get the blocks of the current step.
             current_step = self.tape.timesteps[step]
             for block in reversed(current_step):
@@ -316,6 +307,7 @@ class CheckpointManager:
             # Output variables are used for the last time when running
             # backwards.
             for block in current_step:
+                block.reset_adjoint_state()
                 for var in block.get_outputs():
                     var.checkpoint = None
                     var.reset_variables(("tlm",))
@@ -330,22 +322,22 @@ class CheckpointManager:
                             output._checkpoint = None
 
     @process_operation.register(Copy)
-    def _(self, cp_action, bar, **kwargs):
+    def _(self, cp_action, progress_bar, **kwargs):
         current_step = self.tape.timesteps[cp_action.n]
         current_step.restore_from_checkpoint()
 
     @process_operation.register(Move)
-    def _(self, cp_action, bar, **kwargs):
+    def _(self, cp_action, progress_bar, **kwargs):
         current_step = self.tape.timesteps[cp_action.n]
         current_step.restore_from_checkpoint()
         current_step.delete_checkpoint()
 
     @process_operation.register(EndForward)
-    def _(self, cp_action, bar, **kwargs):
+    def _(self, cp_action, progress_bar, **kwargs):
         self.mode = Mode.EVALUATED
 
     @process_operation.register(EndReverse)
-    def _(self, cp_action, bar, **kwargs):
+    def _(self, cp_action, progress_bar, **kwargs):
         if self._schedule.is_exhausted:
             self.mode = Mode.EXHAUSTED
         else:

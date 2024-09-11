@@ -261,6 +261,22 @@ class Tape(object):
         for step in self.timesteps[last_used + 1:]:
             step.checkpointable_state.add(block_var)
 
+    def add_to_adjoint_dependencies(self, block_var, last_used):
+        """Add a block variable into the adjoint dependencies set.
+
+        Note:
+            `adjoint_dependencies` is a set of block variables which are needed
+            to compute the adjoint of a timestep.
+
+        Args:
+            block_var (BlockVariable): The block variable to add.
+            last_used (int): The last timestep in which the block variable was used.
+        """
+        if not self.timesteps:
+            self._blocks.append_step()
+        for step in self.timesteps[last_used + 1:]:
+            step.adjoint_dependencies.add(block_var)
+
     def enable_checkpointing(self, schedule):
         """Enable checkpointing on the adjoint evaluation.
 
@@ -736,6 +752,7 @@ class TimeStep(list):
         # The set of block variables which are needed to restart from the start
         # of this timestep.
         self.checkpointable_state = set()
+        self.adjoint_dependencies = set()
         # A dictionary mapping the block variables in the checkpointable state
         # to their checkpoint values.
         self._checkpoint = {}
@@ -745,14 +762,23 @@ class TimeStep(list):
         out.checkpointable_state = self.checkpointable_state
         return out
 
-    def checkpoint(self):
-        """Store a copy of the checkpoints in the checkpointable state."""
+    def checkpoint(self, checkpointable_state, adj_dependencies):
+        """Store a copy of the checkpoints in the checkpointable state.
 
+        Args:
+            checkpointable_state (bool): If True, store the checkpointable state
+            required to restart from the start of a timestep.
+            adj_dependencies): (bool): If True, store the adjoint dependencies required
+            to compute the adjoint of a timestep.
+        """
         with stop_annotating():
-            self._checkpoint = {
-                var: var.saved_output._ad_create_checkpoint()
-                for var in self.checkpointable_state
-            }
+            if checkpointable_state:
+                for var in self.checkpointable_state:
+                    self._checkpoint[var] = var.checkpoint
+
+            if adj_dependencies:
+                for var in self.adjoint_dependencies:
+                    self._checkpoint[var] = var.checkpoint
 
     def restore_from_checkpoint(self):
         """Restore the block var checkpoints from the timestep checkpoint."""
