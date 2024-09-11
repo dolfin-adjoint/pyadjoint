@@ -100,7 +100,6 @@ class Block(object):
 
     def reset_adjoint_state(self):
         """Resets the adjoint state of the block.
-
         """
         self.adj_state = None
 
