@@ -25,31 +25,6 @@ __all__ = \
     ]
 
 
-def attach_destroy_finalizer(obj, *args):
-    """Attach a finalizer to `obj` which calls the `destroy` method on each
-    element of `args`. Used to avoid potential memory leaks when PETSc objects
-    reference themselves via Python callbacks.
-
-    Note: May lead to deadlocks if `obj` is destroyed asynchronously on
-    different processes, e.g. due to garbage collection.
-
-    Args:
-        obj (object): A finalizer is attached to this object.
-        args (Sequence[object]): The `destroy` method of each element is
-            called when `obj` is destroyed (except at exit). Any `None`
-            elements are ignored.
-    """
-
-    def finalize_callback(*args):
-        for arg in args:
-            if arg is not None:
-                arg.destroy()
-
-    finalize = weakref.finalize(obj, finalize_callback,
-                                *args)
-    finalize.atexit = False
-
-
 class PETScVecInterface:
     """Interface for conversion between :class:`OverloadedType` objects and
     :class:`petsc4py.PETSc.Vec` objects.
@@ -81,8 +56,6 @@ class PETScVecInterface:
         self._n = n
         self._N = N
         self._isets = isets
-
-        attach_destroy_finalizer(self, *self._isets)
 
     @property
     def comm(self):
@@ -640,9 +613,6 @@ class TAOSolver(OptimizationSolver):
         self._vec_interface = vec_interface
         self._tao = tao
         self._x = x
-
-        attach_destroy_finalizer(
-            self, tao, H_matrix, M_inv_matrix, B_0_matrix_pc, B_0_matrix, x)
 
     @property
     def tao_objective(self):
