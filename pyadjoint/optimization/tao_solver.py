@@ -3,7 +3,6 @@ from functools import cached_property
 import itertools
 from numbers import Complex
 import warnings
-import weakref
 
 import numpy as np
 
