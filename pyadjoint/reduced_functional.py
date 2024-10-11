@@ -224,11 +224,14 @@ class ReducedFunctional(object):
 
         return func_value
 
-    def optimize_tape(self):
+    def optimize_tape(self, replace=False):
+        if replace:
+            self.tape = self.tape.copy()
         self.tape.optimize(
             controls=self.controls,
             functionals=[self.functional]
         )
+        return self.tape
 
     def marked_controls(self):
         return marked_controls(self)
