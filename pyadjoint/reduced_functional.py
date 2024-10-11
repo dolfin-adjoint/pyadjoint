@@ -231,6 +231,7 @@ class ReducedFunctional(object):
             controls=self.controls,
             functionals=[self.functional]
         )
+        return self.tape
 
     def marked_controls(self):
         return marked_controls(self)
