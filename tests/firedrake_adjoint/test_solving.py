@@ -28,7 +28,7 @@ def test_linear_problem():
     J0 = J(f)
     rf = ReducedFunctional(J0, Control(f))
     assert_approx_equal(rf(f), J0)
-
+    assert rf.tape.recompute_count == 1
     _test_adjoint(J, f)
 
 
@@ -298,6 +298,8 @@ def test_two_nonlinear_solves():
     J = assemble(dot(u1, u1)*dx)
     rf = ReducedFunctional(J, c)
     assert taylor_test(rf, ui, Constant(0.1)) > 1.95
+    # Taylor test recomputes the functional 5 times.
+    assert rf.tape.recompute_count == 5
 
 
 def convergence_rates(E_values, eps_values):
