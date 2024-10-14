@@ -204,6 +204,7 @@ class ReducedFunctional(object):
 
         self.tape.reset_blocks()
         blocks = self.tape.get_blocks()
+        self.tape._recompute_count += 1
         with self.marked_controls():
             with stop_annotating():
                 if self.tape._checkpoint_manager:
