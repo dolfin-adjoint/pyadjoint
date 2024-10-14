@@ -163,7 +163,7 @@ class Tape(object):
     __slots__ = ["_blocks", "_tf_tensors", "_tf_added_blocks", "_nodes",
                  "_tf_registered_blocks", "_bar", "_package_data",
                  "_checkpoint_manager", "latest_checkpoint",
-                 "_eagerly_checkpoint_outputs"]
+                 "_eagerly_checkpoint_outputs", "recompute_count"]
 
     def __init__(self, blocks=None, package_data=None):
         # Initialize the list of blocks on the tape.
@@ -182,6 +182,8 @@ class Tape(object):
         self._checkpoint_manager = None
         # Whether to store the adjoint dependencies.
         self._eagerly_checkpoint_outputs = False
+        # A counter for the number of tape recomputations.
+        self.recompute_count = 0
 
     def clear_tape(self):
         """Clear the tape."""
