@@ -90,10 +90,7 @@ class CheckpointManager:
             raise CheckpointError("Not enough timesteps in schedule.")
         elif self.mode != Mode.RECORD:
             raise CheckpointError(f"Cannot end timestep in {self.mode}")
-        if (
-            self._current_action.storage == StorageType.DISK
-            and self._current_action.n0 == 0
-        ):
+        if self._schedule.uses_storage_type(StorageType.DISK):
             self.manage_disk_checkpointing.start_checkpointing()
         while not self.process_taping(self._current_action, timestep + 1):
             self._current_action = next(self._schedule)
@@ -210,8 +207,13 @@ class CheckpointManager:
         if self.mode == Mode.RECORD:
             # Finalise the taping process.
             self.end_taping()
-        # if self.manage_disk_checkpointing:
-        #     self.tape._package_data.clear()
+        if self._schedule.uses_storage_type(StorageType.DISK):
+            if not self.tape._package_data:
+                raise CheckpointError(
+                    "Disk storage requires a tape with aditional package data."
+                )
+            # Clear the data of the current state before recomputing.
+            self.tape._package_data[list(self.tape._package_data.keys())[0]].reset()
         self.mode = Mode.RECOMPUTE
         with self.tape.progress_bar("Evaluating Functional", max=self.total_timesteps) as progress_bar:
             # Restore the initial condition to advance the forward model from the step 0.
@@ -327,7 +329,6 @@ class CheckpointManager:
             step += 1
             if cp_action.storage == StorageType.DISK:
                 self.manage_disk_checkpointing.pause_checkpointing()
-
 
     @process_operation.register(Reverse)
     def _(self, cp_action, progress_bar, markings, functional=None, **kwargs):

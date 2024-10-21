@@ -886,7 +886,7 @@ class TapePackageData(ABC):
 
     @abstractmethod
     def restore_from_checkpoint(self, state):
-        """Restore state from a previously stored checkpioint."""
+        """Restore state from a previously stored checkpoint."""
         pass
 
     @abstractmethod
