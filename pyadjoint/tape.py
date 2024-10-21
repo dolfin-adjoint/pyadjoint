@@ -7,7 +7,7 @@ from functools import wraps
 from itertools import chain
 from typing import Optional, Iterable
 from abc import ABC, abstractmethod
-from .checkpointing import CheckpointManager, CheckpointError
+from .checkpointing import CheckpointManager, CheckpointError, StorageType
 
 _working_tape = None
 _annotation_enabled = False
@@ -277,7 +277,7 @@ class Tape(object):
         for step in self.timesteps[last_used + 1:]:
             step.adjoint_dependencies.add(block_var)
 
-    def enable_checkpointing(self, schedule):
+    def enable_checkpointing(self, schedule, manage_disk_checkpointing=None):
         """Enable checkpointing on the adjoint evaluation.
 
         A checkpoint manager able to execute the forward and adjoint computations
@@ -286,13 +286,16 @@ class Tape(object):
         Args:
             schedule (checkpoint_schedules.schedule): A schedule provided by the
             checkpoint_schedules package.
-            max_n (int, optional): The number of total steps.
+            manage_disk_checkpointing (object): An object that manages disk checkpointing.
+            Should be inherited from :class:`ManageDiskCheckpointing`, where it is possible
+            start, pause and continue disk checkpointing.
         """
         if self._blocks:
             raise CheckpointError(
                 "Checkpointing must be enabled before any blocks are added to the tape."
             )
-        self._checkpoint_manager = CheckpointManager(schedule, self)
+        self._checkpoint_manager = CheckpointManager(
+            schedule, self, manage_disk_checkpointing=manage_disk_checkpointing)
 
     def get_blocks(self, tag=None):
         """Returns a list of the blocks on the tape.
@@ -768,23 +771,32 @@ class TimeStep(list):
         Args:
             checkpointable_state (bool): If True, store the checkpointable state
             required to restart from the start of a timestep.
-            adj_dependencies): (bool): If True, store the adjoint dependencies required
+            adj_dependencies (bool): If True, store the adjoint dependencies required
             to compute the adjoint of a timestep.
         """
         with stop_annotating():
             if checkpointable_state:
                 for var in self.checkpointable_state:
-                    self._checkpoint[var] = var.checkpoint
+                    self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
 
             if adj_dependencies:
                 for var in self.adjoint_dependencies:
-                    self._checkpoint[var] = var.checkpoint
+                    self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
 
-    def restore_from_checkpoint(self):
+    def restore_from_checkpoint(self, from_storage):
         """Restore the block var checkpoints from the timestep checkpoint."""
-
+        from .overloaded_type import OverloadedType
         for var in self._checkpoint:
-            var.checkpoint = self._checkpoint[var]
+            checkpoint = self._checkpoint[var]
+            if (
+                from_storage == StorageType.DISK
+                and isinstance(checkpoint, OverloadedType)
+            ):
+                # checkpoint._ad_restore_checkpoint should be able to restore
+                # from disk
+                checkpoint._ad_restore_at_checkpoint(self._checkpoint[var])
+            else:
+                var.checkpoint = self._checkpoint[var]
 
     def delete_checkpoint(self):
         """Delete the stored checkpoint references."""
