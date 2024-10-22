@@ -286,9 +286,10 @@ class Tape(object):
         Args:
             schedule (checkpoint_schedules.schedule): A schedule provided by the
             checkpoint_schedules package.
-            manage_disk_checkpointing (object): An object that manages disk checkpointing.
-            Should be inherited from :class:`ManageDiskCheckpointing`, where it is possible
-            start, pause and continue disk checkpointing.
+            manage_disk_checkpointing (:class:`ManageDiskCheckpointing`): An object
+            that manages disk checkpointing. Should be inherited from
+            :class:`ManageDiskCheckpointing`, where it is possible start, pause and
+            continue disk checkpointing.
         """
         if self._blocks:
             raise CheckpointError(
@@ -786,17 +787,16 @@ class TimeStep(list):
     def restore_from_checkpoint(self, from_storage):
         """Restore the block var checkpoints from the timestep checkpoint."""
         from .overloaded_type import OverloadedType
-        for var in self._checkpoint:
-            checkpoint = self._checkpoint[var]
+        for var, checkpoint in self._checkpoint.items():
             if (
                 from_storage == StorageType.DISK
                 and isinstance(checkpoint, OverloadedType)
             ):
                 # checkpoint._ad_restore_checkpoint should be able to restore
                 # from disk.
-                var.checkpoint = checkpoint._ad_restore_at_checkpoint(self._checkpoint[var])
+                var.checkpoint = checkpoint._ad_restore_at_checkpoint(checkpoint)
             else:
-                var.checkpoint = self._checkpoint[var]
+                var.checkpoint = checkpoint
 
     def delete_checkpoint(self):
         """Delete the stored checkpoint references."""

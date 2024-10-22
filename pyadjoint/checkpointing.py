@@ -34,8 +34,9 @@ class CheckpointManager:
     Args:
         schedule (checkpoint_schedules.schedule): A schedule provided by the `checkpoint_schedules` package.
         tape (Tape): A list of blocks :class:`Block` instances.
-        manage_disk_checkpointing (object): An object that manages disk checkpointing. Should be inherited from
-        :class:`ManageDiskCheckpointing`, where it is possible to start, pause and continue disk checkpointing.
+        manage_disk_checkpointing (:class:`ManageDiskCheckpointing`): An object that manages disk
+        checkpointing. Should be inherited from :class:`ManageDiskCheckpointing`, where it is possible start,
+        pause and continue disk checkpointing.
 
     Attributes:
         tape (Tape): A list of blocks :class:`Block` instances.
@@ -174,14 +175,9 @@ class CheckpointManager:
                     out._checkpoint = None
         if timestep in cp_action and timestep < self.total_timesteps:
             self.tape.get_blocks().append_step()
-            if (
-                (cp_action.write_ics or cp_action.write_adj_deps)
-                and cp_action.storage != StorageType.WORK
-            ):
-                if cp_action.write_ics:
-                    self.tape.latest_checkpoint = cp_action.n0
-                if cp_action.write_adj_deps:
-                    self.tape.latest_checkpoint = cp_action.n1
+            if cp_action.write_ics:
+                self.tape.latest_checkpoint = cp_action.n0
+
             if cp_action.storage == StorageType.DISK:
                 # Activate disk checkpointing only in the checkpointing process.
                 self.manage_disk_checkpointing.pause_checkpointing()
@@ -328,6 +324,7 @@ class CheckpointManager:
                     var._checkpoint = None
             step += 1
             if cp_action.storage == StorageType.DISK:
+                # Activate disk checkpointing only in the checkpointing process.
                 self.manage_disk_checkpointing.pause_checkpointing()
 
     @process_operation.register(Reverse)
@@ -380,17 +377,11 @@ class CheckpointManager:
 
 
 class ManageDiskCheckpointing(ABC):
-    """Manage the disk checkpointing.
+    """Abstract base class for managing disk checkpointing.
 
-    Args:
-        dirname (str): The directory name for the disk checkpointing.
-        comm (MPI.Comm): The MPI communicator.
-        cleanup (bool): If `True`, the disk checkpointing will be cleaned up.
+    If a package that uses Pyadjoint needs to manage disk checkpointing, for example to
+    start, pause, or continue the checkpointing on disk, it should subclass this class.
     """
-    def __init__(self, dirname=None, comm=None, cleanup=False):
-        self.dirname = dirname
-        self.comm = comm
-        self.cleanup = cleanup
 
     @abstractmethod
     def start_checkpointing(self):
