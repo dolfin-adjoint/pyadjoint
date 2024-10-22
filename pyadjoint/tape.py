@@ -793,8 +793,8 @@ class TimeStep(list):
                 and isinstance(checkpoint, OverloadedType)
             ):
                 # checkpoint._ad_restore_checkpoint should be able to restore
-                # from disk
-                checkpoint._ad_restore_at_checkpoint(self._checkpoint[var])
+                # from disk.
+                var.checkpoint = checkpoint._ad_restore_at_checkpoint(self._checkpoint[var])
             else:
                 var.checkpoint = self._checkpoint[var]
 
