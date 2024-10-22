@@ -4,8 +4,10 @@ pytest.importorskip("firedrake")
 from firedrake import *
 from firedrake.__future__ import *
 from firedrake.adjoint import *
+from firedrake.adjoint_utils.checkpointing import disk_checkpointing
 import numpy as np
 import os
+from checkpoint_schedules import SingleDiskStorageSchedule
 
 
 def adjoint_example(fine, coarse):
@@ -75,5 +77,19 @@ def test_disk_checkpointing():
     tape.clear_tape()
 
 
-if __name__ == "__main__":
-    test_disk_checkpointing()
+def test_single_disk_checkpointing():
+    set_working_tape(Tape())
+    tape = get_working_tape()
+    tape.clear_tape()
+    tape.enable_checkpointing(
+        SingleDiskStorageSchedule(),
+        manage_disk_checkpointing=AdjointDiskCheckpointing())
+    fine = checkpointable_mesh(UnitSquareMesh(10, 10, name="fine"))
+    coarse = checkpointable_mesh(UnitSquareMesh(4, 4, name="coarse"))
+    J_disk, grad_J_disk = adjoint_example(fine, coarse)
+    assert disk_checkpointing() is False
+    tape.clear_tape()
+    J_mem, grad_J_mem = adjoint_example(fine, coarse)
+    assert np.allclose(J_disk, J_mem)
+    assert np.allclose(assemble((grad_J_disk - grad_J_mem)**2*dx), 0.0)
+    tape.clear_tape()

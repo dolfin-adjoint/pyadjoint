@@ -1,4 +1,5 @@
 from enum import Enum
+from abc import ABC, abstractmethod
 import sys
 from functools import singledispatchmethod
 from checkpoint_schedules import Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType
@@ -33,6 +34,9 @@ class CheckpointManager:
     Args:
         schedule (checkpoint_schedules.schedule): A schedule provided by the `checkpoint_schedules` package.
         tape (Tape): A list of blocks :class:`Block` instances.
+        manage_disk_checkpointing (:class:`ManageDiskCheckpointing`): An object that manages disk
+        checkpointing. Should be inherited from :class:`ManageDiskCheckpointing`, where it is possible start,
+        pause and continue disk checkpointing.
 
     Attributes:
         tape (Tape): A list of blocks :class:`Block` instances.
@@ -48,13 +52,13 @@ class CheckpointManager:
         _current_action (checkpoint_schedules.CheckpointAction): The current `checkpoint_schedules` action.
 
     """
-    def __init__(self, schedule, tape):
+    def __init__(self, schedule, tape, manage_disk_checkpointing=None):
         if (
             schedule.uses_storage_type(StorageType.DISK)
-            and not tape._package_data
+            and not manage_disk_checkpointing
         ):
             raise CheckpointError(
-                "The schedule employs disk checkpointing but it is not configured."
+                "Disk storage requires a disk checkpointing manager."
             )
         self.tape = tape
         self._schedule = schedule
@@ -74,6 +78,7 @@ class CheckpointManager:
         self.forward_schedule.append(self._current_action)
         # Tell the tape to only checkpoint input data until told otherwise.
         self.tape.latest_checkpoint = 0
+        self.manage_disk_checkpointing = manage_disk_checkpointing
         self.end_timestep(-1)
 
     def end_timestep(self, timestep):
@@ -86,6 +91,8 @@ class CheckpointManager:
             raise CheckpointError("Not enough timesteps in schedule.")
         elif self.mode != Mode.RECORD:
             raise CheckpointError(f"Cannot end timestep in {self.mode}")
+        if self._schedule.uses_storage_type(StorageType.DISK):
+            self.manage_disk_checkpointing.start_checkpointing()
         while not self.process_taping(self._current_action, timestep + 1):
             self._current_action = next(self._schedule)
             self.forward_schedule.append(self._current_action)
@@ -152,6 +159,12 @@ class CheckpointManager:
                 # Store the checkpoint data. This is the required data for
                 # computing the adjoint model from the step `n1`.
                 _store_adj_dependencies = True
+            if (
+                (_store_checkpointable_state or _store_adj_dependencies)
+                and cp_action.storage == StorageType.DISK
+            ):
+                self.manage_disk_checkpointing.continue_checkpointing()
+
             self.tape.timesteps[timestep - 1].checkpoint(
                 _store_checkpointable_state, _store_adj_dependencies)
             # Remove unnecessary variables in working memory from previous steps.
@@ -164,6 +177,10 @@ class CheckpointManager:
             self.tape.get_blocks().append_step()
             if cp_action.write_ics:
                 self.tape.latest_checkpoint = cp_action.n0
+
+            if cp_action.storage == StorageType.DISK:
+                # Activate disk checkpointing only in the checkpointing process.
+                self.manage_disk_checkpointing.pause_checkpointing()
             return True
         else:
             return False
@@ -186,11 +203,18 @@ class CheckpointManager:
         if self.mode == Mode.RECORD:
             # Finalise the taping process.
             self.end_taping()
+        if self._schedule.uses_storage_type(StorageType.DISK):
+            if not self.tape._package_data:
+                raise CheckpointError(
+                    "Disk storage requires a tape with aditional package data."
+                )
+            # Clear the data of the current state before recomputing.
+            self.tape._package_data[list(self.tape._package_data.keys())[0]].reset()
         self.mode = Mode.RECOMPUTE
         with self.tape.progress_bar("Evaluating Functional", max=self.total_timesteps) as progress_bar:
             # Restore the initial condition to advance the forward model from the step 0.
             current_step = self.tape.timesteps[self.forward_schedule[0].n0]
-            current_step.restore_from_checkpoint()
+            current_step.restore_from_checkpoint(self.forward_schedule[0].storage)
             for cp_action in self.forward_schedule:
                 self._current_action = cp_action
                 self.process_operation(cp_action, progress_bar, functional=functional)
@@ -271,6 +295,11 @@ class CheckpointManager:
                     _store_checkpointable_state = True
                 if cp_action.write_adj_deps:
                     _store_adj_dependencies = True
+                if (
+                    (_store_checkpointable_state or _store_adj_dependencies)
+                    and cp_action.storage == StorageType.DISK
+                ):
+                    self.manage_disk_checkpointing.continue_checkpointing()
                 current_step.checkpoint(
                     _store_checkpointable_state, _store_adj_dependencies)
 
@@ -294,6 +323,9 @@ class CheckpointManager:
                 for var in (current_step.checkpointable_state - to_keep):
                     var._checkpoint = None
             step += 1
+            if cp_action.storage == StorageType.DISK:
+                # Activate disk checkpointing only in the checkpointing process.
+                self.manage_disk_checkpointing.pause_checkpointing()
 
     @process_operation.register(Reverse)
     def _(self, cp_action, progress_bar, markings, functional=None, **kwargs):
@@ -324,12 +356,12 @@ class CheckpointManager:
     @process_operation.register(Copy)
     def _(self, cp_action, progress_bar, **kwargs):
         current_step = self.tape.timesteps[cp_action.n]
-        current_step.restore_from_checkpoint()
+        current_step.restore_from_checkpoint(cp_action.from_storage)
 
     @process_operation.register(Move)
     def _(self, cp_action, progress_bar, **kwargs):
         current_step = self.tape.timesteps[cp_action.n]
-        current_step.restore_from_checkpoint()
+        current_step.restore_from_checkpoint(cp_action.from_storage)
         current_step.delete_checkpoint()
 
     @process_operation.register(EndForward)
@@ -342,3 +374,29 @@ class CheckpointManager:
             self.mode = Mode.EXHAUSTED
         else:
             self.mode = Mode.EVALUATED
+
+
+class ManageDiskCheckpointing(ABC):
+    """Abstract base class for managing disk checkpointing.
+
+    If a package that uses Pyadjoint needs to manage disk checkpointing, for example to
+    start, pause, or continue the checkpointing on disk, it should subclass this class.
+    """
+
+    @abstractmethod
+    def start_checkpointing(self):
+        """Start the checkpointing process on disk.
+        """
+        pass
+
+    @abstractmethod
+    def continue_checkpointing(self):
+        """Continue the checkpointing process on disk.
+        """
+        pass
+
+    @abstractmethod
+    def pause_checkpointing(self):
+        """Pause the checkpointing process on disk.
+        """
+        pass
