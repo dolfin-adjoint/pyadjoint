@@ -77,7 +77,6 @@ class ReducedFunctional(object):
         if not isinstance(functional, OverloadedType):
             raise TypeError("Functional must be an OverloadedType.")
         self.functional = functional
-        self.tape = get_working_tape() if tape is None else tape
         self.controls = Enlist(controls)
         self.derivative_components = derivative_components
         self.scale = scale
@@ -87,6 +86,13 @@ class ReducedFunctional(object):
         self.derivative_cb_post = derivative_cb_post
         self.hessian_cb_pre = hessian_cb_pre
         self.hessian_cb_post = hessian_cb_post
+
+        tape = get_working_tape() if tape is None else tape
+        self.tape = tape.copy()
+        self.tape.optimize(
+            controls=self.controls,
+            functionals=[self.functional]
+        )
 
         if self.derivative_components:
             # pre callback
@@ -224,13 +230,9 @@ class ReducedFunctional(object):
 
         return func_value
 
-    def optimize_tape(self, replace=False):
-        if replace:
-            self.tape = self.tape.copy()
-        self.tape.optimize(
-            controls=self.controls,
-            functionals=[self.functional]
-        )
+    def optimize_tape(self):
+        # Tape already optimized in __init__
+        # TODO: What should we do here now?
         return self.tape
 
     def marked_controls(self):
