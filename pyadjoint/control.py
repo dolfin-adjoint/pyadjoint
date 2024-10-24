@@ -80,6 +80,7 @@ class Control(object):
     def fetch_numpy(self, value):
         return self.control._ad_to_list(value)
 
+    # TODO: This should be self.block_variable.checkpoint?
     def copy_data(self):
         return self.control._ad_copy()
 
