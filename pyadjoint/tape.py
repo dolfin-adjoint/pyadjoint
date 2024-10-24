@@ -368,10 +368,24 @@ class Tape(object):
 
         """
         # TODO: Offer deepcopying. But is it feasible memory wise to copy all checkpoints?
-        return Tape(
+
+        # TODO: firedrake.DiskCheckPointer doesn't implement
+        #       copy so we have to do something else here.
+        package_data = {}
+        for k, v in self._package_data.items():
+            try:
+                package_data[k] = v.copy()
+            except NotImplementedError:
+                package_data[k] = v
+        tape = Tape(
             blocks=self._blocks,
-            package_data={k: v.copy() for k, v in self._package_data.items()}
+            package_data=package_data
         )
+        if self._checkpoint_manager is not None:
+            tape._checkpoint_manager = self._checkpoint_manager
+        if self._bar is not _NullProgressBar:
+            tape.progress_bar = self.progress_bar
+        return tape
 
     def checkpoint_block_vars(self, controls=[], tag=None):
         """Returns an object to checkpoint the current state of all block variables on the tape.
