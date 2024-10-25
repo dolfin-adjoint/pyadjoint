@@ -383,6 +383,7 @@ class Tape(object):
         )
         if self._checkpoint_manager is not None:
             tape._checkpoint_manager = self._checkpoint_manager
+            tape.latest_checkpoint = self.latest_checkpoint
         if self._bar is not _NullProgressBar:
             tape.progress_bar = self.progress_bar
         return tape
