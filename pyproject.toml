@@ -43,3 +43,7 @@ meshing = ["pygmsh", "meshio"]
 moola = ["moola>=0.1.6"]
 test = ["pytest>=3.10", "flake8", "coverage"]
 visualisation = ["tensorflow", "protobuf", "networkx", "pygraphviz"]
+
+
+[tool.setuptools]
+packages = ["firedrake_adjoint", "numpy_adjoint", "pyadjoint"]
