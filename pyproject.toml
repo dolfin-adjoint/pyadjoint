@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyadjoint-ad"
+version = "2023.0.0"
+dependencies = [
+  "checkpoint_schedules",
+  "scipy>=1.0",
+]
+authors = [
+  {name = "Jørgen S. Dokken", email = "dokken@simula.no"},
+]
+description = "High-level automatic differentiation library"
+readme = "README.md"
+license = {file = "LICENSE"}
+classifiers = [
+  "Programming Language :: Python",
+]
+
+[project.urls]
+Repository = "https://github.com/dolfin-adjoint/pyadjoint.git"
+
+[project.optional-dependencies]
+all = [
+  "coverage",
+  "flake8",
+  "meshio",
+  "moola>=0.1.6",
+  "networkx",
+  "protobuf",
+  "pygmsh",
+  "pygraphviz",
+  "pytest>=3.10",
+  "sphinx",
+  "sphinx-autobuild",
+  "sphinxcontrib-bibtex",
+  "tensorflow",
+]
+doc = ["sphinx", "sphinx-autobuild", "sphinxcontrib-bibtex"]
+meshing = ["pygmsh", "meshio"]
+moola = ["moola>=0.1.6"]
+test = ["pytest>=3.10", "flake8", "coverage"]
+visualisation = ["tensorflow", "protobuf", "networkx", "pygraphviz"]
+
+
+[tool.setuptools]
+packages = ["firedrake_adjoint", "numpy_adjoint", "pyadjoint"]
