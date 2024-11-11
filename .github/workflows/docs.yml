@@ -8,7 +8,7 @@ on:
   push:
     branches: ["master", "dham/delete_dolfin_adjoint"]
 
-  pull:
+  pull_request:
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
