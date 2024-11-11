@@ -46,4 +46,4 @@ visualisation = ["tensorflow", "protobuf", "networkx", "pygraphviz"]
 
 
 [tool.setuptools]
-packages = ["firedrake_adjoint", "numpy_adjoint", "pyadjoint"]
+packages = ["firedrake_adjoint", "numpy_adjoint", "pyadjoint", "pyadjoint.optimization"]
