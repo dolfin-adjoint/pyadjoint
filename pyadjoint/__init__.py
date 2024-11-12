@@ -24,4 +24,4 @@ from .optimization.rol_solver import ROLSolver
 from .optimization.tao_solver import TAOSolver
 from .optimization.constraints import InequalityConstraint, EqualityConstraint
 from .optimization.moola_problem import MoolaOptimizationProblem
-from .checkpointing import ManageDiskCheckpointing
+from .checkpointing import DiskCheckpointingManager
