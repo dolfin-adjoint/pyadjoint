@@ -83,7 +83,7 @@ def test_single_disk_checkpointing():
     tape.clear_tape()
     tape.enable_checkpointing(
         SingleDiskStorageSchedule(),
-        manage_disk_checkpointing=AdjointDiskCheckpointing())
+        disk_checkpointing_manager=AdjointDiskCheckpointing())
     fine = checkpointable_mesh(UnitSquareMesh(10, 10, name="fine"))
     coarse = checkpointable_mesh(UnitSquareMesh(4, 4, name="coarse"))
     J_disk, grad_J_disk = adjoint_example(fine, coarse)

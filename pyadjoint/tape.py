@@ -284,7 +284,7 @@ class Tape(object):
         for step in self.timesteps[last_used + 1:]:
             step.adjoint_dependencies.add(block_var)
 
-    def enable_checkpointing(self, schedule, manage_disk_checkpointing=None):
+    def enable_checkpointing(self, schedule, disk_checkpointing_manager=None):
         """Enable checkpointing on the adjoint evaluation.
 
         A checkpoint manager able to execute the forward and adjoint computations
@@ -293,7 +293,7 @@ class Tape(object):
         Args:
             schedule (checkpoint_schedules.schedule): A schedule provided by the
             checkpoint_schedules package.
-            manage_disk_checkpointing (:class:`ManageDiskCheckpointing`): An object
+            disk_checkpointing_manager (:class:`DiskCheckpointingManager`): An object
             that manages disk checkpointing. Should be inherited from
             :class:`ManageDiskCheckpointing`, where it is possible start, pause and
             continue disk checkpointing.
@@ -303,7 +303,7 @@ class Tape(object):
                 "Checkpointing must be enabled before any blocks are added to the tape."
             )
         self._checkpoint_manager = CheckpointManager(
-            schedule, self, manage_disk_checkpointing=manage_disk_checkpointing)
+            schedule, self, disk_checkpointing_manager=disk_checkpointing_manager)
 
     def get_blocks(self, tag=None):
         """Returns a list of the blocks on the tape.

@@ -79,11 +79,11 @@ def test_burgers_newton(solve_type, checkpointing):
         if checkpointing == "NoneAdjoint":
             schedule = NoneCheckpointSchedule()
         if schedule.uses_storage_type(StorageType.DISK):
-            manage_disk_checkpointing = AdjointDiskCheckpointing()
+            disk_checkpointing_manager = AdjointDiskCheckpointing()
         else:
-            manage_disk_checkpointing = None
+            disk_checkpointing_manager = None
         tape.enable_checkpointing(
-            schedule, manage_disk_checkpointing=manage_disk_checkpointing)
+            schedule, disk_checkpointing_manager=disk_checkpointing_manager)
         if schedule.uses_storage_type(StorageType.DISK):
             mesh = checkpointable_mesh(mesh)
     x, = SpatialCoordinate(mesh)
@@ -138,7 +138,7 @@ def test_checkpointing_validity(solve_type, checkpointing):
         tape.enable_checkpointing(Revolve(steps, steps//3))
     if checkpointing == "Mixed":
         tape.enable_checkpointing(MixedCheckpointSchedule(steps, steps//3, storage=StorageType.DISK),
-                                  manage_disk_checkpointing=AdjointDiskCheckpointing())
+                                  disk_checkpointing_manager=AdjointDiskCheckpointing())
         mesh = checkpointable_mesh(mesh)
     V = FunctionSpace(mesh, "CG", 2)
     x, = SpatialCoordinate(mesh)
