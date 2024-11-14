@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from functools import wraps
 from itertools import chain
 from typing import Optional, Iterable
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from .checkpointing import CheckpointManager, CheckpointError, StorageType
 
 _working_tape = None
@@ -284,7 +284,7 @@ class Tape(object):
         for step in self.timesteps[last_used + 1:]:
             step.adjoint_dependencies.add(block_var)
 
-    def enable_checkpointing(self, schedule, disk_checkpointing_manager=None):
+    def enable_checkpointing(self, schedule):
         """Enable checkpointing on the adjoint evaluation.
 
         A checkpoint manager able to execute the forward and adjoint computations
@@ -302,8 +302,7 @@ class Tape(object):
             raise CheckpointError(
                 "Checkpointing must be enabled before any blocks are added to the tape."
             )
-        self._checkpoint_manager = CheckpointManager(
-            schedule, self, disk_checkpointing_manager=disk_checkpointing_manager)
+        self._checkpoint_manager = CheckpointManager(schedule, self)
 
     def get_blocks(self, tag=None):
         """Returns a list of the blocks on the tape.
@@ -863,7 +862,7 @@ class TimeStepSequence(list):
         )
 
 
-class TapePackageData(ABC):
+class TapePackageData():
     """Abstract base class for additional data that packages store on the tape.
 
     If a package that uses Pyadjoint needs to store additional tape state, such
@@ -899,4 +898,22 @@ class TapePackageData(ABC):
     @abstractmethod
     def copy(self):
         """Produce a new copy of state to be passed to a copy of the tape."""
+        pass
+
+    @abstractmethod
+    def start_checkpointing(self):
+        """Start the checkpointing process on disk.
+        """
+        pass
+
+    @abstractmethod
+    def continue_checkpointing(self):
+        """Continue the checkpointing process on disk.
+        """
+        pass
+
+    @abstractmethod
+    def pause_checkpointing(self):
+        """Pause the checkpointing process on disk.
+        """
         pass

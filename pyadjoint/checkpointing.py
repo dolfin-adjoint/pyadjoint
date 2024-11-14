@@ -1,5 +1,4 @@
 from enum import Enum
-from abc import ABC, abstractmethod
 import sys
 from functools import singledispatchmethod
 from checkpoint_schedules import Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType
@@ -52,13 +51,13 @@ class CheckpointManager:
         _current_action (checkpoint_schedules.CheckpointAction): The current `checkpoint_schedules` action.
 
     """
-    def __init__(self, schedule, tape, disk_checkpointing_manager=None):
+    def __init__(self, schedule, tape):
         if (
             schedule.uses_storage_type(StorageType.DISK)
-            and not disk_checkpointing_manager
+            and not tape._package_data
         ):
             raise CheckpointError(
-                "Disk storage requires a disk checkpointing manager."
+                "The schedule employs disk checkpointing but it is not configured."
             )
         self.tape = tape
         self._schedule = schedule
@@ -78,7 +77,6 @@ class CheckpointManager:
         self.forward_schedule.append(self._current_action)
         # Tell the tape to only checkpoint input data until told otherwise.
         self.tape.latest_checkpoint = 0
-        self.disk_checkpointing_manager = disk_checkpointing_manager
         self.end_timestep(-1)
 
     def end_timestep(self, timestep):
@@ -92,7 +90,8 @@ class CheckpointManager:
         elif self.mode != Mode.RECORD:
             raise CheckpointError(f"Cannot end timestep in {self.mode}")
         if self._schedule.uses_storage_type(StorageType.DISK):
-            self.disk_checkpointing_manager.start_checkpointing()
+            for package in self.tape._package_data.values():
+                package.start_checkpointing()
         while not self.process_taping(self._current_action, timestep + 1):
             self._current_action = next(self._schedule)
             self.forward_schedule.append(self._current_action)
@@ -163,7 +162,8 @@ class CheckpointManager:
                 (_store_checkpointable_state or _store_adj_dependencies)
                 and cp_action.storage == StorageType.DISK
             ):
-                self.disk_checkpointing_manager.continue_checkpointing()
+                for package in self.tape._package_data.values():
+                    package.continue_checkpointing()
 
             self.tape.timesteps[timestep - 1].checkpoint(
                 _store_checkpointable_state, _store_adj_dependencies)
@@ -180,7 +180,8 @@ class CheckpointManager:
 
             if cp_action.storage == StorageType.DISK:
                 # Activate disk checkpointing only in the checkpointing process.
-                self.disk_checkpointing_manager.pause_checkpointing()
+                for package in self.tape._package_data.values():
+                    package.pause_checkpointing()
             return True
         else:
             return False
@@ -300,7 +301,8 @@ class CheckpointManager:
                     (_store_checkpointable_state or _store_adj_dependencies)
                     and cp_action.storage == StorageType.DISK
                 ):
-                    self.disk_checkpointing_manager.continue_checkpointing()
+                    for package in self.tape._package_data.values():
+                        package.continue_checkpointing()
                 current_step.checkpoint(
                     _store_checkpointable_state, _store_adj_dependencies)
 
@@ -326,7 +328,8 @@ class CheckpointManager:
             step += 1
             if cp_action.storage == StorageType.DISK:
                 # Activate disk checkpointing only in the checkpointing process.
-                self.disk_checkpointing_manager.pause_checkpointing()
+                for package in self.tape._package_data.values():
+                    package.pause_checkpointing()
 
     @process_operation.register(Reverse)
     def _(self, cp_action, progress_bar, markings, functional=None, **kwargs):
@@ -375,29 +378,3 @@ class CheckpointManager:
             self.mode = Mode.EXHAUSTED
         else:
             self.mode = Mode.EVALUATED
-
-
-class DiskCheckpointingManager(ABC):
-    """Abstract base class for managing disk checkpointing.
-
-    If a package that uses Pyadjoint needs to manage disk checkpointing, for example to
-    start, pause, or continue the checkpointing on disk, it should subclass this class.
-    """
-
-    @abstractmethod
-    def start_checkpointing(self):
-        """Start the checkpointing process on disk.
-        """
-        pass
-
-    @abstractmethod
-    def continue_checkpointing(self):
-        """Continue the checkpointing process on disk.
-        """
-        pass
-
-    @abstractmethod
-    def pause_checkpointing(self):
-        """Pause the checkpointing process on disk.
-        """
-        pass

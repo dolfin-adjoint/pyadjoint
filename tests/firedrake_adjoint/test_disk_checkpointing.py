@@ -56,40 +56,27 @@ def adjoint_example(fine, coarse):
     return Jnew, grad_Jnew
 
 
-def test_disk_checkpointing():
+@pytest.mark.parametrize("checkpoint_schedule", [True, False])
+def test_disk_checkpointing(checkpoint_schedule):
     # Use a Firedrake Tape subclass that supports disk checkpointing.
     set_working_tape(Tape())
     tape = get_working_tape()
     tape.clear_tape()
     enable_disk_checkpointing()
-
+    if checkpoint_schedule:
+        tape.enable_checkpointing(SingleDiskStorageSchedule())
     fine = checkpointable_mesh(UnitSquareMesh(10, 10, name="fine"))
     coarse = checkpointable_mesh(UnitSquareMesh(4, 4, name="coarse"))
     J_disk, grad_J_disk = adjoint_example(fine, coarse)
 
+    if checkpoint_schedule:
+        assert disk_checkpointing() is False
     tape.clear_tape()
-    pause_disk_checkpointing()
+    if not checkpoint_schedule:
+        pause_disk_checkpointing()
 
     J_mem, grad_J_mem = adjoint_example(fine, coarse)
 
-    assert np.allclose(J_disk, J_mem)
-    assert np.allclose(assemble((grad_J_disk - grad_J_mem)**2*dx), 0.0)
-    tape.clear_tape()
-
-
-def test_single_disk_checkpointing():
-    set_working_tape(Tape())
-    tape = get_working_tape()
-    tape.clear_tape()
-    tape.enable_checkpointing(
-        SingleDiskStorageSchedule(),
-        disk_checkpointing_manager=AdjointDiskCheckpointing())
-    fine = checkpointable_mesh(UnitSquareMesh(10, 10, name="fine"))
-    coarse = checkpointable_mesh(UnitSquareMesh(4, 4, name="coarse"))
-    J_disk, grad_J_disk = adjoint_example(fine, coarse)
-    assert disk_checkpointing() is False
-    tape.clear_tape()
-    J_mem, grad_J_mem = adjoint_example(fine, coarse)
     assert np.allclose(J_disk, J_mem)
     assert np.allclose(assemble((grad_J_disk - grad_J_mem)**2*dx), 0.0)
     tape.clear_tape()
