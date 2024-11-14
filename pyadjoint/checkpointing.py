@@ -33,9 +33,6 @@ class CheckpointManager:
     Args:
         schedule (checkpoint_schedules.schedule): A schedule provided by the `checkpoint_schedules` package.
         tape (Tape): A list of blocks :class:`Block` instances.
-        disk_checkpointing_manager (:class:`DiskCheckpointingManager`): An object that manages disk
-        checkpointing. Should be inherited from :class:`DiskCheckpointingManager`, where it is possible start,
-        pause and continue disk checkpointing.
 
     Attributes:
         tape (Tape): A list of blocks :class:`Block` instances.
@@ -89,9 +86,7 @@ class CheckpointManager:
             raise CheckpointError("Not enough timesteps in schedule.")
         elif self.mode != Mode.RECORD:
             raise CheckpointError(f"Cannot end timestep in {self.mode}")
-        if self._schedule.uses_storage_type(StorageType.DISK):
-            for package in self.tape._package_data.values():
-                package.start_checkpointing()
+
         while not self.process_taping(self._current_action, timestep + 1):
             self._current_action = next(self._schedule)
             self.forward_schedule.append(self._current_action)
@@ -205,10 +200,6 @@ class CheckpointManager:
             # Finalise the taping process.
             self.end_taping()
         if self._schedule.uses_storage_type(StorageType.DISK):
-            if not self.tape._package_data:
-                raise CheckpointError(
-                    "Disk storage requires a tape a package data."
-                )
             # Clear the data of the current state before recomputing.
             for package in self.tape._package_data.values():
                 package.reset()

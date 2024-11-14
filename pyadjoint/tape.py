@@ -293,10 +293,6 @@ class Tape(object):
         Args:
             schedule (checkpoint_schedules.schedule): A schedule provided by the
             checkpoint_schedules package.
-            disk_checkpointing_manager (:class:`DiskCheckpointingManager`): An object
-            that manages disk checkpointing. Should be inherited from
-            :class:`ManageDiskCheckpointing`, where it is possible start, pause and
-            continue disk checkpointing.
         """
         if self._blocks:
             raise CheckpointError(
