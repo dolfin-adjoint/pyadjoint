@@ -19,6 +19,10 @@ classifiers = [
   "Programming Language :: Python",
 ]
 
+[tool.pytest.ini_options]
+# This makes the root directory available in PYTHONPATH for pytest runs.
+pythonpath = ["."]
+
 [project.urls]
 Repository = "https://github.com/dolfin-adjoint/pyadjoint.git"
 
