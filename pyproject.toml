@@ -19,9 +19,6 @@ classifiers = [
   "Programming Language :: Python",
 ]
 
-[tool.pytest.ini_options]
-pythonpath = ["."]
-
 [project.urls]
 Repository = "https://github.com/dolfin-adjoint/pyadjoint.git"
 
