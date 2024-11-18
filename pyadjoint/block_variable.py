@@ -1,3 +1,4 @@
+import weakref
 from .tape import no_annotations, get_working_tape
 
 
@@ -7,7 +8,7 @@ class BlockVariable(object):
     """
 
     def __init__(self, output):
-        self.output = output
+        self._output = weakref.ref(output)
         self.adj_value = None
         self.tlm_value = None
         self.hessian_value = None
@@ -20,6 +21,10 @@ class BlockVariable(object):
         self.creation_timestep = -1
         # The timestep during which this variable was last used as an input.
         self.last_use = -1
+    
+    @property
+    def output(self):
+        return self._output()
 
     def add_adj_output(self, val):
         if self.adj_value is None:
@@ -56,10 +61,15 @@ class BlockVariable(object):
 
     @property
     def saved_output(self):
-        if self.checkpoint is not None:
+        if self.checkpoint is not None and self.output is not None:
             return self.output._ad_restore_at_checkpoint(self.checkpoint)
-        else:
+        elif self.checkpoint is None and self.output is not None:
             return self.output
+        elif self.checkpoint is not None and self.output is None:
+            return self.checkpoint
+        elif self.checkpoint is None and self.output is None:
+            raise ValueError("Output is " + str(self.output) + " and checkpoint is " + str(self.checkpoint) + "."
+                                "At least one of them should be not None.")
 
     def will_add_as_dependency(self):
         overwrite = self.output._ad_will_add_as_dependency()
