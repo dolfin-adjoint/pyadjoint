@@ -2,7 +2,7 @@
 import os
 import re
 import threading
-from contextlib import contextmanager
+from contextlib import contextmanager, ContextDecorator
 from functools import wraps
 from itertools import chain
 from typing import Optional, Iterable
@@ -28,9 +28,10 @@ def continue_annotation():
     return _annotation_enabled
 
 
-class set_working_tape(object):
+class set_working_tape(ContextDecorator):
     """A context manager whithin which a new tape is set as the working tape.
-       This context manager can also be used in an imperative manner.
+       This context manager can also be used in an imperative manner, or as
+       a decorator to set the working tape within a function.
 
        Example usage:
 
@@ -48,24 +49,51 @@ class set_working_tape(object):
 
                 with set_working_tape() as tape:
                     ...
+
+        3) Set the local tape inside a decorated function.
+           The two functions below are equivalent:
+
+            .. highlight:: python
+            .. code-block:: python
+
+                @set_working_tape(decorator=True)
+                def decorated_function(*args, **kwargs):
+                    # do something here
+                    return ReducedFunctional(functional, control)
+
+                def context_function(*args, **kwargs):
+                    with set_working_tape():
+                        # do something here
+                        return ReducedFunctional(functional, control)
+
+
     """
 
-    def __init__(self, tape=None, **tape_kwargs):
+    def __init__(self, tape=None, decorator=False, **tape_kwargs):
         # Get working tape
-        global _working_tape
-        # Store current tape
-        self.old_tape = _working_tape
-        # Set new tape
-        self.tape = tape or Tape(**tape_kwargs)
-        _working_tape = self.tape
+        self._tape_kwargs = tape_kwargs
+        self.decorator = decorator
+        self.tape = tape
+        if not self.decorator:
+            self._set_tape()
 
     def __enter__(self):
+        if self.decorator:
+            self._set_tape()
         return self.tape
 
     def __exit__(self, *args):
         # Re-establish the original tape
         global _working_tape
         _working_tape = self.old_tape
+
+    def _set_tape(self):
+        global _working_tape
+        # Store current tape
+        self.old_tape = _working_tape
+        # Set new tape
+        self.tape = self.tape or Tape(**self._tape_kwargs)
+        _working_tape = self.tape
 
 
 class stop_annotating(object):
