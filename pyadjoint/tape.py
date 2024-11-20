@@ -858,7 +858,7 @@ class TimeStepSequence(list):
         )
 
 
-class TapePackageData():
+class TapePackageData(ABC):
     """Abstract base class for additional data that packages store on the tape.
 
     If a package that uses Pyadjoint needs to store additional tape state, such
