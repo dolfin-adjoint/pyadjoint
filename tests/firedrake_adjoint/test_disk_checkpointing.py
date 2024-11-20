@@ -84,10 +84,9 @@ def test_disk_checkpointing(checkpoint_schedule):
 
 def test_disk_checkpointing_error():
     tape = get_working_tape()
-    tape.clear_tape()
     # check the raise of the exception
     with pytest.raises(RuntimeError):
         tape.enable_checkpointing(SingleDiskStorageSchedule())
     assert disk_checkpointing_callback["error"] ==  "Please call enable_disk_checkpointing() "\
         "before checkpointing on the disk."
-    tape.clear_tape()
+

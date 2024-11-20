@@ -6,6 +6,7 @@ from checkpoint_schedules import Copy, Move, EndForward, EndReverse, Forward, Re
 # custom error message when disk checkpointing is not configured.
 disk_checkpointing_callback = {"error": None}
 
+
 class CheckpointError(RuntimeError):
     pass
 
@@ -90,7 +91,6 @@ class CheckpointManager:
             raise CheckpointError("Not enough timesteps in schedule.")
         elif self.mode != Mode.RECORD:
             raise CheckpointError(f"Cannot end timestep in {self.mode}")
-
         while not self.process_taping(self._current_action, timestep + 1):
             self._current_action = next(self._schedule)
             self.forward_schedule.append(self._current_action)

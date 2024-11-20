@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from functools import wraps
 from itertools import chain
 from typing import Optional, Iterable
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from .checkpointing import CheckpointManager, CheckpointError, StorageType
 
 _working_tape = None
