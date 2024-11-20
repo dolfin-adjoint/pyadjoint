@@ -27,7 +27,7 @@ def continue_annotation():
     return _annotation_enabled
 
 
-class set_working_tape:
+class set_working_tape(ContextDecorator):
     """Set a new tape as the working tape. This can be used either:
        1) as a free function to replace the working tape,
        2) as a context manager whithin which a new tape is set as the working tape
@@ -51,12 +51,18 @@ class set_working_tape:
                     ...
 
         3) Set the local tape inside a decorated function.
-           The two functions below are equivalent:
+           The preinstantiated `scoped_working_tape` can also be used.
+           The three functions below are equivalent:
 
             .. highlight:: python
             .. code-block:: python
 
                 @set_working_tape()
+                def decorated_function(*args, **kwargs):
+                    # do something here
+                    return ReducedFunctional(functional, control)
+
+                @scoped_working_tape
                 def decorated_function(*args, **kwargs):
                     # do something here
                     return ReducedFunctional(functional, control)
@@ -68,74 +74,30 @@ class set_working_tape:
 
     """
 
-    def __init__(self, tape=None, **tape_kwargs):
-        # Get working tape
+    def __init__(self, tape=None, eager=True, **tape_kwargs):
         global _working_tape
-        # Store current tape
-        self.old_tape = _working_tape
-        # Set new tape
-        self.tape = tape or Tape(**tape_kwargs)
-        _working_tape = self.tape
-
-    def __enter__(self):
-        self._cm = scoped_working_tape(tape=self.tape)
-        return self._cm.__enter__()
-
-    def __exit__(self, *args):
-        # Re-establish the original tape
-        self._cm.__exit__(*args)
-
-
-class scoped_working_tape(ContextDecorator):
-    """A context manager whithin which a new tape is set as the working tape.
-       This context manager can also be used as a decorator to set the
-       working tape within a function.
-
-       Example usage:
-
-        1) Set a local tape within a context manager:
-
-            .. highlight:: python
-            .. code-block:: python
-
-                with scoped_working_tape() as tape:
-                    ...
-
-        2) Set the local tape inside a decorated function.
-           The two functions below are equivalent:
-
-            .. highlight:: python
-            .. code-block:: python
-
-                @scoped_working_tape()
-                def decorated_function(*args, **kwargs):
-                    # do something here
-                    return ReducedFunctional(functional, control)
-
-                def context_function(*args, **kwargs):
-                    with scoped_working_tape():
-                        # do something here
-                        return ReducedFunctional(functional, control)
-
-    """
-    def __init__(self, tape=None, **tape_kwargs):
         # the context manager could be nested, so we need a
         # stack to keep track of the original tape.
         self._old_tape = []
-        self._tape_kwargs = tape_kwargs
-        if tape:
-            self.tape = tape
+        # Set new working tape
+        if eager:
+            self.tape = tape or Tape(**tape_kwargs)
+            _working_tape = self.tape
 
     def __enter__(self):
         global _working_tape
-        if self.tape and len(self._old_tape) > 1:
+        if self.tape and len(self._old_tape) != 0:
             raise ValueError(
-                "Cannot provide `tape` argument if `scoped_working_tape` is nested.")
+                "Cannot provide `tape` argument if `set_working_tape` is nested,"
+                " e.g. when used as a context manager or decorator.")
+        # Store the old tape
         self._old_tape.append(_working_tape)
+        # Set the new tape
         _working_tape = self.tape if self.tape else Tape(**self._tape_kwargs)
         return _working_tape
 
     def __exit__(self, *args):
+        # Re-establish the original tape
         global _working_tape
         _working_tape = self._old_tape.pop()
 
@@ -163,7 +125,8 @@ class stop_annotating(ContextDecorator):
         global _annotation_enabled
         if self.modifies and len(self._orig_annotation_enabled) != 0:
             raise ValueError(
-                "Cannot use `modifies` argument if `stop_annotating` is nested")
+                "Cannot use `modifies` argument if `stop_annotating` is nested,"
+                " e.g. if used as the `no_annotations` decorator.")
         self._orig_annotation_enabled.append(_annotation_enabled)
         _annotation_enabled = False
 
@@ -178,6 +141,7 @@ class stop_annotating(ContextDecorator):
                     var.create_block_variable()
 
 
+scoped_working_tape = set_working_tape(eager=False)
 no_annotations = stop_annotating()
 
 
