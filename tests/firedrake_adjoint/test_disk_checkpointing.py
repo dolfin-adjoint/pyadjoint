@@ -80,3 +80,14 @@ def test_disk_checkpointing(checkpoint_schedule):
     assert np.allclose(J_disk, J_mem)
     assert np.allclose(assemble((grad_J_disk - grad_J_mem)**2*dx), 0.0)
     tape.clear_tape()
+
+
+def test_disk_checkpointing_error():
+    tape = get_working_tape()
+    tape.clear_tape()
+    # check the raise of the exception
+    with pytest.raises(RuntimeError):
+        tape.enable_checkpointing(SingleDiskStorageSchedule())
+    assert disk_checkpointing_callback["error"] ==  "Please call enable_disk_checkpointing() "\
+        "before checkpointing on the disk."
+    tape.clear_tape()

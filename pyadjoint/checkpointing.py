@@ -2,7 +2,9 @@ from enum import Enum
 import sys
 from functools import singledispatchmethod
 from checkpoint_schedules import Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType
-
+# A callback interface allowing the user to provide a
+# custom error message when disk checkpointing is not configured.
+disk_checkpointing_callback = {"error": None}
 
 class CheckpointError(RuntimeError):
     pass
@@ -54,8 +56,9 @@ class CheckpointManager:
             and not tape._package_data
         ):
             raise CheckpointError(
-                "The schedule employs disk checkpointing but it is not configured."\
-                "Please define the package data for disk checkpointing."
+                "The schedule employs disk checkpointing but it is not configured."
+                + disk_checkpointing_callback["error"]
+                if disk_checkpointing_callback["error"] else ""
             )
         self.tape = tape
         self._schedule = schedule
