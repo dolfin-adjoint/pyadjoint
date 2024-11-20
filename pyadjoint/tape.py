@@ -83,6 +83,9 @@ class set_working_tape(ContextDecorator):
         if eager:
             self.tape = tape or Tape(**tape_kwargs)
             _working_tape = self.tape
+        else:
+            self.tape = None
+            self._tape_kwargs = tape_kwargs
 
     def __enter__(self):
         global _working_tape
