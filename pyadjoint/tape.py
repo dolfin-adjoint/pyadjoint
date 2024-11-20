@@ -3,7 +3,6 @@ import os
 import re
 import threading
 from contextlib import contextmanager, ContextDecorator
-from functools import wraps
 from itertools import chain
 from typing import Optional, Iterable
 from abc import ABC, abstractmethod
@@ -28,10 +27,11 @@ def continue_annotation():
     return _annotation_enabled
 
 
-class set_working_tape(ContextDecorator):
-    """A context manager whithin which a new tape is set as the working tape.
-       This context manager can also be used in an imperative manner, or as
-       a decorator to set the working tape within a function.
+class set_working_tape:
+    """Set a new tape as the working tape. This can be used either:
+       1) as a free function to replace the working tape,
+       2) as a context manager whithin which a new tape is set as the working tape
+       3) as a function decorator so that the new tape is set only inside the function.
 
        Example usage:
 
@@ -56,7 +56,7 @@ class set_working_tape(ContextDecorator):
             .. highlight:: python
             .. code-block:: python
 
-                @set_working_tape(decorator=True)
+                @set_working_tape()
                 def decorated_function(*args, **kwargs):
                     # do something here
                     return ReducedFunctional(functional, control)
@@ -66,37 +66,81 @@ class set_working_tape(ContextDecorator):
                         # do something here
                         return ReducedFunctional(functional, control)
 
-
     """
 
-    def __init__(self, tape=None, decorator=False, **tape_kwargs):
+    def __init__(self, tape=None, **tape_kwargs):
         # Get working tape
-        self._tape_kwargs = tape_kwargs
-        self.decorator = decorator
-        self.tape = tape
-        if not self.decorator:
-            self._set_tape()
-
-    def __enter__(self):
-        if self.decorator:
-            self._set_tape()
-        return self.tape
-
-    def __exit__(self, *args):
-        # Re-establish the original tape
-        global _working_tape
-        _working_tape = self.old_tape
-
-    def _set_tape(self):
         global _working_tape
         # Store current tape
         self.old_tape = _working_tape
         # Set new tape
-        self.tape = self.tape or Tape(**self._tape_kwargs)
+        self.tape = tape or Tape(**tape_kwargs)
         _working_tape = self.tape
 
+    def __enter__(self):
+        self._cm = scoped_working_tape(tape=self.tape)
+        return self._cm.__enter__()
 
-class stop_annotating(object):
+    def __exit__(self, *args):
+        # Re-establish the original tape
+        self._cm.__exit__(*args)
+
+
+class scoped_working_tape(ContextDecorator):
+    """A context manager whithin which a new tape is set as the working tape.
+       This context manager can also be used as a decorator to set the
+       working tape within a function.
+
+       Example usage:
+
+        1) Set a local tape within a context manager:
+
+            .. highlight:: python
+            .. code-block:: python
+
+                with scoped_working_tape() as tape:
+                    ...
+
+        2) Set the local tape inside a decorated function.
+           The two functions below are equivalent:
+
+            .. highlight:: python
+            .. code-block:: python
+
+                @scoped_working_tape()
+                def decorated_function(*args, **kwargs):
+                    # do something here
+                    return ReducedFunctional(functional, control)
+
+                def context_function(*args, **kwargs):
+                    with scoped_working_tape():
+                        # do something here
+                        return ReducedFunctional(functional, control)
+
+    """
+    def __init__(self, tape=None, **tape_kwargs):
+        # the context manager could be nested, so we need a
+        # stack to keep track of the original tape.
+        self._old_tape = []
+        self._tape_kwargs = tape_kwargs
+        if tape:
+            self.tape = tape
+
+    def __enter__(self):
+        global _working_tape
+        if self.tape and len(self._old_tape) > 1:
+            raise ValueError(
+                "Cannot provide `tape` argument if `scoped_working_tape` is nested.")
+        self._old_tape.append(_working_tape)
+        _working_tape = self.tape if self.tape else Tape(**self._tape_kwargs)
+        return _working_tape
+
+    def __exit__(self, *args):
+        global _working_tape
+        _working_tape = self._old_tape.pop()
+
+
+class stop_annotating(ContextDecorator):
     """A context manager within which annotation is stopped.
 
     Args:
@@ -110,17 +154,22 @@ class stop_annotating(object):
     modified variables at the end of the context manager. """
 
     def __init__(self, modifies=None):
-        global _annotation_enabled
         self.modifies = modifies
-        self._orig_annotation_enabled = _annotation_enabled
+        # the context manager could be nested, so we need a
+        # stack to keep track of the original annotation state.
+        self._orig_annotation_enabled = []
 
     def __enter__(self):
         global _annotation_enabled
+        if self.modifies and len(self._orig_annotation_enabled) != 0:
+            raise ValueError(
+                "Cannot use `modifies` argument if `stop_annotating` is nested")
+        self._orig_annotation_enabled.append(_annotation_enabled)
         _annotation_enabled = False
 
     def __exit__(self, *args):
         global _annotation_enabled
-        _annotation_enabled = self._orig_annotation_enabled
+        _annotation_enabled = self._orig_annotation_enabled.pop()
         if self.modifies is not None:
             try:
                 self.modifies.create_block_variable()
@@ -129,15 +178,7 @@ class stop_annotating(object):
                     var.create_block_variable()
 
 
-def no_annotations(function):
-    """Decorator to turn off annotation for the decorated function."""
-
-    @wraps(function)
-    def wrapper(*args, **kwargs):
-        with stop_annotating():
-            return function(*args, **kwargs)
-
-    return wrapper
+no_annotations = stop_annotating()
 
 
 def annotate_tape(kwargs=None):
