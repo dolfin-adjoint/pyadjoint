@@ -91,9 +91,6 @@ class CheckpointManager:
         elif self.mode != Mode.RECORD:
             raise CheckpointError(f"Cannot end timestep in {self.mode}")
 
-        if self._schedule.uses_storage_type(StorageType.DISK):
-            for package in self.tape._package_data.values():
-                package.start_checkpointing()
         while not self.process_taping(self._current_action, timestep + 1):
             self._current_action = next(self._schedule)
             self.forward_schedule.append(self._current_action)
