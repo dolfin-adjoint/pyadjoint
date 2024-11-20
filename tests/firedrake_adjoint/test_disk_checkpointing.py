@@ -89,4 +89,3 @@ def test_disk_checkpointing_error():
         tape.enable_checkpointing(SingleDiskStorageSchedule())
     assert disk_checkpointing_callback["error"] ==  "Please call enable_disk_checkpointing() "\
         "before checkpointing on the disk."
-
