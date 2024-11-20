@@ -897,12 +897,6 @@ class TapePackageData(ABC):
         pass
 
     @abstractmethod
-    def start_checkpointing(self):
-        """Start the checkpointing process on disk.
-        """
-        pass
-
-    @abstractmethod
     def continue_checkpointing(self):
         """Continue the checkpointing process on disk.
         """
