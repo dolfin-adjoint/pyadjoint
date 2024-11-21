@@ -57,10 +57,8 @@ class CheckpointManager:
             and not tape._package_data
         ):
             raise CheckpointError(
-                "The schedule employs disk checkpointing but it is not configured."
-                + disk_checkpointing_callback["error"]
-                if disk_checkpointing_callback["error"] else ""
-            )
+                "The schedule employs disk checkpointing but it is not configured.\n"
+                + "\n".join(disk_checkpointing_callback.values()))
         self.tape = tape
         self._schedule = schedule
         self.forward_schedule = []
