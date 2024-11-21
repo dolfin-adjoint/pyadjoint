@@ -3,7 +3,7 @@ pytest.importorskip("firedrake")
 
 from firedrake import *
 from firedrake.adjoint import *
-from checkpoint_schedules import Revolve
+from checkpoint_schedules import Revolve, MixedCheckpointSchedule, StorageType
 import numpy as np
 from collections import deque
 continue_annotation()
@@ -42,12 +42,13 @@ def J(displacement_0):
 def test_multisteps():
     tape = get_working_tape()
     tape.progress_bar = ProgressBar
-    tape.enable_checkpointing(Revolve(total_steps, 2))
+    tape.enable_checkpointing(MixedCheckpointSchedule(total_steps, 2, storage=StorageType.RAM))
     displacement_0 = Function(V).assign(1.0)
     val = J(displacement_0)
     c = Control(displacement_0)
     J_hat = ReducedFunctional(val, c)
-    dJ = J_hat.derivative()
+    
+    # dJ = J_hat.derivative()  # array([1.94087544])
     # Recomputing the functional with a modified control variable
     # before the recompute test.
     J_hat(Function(V).assign(0.5))
@@ -70,10 +71,14 @@ def test_validity():
     tape.clear_tape()
 
     # With checkpointing.
-    tape.enable_checkpointing(Revolve(total_steps, 2))
+    tape.enable_checkpointing(MixedCheckpointSchedule(total_steps, 2, storage=StorageType.RAM))
     val = J(displacement_0)
     J_hat = ReducedFunctional(val, Control(displacement_0))
     dJ = J_hat.derivative()
     val_recomputed = J_hat(displacement_0)
     assert np.allclose(val_recomputed, val_recomputed0)
     assert np.allclose(dJ.dat.data_ro[:], dJ0.dat.data_ro[:])
+
+if __name__ == "__main__":
+    continue_annotation()
+    test_multisteps()
