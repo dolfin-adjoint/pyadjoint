@@ -4,7 +4,7 @@ from functools import singledispatchmethod
 from checkpoint_schedules import Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType
 # A callback interface allowing the user to provide a
 # custom error message when disk checkpointing is not configured.
-disk_checkpointing_callback = {"error": None}
+disk_checkpointing_callback = {}
 
 
 class CheckpointError(RuntimeError):
