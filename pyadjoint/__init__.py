@@ -13,6 +13,7 @@ from .tape import (Tape,
                    annotate_tape, stop_annotating, pause_annotation, continue_annotation)
 from .adjfloat import AdjFloat, exp, log
 from .reduced_functional import ReducedFunctional
+from .checkpointing import disk_checkpointing_callback
 from .drivers import compute_gradient, compute_hessian, solve_adjoint
 from .verification import taylor_test, taylor_to_dict
 from .overloaded_type import OverloadedType, create_overloaded_object
