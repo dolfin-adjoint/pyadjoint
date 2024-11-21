@@ -238,6 +238,7 @@ class CheckpointManager:
             raise CheckpointError("Evaluate Functional before calling gradient.")
 
         with self.tape.progress_bar("Evaluating Adjoint", max=self.total_timesteps) as progress_bar:
+            self.mode = Mode.EVALUATE_ADJOINT
             if self.reverse_schedule:
                 for cp_action in self.reverse_schedule:
                     self.process_operation(cp_action, progress_bar, markings=markings)
@@ -247,10 +248,7 @@ class CheckpointManager:
                     self._current_action = cp_action
                     self.reverse_schedule.append(cp_action)
                     self.process_operation(cp_action, progress_bar, markings=markings)
-
-            # Only set the mode after the first backward in order to handle
-            # that step correctly.
-            self.mode = Mode.EVALUATE_ADJOINT
+            
 
     @singledispatchmethod
     def process_operation(self, cp_action, progress_bar, **kwargs):
@@ -285,46 +283,55 @@ class CheckpointManager:
             current_step = self.tape.timesteps[step]
             for block in current_step:
                 block.recompute()
-            _store_checkpointable_state = False
-            _store_adj_dependencies = False
             if cp_action.storage != StorageType.WORK:
-                if (cp_action.write_ics and step == cp_action.n0):
-                    _store_checkpointable_state = True
-                if cp_action.write_adj_deps:
-                    _store_adj_dependencies = True
-                if (
-                    (_store_checkpointable_state or _store_adj_dependencies)
-                    and cp_action.storage == StorageType.DISK
-                ):
-                    for package in self.tape._package_data.values():
-                        package.continue_checkpointing()
-                current_step.checkpoint(
-                    _store_checkpointable_state, _store_adj_dependencies)
-
-            if (
-                (cp_action.write_adj_deps and cp_action.storage != StorageType.WORK)
-                or not cp_action.write_adj_deps
-            ):
-                to_keep = set()
-                if step < (self.total_timesteps - 1):
-                    next_step = self.tape.timesteps[step + 1]
-                    # The checkpointable state set of the current step.
-                    to_keep = next_step.checkpointable_state
+                self._checkpoint_storage(cp_action, step, current_step)
+            to_keep = set()
+            if step < (self.total_timesteps - 1):
+                next_step = self.tape.timesteps[step + 1]
+                # The checkpointable state set of the current step.
+                to_keep = next_step.checkpointable_state
                 if functional:
                     to_keep = to_keep.union([functional.block_variable])
-                for block in current_step:
-                    # Remove unnecessary variables from previous steps.
-                    for bv in block.get_outputs():
-                        if bv not in to_keep:
-                            bv._checkpoint = None
-                # Remove unnecessary variables from previous steps.
-                for var in (current_step.checkpointable_state - to_keep):
-                    var._checkpoint = None
+
+            for fwd_rest in current_step.checkpointable_state - to_keep:
+                # Enable to clear once was either stored or used.
+                fwd_rest._checkpoint = None
+            adj_deps_to_clear = current_step.adjoint_dependencies - to_keep
+            for adj_deps in current_step.adjoint_dependencies - to_keep:
+                if step < (self.total_timesteps - 1):
+                    adj_deps._checkpoint = None
+                elif step == (self.total_timesteps - 1) \
+                    and not cp_action.write_adj_deps:
+                    adj_deps._checkpoint = None
+                elif (step == (self.total_timesteps - 1) \
+                    and (cp_action.write_adj_deps \
+                        and cp_action.storage is not StorageType.WORK)
+                ):
+                    adj_deps._checkpoint = None
+                else:
+                    break
+
             step += 1
             if cp_action.storage == StorageType.DISK:
                 # Activate disk checkpointing only in the checkpointing process.
                 for package in self.tape._package_data.values():
                     package.pause_checkpointing()
+
+    def _checkpoint_storage(self, cp_action, step, current_step):
+        _store_checkpointable_state = False
+        _store_adj_dependencies = False
+        if (cp_action.write_ics and step == cp_action.n0):
+            _store_checkpointable_state = True
+        if cp_action.write_adj_deps:
+            _store_adj_dependencies = True
+        if (
+            (_store_checkpointable_state or _store_adj_dependencies)
+            and cp_action.storage == StorageType.DISK
+        ):
+            for package in self.tape._package_data.values():
+                package.continue_checkpointing()
+        current_step.checkpoint(
+            _store_checkpointable_state, _store_adj_dependencies)      
 
     @process_operation.register(Reverse)
     def _(self, cp_action, progress_bar, markings, functional=None, **kwargs):
