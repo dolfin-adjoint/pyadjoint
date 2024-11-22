@@ -367,7 +367,6 @@ class CheckpointManager:
                     if cp_action.clear_adj_deps and out not in to_keep:
                         out._checkpoint = None
 
-
     @process_operation.register(Copy)
     def _(self, cp_action, progress_bar, **kwargs):
         current_step = self.tape.timesteps[cp_action.n]
