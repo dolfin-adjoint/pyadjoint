@@ -3,7 +3,7 @@ pytest.importorskip("firedrake")
 
 from firedrake import *
 from firedrake.adjoint import *
-from checkpoint_schedules import Revolve, MixedCheckpointSchedule, StorageType
+from checkpoint_schedules import MixedCheckpointSchedule, StorageType
 import numpy as np
 from collections import deque
 continue_annotation()
@@ -47,8 +47,7 @@ def test_multisteps():
     val = J(displacement_0)
     c = Control(displacement_0)
     J_hat = ReducedFunctional(val, c)
-    
-    # dJ = J_hat.derivative()  # array([1.94087544])
+    dJ = J_hat.derivative()
     # Recomputing the functional with a modified control variable
     # before the recompute test.
     J_hat(Function(V).assign(0.5))
@@ -78,7 +77,3 @@ def test_validity():
     val_recomputed = J_hat(displacement_0)
     assert np.allclose(val_recomputed, val_recomputed0)
     assert np.allclose(dJ.dat.data_ro[:], dJ0.dat.data_ro[:])
-
-if __name__ == "__main__":
-    continue_annotation()
-    test_multisteps()
