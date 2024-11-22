@@ -28,9 +28,11 @@ def continue_annotation():
 
 
 class set_working_tape(ContextDecorator):
-    """Set a new tape as the working tape. This can be used either:
+    """Set a new tape as the working tape.
+    
+    This class can be used in three ways:
        1) as a free function to replace the working tape,
-       2) as a context manager within which a new tape is set as the working tape
+       2) as a context manager within which a new tape is set as the working tape,
        3) as a function decorator so that the new tape is set only inside the function.
 
        Example usage:
