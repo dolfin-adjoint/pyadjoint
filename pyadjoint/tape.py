@@ -128,6 +128,7 @@ class stop_annotating(ContextDecorator):
 
 
 no_annotations = stop_annotating()
+"""Decorator to turn off annotation for the decorated function."""
 
 
 def annotate_tape(kwargs=None):
