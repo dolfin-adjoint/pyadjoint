@@ -1,10 +1,11 @@
 from enum import Enum
 import sys
 from functools import singledispatchmethod
-from checkpoint_schedules import Copy, Move, EndForward, EndReverse, Forward, Reverse, StorageType
+from checkpoint_schedules import Copy, Move, EndForward, EndReverse, \
+    Forward, Reverse, StorageType, SingleMemoryStorageSchedule
 # A callback interface allowing the user to provide a
 # custom error message when disk checkpointing is not configured.
-disk_checkpointing_callback = {"error": None}
+disk_checkpointing_callback = {}
 
 
 class CheckpointError(RuntimeError):
@@ -57,10 +58,8 @@ class CheckpointManager:
             and not tape._package_data
         ):
             raise CheckpointError(
-                "The schedule employs disk checkpointing but it is not configured."
-                + disk_checkpointing_callback["error"]
-                if disk_checkpointing_callback["error"] else ""
-            )
+                "The schedule employs disk checkpointing but it is not configured.\n"
+                + "\n".join(disk_checkpointing_callback.values()))
         self.tape = tape
         self._schedule = schedule
         self.forward_schedule = []
@@ -80,6 +79,7 @@ class CheckpointManager:
         # Tell the tape to only checkpoint input data until told otherwise.
         self.tape.latest_checkpoint = 0
         self.end_timestep(-1)
+        self._keep_init_state_in_work = False
 
     def end_timestep(self, timestep):
         """Mark the end of one timestep when taping the forward model.
@@ -238,7 +238,6 @@ class CheckpointManager:
             raise CheckpointError("Evaluate Functional before calling gradient.")
 
         with self.tape.progress_bar("Evaluating Adjoint", max=self.total_timesteps) as progress_bar:
-            self.mode = Mode.EVALUATE_ADJOINT
             if self.reverse_schedule:
                 for cp_action in self.reverse_schedule:
                     self.process_operation(cp_action, progress_bar, markings=markings)
@@ -248,7 +247,10 @@ class CheckpointManager:
                     self._current_action = cp_action
                     self.reverse_schedule.append(cp_action)
                     self.process_operation(cp_action, progress_bar, markings=markings)
-            
+
+            # Only set the mode after the first backward in order to handle
+            # that step correctly.
+            self.mode = Mode.EVALUATE_ADJOINT
 
     @singledispatchmethod
     def process_operation(self, cp_action, progress_bar, **kwargs):
@@ -283,55 +285,64 @@ class CheckpointManager:
             current_step = self.tape.timesteps[step]
             for block in current_step:
                 block.recompute()
+            _store_checkpointable_state = False
+            _store_adj_dependencies = False
             if cp_action.storage != StorageType.WORK:
-                self._checkpoint_storage(cp_action, step, current_step)
+                if (cp_action.write_ics and step == cp_action.n0):
+                    _store_checkpointable_state = True
+                if cp_action.write_adj_deps:
+                    _store_adj_dependencies = True
+                if (
+                    (_store_checkpointable_state or _store_adj_dependencies)
+                    and cp_action.storage == StorageType.DISK
+                ):
+                    for package in self.tape._package_data.values():
+                        package.continue_checkpointing()
+                current_step.checkpoint(
+                    _store_checkpointable_state, _store_adj_dependencies)
+
             to_keep = set()
             if step < (self.total_timesteps - 1):
                 next_step = self.tape.timesteps[step + 1]
                 # The checkpointable state set of the current step.
                 to_keep = next_step.checkpointable_state
-                if functional:
-                    to_keep = to_keep.union([functional.block_variable])
+            if functional:
+                to_keep = to_keep.union([functional.block_variable])
 
-            for fwd_rest in current_step.checkpointable_state - to_keep:
-                # Enable to clear once was either stored or used.
-                fwd_rest._checkpoint = None
-            adj_deps_to_clear = current_step.adjoint_dependencies - to_keep
-            for adj_deps in current_step.adjoint_dependencies - to_keep:
-                if step < (self.total_timesteps - 1):
-                    adj_deps._checkpoint = None
-                elif step == (self.total_timesteps - 1) \
-                    and not cp_action.write_adj_deps:
-                    adj_deps._checkpoint = None
-                elif (step == (self.total_timesteps - 1) \
-                    and (cp_action.write_adj_deps \
-                        and cp_action.storage is not StorageType.WORK)
-                ):
-                    adj_deps._checkpoint = None
-                else:
+            for var in current_step.checkpointable_state - to_keep:
+                if (step == 0 and var not in current_step._checkpoint):
+                    # At this point, current_step._checkpoint should be
+                    # populated with the variables needed to restart the
+                    # forward. If not, we should not clear the checkpoint.
+                    self._keep_init_state_in_work = True
                     break
+                elif (
+                    var in self.tape.timesteps[0].checkpointable_state
+                    and self._keep_init_state_in_work
+                ):
+                    continue
+                elif isinstance(self._schedule, SingleMemoryStorageSchedule):
+                    # TODO: Check if var._checkpoint is not a adjoint dependency
+                    # of the previous steps.
+                    break
+                else:
+                    var._checkpoint = None
+
+            if (
+                (cp_action.write_adj_deps and cp_action.storage != StorageType.WORK)
+                or not cp_action.write_adj_deps
+            ):
+                for block in current_step:
+                    # Remove unnecessary variables from previous steps.
+                    for bv in block.get_outputs():
+                        if bv not in to_keep:
+                            bv._checkpoint = None
 
             step += 1
             if cp_action.storage == StorageType.DISK:
                 # Activate disk checkpointing only in the checkpointing process.
                 for package in self.tape._package_data.values():
                     package.pause_checkpointing()
-
-    def _checkpoint_storage(self, cp_action, step, current_step):
-        _store_checkpointable_state = False
-        _store_adj_dependencies = False
-        if (cp_action.write_ics and step == cp_action.n0):
-            _store_checkpointable_state = True
-        if cp_action.write_adj_deps:
-            _store_adj_dependencies = True
-        if (
-            (_store_checkpointable_state or _store_adj_dependencies)
-            and cp_action.storage == StorageType.DISK
-        ):
-            for package in self.tape._package_data.values():
-                package.continue_checkpointing()
-        current_step.checkpoint(
-            _store_checkpointable_state, _store_adj_dependencies)      
 
     @process_operation.register(Reverse)
     def _(self, cp_action, progress_bar, markings, functional=None, **kwargs):
@@ -344,20 +355,18 @@ class CheckpointManager:
                 block.evaluate_adj(markings=markings)
             # Output variables are used for the last time when running
             # backwards.
+            to_keep = current_step.checkpointable_state
+            if functional:
+                to_keep = to_keep.union([functional.block_variable])
             for block in current_step:
                 block.reset_adjoint_state()
-                for var in block.get_outputs():
-                    var.checkpoint = None
-                    var.reset_variables(("tlm",))
-                    if not var.is_control:
-                        var.reset_variables(("adjoint", "hessian"))
-                if cp_action.clear_adj_deps:
-                    to_keep = current_step.checkpointable_state
-                    if functional:
-                        to_keep = to_keep.union([functional.block_variable])
-                    for output in block.get_outputs():
-                        if output not in to_keep:
-                            output._checkpoint = None
+                for out in block.get_outputs():
+                    out.reset_variables(("tlm",))
+                    if not out.is_control:
+                        out.reset_variables(("adjoint", "hessian"))
+                    if cp_action.clear_adj_deps and out not in to_keep:
+                        out._checkpoint = None
+
 
     @process_operation.register(Copy)
     def _(self, cp_action, progress_bar, **kwargs):
