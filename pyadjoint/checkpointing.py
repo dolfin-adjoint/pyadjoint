@@ -80,6 +80,7 @@ class CheckpointManager:
         self.tape.latest_checkpoint = 0
         self.end_timestep(-1)
         self._keep_init_state_in_work = False
+        self._is_no_adj_deps_cleaned = False
 
     def end_timestep(self, timestep):
         """Mark the end of one timestep when taping the forward model.
@@ -316,26 +317,28 @@ class CheckpointManager:
                     # forward. If not, we should not clear the checkpoint.
                     self._keep_init_state_in_work = True
                     break
+                elif isinstance(self._schedule, SingleMemoryStorageSchedule):
+                    if step > 1 and var not in self.tape.timesteps[step - 1].adjoint_dependencies:
+                        var._checkpoint = None
                 elif (
                     var in self.tape.timesteps[0].checkpointable_state
                     and self._keep_init_state_in_work
                 ):
                     continue
-                elif isinstance(self._schedule, SingleMemoryStorageSchedule):
-                    # TODO: Check if var._checkpoint is not a adjoint dependency
-                    # of the previous steps.
-                    break
                 else:
                     var._checkpoint = None
 
-            if (
-                (cp_action.write_adj_deps and cp_action.storage != StorageType.WORK)
-                or not cp_action.write_adj_deps
-            ):
-                for block in current_step:
-                    # Remove unnecessary variables from previous steps.
-                    for bv in block.get_outputs():
+            for block in current_step:
+                # Remove unnecessary variables from previous steps.
+                for bv in block.get_outputs():
+                    if (
+                        (cp_action.write_adj_deps and cp_action.storage != StorageType.WORK)
+                        or not cp_action.write_adj_deps
+                    ):
                         if bv not in to_keep:
+                            bv._checkpoint = None
+                    else:
+                        if bv not in current_step.adjoint_dependencies.union(to_keep):
                             bv._checkpoint = None
 
             step += 1
@@ -353,6 +356,11 @@ class CheckpointManager:
             current_step = self.tape.timesteps[step]
             for block in reversed(current_step):
                 block.evaluate_adj(markings=markings)
+                if not self._is_no_adj_deps_cleaned:
+                    for out in block._outputs:
+                        if not out.marked_in_path:
+                            current_step.adjoint_dependencies.discard(out)
+                    self._is_no_adj_deps_cleaned = True
             # Output variables are used for the last time when running
             # backwards.
             to_keep = current_step.checkpointable_state
