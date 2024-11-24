@@ -2,6 +2,7 @@ from .drivers import compute_gradient, compute_hessian
 from .enlisting import Enlist
 from .tape import get_working_tape, stop_annotating, no_annotations
 from .overloaded_type import OverloadedType, create_overloaded_object
+import gc
 
 
 def _get_extract_derivative_components(derivative_components):
@@ -111,7 +112,7 @@ class ReducedFunctional(object):
                 Should be an instance of the same type as the control.
 
         """
-
+        gc.collect()
         # Call callback
         values = [c.tape_value() for c in self.controls]
         controls = self.derivative_cb_pre(self.controls)
@@ -192,6 +193,7 @@ class ReducedFunctional(object):
                 of :class:`AdjFloat`.
 
         """
+        gc.collect()
         values = Enlist(values)
         if len(values) != len(self.controls):
             raise ValueError("values should be a list of same length as controls.")
