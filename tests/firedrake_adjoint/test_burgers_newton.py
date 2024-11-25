@@ -28,10 +28,13 @@ def Dt(u, u_, timestep):
 
 
 def _check_forward(tape):
-    for step, current_step in enumerate(tape.timesteps[1:-1]):
+    for current_step in tape.timesteps[1:-1]:
         for block in current_step:
             for deps in block.get_dependencies():
-                if not isinstance(deps.output, MeshGeometry):
+                if (
+                    deps not in tape.timesteps[0].checkpointable_state
+                    and deps not in tape.timesteps[-1].checkpointable_state
+                ):
                     assert deps._checkpoint is None
             for out in block.get_outputs():
                 if out not in tape.timesteps[-1].checkpointable_state:
@@ -39,10 +42,10 @@ def _check_forward(tape):
 
 
 def _check_recompute(tape):
-    for step, current_step in enumerate(tape.timesteps[1:-1]):
+    for current_step in tape.timesteps[1:-1]:
         for block in current_step:
             for deps in block.get_dependencies():
-                if not isinstance(deps.output, MeshGeometry):
+                if deps not in tape.timesteps[0].checkpointable_state:
                     assert deps._checkpoint is None
             for out in block.get_outputs():
                 assert out._checkpoint is None
@@ -53,7 +56,7 @@ def _check_recompute(tape):
     for block in tape.timesteps[len(tape.timesteps)-1]:
         for deps in block.get_dependencies():
             if (
-                not isinstance(deps.output, MeshGeometry)
+                deps not in tape.timesteps[0].checkpointable_state
                 and deps not in tape.timesteps[len(tape.timesteps)-1].adjoint_dependencies
             ):
                 assert deps._checkpoint is None
@@ -138,6 +141,8 @@ def test_burgers_newton(solve_type, checkpointing):
     val = J(ic, solve_type, timestep, steps, V)
     if checkpointing:
         assert len(tape.timesteps) == steps
+        if checkpointing == "Revolve" or checkpointing == "Mixed":
+            _check_forward(tape)
 
     Jhat = ReducedFunctional(val, Control(ic))
     if checkpointing != "NoneAdjoint":

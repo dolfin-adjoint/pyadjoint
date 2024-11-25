@@ -13,6 +13,56 @@ mesh = UnitIntervalMesh(1)
 V = FunctionSpace(mesh, "DG", 0)
 
 
+def _check_forward(tape):
+    for current_step in tape.timesteps[1:-1]:
+        for block in current_step:
+            for deps in block.get_dependencies():
+                if (
+                    deps not in tape.timesteps[0].checkpointable_state
+                    and deps not in tape.timesteps[-1].checkpointable_state
+                ):
+                    assert deps._checkpoint is None
+            for out in block.get_outputs():
+                if out not in tape.timesteps[-1].checkpointable_state:
+                    assert out._checkpoint is None
+
+
+def _check_recompute(tape):
+    for current_step in tape.timesteps[1:-1]:
+        for block in current_step:
+            for deps in block.get_dependencies():
+                if deps not in tape.timesteps[0].checkpointable_state:
+                    assert deps._checkpoint is None
+            for out in block.get_outputs():
+                assert out._checkpoint is None
+
+    for block in tape.timesteps[0]:
+        for out in block.get_outputs():
+            assert out._checkpoint is None
+    for block in tape.timesteps[len(tape.timesteps)-1]:
+        for deps in block.get_dependencies():
+            if (
+                deps not in tape.timesteps[0].checkpointable_state
+                and deps not in tape.timesteps[len(tape.timesteps)-1].adjoint_dependencies
+            ):
+                assert deps._checkpoint is None
+
+
+def _check_reverse(tape):
+    for step, current_step in enumerate(tape.timesteps):
+        if step > 0:
+            for block in current_step:
+                for deps in block.get_dependencies():
+                    if deps not in tape.timesteps[0].checkpointable_state:
+                        assert deps._checkpoint is None
+                for out in block.get_outputs():
+                    assert out._checkpoint is None
+        elif step == 0:
+            for block in current_step:
+                for out in block.get_outputs():
+                    assert out._checkpoint is None
+
+
 def J(displacement_0):
     stiff = Constant(2.5)
     damping = Constant(0.3)
@@ -45,12 +95,15 @@ def test_multisteps():
     tape.enable_checkpointing(MixedCheckpointSchedule(total_steps, 2, storage=StorageType.RAM))
     displacement_0 = Function(V).assign(1.0)
     val = J(displacement_0)
+    _check_forward(tape)
     c = Control(displacement_0)
     J_hat = ReducedFunctional(val, c)
     dJ = J_hat.derivative()
+    _check_reverse(tape)
     # Recomputing the functional with a modified control variable
     # before the recompute test.
     J_hat(Function(V).assign(0.5))
+    _check_recompute(tape)
     # Recompute test
     assert(np.allclose(J_hat(displacement_0), val))
     # Test recompute adjoint-based gradient
