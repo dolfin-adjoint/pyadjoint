@@ -311,22 +311,27 @@ class CheckpointManager:
                 to_keep = to_keep.union([functional.block_variable])
 
             for var in current_step.checkpointable_state - to_keep:
-                if (step == 0 and var not in current_step._checkpoint):
-                    # At this point, current_step._checkpoint should be
-                    # populated with the variables needed to restart the
-                    # forward. If not, we should not clear the checkpoint.
+                # Handle the case where step is 0
+                if step == 0 and var not in current_step._checkpoint:
+                    # Ensure initialisation state is kept.
                     self._keep_init_state_in_work = True
                     break
-                elif isinstance(self._schedule, SingleMemoryStorageSchedule):
+
+                # Handle the case for SingleMemoryStorageSchedule
+                if isinstance(self._schedule, SingleMemoryStorageSchedule):
                     if step > 1 and var not in self.tape.timesteps[step - 1].adjoint_dependencies:
                         var._checkpoint = None
-                elif (
+                    continue
+
+                # Handle variables in the initial timestep
+                if (
                     var in self.tape.timesteps[0].checkpointable_state
                     and self._keep_init_state_in_work
                 ):
                     continue
-                else:
-                    var._checkpoint = None
+
+                # Clear the checkpoint for other cases
+                var._checkpoint = None
 
             for block in current_step:
                 # Remove unnecessary variables from previous steps.

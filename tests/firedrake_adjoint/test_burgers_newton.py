@@ -13,6 +13,7 @@ import numpy as np
 set_log_level(CRITICAL)
 continue_annotation()
 
+
 def basics():
     n = 30
     mesh = UnitIntervalMesh(n)
@@ -21,13 +22,62 @@ def basics():
     steps = int(end/float(timestep)) + 1
     return mesh, timestep, steps
 
+
 def Dt(u, u_, timestep):
     return (u - u_)/timestep
 
 
+def _check_forward(tape):
+    for step, current_step in enumerate(tape.timesteps[1:-1]):
+        for block in current_step:
+            for deps in block.get_dependencies():
+                if not isinstance(deps.output, MeshGeometry):
+                    assert deps._checkpoint is None
+            for out in block.get_outputs():
+                if out not in tape.timesteps[-1].checkpointable_state:
+                    assert out._checkpoint is None
+
+
+def _check_recompute(tape):
+    for step, current_step in enumerate(tape.timesteps[1:-1]):
+        for block in current_step:
+            for deps in block.get_dependencies():
+                if not isinstance(deps.output, MeshGeometry):
+                    assert deps._checkpoint is None
+            for out in block.get_outputs():
+                assert out._checkpoint is None
+
+    for block in tape.timesteps[0]:
+        for out in block.get_outputs():
+            assert out._checkpoint is None
+    for block in tape.timesteps[len(tape.timesteps)-1]:
+        for deps in block.get_dependencies():
+            if (
+                not isinstance(deps.output, MeshGeometry)
+                and deps not in tape.timesteps[len(tape.timesteps)-1].adjoint_dependencies
+            ):
+                assert deps._checkpoint is None
+
+
+def _check_reverse(tape):
+    for step, current_step in enumerate(tape.timesteps):
+        if step > 0:
+            for block in current_step:
+                for deps in block.get_dependencies():
+                    if deps not in tape.timesteps[0].checkpointable_state:
+                        assert deps._checkpoint is None
+                for out in block.get_outputs():
+                    assert out._checkpoint is None
+        elif step == 0:
+            for block in current_step:
+                for out in block.get_outputs():
+                    assert out._checkpoint is None
+
+
 def J(ic, solve_type, timestep, steps, V):
-    u_ = Function(V)
-    u = Function(V)
+
+    u_ = Function(V, name="u_")
+    u = Function(V, name="u")
     v = TestFunction(V)
     u_.assign(ic)
     nu = Constant(0.0001)
@@ -84,17 +134,26 @@ def test_burgers_newton(solve_type, checkpointing):
             mesh = checkpointable_mesh(mesh)
     x, = SpatialCoordinate(mesh)
     V = FunctionSpace(mesh, "CG", 2)
-    ic = project(sin(2. * pi * x), V)
+    ic = project(sin(2. * pi * x), V, name="ic")
     val = J(ic, solve_type, timestep, steps, V)
     if checkpointing:
         assert len(tape.timesteps) == steps
+
     Jhat = ReducedFunctional(val, Control(ic))
     if checkpointing != "NoneAdjoint":
         dJ = Jhat.derivative()
+        if checkpointing is not None:
+            # Check if the reverse checkpointing is working correctly.
+            if checkpointing == "Revolve" or checkpointing == "Mixed":
+                _check_reverse(tape)
 
     # Recomputing the functional with a modified control variable
     # before the recompute test.
     Jhat(project(sin(pi*x), V))
+    if checkpointing:
+        # Check is the checkpointing is working correctly.
+        if checkpointing == "Revolve" or checkpointing == "Mixed":
+            _check_recompute(tape)
 
     # Recompute test
     assert(np.allclose(Jhat(ic), val))
