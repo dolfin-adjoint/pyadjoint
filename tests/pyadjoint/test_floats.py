@@ -309,3 +309,8 @@ def test_float_components_minimize():
         z = minimize(rf)
         assert(z[1] == 1.0)
         assert(abs(z[0] + z[1]) < 5.0e-3)
+
+
+if __name__ == "__main__":
+    continue_annotation()
+    test_float_components_minimize()

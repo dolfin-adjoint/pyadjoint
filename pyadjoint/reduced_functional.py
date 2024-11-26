@@ -198,16 +198,22 @@ class ReducedFunctional(object):
             raise ValueError("values should be a list of same length as controls.")
 
         for i, value in enumerate(values):
-            if isinstance(value, float):
+            if isinstance(value, (int, float)):
                 value = AdjFloat(value)
-            elif not isinstance(value, OverloadedType) or not isinstance(value, type(self.controls[i])):
+            control_type = type(self.controls[i].control)
+            if not isinstance(value, OverloadedType) or not isinstance(
+                value, control_type
+            ):
                 if len(values) == 1:
-                    raise TypeError("Control value must be an `OverloadedType` object" \
-                                    "with the same type as the control, which is " + str(type(self.controls[0])))
+                    raise TypeError(
+                        "Control value must be an `OverloadedType` object with the same "
+                        f"type as the control, which is {control_type}"
+                    )
                 else:
-                    raise TypeError("The Control at the index {} must be an `OverloadedType` object".format(i) \
-                                    " with the same type as the control, which is "+ str(type(self.controls[i])))
-
+                    raise TypeError(
+                        f"The control at index {i} must be an `OverloadedType` object "
+                        f"with the same type as the control, which is {control_type}"
+                    )        
         # Call callback.
         self.eval_cb_pre(self.controls.delist(values))
 
