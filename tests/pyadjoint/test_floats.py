@@ -234,11 +234,11 @@ def test_min_max():
     Jhat_a = ReducedFunctional(Ja, controls)
     Jhat_b = ReducedFunctional(Jb, controls)
 
-    assert Jhat([AdjFloat(3.0), AdjFloat(2.0)]) == J
+    assert Jhat([3.0, 2.0]) == J
     dJ = Jhat.derivative()
     assert dJ[0] == 30.
     assert dJ[1] == 36.
-    assert Jhat([AdjFloat(2.0), AdjFloat(3.0)]) == J
+    assert Jhat([2.0, 3.0]) == J
     dJ = Jhat.derivative()
     assert dJ[0] == 36.
     assert dJ[1] == 30.
@@ -249,7 +249,6 @@ def test_min_max():
         other = Jhat_a
     else:
         other = Jhat_b
-    x = [AdjFloat(xi) for xi in x]
     assert Jhat(x) == other(x)
     a, b = Jhat.derivative()
     a2, b2 = Jhat.hessian(h)
@@ -260,7 +259,7 @@ def test_min_max():
     assert a2 == oa2
     assert b2 == ob2
 
-    a, b = AdjFloat(3.), AdjFloat(3.)
+    a, b = 3., 3.
     x = [a, b]
     assert Jhat(x) == Jhat_a(x)
     a, b = Jhat.derivative()

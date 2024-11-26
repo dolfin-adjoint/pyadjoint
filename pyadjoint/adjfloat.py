@@ -343,7 +343,7 @@ class FloatOperatorBlock(Block):
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
         output = self.operator(*(term.saved_output for term in self.terms))
-        return self.terms[0].saved_output._ad_convert_type(output)
+        return self._outputs[0].saved_output._ad_convert_type(output)
 
     def __str__(self):
         return f"{self.terms[0]} {self.symbol} {self.terms[1]}"
