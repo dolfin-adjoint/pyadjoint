@@ -69,9 +69,11 @@ def _check_reverse(tape):
                 for deps in block.get_dependencies():
                     if deps not in tape.timesteps[0].checkpointable_state:
                         assert deps._checkpoint is None
+
                 for out in block.get_outputs():
                     assert out._checkpoint is None
-        elif step == 0:
+                    assert out.adj_value is None
+    
             for block in current_step:
                 for out in block.get_outputs():
                     assert out._checkpoint is None
@@ -208,3 +210,8 @@ def test_checkpointing_validity(solve_type, checkpointing):
     assert len(tape.timesteps) == steps
     assert np.allclose(val0, val1)
     assert np.allclose(dJ0.dat.data_ro[:], Jhat.derivative().dat.data_ro[:])
+
+
+if __name__ == "__main__":
+    continue_annotation()
+    test_burgers_newton("solve", "Revolve")

@@ -3,6 +3,8 @@ pytest.importorskip("firedrake")
 
 from firedrake import *
 from firedrake.adjoint import *
+from tests.firedrake_adjoint.test_burgers_newton import _check_forward, \
+      _check_recompute, _check_reverse
 from checkpoint_schedules import MixedCheckpointSchedule, StorageType
 import numpy as np
 from collections import deque
@@ -11,56 +13,6 @@ total_steps = 20
 dt = 0.01
 mesh = UnitIntervalMesh(1)
 V = FunctionSpace(mesh, "DG", 0)
-
-
-def _check_forward(tape):
-    for current_step in tape.timesteps[1:-1]:
-        for block in current_step:
-            for deps in block.get_dependencies():
-                if (
-                    deps not in tape.timesteps[0].checkpointable_state
-                    and deps not in tape.timesteps[-1].checkpointable_state
-                ):
-                    assert deps._checkpoint is None
-            for out in block.get_outputs():
-                if out not in tape.timesteps[-1].checkpointable_state:
-                    assert out._checkpoint is None
-
-
-def _check_recompute(tape):
-    for current_step in tape.timesteps[1:-1]:
-        for block in current_step:
-            for deps in block.get_dependencies():
-                if deps not in tape.timesteps[0].checkpointable_state:
-                    assert deps._checkpoint is None
-            for out in block.get_outputs():
-                assert out._checkpoint is None
-
-    for block in tape.timesteps[0]:
-        for out in block.get_outputs():
-            assert out._checkpoint is None
-    for block in tape.timesteps[len(tape.timesteps)-1]:
-        for deps in block.get_dependencies():
-            if (
-                deps not in tape.timesteps[0].checkpointable_state
-                and deps not in tape.timesteps[len(tape.timesteps)-1].adjoint_dependencies
-            ):
-                assert deps._checkpoint is None
-
-
-def _check_reverse(tape):
-    for step, current_step in enumerate(tape.timesteps):
-        if step > 0:
-            for block in current_step:
-                for deps in block.get_dependencies():
-                    if deps not in tape.timesteps[0].checkpointable_state:
-                        assert deps._checkpoint is None
-                for out in block.get_outputs():
-                    assert out._checkpoint is None
-        elif step == 0:
-            for block in current_step:
-                for out in block.get_outputs():
-                    assert out._checkpoint is None
 
 
 def J(displacement_0):
