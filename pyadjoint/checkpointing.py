@@ -361,7 +361,7 @@ class CheckpointManager:
             current_step = self.tape.timesteps[step]
             for block in reversed(current_step):
                 block.evaluate_adj(markings=markings)
-                if not self._is_no_adj_deps_cleaned:
+                if not self._adj_deps_cleaned:
                     for out in block._outputs:
                         if not out.marked_in_path:
                             current_step.adjoint_dependencies.discard(out)
