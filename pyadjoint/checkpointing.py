@@ -80,7 +80,7 @@ class CheckpointManager:
         self.tape.latest_checkpoint = 0
         self.end_timestep(-1)
         self._keep_init_state_in_work = False
-        self._is_no_adj_deps_cleaned = False
+        self._adj_deps_cleaned = False
 
     def end_timestep(self, timestep):
         """Mark the end of one timestep when taping the forward model.
