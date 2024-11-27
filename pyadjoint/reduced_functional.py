@@ -198,8 +198,8 @@ class ReducedFunctional(object):
             raise ValueError("values should be a list of same length as controls.")
 
         for i, value in enumerate(values):
-            if isinstance(value, (int, float)):
-                value = AdjFloat(value)
+            if isinstance(value, (int, float)) and isinstance(self.controls[i].control, AdjFloat):
+                value = self.controls[i].control._ad_convert_type(value)
             control_type = type(self.controls[i].control)
             if not isinstance(value, OverloadedType) or not isinstance(
                 value, control_type
