@@ -87,5 +87,5 @@ def test_disk_checkpointing_error():
     # check the raise of the exception
     with pytest.raises(RuntimeError):
         tape.enable_checkpointing(SingleDiskStorageSchedule())
-    assert disk_checkpointing_callback["firedrake"] ==  "Please call enable_disk_checkpointing() "\
+    assert disk_checkpointing_callback["firedrake"] == "Please call enable_disk_checkpointing() "\
         "before checkpointing on the disk."

@@ -3,7 +3,9 @@ pytest.importorskip("firedrake")
 
 from firedrake import *
 from firedrake.adjoint import *
-from checkpoint_schedules import Revolve
+from tests.firedrake_adjoint.test_burgers_newton import _check_forward, \
+      _check_recompute, _check_reverse
+from checkpoint_schedules import MixedCheckpointSchedule, StorageType
 import numpy as np
 from collections import deque
 continue_annotation()
@@ -42,15 +44,18 @@ def J(displacement_0):
 def test_multisteps():
     tape = get_working_tape()
     tape.progress_bar = ProgressBar
-    tape.enable_checkpointing(Revolve(total_steps, 2))
+    tape.enable_checkpointing(MixedCheckpointSchedule(total_steps, 2, storage=StorageType.RAM))
     displacement_0 = Function(V).assign(1.0)
     val = J(displacement_0)
+    _check_forward(tape)
     c = Control(displacement_0)
     J_hat = ReducedFunctional(val, c)
     dJ = J_hat.derivative()
+    _check_reverse(tape)
     # Recomputing the functional with a modified control variable
     # before the recompute test.
     J_hat(Function(V).assign(0.5))
+    _check_recompute(tape)
     # Recompute test
     assert(np.allclose(J_hat(displacement_0), val))
     # Test recompute adjoint-based gradient
@@ -70,7 +75,7 @@ def test_validity():
     tape.clear_tape()
 
     # With checkpointing.
-    tape.enable_checkpointing(Revolve(total_steps, 2))
+    tape.enable_checkpointing(MixedCheckpointSchedule(total_steps, 2, storage=StorageType.RAM))
     val = J(displacement_0)
     J_hat = ReducedFunctional(val, Control(displacement_0))
     dJ = J_hat.derivative()
