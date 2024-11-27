@@ -66,7 +66,7 @@ def test_tlm_bc():
     c.block_variable.tlm_value = Function(R, val=1)
     tape.evaluate_tlm()
 
-    assert (taylor_test(Jhat, Constant(c), Constant(1), dJdm=J.block_variable.tlm_value) > 1.9)
+    assert (taylor_test(Jhat, c, Function(R, val=1), dJdm=J.block_variable.tlm_value) > 1.9)
 
 
 def test_tlm_func():
@@ -234,7 +234,7 @@ def test_projection():
 
     k.block_variable.tlm_value = Constant(1)
     tape.evaluate_tlm()
-    assert(taylor_test(Jhat, Constant(k), Constant(1), dJdm=J.block_variable.tlm_value) > 1.9)
+    assert(taylor_test(Jhat, k, Function(R, val=1), dJdm=J.block_variable.tlm_value) > 1.9)
 
 
 def test_projection_function():
