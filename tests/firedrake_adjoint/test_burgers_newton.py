@@ -95,14 +95,15 @@ def J(ic, solve_type, timestep, steps, V):
         solver = NonlinearVariationalSolver(problem)
 
     tape = get_working_tape()
+    J = 0.0
     for _ in tape.timestepper(range(steps)):
         if solve_type == "NLVS":
             solver.solve()
         else:
             solve(F == 0, u, bc)
         u_.assign(u)
-
-    return assemble(u_*u_*dx + ic*ic*dx)
+        J += assemble(u_*u_*dx + ic*ic*dx)
+    return J
 
 
 @pytest.mark.parametrize("solve_type, checkpointing",

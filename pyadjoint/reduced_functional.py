@@ -2,6 +2,7 @@ from .drivers import compute_gradient, compute_hessian
 from .enlisting import Enlist
 from .tape import get_working_tape, stop_annotating, no_annotations
 from .overloaded_type import OverloadedType, create_overloaded_object
+from .adjfloat import AdjFloat
 
 
 def _get_extract_derivative_components(derivative_components):
@@ -196,6 +197,21 @@ class ReducedFunctional(object):
         if len(values) != len(self.controls):
             raise ValueError("values should be a list of same length as controls.")
 
+        for i, value in enumerate(values):
+            control_type = type(self.controls[i].control)
+            if isinstance(value, (int, float)) and control_type is AdjFloat:
+                value = self.controls[i].control._ad_convert_type(value)
+            elif not isinstance(value, control_type):
+                if len(values) == 1:
+                    raise TypeError(
+                        "Control value must be an `OverloadedType` object with the same "
+                        f"type as the control, which is {control_type}"
+                    )
+                else:
+                    raise TypeError(
+                        f"The control at index {i} must be an `OverloadedType` object "
+                        f"with the same type as the control, which is {control_type}"
+                    )      
         # Call callback.
         self.eval_cb_pre(self.controls.delist(values))
 

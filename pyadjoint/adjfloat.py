@@ -342,7 +342,8 @@ class FloatOperatorBlock(Block):
             self.add_dependency(dep)
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        return self.operator(*(term.saved_output for term in self.terms))
+        output = self.operator(*(term.saved_output for term in self.terms))
+        return self._outputs[0].saved_output._ad_convert_type(output)
 
     def __str__(self):
         return f"{self.terms[0]} {self.symbol} {self.terms[1]}"
