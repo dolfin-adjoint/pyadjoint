@@ -358,9 +358,10 @@ class TAOObjective:
 
         m = Enlist(m)
         J = self.reduced_functional(tuple(m_i._ad_copy() for m_i in m))
-        _ = self.reduced_functional.derivative()
-        dJ = tuple(control.control.block_variable.adj_value
-                   for control in self.reduced_functional.controls)
+        dJ = self.reduced_functional.derivative(options={"riesz_representation": "l2"})
+        # dJ = tuple(control.control.block_variable.adj_value
+        #            for control in self.reduced_functional.controls)
+        print("J = ", J, flush=True)
         return J, m.delist(dJ)
 
     def hessian(self, m, m_dot):
