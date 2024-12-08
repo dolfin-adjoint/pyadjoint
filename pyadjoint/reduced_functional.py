@@ -211,7 +211,7 @@ class ReducedFunctional(object):
                     raise TypeError(
                         f"The control at index {i} must be an `OverloadedType` object "
                         f"with the same type as the control, which is {control_type}"
-                    )      
+                    )
         # Call callback.
         self.eval_cb_pre(self.controls.delist(values))
 
