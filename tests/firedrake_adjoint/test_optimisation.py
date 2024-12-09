@@ -178,6 +178,8 @@ def transform(v, transform_type, *args, mfn_parameters=None, **kwargs):
         space = v.function_space()
         if not ufl.duals.is_primal(space):
             space = space.dual()
+        if not ufl.duals.is_primal(space):
+            raise NotImplementedError("Mixed primal/dual space case not implemented")
         comm = v.comm
 
         class M:
