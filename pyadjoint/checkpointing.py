@@ -1,5 +1,6 @@
 from enum import Enum
 import sys
+import gc
 from functools import singledispatchmethod
 from checkpoint_schedules import Copy, Move, EndForward, EndReverse, \
     Forward, Reverse, StorageType, SingleMemoryStorageSchedule
@@ -37,6 +38,10 @@ class CheckpointManager:
     Args:
         schedule (checkpoint_schedules.schedule): A schedule provided by the `checkpoint_schedules` package.
         tape (Tape): A list of blocks :class:`Block` instances.
+        gc_collect_opts (dict): A dictionary of options to be passed to the garbage collector.
+        The keys considered here is `timestep_frequency`. Optionally the user can provide the `generation` key.
+        The default value is `2`. To have more information about the garbage collector generation, please refer
+        to the `documentation <https://docs.python.org/3/library/gc.html#gc.collect>`_.
 
     Attributes:
         tape (Tape): A list of blocks :class:`Block` instances.
@@ -52,7 +57,7 @@ class CheckpointManager:
         _current_action (checkpoint_schedules.CheckpointAction): The current `checkpoint_schedules` action.
 
     """
-    def __init__(self, schedule, tape):
+    def __init__(self, schedule, tape, gc_collect_opts=None):
         if (
             schedule.uses_storage_type(StorageType.DISK)
             and not tape._package_data
@@ -78,9 +83,10 @@ class CheckpointManager:
         self.forward_schedule.append(self._current_action)
         # Tell the tape to only checkpoint input data until told otherwise.
         self.tape.latest_checkpoint = 0
-        self.end_timestep(-1)
         self._keep_init_state_in_work = False
         self._adj_deps_cleaned = False
+        self.gc_collect_opts = gc_collect_opts
+        self.end_timestep(-1)
 
     def end_timestep(self, timestep):
         """Mark the end of one timestep when taping the forward model.
@@ -182,6 +188,11 @@ class CheckpointManager:
                 # Activate disk checkpointing only in the checkpointing process.
                 for package in self.tape._package_data.values():
                     package.pause_checkpointing()
+
+            if self.gc_collect_opts:
+                if timestep % self.gc_collect_opts["timestep_frequency"] == 0:
+                    print("Collecting garbage", flush=True)
+                    gc.collect(self.gc_collect_opts.get("generation", 2))
             return True
         else:
             return False
@@ -346,6 +357,10 @@ class CheckpointManager:
                         if bv not in current_step.adjoint_dependencies.union(to_keep):
                             bv._checkpoint = None
 
+            if self.gc_collect_opts:
+                if step % self.gc_collect_opts["timestep_frequency"] == 0:
+                    gc.collect(self.gc_collect_opts.get("generation", 2))
+
             step += 1
             if cp_action.storage == StorageType.DISK:
                 # Activate disk checkpointing only in the checkpointing process.
@@ -379,6 +394,9 @@ class CheckpointManager:
                         out.reset_variables(("adjoint", "hessian"))
                     if cp_action.clear_adj_deps and out not in to_keep:
                         out._checkpoint = None
+            if self.gc_collect_opts:
+                if step % self.gc_collect_opts["timestep_frequency"] == 0:
+                    gc.collect(self.gc_collect_opts.get("generation", 2))
 
     @process_operation.register(Copy)
     def _(self, cp_action, progress_bar, **kwargs):
