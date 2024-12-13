@@ -812,7 +812,6 @@ class TimeStep(list):
                 self._checkpointing(self.adjoint_dependencies, storage)
 
     def _checkpointing(self, set_checkpoint, storage):
-        from .overloaded_type import OverloadedType
         for var in set_checkpoint:
             if storage == StorageType.DISK:
                 # checkpoint._ad_create_checkpoint should be able to

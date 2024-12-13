@@ -80,7 +80,6 @@ class CheckpointManager:
             self.total_timesteps = sys.maxsize
         self.mode = Mode.RECORD
         self._current_action = next(self._schedule)
-        self._current_step = 0
         self.forward_schedule.append(self._current_action)
         # Tell the tape to only checkpoint input data until told otherwise.
         self.tape.latest_checkpoint = 0
@@ -99,7 +98,6 @@ class CheckpointManager:
             raise CheckpointError("Not enough timesteps in schedule.")
         elif self.mode != Mode.RECORD:
             raise CheckpointError(f"Cannot end timestep in {self.mode}")
-        self._current_step = timestep
         while not self.process_taping(self._current_action, timestep + 1):
             self._current_action = next(self._schedule)
             self.forward_schedule.append(self._current_action)
@@ -293,7 +291,6 @@ class CheckpointManager:
         #  In a dynamic schedule `cp_action` can be unbounded so we also need
         # to check `self.total_timesteps`.
         while step in cp_action and step < self.total_timesteps:
-            self._current_step = step
             if self.mode == Mode.RECOMPUTE and progress_bar:
                 progress_bar.next()
             # Get the blocks of the current step.
@@ -373,7 +370,6 @@ class CheckpointManager:
     @process_operation.register(Reverse)
     def _(self, cp_action, progress_bar, markings, functional=None, **kwargs):
         for step in cp_action:
-            self._current_step = step
             if progress_bar:
                 progress_bar.next()
             # Get the blocks of the current step.
