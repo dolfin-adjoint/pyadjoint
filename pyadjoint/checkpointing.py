@@ -80,6 +80,7 @@ class CheckpointManager:
             self.total_timesteps = sys.maxsize
         self.mode = Mode.RECORD
         self._current_action = next(self._schedule)
+        self._current_step = 0
         self.forward_schedule.append(self._current_action)
         # Tell the tape to only checkpoint input data until told otherwise.
         self.tape.latest_checkpoint = 0
@@ -98,6 +99,7 @@ class CheckpointManager:
             raise CheckpointError("Not enough timesteps in schedule.")
         elif self.mode != Mode.RECORD:
             raise CheckpointError(f"Cannot end timestep in {self.mode}")
+        self._current_step = timestep
         while not self.process_taping(self._current_action, timestep + 1):
             self._current_action = next(self._schedule)
             self.forward_schedule.append(self._current_action)
@@ -172,13 +174,13 @@ class CheckpointManager:
                     package.continue_checkpointing()
 
             self.tape.timesteps[timestep - 1].checkpoint(
-                _store_checkpointable_state, _store_adj_dependencies)
+                _store_checkpointable_state, _store_adj_dependencies, cp_action.storage)
             # Remove unnecessary variables in working memory from previous steps.
             for var in self.tape.timesteps[timestep - 1].checkpointable_state:
-                var._checkpoint = None
+                var._checkpoint = var.saved_output._ad_clear_checkpoint(var._checkpoint)
             for block in self.tape.timesteps[timestep - 1]:
                 for out in block.get_outputs():
-                    out._checkpoint = None
+                    out._checkpoint = out.saved_output._ad_clear_checkpoint(out._checkpoint)
         if timestep in cp_action and timestep < self.total_timesteps:
             self.tape.get_blocks().append_step()
             if cp_action.write_ics:
@@ -291,6 +293,7 @@ class CheckpointManager:
         #  In a dynamic schedule `cp_action` can be unbounded so we also need
         # to check `self.total_timesteps`.
         while step in cp_action and step < self.total_timesteps:
+            self._current_step = step
             if self.mode == Mode.RECOMPUTE and progress_bar:
                 progress_bar.next()
             # Get the blocks of the current step.
@@ -311,7 +314,7 @@ class CheckpointManager:
                     for package in self.tape._package_data.values():
                         package.continue_checkpointing()
                 current_step.checkpoint(
-                    _store_checkpointable_state, _store_adj_dependencies)
+                    _store_checkpointable_state, _store_adj_dependencies, cp_action.storage)
 
             to_keep = set()
             if step < (self.total_timesteps - 1):
@@ -331,7 +334,7 @@ class CheckpointManager:
                 # Handle the case for SingleMemoryStorageSchedule
                 if isinstance(self._schedule, SingleMemoryStorageSchedule):
                     if step > 1 and var not in self.tape.timesteps[step - 1].adjoint_dependencies:
-                        var._checkpoint = None
+                        var._checkpoint = var.saved_output._ad_clear_checkpoint(var._checkpoint)
                     continue
 
                 # Handle variables in the initial timestep
@@ -342,7 +345,7 @@ class CheckpointManager:
                     continue
 
                 # Clear the checkpoint for other cases
-                var._checkpoint = None
+                var._checkpoint = var.saved_output._ad_clear_checkpoint(var._checkpoint)
 
             for block in current_step:
                 # Remove unnecessary variables from previous steps.
@@ -352,10 +355,10 @@ class CheckpointManager:
                         or not cp_action.write_adj_deps
                     ):
                         if bv not in to_keep:
-                            bv._checkpoint = None
+                            bv._checkpoint = bv.saved_output._ad_clear_checkpoint(bv._checkpoint)
                     else:
                         if bv not in current_step.adjoint_dependencies.union(to_keep):
-                            bv._checkpoint = None
+                            bv._checkpoint = bv.saved_output._ad_clear_checkpoint(bv._checkpoint)
 
             if self.gc_collect_opts:
                 if step % self.gc_collect_opts["timestep_frequency"] == 0:
@@ -370,6 +373,7 @@ class CheckpointManager:
     @process_operation.register(Reverse)
     def _(self, cp_action, progress_bar, markings, functional=None, **kwargs):
         for step in cp_action:
+            self._current_step = step
             if progress_bar:
                 progress_bar.next()
             # Get the blocks of the current step.
@@ -393,7 +397,7 @@ class CheckpointManager:
                     if not out.is_control:
                         out.reset_variables(("adjoint", "hessian"))
                     if cp_action.clear_adj_deps and out not in to_keep:
-                        out._checkpoint = None
+                        out._checkpoint = out.saved_output._ad_clear_checkpoint(out._checkpoint)
             if self.gc_collect_opts:
                 if step % self.gc_collect_opts["timestep_frequency"] == 0:
                     gc.collect(self.gc_collect_opts.get("generation", 2))

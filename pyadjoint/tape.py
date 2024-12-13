@@ -303,7 +303,7 @@ class Tape(object):
         for step in self.timesteps[last_used + 1:]:
             step.adjoint_dependencies.add(block_var)
 
-    def enable_checkpointing(self, schedule):
+    def enable_checkpointing(self, schedule, gc_collect_opts=None):
         """Enable checkpointing on the adjoint evaluation.
 
         A checkpoint manager able to execute the forward and adjoint computations
@@ -312,12 +312,19 @@ class Tape(object):
         Args:
             schedule (checkpoint_schedules.schedule): A schedule provided by the
             checkpoint_schedules package.
+            gc_collect_opts (dict): A dictionary of options to be passed to the
+            garbage collector. The keys considered here is `timestep_frequency`.
+            Optionally the user can provide the `generation` key. The default value
+            is `2`. To have more information about the garbage collector generation,
+            please refer to the `documentation
+            <https://docs.python.org/3/library/gc.html#gc.collect>`_.
+
         """
         if self._blocks:
             raise CheckpointError(
                 "Checkpointing must be enabled before any blocks are added to the tape."
             )
-        self._checkpoint_manager = CheckpointManager(schedule, self)
+        self._checkpoint_manager = CheckpointManager(schedule, self, gc_collect_opts=gc_collect_opts)
 
     def get_blocks(self, tag=None):
         """Returns a list of the blocks on the tape.
@@ -787,7 +794,7 @@ class TimeStep(list):
         out.checkpointable_state = self.checkpointable_state
         return out
 
-    def checkpoint(self, checkpointable_state, adj_dependencies):
+    def checkpoint(self, checkpointable_state, adj_dependencies, storage):
         """Store a copy of the checkpoints in the checkpointable state.
 
         Args:
@@ -795,15 +802,24 @@ class TimeStep(list):
             required to restart from the start of a timestep.
             adj_dependencies (bool): If True, store the adjoint dependencies required
             to compute the adjoint of a timestep.
+            storage (StorageType): The storage type to use for the checkpoint.
         """
         with stop_annotating():
             if checkpointable_state:
-                for var in self.checkpointable_state:
-                    self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
+                self._checkpointing(self.checkpointable_state, storage)
 
             if adj_dependencies:
-                for var in self.adjoint_dependencies:
-                    self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
+                self._checkpointing(self.adjoint_dependencies, storage)
+
+    def _checkpointing(self, set_checkpoint, storage):
+        from .overloaded_type import OverloadedType
+        for var in set_checkpoint:
+            if storage == StorageType.DISK:
+                # checkpoint._ad_create_checkpoint should be able to
+                # store on disk.
+                self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
+            else:
+                self._checkpoint[var] = var.checkpoint
 
     def restore_from_checkpoint(self, from_storage):
         """Restore the block var checkpoints from the timestep checkpoint."""
