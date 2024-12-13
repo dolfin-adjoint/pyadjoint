@@ -130,6 +130,17 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
+    def _ad_clear_checkpoint(self, checkpoint):
+        """Clear the checkpoint.
+
+        This method should be overridden if the default behaviour is not compatible with this
+        OverloadedType.
+
+        Args:
+            checkpoint (:obj:`object`): The checkpoint to clear.
+        """
+        return None
+
     def _ad_restore_at_checkpoint(self, checkpoint):
         """This method must be overridden.
 
@@ -366,6 +377,7 @@ class FloatingType(OverloadedType):
         self._ad_output_kwargs = kwargs.pop("_ad_output_kwargs", {})
         self.output_block_class = kwargs.pop("output_block_class", None)
         self._ad_outputs = kwargs.pop("_ad_outputs", [])
+        self.checkpoint_time_dependent = kwargs.pop("checkpoint_time_dependent", None)
         OverloadedType.__init__(self, *args, **kwargs)
 
     def create_block_variable(self):
