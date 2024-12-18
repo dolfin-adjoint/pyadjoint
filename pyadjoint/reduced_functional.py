@@ -37,7 +37,21 @@ class AbstractReducedFunctional(ABC):
     def __call__(
         self, values: OverloadedType | list[OverloadedType]
     ) -> OverloadedType:
-        """Evalute the functional at a new control value."""
+        """Compute the reduced functional with supplied control value.
+
+        Args:
+            values ([OverloadedType]): If you have multiple controls this
+                should be a list of new values for each control in the order
+                you listed the controls to the constructor. If you have a
+                single control it can either be a list or a single object.
+                Each new value should have the same type as the corresponding
+                control.
+
+        Returns:
+            :obj:`OverloadedType`: The computed value. Often of type
+                :class:`AdjFloat`.
+
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -201,6 +215,7 @@ class ReducedFunctional(AbstractReducedFunctional):
     def controls(self) -> list[Control]:
         return self._controls
 
+    @no_annotations
     def derivative(self, adj_input=1.0, apply_riesz=False):
         values = [c.tape_value() for c in self.controls]
         controls = self.derivative_cb_pre(self.controls)
@@ -210,11 +225,10 @@ class ReducedFunctional(AbstractReducedFunctional):
             for derivative_cb_pre has changed. It should now return a
             list of controls (usually the same list as input.""")
 
-        # Scale adjoint input
-        with stop_annotating():
-            # Make sure `adj_input` is an OverloadedType
-            adj_input = create_overloaded_object(adj_input)
-            adj_value = adj_input._ad_mul(self.scale)
+
+        # Make sure `adj_input` is an OverloadedType
+        adj_input = create_overloaded_object(adj_input)
+        adj_value = adj_input._ad_mul(self.scale)
 
         derivatives = compute_gradient(self.functional,
                                        controls,
@@ -253,21 +267,6 @@ class ReducedFunctional(AbstractReducedFunctional):
 
     @no_annotations
     def __call__(self, values):
-        """Compute the reduced functional with supplied control value.
-
-        Args:
-            values ([OverloadedType]): If you have multiple controls this
-                should be a list of new values for each control in the order
-                you listed the controls to the constructor. If you have a
-                single control it can either be a list or a single object.
-                Each new value should have the same type as the corresponding
-                control.
-
-        Returns:
-            :obj:`OverloadedType`: The computed value. Typically of instance of
-                :class:`AdjFloat`.
-
-        """
         values = Enlist(values)
         if len(values) != len(self.controls):
             raise ValueError(

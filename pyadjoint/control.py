@@ -41,7 +41,7 @@ class Control(object):
     """
     def __init__(self, control: OverloadedType, riesz_map: Any = None):
         self.control = control
-        self.riesz_map = None
+        self.riesz_map = riesz_map
         self.block_variable = control.block_variable
 
     def data(self):
