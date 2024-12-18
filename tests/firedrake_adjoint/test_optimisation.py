@@ -76,7 +76,7 @@ def test_optimisation_constant_control(minimize):
 
     n = 3
     x = [Function(R) for i in range(n)]
-    c = [Control(xi) for xi in x]
+    c = [Control(xi, "l2") for xi in x]
 
     # Rosenbrock function https://en.wikipedia.org/wiki/Rosenbrock_function
     # with minimum at x = (1, 1, 1, ...)
@@ -111,19 +111,23 @@ def test_simple_inversion():
 
     # now rerun annotated model with zero source
     source = Function(V)
-    c = Control(source)
     u = _simple_helmholz_model(V, source)
 
     J = assemble(1e6 * (u - u_ref)**2*dx)
-    rf = ReducedFunctional(J, c)
 
+    c = Control(source)
+    rf = ReducedFunctional(J, c)
     x = minimize(rf)
     assert_allclose(x.dat.data, source_ref.dat.data, rtol=1e-2)
     rf(source)
-    x = minimize(rf, derivative_options={"riesz_representation": "l2"})
+    c = Control(source, riesz_map="l2")
+    rf = ReducedFunctional(J, c)
+    x = minimize(rf)
     assert_allclose(x.dat.data, source_ref.dat.data, rtol=1e-2)
+    c = Control(source, riesz_map="H1")
+    rf = ReducedFunctional(J, c)
     rf(source)
-    x = minimize(rf, derivative_options={"riesz_representation": "H1"})
+    x = minimize(rf)
     # Assert that the optimisation does not converge for H1 representation
     assert not np.allclose(x.dat.data, source_ref.dat.data, rtol=1e-2)
 
