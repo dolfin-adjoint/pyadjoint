@@ -325,7 +325,7 @@ def test_simple_inversion_riesz_representation(tao_type):
                             mfn_parameters=mfn_parameters)
     assert_allclose(x_transform.dat.data, source_ref.dat.data, rtol=1e-2)
 
-    assert solver_transform.tao.getIterationNumber() <= solver.tao.getIterationNumber()
+    assert solver.tao.getIterationNumber() <= solver_transform.tao.getIterationNumber()
 
 
 def test_tao_bounds():
