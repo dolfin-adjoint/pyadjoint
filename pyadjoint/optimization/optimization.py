@@ -55,7 +55,7 @@ def minimize_scipy_generic(rf_np, method, bounds=None, **kwargs):
     m_global = rf_np.obj_to_array(m)
     J = rf_np.__call__
     dJ = lambda m: rf_np.derivative(apply_riesz=True)
-    H = rf_np.hessian
+    H = lambda x, p: rf_np.hessian(p)
 
     if "options" not in kwargs:
         kwargs["options"] = {}
