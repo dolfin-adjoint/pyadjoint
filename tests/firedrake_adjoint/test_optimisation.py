@@ -210,6 +210,8 @@ def transform(v, transform_type, *args, mfn_parameters=None, **kwargs):
 
         options.set_from_options(mfn)
         mfn.setUp()
+        if mfn.getFN().getType() != SLEPc.FN.Type.SQRT:
+            raise ValueError("Invalid FN type")
 
         with v.dat.vec_ro as v_v:
             x = v_v.copy()
