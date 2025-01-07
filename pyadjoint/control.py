@@ -52,7 +52,7 @@ class Control(object):
         return self.control._ad_convert_type(self.block_variable.adj_value, options=options)
 
     def get_hessian(self, options={}):
-        if self.block_variable.adj_value is None:
+        if self.block_variable.hessian_value is None:
             logging.warning("Hessian value is None, is the functional independent of the control variable?")
             return self.control._ad_convert_type(0., options=options)
         return self.control._ad_convert_type(self.block_variable.hessian_value, options=options)
