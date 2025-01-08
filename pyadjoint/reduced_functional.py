@@ -55,6 +55,14 @@ class ReducedFunctional(object):
             respect to which to take the derivative. By default, the derivative
             is taken with respect to all controls. If present, it overwrites
             derivative_cb_pre and derivative_cb_post.
+        scale (float): A scaling factor applied to the functional and its
+            gradient with respect to the control.
+        tape (Tape): A tape object that the reduced functional will use to
+            evaluate the functional and its gradients (or derivatives).
+        eval_cb_pre (function): Callback function before evaluating the
+            functional. Input is a list of Controls.
+        eval_cb_pos (function): Callback function after evaluating the
+            functional. Inputs are the functional value and a list of Controls.
         derivative_cb_pre (function): Callback function before evaluating
             derivatives. Input is a list of Controls.
             Should return a list of Controls (usually the same
@@ -64,6 +72,10 @@ class ReducedFunctional(object):
             list of functional derivatives, list of functional values.
             Should return a list of derivatives (usually the same
             list as the input) to be returned from self.derivative.
+        hessian_cb_pre (function): Callback function before evaluating the Hessian.
+            Input is a list of Controls.
+        hessian_cb_post (function): Callback function after evaluating the Hessian.
+            Inputs are the functional, a list of Hessian, and controls.
     """
 
     def __init__(self, functional, controls,

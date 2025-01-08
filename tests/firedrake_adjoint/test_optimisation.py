@@ -1,12 +1,21 @@
 import pytest
 pytest.importorskip("firedrake")
 
+from enum import Enum, auto
 from numpy.testing import assert_allclose
 import numpy as np
+try:
+    import petsc4py.PETSc as PETSc
+except ModuleNotFoundError:
+    PETSc = None
+try:
+    import slepc4py.SLEPc as SLEPc
+except ModuleNotFoundError:
+    SLEPc = None
 from firedrake import *
 from firedrake.adjoint import *
-from pyadjoint import MinimizationProblem, TAOSolver
-from pyadjoint.optimization.tao_solver import PETScVecInterface
+from pyadjoint import Block, MinimizationProblem, TAOSolver
+from pyadjoint.optimization.tao_solver import OptionsManager, PETScVecInterface
 
 
 def test_petsc_roundtrip_single():
@@ -100,7 +109,6 @@ def test_simple_inversion():
     """Test inversion of source term in helmholze eqn."""
     mesh = UnitIntervalMesh(10)
     V = FunctionSpace(mesh, "CG", 1)
-    ref = Function(V)
     source_ref = Function(V)
     x = SpatialCoordinate(mesh)
     source_ref.interpolate(cos(pi*x**2))
@@ -135,7 +143,6 @@ def test_tao_simple_inversion(minimize, riesz_representation):
     """Test inversion of source term in helmholze eqn using TAO."""
     mesh = UnitIntervalMesh(10)
     V = FunctionSpace(mesh, "CG", 1)
-    ref = Function(V)
     source_ref = Function(V)
     x = SpatialCoordinate(mesh)
     source_ref.interpolate(cos(pi*x**2))
@@ -157,13 +164,179 @@ def test_tao_simple_inversion(minimize, riesz_representation):
     assert_allclose(x.dat.data, source_ref.dat.data, rtol=1e-2)
 
 
+class TransformType(Enum):
+    PRIMAL = auto()
+    DUAL = auto()
+
+
+def transform(v, transform_type, *args, mfn_parameters=None, **kwargs):
+    with stop_annotating():
+        if mfn_parameters is None:
+            mfn_parameters = {}
+        mfn_parameters = dict(mfn_parameters)
+
+        space = v.function_space()
+        if not ufl.duals.is_primal(space):
+            space = space.dual()
+        if not ufl.duals.is_primal(space):
+            raise NotImplementedError("Mixed primal/dual space case not implemented")
+        comm = v.comm
+
+        class M:
+            def mult(self, A, x, y):
+                if transform_type == TransformType.PRIMAL:
+                    v = Cofunction(space.dual())
+                elif transform_type == TransformType.DUAL:
+                    v = Function(space)
+                else:
+                    raise ValueError(f"Unrecognized transform_type: {transform_type}")
+                with v.dat.vec_wo as v_v:
+                    x.copy(result=v_v)
+                u = v.riesz_representation(*args, **kwargs)
+                with u.dat.vec_ro as u_v:
+                    u_v.copy(result=y)
+
+        with v.dat.vec_ro as v_v:
+            n, N = v_v.getSizes()
+        M_mat = PETSc.Mat().createPython(((n, N), (n, N)),
+                                         M(), comm=comm)
+        M_mat.setOption(PETSc.Mat.Option.SYMMETRIC, True)
+        M_mat.setUp()
+
+        mfn = SLEPc.MFN().create(comm=comm)
+        options = OptionsManager(mfn_parameters, None)
+        options.set_default_parameter("fn_type", "sqrt")
+        mfn.setOperator(M_mat)
+
+        options.set_from_options(mfn)
+        mfn.setUp()
+        if mfn.getFN().getType() != SLEPc.FN.Type.SQRT:
+            raise ValueError("Invalid FN type")
+
+        with v.dat.vec_ro as v_v:
+            x = v_v.copy()
+            y = v_v.copy()
+
+        if y.norm(PETSc.NormType.NORM_INFINITY) == 0:
+            x.zeroEntries()
+        else:
+            mfn.solve(y, x)
+            if mfn.getConvergedReason() <= 0:
+                raise RuntimeError("Convergence failure")
+
+        if ufl.duals.is_primal(v):
+            u = Function(space)
+        else:
+            u = Cofunction(space.dual())
+        with u.dat.vec_wo as u_v:
+            x.copy(result=u_v)
+
+    if annotate_tape():
+        block = TransformBlock(v, transform_type, *args, mfn_parameters=mfn_parameters, **kwargs)
+        block.add_output(u.block_variable)
+        get_working_tape().add_block(block)
+
+    return u
+
+
+class TransformBlock(Block):
+    def __init__(self, v, *args, **kwargs):
+        super().__init__()
+        self.add_dependency(v)
+        self._args = args
+        self._kwargs = kwargs
+
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        lam, = adj_inputs
+        return transform(lam, *self._args, **self._kwargs)
+
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        v, = inputs
+        return transform(v, *self._args, **self._kwargs)
+
+
+@pytest.mark.skipif(SLEPc is None, reason="SLEPc not available")
+@pytest.mark.parametrize("tao_type", ["lmvm",
+                                      "blmvm"])
+def test_simple_inversion_riesz_representation(tao_type):
+    """Test use of a Riesz map in inversion of source term in helmholze eqn
+    using TAO."""
+
+    riesz_representation = "L2"
+    mfn_parameters = {"mfn_type": "krylov",
+                      "mfn_tol": 1.0e-12}
+    tao_parameters = {"tao_type": tao_type,
+                      "tao_gatol": 1.0e-5,
+                      "tao_grtol": 0.0,
+                      "tao_gttol": 0.0,
+                      "tao_monitor": None}
+
+    pause_annotation()
+
+    mesh = UnitIntervalMesh(10)
+    V = FunctionSpace(mesh, "CG", 1)
+    source_ref = Function(V)
+    x = SpatialCoordinate(mesh)
+    source_ref.interpolate(cos(pi*x**2))
+    u_ref = _simple_helmholz_model(V, source_ref)
+
+    def forward(source):
+        c = Control(source)
+        u = _simple_helmholz_model(V, source)
+
+        J = assemble(1e6 * (u - u_ref)**2*dx)
+        rf = ReducedFunctional(J, c)
+        return rf
+
+    get_working_tape().clear_tape()
+    source = Function(V)
+    continue_annotation()
+    rf = forward(source)
+    pause_annotation()
+
+    solver = TAOSolver(
+        MinimizationProblem(rf), tao_parameters,
+        convert_options={"riesz_representation": riesz_representation})
+    x = solver.solve()
+    assert_allclose(x.dat.data, source_ref.dat.data, rtol=1e-2)
+
+    def forward_transform(source):
+        c = Control(source)
+        source = transform(source, TransformType.PRIMAL,
+                           riesz_representation,
+                           mfn_parameters=mfn_parameters)
+        u = _simple_helmholz_model(V, source)
+
+        J = assemble(1e6 * (u - u_ref)**2*dx)
+        rf = ReducedFunctional(J, c)
+        return rf
+
+    get_working_tape().clear_tape()
+    source_transform = transform(Function(V), TransformType.DUAL,
+                                 riesz_representation,
+                                 mfn_parameters=mfn_parameters)
+    continue_annotation()
+    rf_transform = forward_transform(source_transform)
+    pause_annotation()
+
+    solver_transform = TAOSolver(
+        MinimizationProblem(rf_transform), tao_parameters,
+        convert_options={"riesz_representation": "l2"})
+    x_transform = transform(solver_transform.solve(), TransformType.PRIMAL,
+                            riesz_representation,
+                            mfn_parameters=mfn_parameters)
+    assert_allclose(x_transform.dat.data, source_ref.dat.data, rtol=1e-2)
+
+    assert solver.tao.getIterationNumber() <= solver_transform.tao.getIterationNumber()
+
+
 def test_tao_bounds():
     mesh = UnitIntervalMesh(11)
     X = SpatialCoordinate(mesh)
     space = FunctionSpace(mesh, "Lagrange", 1)
     u = Function(space, name="u")
     u_ref = Function(space, name="u_ref").interpolate(0.5 - X[0])
-    
+
     J = assemble((u - u_ref) ** 2 * dx)
     rf = ReducedFunctional(J, Control(u))
 
