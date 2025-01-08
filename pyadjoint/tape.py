@@ -303,7 +303,7 @@ class Tape(object):
         for step in self.timesteps[last_used + 1:]:
             step.adjoint_dependencies.add(block_var)
 
-    def enable_checkpointing(self, schedule):
+    def enable_checkpointing(self, schedule, gc_collect_opts=None):
         """Enable checkpointing on the adjoint evaluation.
 
         A checkpoint manager able to execute the forward and adjoint computations
@@ -312,12 +312,19 @@ class Tape(object):
         Args:
             schedule (checkpoint_schedules.schedule): A schedule provided by the
             checkpoint_schedules package.
+            gc_collect_opts (dict): A dictionary of options to be passed to the
+            garbage collector. The keys considered here is `timestep_frequency`.
+            Optionally the user can provide the `generation` key. The default value
+            is `2`. To have more information about the garbage collector generation,
+            please refer to the `documentation
+            <https://docs.python.org/3/library/gc.html#gc.collect>`_.
+
         """
         if self._blocks:
             raise CheckpointError(
                 "Checkpointing must be enabled before any blocks are added to the tape."
             )
-        self._checkpoint_manager = CheckpointManager(schedule, self)
+        self._checkpoint_manager = CheckpointManager(schedule, self, gc_collect_opts=gc_collect_opts)
 
     def get_blocks(self, tag=None):
         """Returns a list of the blocks on the tape.
@@ -787,19 +794,28 @@ class TimeStep(list):
         out.checkpointable_state = self.checkpointable_state
         return out
 
-    def checkpoint(self, checkpointable_state, adj_dependencies):
+    def checkpoint(self, checkpointable_state, adj_dependencies, global_deps):
         """Store a copy of the checkpoints in the checkpointable state.
+
+        If a checkpoint is not time-dependent, i.e., it is in global dependency,
+        we only point to the checkpoint in the checkpointable state, avoiding
+        unnecessary copying.
 
         Args:
             checkpointable_state (bool): If True, store the checkpointable state
             required to restart from the start of a timestep.
             adj_dependencies (bool): If True, store the adjoint dependencies required
             to compute the adjoint of a timestep.
+            global_deps (set): The set of global dependencies. These dependencies should
+            not be time dependent and should be in a checkpointable state every timestep.
         """
         with stop_annotating():
             if checkpointable_state:
                 for var in self.checkpointable_state:
-                    self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
+                    if var in global_deps:
+                        self._checkpoint[var] = var._checkpoint
+                    else:
+                        self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
 
             if adj_dependencies:
                 for var in self.adjoint_dependencies:
