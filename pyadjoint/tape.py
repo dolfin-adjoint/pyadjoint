@@ -361,11 +361,11 @@ class Tape(object):
             ):
                 self._blocks[i].evaluate_adj(markings=markings)
 
-    def evaluate_tlm(self):
+    def evaluate_tlm(self, markings=False):
         for i in self._bar("Evaluating TLM").iter(
             range(len(self._blocks))
         ):
-            self._blocks[i].evaluate_tlm()
+            self._blocks[i].evaluate_tlm(markings=markings)
 
     def evaluate_hessian(self, markings=False):
         for i in self._bar("Evaluating Hessian").iter(
