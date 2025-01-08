@@ -130,17 +130,6 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
-    def _ad_clear_checkpoint(self, checkpoint):
-        """Clear the checkpoint.
-
-        This method should be overridden if the default behaviour is not compatible with this
-        OverloadedType.
-
-        Args:
-            checkpoint (:obj:`object`): The checkpoint to clear.
-        """
-        return None
-
     def _ad_restore_at_checkpoint(self, checkpoint):
         """This method must be overridden.
 

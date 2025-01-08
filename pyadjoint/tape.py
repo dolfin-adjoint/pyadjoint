@@ -794,31 +794,32 @@ class TimeStep(list):
         out.checkpointable_state = self.checkpointable_state
         return out
 
-    def checkpoint(self, checkpointable_state, adj_dependencies, storage):
+    def checkpoint(self, checkpointable_state, adj_dependencies, global_deps):
         """Store a copy of the checkpoints in the checkpointable state.
+
+        If a checkpoint is not time-dependent, i.e., it is in global dependency,
+        we only point to the checkpoint in the checkpointable state, avoiding
+        unnecessary copying.
 
         Args:
             checkpointable_state (bool): If True, store the checkpointable state
             required to restart from the start of a timestep.
             adj_dependencies (bool): If True, store the adjoint dependencies required
             to compute the adjoint of a timestep.
-            storage (StorageType): The storage type to use for the checkpoint.
+            global_deps (set): The set of global dependencies. These dependencies should
+            not be time dependent and should be in a checkpointable state every timestep.
         """
         with stop_annotating():
             if checkpointable_state:
-                self._checkpointing(self.checkpointable_state, storage)
+                for var in self.checkpointable_state:
+                    if var in global_deps:
+                        self._checkpoint[var] = var._checkpoint
+                    else:
+                        self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
 
             if adj_dependencies:
-                self._checkpointing(self.adjoint_dependencies, storage)
-
-    def _checkpointing(self, set_checkpoint, storage):
-        for var in set_checkpoint:
-            if storage == StorageType.DISK:
-                # checkpoint._ad_create_checkpoint should be able to
-                # store on disk.
-                self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
-            else:
-                self._checkpoint[var] = var.checkpoint
+                for var in self.adjoint_dependencies:
+                    self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
 
     def restore_from_checkpoint(self, from_storage):
         """Restore the block var checkpoints from the timestep checkpoint."""

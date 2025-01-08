@@ -86,9 +86,9 @@ class CheckpointManager:
         self._keep_init_state_in_work = False
         self._adj_deps_cleaned = False
         self.gc_collect_opts = gc_collect_opts
-        # Store the checkpoint dependencies used every timestep, i.e., these dependencies
-        # are not time-dependent and are used in every timestep.
-        self.global_deps = set()
+        # Store the checkpoint dependencies used every timestep, which are not time-dependent
+        # and are used in every timestep.
+        self._global_deps = set()
         self.end_timestep(-1)
 
     def end_timestep(self, timestep):
@@ -174,26 +174,25 @@ class CheckpointManager:
                 for package in self.tape._package_data.values():
                     package.continue_checkpointing()
             if timestep == 1:
-                # Store the global dependencies for the first timestep.
+                # Store the supposed global dependencies.
                 for deps in self.tape.timesteps[timestep - 1].checkpointable_state:
-                    self.global_deps.add(deps)
+                    self._global_deps.add(deps)
             else:
-                # Check if the global dependencies are the same as the current timestep.
-                # If not, remove it from the global dependencies.
-                for deps in self.global_deps:
-                    if deps not in self.tape.timesteps[timestep - 1].checkpointable_state:
-                        self.global_deps.remove(deps)
-                        # Remove the checkpoint data from the previous timestep.
-                        deps._checkpoint = None
+                deps_to_clear = self._global_deps - self._global_deps.intersection(
+                    self.tape.timesteps[timestep - 1].checkpointable_state)
+                for deps in deps_to_clear:
+                    deps._checkpoint = None
+                # Remove elements not in the intersection from self._global_deps
+                self._global_deps.difference_update(deps_to_clear)
+
             self.tape.timesteps[timestep - 1].checkpoint(
-                _store_checkpointable_state, _store_adj_dependencies, cp_action.storage)
+                _store_checkpointable_state, _store_adj_dependencies, self._global_deps)
             # Remove unnecessary variables in working memory from previous steps.
-            for var in self.tape.timesteps[timestep - 1].checkpointable_state:
-                if var not in self.global_deps:
-                    var._checkpoint = None
+            for var in self.tape.timesteps[timestep - 1].checkpointable_state - self._global_deps:
+                var._checkpoint = None
             for block in self.tape.timesteps[timestep - 1]:
                 for out in block.get_outputs():
-                    out._checkpoint = out.saved_output._ad_clear_checkpoint(out._checkpoint)
+                    out._checkpoint = None
         if timestep in cp_action and timestep < self.total_timesteps:
             self.tape.get_blocks().append_step()
             if cp_action.write_ics:
@@ -326,7 +325,7 @@ class CheckpointManager:
                     for package in self.tape._package_data.values():
                         package.continue_checkpointing()
                 current_step.checkpoint(
-                    _store_checkpointable_state, _store_adj_dependencies, cp_action.storage)
+                    _store_checkpointable_state, _store_adj_dependencies, self._global_deps)
 
             to_keep = set()
             if step < (self.total_timesteps - 1):
@@ -336,7 +335,7 @@ class CheckpointManager:
             if functional:
                 to_keep = to_keep.union([functional.block_variable])
 
-            for var in current_step.checkpointable_state - to_keep:
+            for var in current_step.checkpointable_state - to_keep.union(self._global_deps):
                 # Handle the case where step is 0
                 if step == 0 and var not in current_step._checkpoint:
                     # Ensure initialisation state is kept.
@@ -346,7 +345,7 @@ class CheckpointManager:
                 # Handle the case for SingleMemoryStorageSchedule
                 if isinstance(self._schedule, SingleMemoryStorageSchedule):
                     if step > 1 and var not in self.tape.timesteps[step - 1].adjoint_dependencies:
-                        var._checkpoint = var.saved_output._ad_clear_checkpoint(var._checkpoint)
+                        var._checkpoint = None
                     continue
 
                 # Handle variables in the initial timestep
@@ -357,7 +356,7 @@ class CheckpointManager:
                     continue
 
                 # Clear the checkpoint for other cases
-                var._checkpoint = var.saved_output._ad_clear_checkpoint(var._checkpoint)
+                var._checkpoint = None
 
             for block in current_step:
                 # Remove unnecessary variables from previous steps.
@@ -367,10 +366,10 @@ class CheckpointManager:
                         or not cp_action.write_adj_deps
                     ):
                         if bv not in to_keep:
-                            bv._checkpoint = bv.saved_output._ad_clear_checkpoint(bv._checkpoint)
+                            bv._checkpoint = None
                     else:
                         if bv not in current_step.adjoint_dependencies.union(to_keep):
-                            bv._checkpoint = bv.saved_output._ad_clear_checkpoint(bv._checkpoint)
+                            bv._checkpoint = None
 
             if self.gc_collect_opts:
                 if step % self.gc_collect_opts["timestep_frequency"] == 0:
@@ -408,7 +407,7 @@ class CheckpointManager:
                     if not out.is_control:
                         out.reset_variables(("adjoint", "hessian"))
                     if cp_action.clear_adj_deps and out not in to_keep:
-                        out._checkpoint = out.saved_output._ad_clear_checkpoint(out._checkpoint)
+                        out._checkpoint = None
             if self.gc_collect_opts:
                 if step % self.gc_collect_opts["timestep_frequency"] == 0:
                     gc.collect(self.gc_collect_opts.get("generation", 2))
