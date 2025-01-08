@@ -366,7 +366,6 @@ class FloatingType(OverloadedType):
         self._ad_output_kwargs = kwargs.pop("_ad_output_kwargs", {})
         self.output_block_class = kwargs.pop("output_block_class", None)
         self._ad_outputs = kwargs.pop("_ad_outputs", [])
-        self.checkpoint_time_dependent = kwargs.pop("checkpoint_time_dependent", None)
         OverloadedType.__init__(self, *args, **kwargs)
 
     def create_block_variable(self):
