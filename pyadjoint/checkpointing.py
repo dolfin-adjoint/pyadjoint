@@ -86,6 +86,9 @@ class CheckpointManager:
         self._keep_init_state_in_work = False
         self._adj_deps_cleaned = False
         self.gc_collect_opts = gc_collect_opts
+        # Store the checkpoint dependencies used every timestep, i.e., these dependencies
+        # are not time-dependent and are used in every timestep.
+        self.global_deps = set()
         self.end_timestep(-1)
 
     def end_timestep(self, timestep):
@@ -170,12 +173,24 @@ class CheckpointManager:
             ):
                 for package in self.tape._package_data.values():
                     package.continue_checkpointing()
-
+            if timestep == 1:
+                # Store the global dependencies for the first timestep.
+                for deps in self.tape.timesteps[timestep - 1].checkpointable_state:
+                    self.global_deps.add(deps)
+            else:
+                # Check if the global dependencies are the same as the current timestep.
+                # If not, remove it from the global dependencies.
+                for deps in self.global_deps:
+                    if deps not in self.tape.timesteps[timestep - 1].checkpointable_state:
+                        self.global_deps.remove(deps)
+                        # Remove the checkpoint data from the previous timestep.
+                        deps._checkpoint = None
             self.tape.timesteps[timestep - 1].checkpoint(
                 _store_checkpointable_state, _store_adj_dependencies, cp_action.storage)
             # Remove unnecessary variables in working memory from previous steps.
             for var in self.tape.timesteps[timestep - 1].checkpointable_state:
-                var._checkpoint = var.saved_output._ad_clear_checkpoint(var._checkpoint)
+                if var not in self.global_deps:
+                    var._checkpoint = None
             for block in self.tape.timesteps[timestep - 1]:
                 for out in block.get_outputs():
                     out._checkpoint = out.saved_output._ad_clear_checkpoint(out._checkpoint)
