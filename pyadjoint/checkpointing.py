@@ -86,8 +86,7 @@ class CheckpointManager:
         self._keep_init_state_in_work = False
         self._adj_deps_cleaned = False
         self.gc_collect_opts = gc_collect_opts
-        # Store the checkpoint dependencies used every timestep, which are not time-dependent
-        # and are used in every timestep.
+        # Store the checkpoint dependencies used every timestep.
         self._global_deps = set()
         self.end_timestep(-1)
 
@@ -205,7 +204,6 @@ class CheckpointManager:
 
             if self.gc_collect_opts:
                 if timestep % self.gc_collect_opts["timestep_frequency"] == 0:
-                    print("Collecting garbage", flush=True)
                     gc.collect(self.gc_collect_opts.get("generation", 2))
             return True
         else:

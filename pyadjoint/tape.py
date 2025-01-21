@@ -807,7 +807,7 @@ class TimeStep(list):
             adj_dependencies (bool): If True, store the adjoint dependencies required
             to compute the adjoint of a timestep.
             global_deps (set): The set of global dependencies. These dependencies should
-            not be time dependent and should be in a checkpointable state every timestep.
+            not be time-dependent and should be in the checkpointable states at every time step.
         """
         with stop_annotating():
             if checkpointable_state:
