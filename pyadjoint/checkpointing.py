@@ -38,10 +38,11 @@ class CheckpointManager:
     Args:
         schedule (checkpoint_schedules.schedule): A schedule provided by the `checkpoint_schedules` package.
         tape (Tape): A list of blocks :class:`Block` instances.
-        gc_collect_opts (dict): A dictionary of options to be passed to the garbage collector.
-        The keys considered here is `timestep_frequency`. Optionally the user can provide the `generation` key.
-        The default value is `2`. To have more information about the garbage collector generation, please refer
-        to the `documentation <https://docs.python.org/3/library/gc.html#gc.collect>`_.
+        gc_timestep_frequency (int): The timestep frequency for garbage collection.
+        gc_generation (int): The generation for garbage collection. Default is 2 that runs a full collection.
+        To have more information about the garbage collector generation,
+        please refer to the `documentation
+        <https://docs.python.org/3/library/gc.html#gc.collect>`_.
 
     Attributes:
         tape (Tape): A list of blocks :class:`Block` instances.
@@ -57,7 +58,7 @@ class CheckpointManager:
         _current_action (checkpoint_schedules.CheckpointAction): The current `checkpoint_schedules` action.
 
     """
-    def __init__(self, schedule, tape, gc_collect_opts=None):
+    def __init__(self, schedule, tape, gc_timestep_frequency=None, gc_generation=2):
         if (
             schedule.uses_storage_type(StorageType.DISK)
             and not tape._package_data
@@ -85,7 +86,8 @@ class CheckpointManager:
         self.tape.latest_checkpoint = 0
         self._keep_init_state_in_work = False
         self._adj_deps_cleaned = False
-        self.gc_collect_opts = gc_collect_opts
+        self._gc_time_frequency = gc_timestep_frequency
+        self._gc_generation = gc_generation
         # Store the checkpoint dependencies used every timestep.
         self._global_deps = set()
         self.end_timestep(-1)
@@ -173,7 +175,7 @@ class CheckpointManager:
                 for package in self.tape._package_data.values():
                     package.continue_checkpointing()
             if timestep == 1:
-                # Store the supposed global dependencies.
+                # Store the possible global dependencies.
                 for deps in self.tape.timesteps[timestep - 1].checkpointable_state:
                     self._global_deps.add(deps)
             else:
@@ -202,9 +204,13 @@ class CheckpointManager:
                 for package in self.tape._package_data.values():
                     package.pause_checkpointing()
 
-            if self.gc_collect_opts:
-                if timestep % self.gc_collect_opts["timestep_frequency"] == 0:
-                    gc.collect(self.gc_collect_opts.get("generation", 2))
+            if self.self._gc_time_frequency:
+                if not isinstance(self._gc_time_frequency, int):
+                    raise CheckpointError(
+                        "The timestep frequency for garbage collection must be an integer."
+                    )
+                if timestep % self._gc_time_frequency:
+                    gc.collect(self._gc_generation)
             return True
         else:
             return False
@@ -369,9 +375,13 @@ class CheckpointManager:
                         if bv not in current_step.adjoint_dependencies.union(to_keep):
                             bv._checkpoint = None
 
-            if self.gc_collect_opts:
-                if step % self.gc_collect_opts["timestep_frequency"] == 0:
-                    gc.collect(self.gc_collect_opts.get("generation", 2))
+            if self._gc_time_frequency:
+                if not isinstance(self._gc_time_frequency, int):
+                    raise CheckpointError(
+                        "The timestep frequency for garbage collection must be an integer."
+                    )
+                if step % self._gc_time_frequency:
+                    gc.collect(self._gc_generation)
 
             step += 1
             if cp_action.storage == StorageType.DISK:
@@ -406,9 +416,13 @@ class CheckpointManager:
                         out.reset_variables(("adjoint", "hessian"))
                     if cp_action.clear_adj_deps and out not in to_keep:
                         out._checkpoint = None
-            if self.gc_collect_opts:
-                if step % self.gc_collect_opts["timestep_frequency"] == 0:
-                    gc.collect(self.gc_collect_opts.get("generation", 2))
+            if self.self._gc_time_frequency:
+                if not isinstance(self._gc_time_frequency, int):
+                    raise CheckpointError(
+                        "The timestep frequency for garbage collection must be an integer."
+                    )
+                if step % self._gc_time_frequency:
+                    gc.collect(self._gc_generation)
 
     @process_operation.register(Copy)
     def _(self, cp_action, progress_bar, **kwargs):

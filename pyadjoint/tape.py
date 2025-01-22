@@ -303,7 +303,7 @@ class Tape(object):
         for step in self.timesteps[last_used + 1:]:
             step.adjoint_dependencies.add(block_var)
 
-    def enable_checkpointing(self, schedule, gc_collect_opts=None):
+    def enable_checkpointing(self, schedule, gc_timestep_frequency=None, gc_generation=2):
         """Enable checkpointing on the adjoint evaluation.
 
         A checkpoint manager able to execute the forward and adjoint computations
@@ -312,19 +312,19 @@ class Tape(object):
         Args:
             schedule (checkpoint_schedules.schedule): A schedule provided by the
             checkpoint_schedules package.
-            gc_collect_opts (dict): A dictionary of options to be passed to the
-            garbage collector. The keys considered here is `timestep_frequency`.
-            Optionally the user can provide the `generation` key. The default value
-            is `2`. To have more information about the garbage collector generation,
-            please refer to the `documentation
+            gc_timestep_frequency (int): The timestep frequency for garbage collection.
+            gc_generation (int): The generation for garbage collection. Default is 2 that
+            runs a full collection. To have more information about the garbage collector
+            generation, please refer to the `documentation
             <https://docs.python.org/3/library/gc.html#gc.collect>`_.
-
         """
         if self._blocks:
             raise CheckpointError(
                 "Checkpointing must be enabled before any blocks are added to the tape."
             )
-        self._checkpoint_manager = CheckpointManager(schedule, self, gc_collect_opts=gc_collect_opts)
+        self._checkpoint_manager = CheckpointManager(
+            schedule, self, gc_timestep_frequency=gc_timestep_frequency,
+            gc_generation=gc_generation)
 
     def get_blocks(self, tag=None):
         """Returns a list of the blocks on the tape.
