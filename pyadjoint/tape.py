@@ -797,10 +797,6 @@ class TimeStep(list):
     def checkpoint(self, checkpointable_state, adj_dependencies, global_deps):
         """Store a copy of the checkpoints in the checkpointable state.
 
-        If a checkpoint is not time-dependent, i.e., it is in global dependency,
-        we only point to the checkpoint in the checkpointable state, avoiding
-        unnecessary copying.
-
         Args:
             checkpointable_state (bool): If True, store the checkpointable state
             required to restart from the start of a timestep.
@@ -813,6 +809,7 @@ class TimeStep(list):
             if checkpointable_state:
                 for var in self.checkpointable_state:
                     if var in global_deps:
+                        # A new checkpoint object is not necessary here.
                         self._checkpoint[var] = var._checkpoint
                     else:
                         self._checkpoint[var] = var.saved_output._ad_create_checkpoint()

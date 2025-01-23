@@ -86,6 +86,8 @@ class CheckpointManager:
         self.tape.latest_checkpoint = 0
         self._keep_init_state_in_work = False
         self._adj_deps_cleaned = False
+        # The user can manually invoke the garbage collector if Python fails to
+        # track and clean all checkpoint objects in memory properly.
         self._gc_time_frequency = gc_timestep_frequency
         self._gc_generation = gc_generation
         # Store the checkpoint dependencies used every timestep.
@@ -416,7 +418,7 @@ class CheckpointManager:
                         out.reset_variables(("adjoint", "hessian"))
                     if cp_action.clear_adj_deps and out not in to_keep:
                         out._checkpoint = None
-            if self.self._gc_time_frequency:
+            if self._gc_time_frequency:
                 if not isinstance(self._gc_time_frequency, int):
                     raise CheckpointError(
                         "The timestep frequency for garbage collection must be an integer."
