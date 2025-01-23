@@ -206,7 +206,7 @@ class CheckpointManager:
                 for package in self.tape._package_data.values():
                     package.pause_checkpointing()
 
-            if self.self._gc_time_frequency:
+            if self._gc_time_frequency:
                 if not isinstance(self._gc_time_frequency, int):
                     raise CheckpointError(
                         "The timestep frequency for garbage collection must be an integer."
