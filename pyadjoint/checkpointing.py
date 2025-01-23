@@ -88,7 +88,7 @@ class CheckpointManager:
         self._adj_deps_cleaned = False
         # The user can manually invoke the garbage collector if Python fails to
         # track and clean all checkpoint objects in memory properly.
-        self._gc_time_frequency = gc_timestep_frequency
+        self._gc_timestep_frequency = gc_timestep_frequency
         self._gc_generation = gc_generation
         # Store the checkpoint dependencies used every timestep.
         self._global_deps = set()
@@ -206,13 +206,8 @@ class CheckpointManager:
                 for package in self.tape._package_data.values():
                     package.pause_checkpointing()
 
-            if self._gc_time_frequency:
-                if not isinstance(self._gc_time_frequency, int):
-                    raise CheckpointError(
-                        "The timestep frequency for garbage collection must be an integer."
-                    )
-                if timestep % self._gc_time_frequency:
-                    gc.collect(self._gc_generation)
+            if self._gc_timestep_frequency and timestep % self._gc_timestep_frequency:
+                gc.collect(self._gc_generation)
             return True
         else:
             return False
@@ -377,13 +372,8 @@ class CheckpointManager:
                         if bv not in current_step.adjoint_dependencies.union(to_keep):
                             bv._checkpoint = None
 
-            if self._gc_time_frequency:
-                if not isinstance(self._gc_time_frequency, int):
-                    raise CheckpointError(
-                        "The timestep frequency for garbage collection must be an integer."
-                    )
-                if step % self._gc_time_frequency:
-                    gc.collect(self._gc_generation)
+            if self._gc_timestep_frequency and step % self._gc_timestep_frequency:
+                gc.collect(self._gc_generation)
 
             step += 1
             if cp_action.storage == StorageType.DISK:
@@ -418,13 +408,8 @@ class CheckpointManager:
                         out.reset_variables(("adjoint", "hessian"))
                     if cp_action.clear_adj_deps and out not in to_keep:
                         out._checkpoint = None
-            if self._gc_time_frequency:
-                if not isinstance(self._gc_time_frequency, int):
-                    raise CheckpointError(
-                        "The timestep frequency for garbage collection must be an integer."
-                    )
-                if step % self._gc_time_frequency:
-                    gc.collect(self._gc_generation)
+            if self._gc_timestep_frequency and step % self._gc_timestep_frequency:
+                gc.collect(self._gc_generation)
 
     @process_operation.register(Copy)
     def _(self, cp_action, progress_bar, **kwargs):
