@@ -792,6 +792,7 @@ class TimeStep(list):
         # A dictionary mapping the block variables in the checkpointable state
         # to their checkpoint values.
         self._checkpoint = {}
+        self._adj_deps_cleaned = False
 
     def copy(self, blocks=None):
         out = TimeStep(blocks or self)

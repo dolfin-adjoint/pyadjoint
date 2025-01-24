@@ -85,7 +85,6 @@ class CheckpointManager:
         # Tell the tape to only checkpoint input data until told otherwise.
         self.tape.latest_checkpoint = 0
         self._keep_init_state_in_work = False
-        self._adj_deps_cleaned = False
         # The user can manually invoke the garbage collector if Python fails to
         # track and clean all checkpoint objects in memory properly.
         self._gc_timestep_frequency = gc_timestep_frequency
@@ -206,7 +205,7 @@ class CheckpointManager:
                 for package in self.tape._package_data.values():
                     package.pause_checkpointing()
 
-            if self._gc_timestep_frequency and timestep % self._gc_timestep_frequency:
+            if self._gc_timestep_frequency and timestep % self._gc_timestep_frequency == 0:
                 gc.collect(self._gc_generation)
             return True
         else:
@@ -372,7 +371,7 @@ class CheckpointManager:
                         if bv not in current_step.adjoint_dependencies.union(to_keep):
                             bv._checkpoint = None
 
-            if self._gc_timestep_frequency and step % self._gc_timestep_frequency:
+            if self._gc_timestep_frequency and step % self._gc_timestep_frequency == 0:
                 gc.collect(self._gc_generation)
 
             step += 1
@@ -390,11 +389,11 @@ class CheckpointManager:
             current_step = self.tape.timesteps[step]
             for block in reversed(current_step):
                 block.evaluate_adj(markings=markings)
-                if not self._adj_deps_cleaned:
+                if not current_step._adj_deps_cleaned:
                     for out in block._outputs:
-                        if not out.marked_in_path:
+                        if not out.marked_in_path and out in current_step.adjoint_dependencies:
                             current_step.adjoint_dependencies.discard(out)
-                    self._adj_deps_cleaned = True
+            current_step._adj_deps_cleaned = True
             # Output variables are used for the last time when running
             # backwards.
             to_keep = current_step.checkpointable_state
@@ -408,7 +407,7 @@ class CheckpointManager:
                         out.reset_variables(("adjoint", "hessian"))
                     if cp_action.clear_adj_deps and out not in to_keep:
                         out._checkpoint = None
-            if self._gc_timestep_frequency and step % self._gc_timestep_frequency:
+            if self._gc_timestep_frequency and step % self._gc_timestep_frequency == 0:
                 gc.collect(self._gc_generation)
 
     @process_operation.register(Copy)
