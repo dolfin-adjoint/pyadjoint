@@ -14,19 +14,22 @@ set_log_level(CRITICAL)
 continue_annotation()
 
 
+@pytest.fixture
+def basics():
+    n = 30
+    mesh = UnitIntervalMesh(n)
+    end = 0.3
+    timestep = Constant(1.0/n)
+    steps = int(end/float(timestep)) + 1
+    return mesh, timestep, steps
+
+
 def setup_test(mesh):
     V = FunctionSpace(mesh, "CG", 2)
     ic = project(sin(2. * pi * SpatialCoordinate(mesh)[0]), V, name="ic")
     R = FunctionSpace(V.mesh(), "R", 0)
     nu = Function(R, val=0.001)
     return V, ic, nu
-
-
-def time_parameters(n):
-    end = 0.3
-    timestep = 1.0/n
-    steps = int(end/timestep) + 1
-    return timestep, steps
 
 
 def _check_forward(tape):
@@ -122,14 +125,12 @@ def J(ic, nu, solve_type, timestep, steps, V, nu_time_dependent=False):
                           ("solve", None),
                           ("NLVS", None),
                           ])
-def test_burgers_newton(solve_type, checkpointing):
+def test_burgers_newton(solve_type, checkpointing, basics):
     """Adjoint-based gradient tests with and without checkpointing.
     """
     tape = get_working_tape()
     tape.progress_bar = ProgressBar
-    n = 30
-    mesh = UnitIntervalMesh(n)
-    timestep, steps = time_parameters(n)
+    mesh, timestep, steps = basics
     if checkpointing:
         if checkpointing == "Revolve":
             schedule = Revolve(steps, steps//3)
@@ -184,11 +185,9 @@ def test_burgers_newton(solve_type, checkpointing):
                           ("solve", "Mixed"),
                           ("NLVS", "Mixed"),
                           ])
-def test_checkpointing_validity(solve_type, checkpointing):
+def test_checkpointing_validity(solve_type, checkpointing, basics):
     """Compare forward and backward results with and without checkpointing."""
-    n = 30
-    mesh = UnitIntervalMesh(n)
-    timestep, steps = time_parameters(n)
+    mesh, timestep, steps = basics
     # Without checkpointing
     V, ic, nu = setup_test(mesh)
     val0 = J(ic, nu, solve_type, timestep, steps, V)
@@ -216,11 +215,9 @@ def test_checkpointing_validity(solve_type, checkpointing):
     assert np.allclose(dJ0.dat.data_ro[:], Jhat.derivative().dat.data_ro[:])
 
 @pytest.mark.parametrize("nu_time_dependent", [True, False])
-def test_global_deps(nu_time_dependent):
+def test_global_deps(nu_time_dependent, basics):
     """Test dependency tracking the global dependencies."""
-    n = 30
-    mesh = UnitIntervalMesh(n)
-    timestep, steps = time_parameters(n)
+    mesh, timestep, steps = basics
     tape = get_working_tape()
     tape.enable_checkpointing(Revolve(steps, steps//3))
     V, ic, nu = setup_test(mesh)
