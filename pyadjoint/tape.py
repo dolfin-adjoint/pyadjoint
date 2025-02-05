@@ -792,6 +792,8 @@ class TimeStep(list):
         # A dictionary mapping the block variables in the checkpointable state
         # to their checkpoint values.
         self._checkpoint = {}
+        # A flag to indicate whether the adjoint dependencies have been cleaned
+        # from the outputs not marked in the path..
         self._adj_deps_cleaned = False
 
     def copy(self, blocks=None):
@@ -814,7 +816,8 @@ class TimeStep(list):
             if checkpointable_state:
                 for var in self.checkpointable_state:
                     if var in global_deps:
-                        # A new checkpoint object is not necessary here.
+                        # Create a new checkpoint object is not necessary here
+                        # because the global dependencies are not time-dependent.
                         self._checkpoint[var] = var._checkpoint
                     else:
                         self._checkpoint[var] = var.saved_output._ad_create_checkpoint()

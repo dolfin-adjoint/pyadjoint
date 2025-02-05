@@ -391,7 +391,7 @@ class CheckpointManager:
                 block.evaluate_adj(markings=markings)
                 if not current_step._adj_deps_cleaned:
                     for out in block._outputs:
-                        if not out.marked_in_path and out in current_step.adjoint_dependencies:
+                        if not out.marked_in_path:
                             current_step.adjoint_dependencies.discard(out)
             current_step._adj_deps_cleaned = True
             # Output variables are used for the last time when running
