@@ -85,7 +85,7 @@ def _check_reverse(tape):
 
 
 def J(ic, nu, solve_type, timestep, steps, V, nu_time_dependent=False):
-    """Burgers equation with nonlinear solve in each timestep."""
+    """Burgers equation solver."""
     u_ = Function(V, name="u_")
     u = Function(V, name="u")
     v = TestFunction(V)
@@ -216,7 +216,7 @@ def test_checkpointing_validity(solve_type, checkpointing, basics):
 
 @pytest.mark.parametrize("nu_time_dependent", [True, False])
 def test_global_deps(nu_time_dependent, basics):
-    """Test dependency tracking the global dependencies."""
+    """Test the global dependencies."""
     mesh, timestep, steps = basics
     tape = get_working_tape()
     tape.enable_checkpointing(Revolve(steps, steps//3))
