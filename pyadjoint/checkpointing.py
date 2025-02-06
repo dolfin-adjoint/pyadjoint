@@ -185,8 +185,8 @@ class CheckpointManager:
                 for deps in self.tape.timesteps[timestep - 1].checkpointable_state:
                     self._global_deps.add(deps)
             else:
-                # Check if the block variables stored at `self._global_deps` are still
-                # dependencies in the previous timestep. If not, will remove them from the
+                # Check if the block variables stored in `self._global_deps` are still
+                # dependencies in the previous timestep. If not, remove them from the
                 # global dependencies.
                 deps_to_clear = self._global_deps.difference(self._global_deps.intersection(
                     self.tape.timesteps[timestep - 1].checkpointable_state))

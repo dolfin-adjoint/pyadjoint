@@ -817,8 +817,8 @@ class TimeStep(list):
             if checkpointable_state:
                 for var in self.checkpointable_state:
                     if var in global_deps:
-                        # Create a new checkpoint object is not necessary here
-                        # because the global dependencies do not change all the time.
+                        # Creating a new checkpoint object is not necessary here
+                        # because the global dependencies do not change.
                         self._checkpoint[var] = var._checkpoint
                     else:
                         self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
