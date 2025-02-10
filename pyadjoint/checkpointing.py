@@ -194,8 +194,9 @@ class CheckpointManager:
                 # Remove the block variables that are not global dependencies.
                 self._global_deps.difference_update(deps_to_clear)
 
-                # Clear the checkpoint once it is not a global dependency and should be stored
-                # only in the ``self.tape.timesteps`` checkpoints when needed.
+                # For no global dependencies, checkpoint storage occurs at a self.tape
+                # timestep only when required by an action from the schedule. Thus, we
+                # have to clear the checkpoint of block variables excluded from the self._global_deps.
                 for deps in deps_to_clear:
                     deps._checkpoint = None
 
