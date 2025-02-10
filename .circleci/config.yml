@@ -126,7 +126,7 @@ jobs:
           name: Run firedrake adjoint tests
           command: |
             source /home/firedrake/firedrake/bin/activate
-            coverage run python3 -m pytest /home/firedrake/firedrake/tests/firedrake/adjoint
+            coverage run python3 -m pytest /home/firedrake/firedrake/src/firedrake/tests/firedrake/adjoint
 
       - store_artifacts:
           path: test-reports
