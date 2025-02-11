@@ -1,3 +1,4 @@
+import weakref
 from .block_variable import BlockVariable
 from .tape import get_working_tape
 
@@ -74,7 +75,7 @@ class OverloadedType(object):
     """
 
     def __init__(self, *args, **kwargs):
-        self.block_variable = None
+        self._block_variable = lambda: None
         self.create_block_variable()
 
     @classmethod
@@ -93,9 +94,18 @@ class OverloadedType(object):
         """
         return cls(obj)
 
+    @property
+    def block_variable(self):
+        block_variable = self._block_variable()
+        return self.create_block_variable() if block_variable is None else block_variable
+
+    @block_variable.setter
+    def block_variable(self, value):
+        self._block_variable = weakref.ref(value)
+
     def create_block_variable(self):
-        self.block_variable = BlockVariable(self)
-        return self.block_variable
+        self.block_variable = block_variable = BlockVariable(self)
+        return block_variable
 
     def _ad_convert_type(self, value, options={}):
         """This method must be overridden.
