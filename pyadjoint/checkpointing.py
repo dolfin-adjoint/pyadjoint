@@ -173,15 +173,15 @@ class CheckpointManager:
             for block in self.tape.timesteps[timestep - 1]:
                 for out in block.get_outputs():
                     out._checkpoint = None
+
+        if cp_action.storage == StorageType.DISK:
+            # Activate disk checkpointing only in the checkpointing process.
+            for package in self.tape._package_data.values():
+                package.pause_checkpointing()
         if timestep in cp_action and timestep < self.total_timesteps:
             self.tape.get_blocks().append_step()
             if cp_action.write_ics:
                 self.tape.latest_checkpoint = cp_action.n0
-
-            if cp_action.storage == StorageType.DISK:
-                # Activate disk checkpointing only in the checkpointing process.
-                for package in self.tape._package_data.values():
-                    package.pause_checkpointing()
             return True
         else:
             return False
