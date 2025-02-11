@@ -211,6 +211,7 @@ class Tape(object):
         for data in self._package_data.values():
             data.clear()
         self._checkpoint_manager = None
+        self._recompute_count = 0
 
     @property
     def latest_timestep(self):
