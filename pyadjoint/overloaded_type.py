@@ -76,7 +76,6 @@ class OverloadedType(object):
 
     def __init__(self, *args, **kwargs):
         self._block_variable = lambda: None
-        self.create_block_variable()
 
     @classmethod
     def _ad_init_object(cls, obj):
