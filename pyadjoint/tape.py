@@ -286,7 +286,7 @@ class Tape(object):
         if not self.timesteps:
             self._blocks.append_step()
         for step in self.timesteps[last_used + 1:]:
-            step.checkpointable_state.add(block_var)
+            step.checkpointable_state.append(block_var)
 
     def add_to_adjoint_dependencies(self, block_var, last_used):
         """Add a block variable into the adjoint dependencies set.
@@ -302,7 +302,7 @@ class Tape(object):
         if not self.timesteps:
             self._blocks.append_step()
         for step in self.timesteps[last_used + 1:]:
-            step.adjoint_dependencies.add(block_var)
+            step.adjoint_dependencies.append(block_var)
 
     def enable_checkpointing(self, schedule):
         """Enable checkpointing on the adjoint evaluation.
@@ -473,7 +473,7 @@ class Tape(object):
                 else:
                     discarded_variables.union(block.get_outputs())
             optimized_timesteps.steps[-1].checkpointable_state = \
-                step.checkpointable_state - discarded_variables
+                [var for var in step.checkpointable_state if var not in discarded_variables]
 
         self._blocks = optimized_timesteps
 
@@ -501,7 +501,7 @@ class Tape(object):
 
         for step, new_step in zip(self._blocks.steps, optimized_timesteps):
             new_step.checkpointable_state = \
-                step.checkpointable_state & retained_nodes
+                [var for var in step.checkpointable_state if var in retained_nodes]
 
         self._blocks = TimeStepSequence(steps=optimized_timesteps)
 
@@ -777,8 +777,8 @@ class TimeStep(list):
         super().__init__(blocks)
         # The set of block variables which are needed to restart from the start
         # of this timestep.
-        self.checkpointable_state = set()
-        self.adjoint_dependencies = set()
+        self.checkpointable_state = []
+        self.adjoint_dependencies = []
         # A dictionary mapping the block variables in the checkpointable state
         # to their checkpoint values.
         self._checkpoint = {}

@@ -306,11 +306,11 @@ class CheckpointManager:
             if step < (self.total_timesteps - 1):
                 next_step = self.tape.timesteps[step + 1]
                 # The checkpointable state set of the current step.
-                to_keep = next_step.checkpointable_state
+                to_keep = set(next_step.checkpointable_state)
             if functional:
                 to_keep = to_keep.union([functional.block_variable])
 
-            for var in current_step.checkpointable_state - to_keep:
+            for var in set(current_step.checkpointable_state) - to_keep:
                 # Handle the case where step is 0
                 if step == 0 and var not in current_step._checkpoint:
                     # Ensure initialisation state is kept.
@@ -343,7 +343,7 @@ class CheckpointManager:
                         if bv not in to_keep:
                             bv._checkpoint = None
                     else:
-                        if bv not in current_step.adjoint_dependencies.union(to_keep):
+                        if bv not in to_keep.union(current_step.adjoint_dependencies):
                             bv._checkpoint = None
 
             step += 1
@@ -364,11 +364,11 @@ class CheckpointManager:
                 if not self._adj_deps_cleaned:
                     for out in block._outputs:
                         if not out.marked_in_path:
-                            current_step.adjoint_dependencies.discard(out)
+                            current_step.adjoint_dependencies.remove(out)
                     self._adj_deps_cleaned = True
             # Output variables are used for the last time when running
             # backwards.
-            to_keep = current_step.checkpointable_state
+            to_keep = set(current_step.checkpointable_state)
             if functional:
                 to_keep = to_keep.union([functional.block_variable])
             for block in current_step:
