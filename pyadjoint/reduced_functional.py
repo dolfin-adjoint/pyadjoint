@@ -1,4 +1,4 @@
-from .drivers import compute_gradient, compute_hessian
+from .drivers import compute_gradient, compute_hessian, compute_tlm
 from .enlisting import Enlist
 from .tape import get_working_tape, stop_annotating, no_annotations
 from .overloaded_type import OverloadedType, create_overloaded_object
@@ -76,6 +76,10 @@ class ReducedFunctional(object):
             Input is a list of Controls.
         hessian_cb_post (function): Callback function after evaluating the Hessian.
             Inputs are the functional, a list of Hessian, and controls.
+        tlm_cb_pre (function): Callback function before evaluating the tangent linear model.
+            Input is a list of Controls.
+        tlm_cb_post (function): Callback function after evaluating the tangent linear model.
+            Inputs are the functional, the tlm result, and controls.
     """
 
     def __init__(self, functional, controls,
@@ -86,7 +90,9 @@ class ReducedFunctional(object):
                  derivative_cb_pre=lambda controls: controls,
                  derivative_cb_post=lambda checkpoint, derivative_components, controls: derivative_components,
                  hessian_cb_pre=lambda *args: None,
-                 hessian_cb_post=lambda *args: None):
+                 hessian_cb_post=lambda *args: None,
+                 tlm_cb_pre=lambda *args: None,
+                 tlm_cb_post=lambda *args: None):
         if not isinstance(functional, OverloadedType):
             raise TypeError("Functional must be an OverloadedType.")
         self.functional = functional
@@ -100,6 +106,8 @@ class ReducedFunctional(object):
         self.derivative_cb_post = derivative_cb_post
         self.hessian_cb_pre = hessian_cb_pre
         self.hessian_cb_post = hessian_cb_post
+        self.tlm_cb_pre = tlm_cb_pre
+        self.tlm_cb_post = tlm_cb_post
 
         if self.derivative_components:
             # pre callback
@@ -160,7 +168,7 @@ class ReducedFunctional(object):
         return self.controls.delist(derivatives)
 
     @no_annotations
-    def hessian(self, m_dot, options={}):
+    def hessian(self, m_dot, options={}, hessian_input=0.0, evaluate_tlm=True):
         """Returns the action of the Hessian of the functional w.r.t. the control on a vector m_dot.
 
         Using the second-order adjoint method, the action of the Hessian of the
@@ -172,6 +180,9 @@ class ReducedFunctional(object):
                 action of the Hessian.
             options (dict): A dictionary of options. To find a list of
                 available options have a look at the specific control type.
+            hessian_input (OverloadedType): The value to start the Hessian accumulation from after the TLM calculation.
+            evaluate_tlm (bool): Whether or not to compute the forward (tlm) part of the Hessian calculation.
+                If False, assumes that the tape has already been populated with required TLM values.
 
         Returns:
             OverloadedType: The action of the Hessian in the direction m_dot.
@@ -181,7 +192,10 @@ class ReducedFunctional(object):
         values = [c.tape_value() for c in self.controls]
         self.hessian_cb_pre(self.controls.delist(values))
 
-        r = compute_hessian(self.functional, self.controls, m_dot, options=options, tape=self.tape)
+        r = compute_hessian(self.functional, self.controls, m_dot,
+                            options=options, tape=self.tape,
+                            hessian_input=hessian_input,
+                            evaluate_tlm=evaluate_tlm)
 
         # Call callback
         self.hessian_cb_post(self.functional.block_variable.checkpoint,
@@ -189,6 +203,33 @@ class ReducedFunctional(object):
                              self.controls.delist(values))
 
         return self.controls.delist(r)
+
+    @no_annotations
+    def tlm(self, m_dot, options={}):
+        """Returns the action of the tangent linear model of the functional w.r.t. the
+        control on a vector m_dot, around the last supplied value of the control.
+
+        Args:
+            m_dot ([OverloadedType]): The direction in which to compute the
+                action of the tangent linear model.
+            options (dict): A dictionary of options. To find a list of
+                available options have a look at the specific control type.
+
+        Returns:
+            OverloadedType: The action of the tangent linear model in the direction m_dot.
+                Should be an instance of the same type as the functional.
+        """
+        # Call callback
+        values = [c.tape_value() for c in self.controls]
+        self.tlm_cb_pre(self.controls.delist(values))
+
+        tlm = compute_tlm(self.functional, self.controls, m_dot, options=options, tape=self.tape)
+
+        # Call callback
+        self.tlm_cb_post(self.functional.block_variable.checkpoint,
+                         tlm, self.controls.delist(values))
+
+        return tlm
 
     @no_annotations
     def __call__(self, values):

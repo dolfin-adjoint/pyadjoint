@@ -33,7 +33,8 @@ def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
     return m.delist(grads)
 
 
-def compute_hessian(J, m, m_dot, options=None, tape=None):
+def compute_hessian(J, m, m_dot, options=None, tape=None,
+                    hessian_input=0.0, evaluate_tlm=True):
     """
     Compute the Hessian of J in a direction m_dot at the current value of m
 
@@ -44,6 +45,9 @@ def compute_hessian(J, m, m_dot, options=None, tape=None):
         options (dict): A dictionary of options. To find a list of available options
             have a look at the specific control type.
         tape: The tape to use. Default is the current tape.
+        hessian_input (OverloadedType): The value to start the Hessian accumulation from after the TLM calculation.
+        evaluate_tlm (bool): Whether or not to compute the forward (tlm) part of the Hessian calculation.
+            If False, assumes that the tape has already been populated with required TLM values.
 
     Returns:
         OverloadedType: The second derivative with respect to the control in direction m_dot. Should be an instance of
@@ -52,27 +56,57 @@ def compute_hessian(J, m, m_dot, options=None, tape=None):
     tape = tape or get_working_tape()
     options = options or {}
 
-    tape.reset_tlm_values()
+    # fill the relevant tlm values on the tape
+    if evaluate_tlm:
+        compute_tlm(J, m, m_dot, options, tape)
+
     tape.reset_hessian_values()
 
-    m = Enlist(m)
-    m_dot = Enlist(m_dot)
-    for i, value in enumerate(m_dot):
-        m[i].tlm_value = m_dot[i]
-
-    with stop_annotating():
-        with tape.marked_nodes(m):
-            tape.evaluate_tlm(markings=True)
-
     J.block_variable.hessian_value = J.block_variable.output._ad_convert_type(
-        0., options={'riesz_representation': None})
+        hessian_input, options={'riesz_representation': None})
 
+    m = Enlist(m)
     with stop_annotating():
         with tape.marked_nodes(m):
             tape.evaluate_hessian(markings=True)
 
     r = [v.get_hessian(options=options) for v in m]
     return m.delist(r)
+
+
+def compute_tlm(J, m, m_dot, options=None, tape=None):
+    """
+    Compute the tangent linear model of J in a direction m_dot at the current value of m
+
+    Args:
+        J (AdjFloat):  The objective functional.
+        m (list or instance of Control): The (list of) controls.
+        m_dot (list or instance of the control type): The direction in which to compute the tangent linear model.
+        options (dict): A dictionary of options. To find a list of available options
+            have a look at the specific control type.
+        tape: The tape to use. Default is the current tape.
+
+    Returns:
+        OverloadedType: The action of the tangent linear model with respect to the control in direction m_dot.
+            Should be an instance of the same type as the functional.
+    """
+    tape = tape or get_working_tape()
+    options = options or {}
+
+    tape.reset_tlm_values()
+
+    m = Enlist(m)
+    m_dot = Enlist(m_dot)
+
+    for mi, mdi in zip(m, m_dot):
+        mi.tlm_value = mdi
+
+    with stop_annotating():
+        with tape.marked_nodes(m):
+            tape.evaluate_tlm(markings=True)
+
+    return J._ad_convert_type(J.block_variable.tlm_value,
+                              options=options)
 
 
 def solve_adjoint(J, tape=None, adj_value=1.0):
