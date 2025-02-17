@@ -167,21 +167,32 @@ class CheckpointManager:
 
             self.tape.timesteps[timestep - 1].checkpoint(
                 _store_checkpointable_state, _store_adj_dependencies)
+
             # Remove unnecessary variables in working memory from previous steps.
             for var in self.tape.timesteps[timestep - 1].checkpointable_state:
+                # Handle the case where the step is zero and the checkpoints from
+                # the checkpointable state are not stored at
+                # self.tape.timesteps[0]._checkpoint.
+                # This case is encountered when the schedules are
+                # ``SingleMemoryStorageSchedule`` or ``SingleDiskStorageSchedule``,
+                # where only the adjoint dependency data is stored. Thus, when
+                # recomputing the forward model, the initial condition data is available.
+                if timestep - 1 == 0 and var not in self.tape.timesteps[timestep - 1]._checkpoint:
+                    continue
                 var._checkpoint = None
+
             for block in self.tape.timesteps[timestep - 1]:
                 for out in block.get_outputs():
                     out._checkpoint = None
+
+        if cp_action.storage == StorageType.DISK:
+            # Activate disk checkpointing only in the checkpointing process.
+            for package in self.tape._package_data.values():
+                package.pause_checkpointing()
         if timestep in cp_action and timestep < self.total_timesteps:
             self.tape.get_blocks().append_step()
             if cp_action.write_ics:
                 self.tape.latest_checkpoint = cp_action.n0
-
-            if cp_action.storage == StorageType.DISK:
-                # Activate disk checkpointing only in the checkpointing process.
-                for package in self.tape._package_data.values():
-                    package.pause_checkpointing()
             return True
         else:
             return False
