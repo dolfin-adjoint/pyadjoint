@@ -75,7 +75,7 @@ class OverloadedType(object):
     """
 
     def __init__(self, *args, **kwargs):
-        self._block_variable = lambda: None
+        self.clear_block_variable()
 
     @classmethod
     def _ad_init_object(cls, obj):
@@ -101,6 +101,9 @@ class OverloadedType(object):
     @block_variable.setter
     def block_variable(self, value):
         self._block_variable = weakref.ref(value)
+
+    def clear_block_variable(self):
+        self._block_variable = lambda: None
 
     def create_block_variable(self):
         self.block_variable = block_variable = BlockVariable(self)
