@@ -39,10 +39,10 @@ class CheckpointManager:
     Args:
         schedule (checkpoint_schedules.schedule): A schedule provided by the `checkpoint_schedules` package.
         tape (Tape): A list of blocks :class:`Block` instances.
-        gc_timestep_frequency (None or int): The number of timesteps between additional garbage collections. The default
-        is `None`, which means no additional garbage collection. If an integer is
-        provided, the garbage collector is applied every `gc_timestep_frequency` timesteps. This is useful if delays
-        in object collection are causing excessive memory usage.
+        gc_timestep_frequency (None or int): The number of timesteps between garbage collections. The default
+        is `None`, which means no invoking the garbage collector during the executions. If an integer is
+        provided, the garbage collector is applied every `gc_timestep_frequency` timestep. That is useful when
+        being affected by the Python fails to track and clean all checkpoint objects in memory properly.
         gc_generation (int): The generation for garbage collection. Default is 2 that runs a full collection.
         To have more information about the garbage collector generation,
         please refer to the `documentation
@@ -188,8 +188,8 @@ class CheckpointManager:
                 # Check if the block variables stored in `self._global_deps` are still
                 # dependencies in the previous timestep. If not, remove them from the
                 # global dependencies.
-                deps_to_clear = self._global_deps.difference(self._global_deps.intersection(
-                    self.tape.timesteps[timestep - 1].checkpointable_state))
+                deps_to_clear = self._global_deps.difference(
+                    self.tape.timesteps[timestep - 1].checkpointable_state)
 
                 # Remove the block variables that are not global dependencies.
                 self._global_deps.difference_update(deps_to_clear)
