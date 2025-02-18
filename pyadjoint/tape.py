@@ -324,7 +324,7 @@ class Tape(object):
                 "Checkpointing must be enabled before any blocks are added to the tape."
             )
 
-        if gc_timestep_frequency and not isinstance(gc_timestep_frequency, int):
+        if gc_timestep_frequency is not None and not isinstance(gc_timestep_frequency, int):
             raise CheckpointError("gc_timestep_frequency must be an integer.")
 
         self._checkpoint_manager = CheckpointManager(

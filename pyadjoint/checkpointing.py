@@ -39,10 +39,10 @@ class CheckpointManager:
     Args:
         schedule (checkpoint_schedules.schedule): A schedule provided by the `checkpoint_schedules` package.
         tape (Tape): A list of blocks :class:`Block` instances.
-        gc_timestep_frequency (None or int): The number of timesteps between garbage collections. The default
-        is `None`, which means no invoking the garbage collector during the executions. If an integer is
-        provided, the garbage collector is applied every `gc_timestep_frequency` timestep. That is useful when
-        being affected by the Python fails to track and clean all checkpoint objects in memory properly.
+        gc_timestep_frequency (None or int): The number of timesteps between additional garbage collections. The default
+        is `None`, which means no additional garbage collection. If an integer is
+        provided, the garbage collector is applied every `gc_timestep_frequency` timesteps. This is useful if delays
+        in object collection are causing excessive memory usage.
         gc_generation (int): The generation for garbage collection. Default is 2 that runs a full collection.
         To have more information about the garbage collector generation,
         please refer to the `documentation
