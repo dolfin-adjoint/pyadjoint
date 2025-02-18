@@ -66,7 +66,12 @@ def register_overloaded_type(overloaded_type, classes=None):
 
 
 class Weakref:
-    """Weakref which is picklable if the referenced obj is picklable.
+    """Weakref which is picklable if the referenced object is picklable or
+    None.
+
+    Args:
+        obj (:obj:`object`): The object to hold a weak reference to. None
+            indicates a reference to no object.
     """
 
     def __init__(self, obj=None):
