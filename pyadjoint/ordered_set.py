@@ -1,8 +1,9 @@
-from typing import Hashable, Iterable
+from collections.abc import Hashable, Iterable, Iterator, MutableSet, Set
+from typing import Self
 
 
-class OrderedSet(set):
-    def __init__(self, iterable: Iterable = ()):
+class OrderedSet(MutableSet):
+    def __init__(self, iterable: Iterable[Hashable] = ()):
         """
         An OrderedSet is a set that maintains the insertion order
         of its elements.
@@ -11,37 +12,39 @@ class OrderedSet(set):
           iterable: An iterable with which to initialise the set elements.
         """
 
-        self._elements = []
-        seen = set()
+        self._elements: dict[Hashable, None] = {}
 
         for element in iterable:
-            if element in seen:
-                continue
+            self._elements[element] = None
 
-            self._elements.append(element)
-            seen.add(element)
+    def __contains__(self, obj: Hashable) -> bool:
+        return obj in self._elements
 
-        super().__init__(self._elements)
+    def __len__(self) -> int:
+        return len(self._elements)
 
-    def add(self, obj: Hashable):
+    def copy(self) -> Self:
+        """Return a shallow copy of this set"""
+
+        ret = type(self)()
+        ret._elements = self._elements.copy()
+
+        return ret
+
+    def add(self, obj: Hashable) -> None:
         """Add obj to this set."""
 
-        if obj in self:
-            return
+        self._elements[obj] = None
 
-        super().add(obj)
-        self._elements.append(obj)
-
-    def remove(self, obj: Hashable):
+    def remove(self, obj: Hashable) -> None:
         """Remove obj from this set, it must be a member."""
 
         if obj not in self:
             raise KeyError(obj)
 
-        super().remove(obj)
-        self._elements.remove(obj)
+        del self._elements[obj]
 
-    def discard(self, obj: Hashable):
+    def discard(self, obj: Hashable) -> None:
         """Remove obj from this set if it is present."""
 
         if obj not in self:
@@ -49,13 +52,13 @@ class OrderedSet(set):
 
         self.remove(obj)
 
-    def __iter__(self):
-        return iter(self._elements)
+    def __iter__(self) -> Iterator:
+        return iter(self._elements.keys())
 
-    def union(self, *others: Iterable):
+    def union(self, *others: Iterable[Hashable]) -> Self:
         """Return a new set with elements from this set and others."""
 
-        ret = OrderedSet(self)
+        ret = self.copy()
 
         for other in others:
             for element in other:
@@ -63,18 +66,18 @@ class OrderedSet(set):
 
         return ret
 
-    def __or__(self, other: set):
-        if not isinstance(other, set):
+    def __or__(self, other: Set) -> Self:
+        if not isinstance(other, Set):
             raise TypeError
 
         return self.union(other)
 
-    def difference(self, *others: Iterable):
+    def difference(self, *others: Iterable[Hashable]) -> Self:
         """Return a new set with elements from this set
         that are not in others.
         """
 
-        ret = OrderedSet(self)
+        ret = self.copy()
 
         for other in others:
             for element in other:
@@ -82,18 +85,18 @@ class OrderedSet(set):
 
         return ret
 
-    def __sub__(self, other: set):
-        if not isinstance(other, set):
+    def __sub__(self, other: Set) -> Self:
+        if not isinstance(other, Set):
             raise TypeError
 
         return self.difference(other)
 
-    def intersection(self, *others: Iterable):
+    def intersection(self, *others: Iterable[Hashable]) -> Self:
         """Return a new set with elements common to this set
         and all others.
         """
 
-        ret = OrderedSet()
+        ret = type(self)()
 
         for element in self:
             for other in others:
@@ -104,18 +107,18 @@ class OrderedSet(set):
 
         return ret
 
-    def __and__(self, other: set):
-        if not isinstance(other, set):
+    def __and__(self, other: Set) -> Self:
+        if not isinstance(other, Set):
             raise TypeError
 
         return self.intersection(other)
 
-    def symmetric_difference(self, other: Iterable):
+    def symmetric_difference(self, other: Iterable[Hashable]) -> Self:
         """Return a new set with elements either in this set or other,
         but not both.
         """
 
-        ret = OrderedSet()
+        ret = type(self)()
 
         for element in self:
             if element not in other:
@@ -127,8 +130,8 @@ class OrderedSet(set):
 
         return ret
 
-    def __xor__(self, other: set):
-        if not isinstance(other, set):
+    def __xor__(self, other: Set) -> Self:
+        if not isinstance(other, Set):
             raise TypeError
 
         return self.symmetric_difference(other)
