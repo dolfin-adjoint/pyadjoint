@@ -105,8 +105,9 @@ def compute_tlm(J, m, m_dot, options=None, tape=None):
         with tape.marked_nodes(m):
             tape.evaluate_tlm(markings=True)
 
-    return J._ad_convert_type(J.block_variable.tlm_value,
-                              options=options)
+    return J.block_variable.tlm_value._ad_copy()
+    # return J._ad_convert_type(J.block_variable.tlm_value,
+    #                           options=options)
 
 
 def solve_adjoint(J, tape=None, adj_value=1.0):
