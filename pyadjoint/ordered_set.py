@@ -1,5 +1,4 @@
 from collections.abc import Hashable, Iterable, Iterator, MutableSet, Set
-from typing import Self
 
 
 class OrderedSet(MutableSet):
@@ -23,7 +22,7 @@ class OrderedSet(MutableSet):
     def __len__(self) -> int:
         return len(self._elements)
 
-    def copy(self) -> Self:
+    def copy(self) -> "OrderedSet":
         """Return a shallow copy of this set"""
 
         ret = type(self)()
@@ -55,7 +54,7 @@ class OrderedSet(MutableSet):
     def __iter__(self) -> Iterator:
         return iter(self._elements.keys())
 
-    def union(self, *others: Iterable[Hashable]) -> Self:
+    def union(self, *others: Iterable[Hashable]) -> "OrderedSet":
         """Return a new set with elements from this set and others."""
 
         ret = self.copy()
@@ -66,13 +65,13 @@ class OrderedSet(MutableSet):
 
         return ret
 
-    def __or__(self, other: Set) -> Self:
+    def __or__(self, other: Set) -> "OrderedSet":
         if not isinstance(other, Set):
             raise TypeError
 
         return self.union(other)
 
-    def difference(self, *others: Iterable[Hashable]) -> Self:
+    def difference(self, *others: Iterable[Hashable]) -> "OrderedSet":
         """Return a new set with elements from this set
         that are not in others.
         """
@@ -85,13 +84,13 @@ class OrderedSet(MutableSet):
 
         return ret
 
-    def __sub__(self, other: Set) -> Self:
+    def __sub__(self, other: Set) -> "OrderedSet":
         if not isinstance(other, Set):
             raise TypeError
 
         return self.difference(other)
 
-    def intersection(self, *others: Iterable[Hashable]) -> Self:
+    def intersection(self, *others: Iterable[Hashable]) -> "OrderedSet":
         """Return a new set with elements common to this set
         and all others.
         """
@@ -107,13 +106,13 @@ class OrderedSet(MutableSet):
 
         return ret
 
-    def __and__(self, other: Set) -> Self:
+    def __and__(self, other: Set) -> "OrderedSet":
         if not isinstance(other, Set):
             raise TypeError
 
         return self.intersection(other)
 
-    def symmetric_difference(self, other: Iterable[Hashable]) -> Self:
+    def symmetric_difference(self, other: Iterable[Hashable]) -> "OrderedSet":
         """Return a new set with elements either in this set or other,
         but not both.
         """
@@ -130,7 +129,7 @@ class OrderedSet(MutableSet):
 
         return ret
 
-    def __xor__(self, other: Set) -> Self:
+    def __xor__(self, other: Set) -> "OrderedSet":
         if not isinstance(other, Set):
             raise TypeError
 
