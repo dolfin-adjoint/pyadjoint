@@ -205,22 +205,24 @@ class CheckpointManager:
             # Remove unnecessary variables in working memory from previous steps.
             for var in self.tape.timesteps[timestep - 1].checkpointable_state - self._global_deps:
                 var._checkpoint = None
+
             for block in self.tape.timesteps[timestep - 1]:
                 for out in block.get_outputs():
                     out._checkpoint = None
+
+        if cp_action.storage == StorageType.DISK:
+            # Activate disk checkpointing only in the checkpointing process.
+            for package in self.tape._package_data.values():
+                package.pause_checkpointing()
+
+        if isinstance(self._gc_timestep_frequency, int) and timestep % self._gc_timestep_frequency == 0:
+            logging.info("Running a garbage collection cycle")
+            gc.collect(self._gc_generation)
+
         if timestep in cp_action and timestep < self.total_timesteps:
             self.tape.get_blocks().append_step()
             if cp_action.write_ics:
                 self.tape.latest_checkpoint = cp_action.n0
-
-            if cp_action.storage == StorageType.DISK:
-                # Activate disk checkpointing only in the checkpointing process.
-                for package in self.tape._package_data.values():
-                    package.pause_checkpointing()
-
-            if isinstance(self._gc_timestep_frequency, int) and timestep % self._gc_timestep_frequency == 0:
-                logging.info("Running a garbage collection cycle")
-                gc.collect(self._gc_generation)
             return True
         else:
             return False
