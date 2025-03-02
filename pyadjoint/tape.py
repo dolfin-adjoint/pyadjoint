@@ -211,6 +211,7 @@ class Tape(object):
         for data in self._package_data.values():
             data.clear()
         self._checkpoint_manager = None
+        self._recompute_count = 0
 
     @property
     def latest_timestep(self):
@@ -312,18 +313,18 @@ class Tape(object):
         Args:
             schedule (checkpoint_schedules.schedule): A schedule provided by the
             checkpoint_schedules package.
-            gc_timestep_frequency (int): The timestep frequency for garbage collection.
-            gc_generation (int): The generation for garbage collection. Default is 2 that
-            runs a full collection. To have more information about the garbage collector
-            generation, please refer to the `documentation
-            <https://docs.python.org/3/library/gc.html#gc.collect>`_.
+            gc_timestep_frequency (None or int): The timestep frequency for garbage collection.
+            For additional information, please refer to the :class:`CheckpointManager`
+            documentation.
+            gc_generation (int): The generation for garbage collection. For additional
+            information, please refer to the :class:`CheckpointManager` documentation.
         """
         if self._blocks:
             raise CheckpointError(
                 "Checkpointing must be enabled before any blocks are added to the tape."
             )
 
-        if gc_timestep_frequency and not isinstance(gc_timestep_frequency, int):
+        if gc_timestep_frequency is not None and not isinstance(gc_timestep_frequency, int):
             raise CheckpointError("gc_timestep_frequency must be an integer.")
 
         self._checkpoint_manager = CheckpointManager(
@@ -792,6 +793,8 @@ class TimeStep(list):
         # A dictionary mapping the block variables in the checkpointable state
         # to their checkpoint values.
         self._checkpoint = {}
+        # A flag to indicate whether the adjoint dependencies have been cleaned
+        # from the outputs not marked in the path.
         self._adj_deps_cleaned = False
 
     def copy(self, blocks=None):
@@ -807,14 +810,16 @@ class TimeStep(list):
             required to restart from the start of a timestep.
             adj_dependencies (bool): If True, store the adjoint dependencies required
             to compute the adjoint of a timestep.
-            global_deps (set): The set of global dependencies. These dependencies should
-            not be time-dependent and should be in the checkpointable states at every time step.
+            global_deps (set): This set stores the common dependencies for all timesteps.
+            For additional information, please refer to the :class:`CheckpointManager`
+            documentation.
         """
         with stop_annotating():
             if checkpointable_state:
                 for var in self.checkpointable_state:
                     if var in global_deps:
-                        # A new checkpoint object is not necessary here.
+                        # Creating a new checkpoint object is not necessary here
+                        # because the global dependencies do not change.
                         self._checkpoint[var] = var._checkpoint
                     else:
                         self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
