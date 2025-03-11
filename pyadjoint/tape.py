@@ -304,7 +304,7 @@ class Tape(object):
         for step in self.timesteps[last_used + 1:]:
             step.adjoint_dependencies.add(block_var)
 
-    def enable_checkpointing(self, schedule):
+    def enable_checkpointing(self, schedule, gc_timestep_frequency=None, gc_generation=2):
         """Enable checkpointing on the adjoint evaluation.
 
         A checkpoint manager able to execute the forward and adjoint computations
@@ -313,12 +313,23 @@ class Tape(object):
         Args:
             schedule (checkpoint_schedules.schedule): A schedule provided by the
             checkpoint_schedules package.
+            gc_timestep_frequency (None or int): The timestep frequency for garbage collection.
+            For additional information, please refer to the :class:`CheckpointManager`
+            documentation.
+            gc_generation (int): The generation for garbage collection. For additional
+            information, please refer to the :class:`CheckpointManager` documentation.
         """
         if self._blocks:
             raise CheckpointError(
                 "Checkpointing must be enabled before any blocks are added to the tape."
             )
-        self._checkpoint_manager = CheckpointManager(schedule, self)
+
+        if gc_timestep_frequency is not None and not isinstance(gc_timestep_frequency, int):
+            raise CheckpointError("gc_timestep_frequency must be an integer.")
+
+        self._checkpoint_manager = CheckpointManager(
+            schedule, self, gc_timestep_frequency=gc_timestep_frequency,
+            gc_generation=gc_generation)
 
     def get_blocks(self, tag=None):
         """Returns a list of the blocks on the tape.
@@ -782,13 +793,16 @@ class TimeStep(list):
         # A dictionary mapping the block variables in the checkpointable state
         # to their checkpoint values.
         self._checkpoint = {}
+        # A flag to indicate whether the adjoint dependencies have been cleaned
+        # from the outputs not marked in the path.
+        self._adj_deps_cleaned = False
 
     def copy(self, blocks=None):
         out = TimeStep(blocks or self)
         out.checkpointable_state = self.checkpointable_state
         return out
 
-    def checkpoint(self, checkpointable_state, adj_dependencies):
+    def checkpoint(self, checkpointable_state, adj_dependencies, global_deps):
         """Store a copy of the checkpoints in the checkpointable state.
 
         Args:
@@ -796,11 +810,19 @@ class TimeStep(list):
             required to restart from the start of a timestep.
             adj_dependencies (bool): If True, store the adjoint dependencies required
             to compute the adjoint of a timestep.
+            global_deps (set): This set stores the common dependencies for all timesteps.
+            For additional information, please refer to the :class:`CheckpointManager`
+            documentation.
         """
         with stop_annotating():
             if checkpointable_state:
                 for var in self.checkpointable_state:
-                    self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
+                    if var in global_deps:
+                        # Creating a new checkpoint object is not necessary here
+                        # because the global dependencies do not change.
+                        self._checkpoint[var] = var._checkpoint
+                    else:
+                        self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
 
             if adj_dependencies:
                 for var in self.adjoint_dependencies:
