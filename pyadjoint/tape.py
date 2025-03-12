@@ -7,6 +7,7 @@ from itertools import chain
 from typing import Optional, Iterable
 from abc import ABC, abstractmethod
 from .checkpointing import CheckpointManager, CheckpointError, StorageType
+from .ordered_set import OrderedSet
 
 _working_tape = None
 _annotation_enabled = False
@@ -788,8 +789,8 @@ class TimeStep(list):
         super().__init__(blocks)
         # The set of block variables which are needed to restart from the start
         # of this timestep.
-        self.checkpointable_state = set()
-        self.adjoint_dependencies = set()
+        self.checkpointable_state = OrderedSet()
+        self.adjoint_dependencies = OrderedSet()
         # A dictionary mapping the block variables in the checkpointable state
         # to their checkpoint values.
         self._checkpoint = {}
