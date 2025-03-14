@@ -122,10 +122,10 @@ class stop_annotating(ContextDecorator):
         _annotation_enabled = self._orig_annotation_enabled.pop()
         if self.modifies is not None:
             try:
-                self.modifies.create_block_variable()
+                self.modifies.clear_block_variable()
             except AttributeError:
                 for var in self.modifies:
-                    var.create_block_variable()
+                    var.clear_block_variable()
 
 
 no_annotations = stop_annotating()
