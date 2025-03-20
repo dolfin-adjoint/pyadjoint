@@ -6,7 +6,7 @@ from contextlib import contextmanager, ContextDecorator
 from itertools import chain
 from typing import Optional, Iterable
 from abc import ABC, abstractmethod
-from .checkpointing import CheckpointManager, CheckpointError, StorageType
+from .checkpointing import CheckpointManager, CheckpointError, StorageType, Mode
 from .ordered_set import OrderedSet
 
 _working_tape = None
@@ -796,7 +796,7 @@ class TimeStep(list):
         self._checkpoint = {}
         # A flag to indicate whether the adjoint dependencies have been cleaned
         # from the outputs not marked in the path.
-        self._adj_deps_cleaned = False
+        self._right_adj_deps = False
 
     def copy(self, blocks=None):
         out = TimeStep(blocks or self)
@@ -826,8 +826,12 @@ class TimeStep(list):
                         self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
 
             if adj_dependencies:
-                for var in self.adjoint_dependencies:
-                    self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
+                if self._right_adj_deps:
+                    for var in self.adjoint_dependencies:
+                        self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
+                else:
+                    for var in self.adjoint_dependencies.union(self.checkpointable_state):
+                        self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
 
     def restore_from_checkpoint(self, from_storage):
         """Restore the block var checkpoints from the timestep checkpoint."""
