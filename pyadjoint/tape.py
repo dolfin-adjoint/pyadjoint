@@ -6,7 +6,7 @@ from contextlib import contextmanager, ContextDecorator
 from itertools import chain
 from typing import Optional, Iterable
 from abc import ABC, abstractmethod
-from .checkpointing import CheckpointManager, CheckpointError, StorageType, Mode
+from .checkpointing import CheckpointManager, CheckpointError, StorageType
 from .ordered_set import OrderedSet
 
 _working_tape = None
@@ -798,7 +798,6 @@ class TimeStep(list):
         # by removing outputs not marked in the path and adding checkpointable
         # states that are marked in the path.
         self._revised_adj_deps = False
-
 
     def copy(self, blocks=None):
         out = TimeStep(blocks or self)
