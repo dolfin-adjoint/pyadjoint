@@ -406,14 +406,15 @@ class CheckpointManager:
             current_step = self.tape.timesteps[step]
             for block in reversed(current_step):
                 block.evaluate_adj(markings=markings)
-                if not current_step._right_adj_deps:
+                if not current_step._revised_adj_deps:
+                    # Update the adjoint dependency set.
                     for deps in block.get_dependencies():
-                        if deps.marked_in_path and deps not in current_step.adjoint_dependencies:
+                        if deps.marked_in_path:
                             current_step.adjoint_dependencies.add(deps)
                     for out in block._outputs:
                         if not out.marked_in_path:
                             current_step.adjoint_dependencies.discard(out)
-            current_step._right_adj_deps = True
+            current_step._revised_adj_deps = True
             # Output variables are used for the last time when running
             # backwards.
             to_keep = current_step.checkpointable_state
