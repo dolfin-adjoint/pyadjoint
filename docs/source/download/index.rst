@@ -6,13 +6,6 @@
 Installing pyadjoint
 *************************
 
-dolfin-adjoint
---------------
-
-To use dolfin-adjoint with FEniCS, consult the `dolfin-adjoint documentation
-<http://www.dolfin-adjoint.org/en/latest/download/index.html>`__.
-
-
 Firedrake
 ---------
  
@@ -28,12 +21,6 @@ Install dolfin-adjoint and its Python dependencies with pip:
 
     pip install git+https://github.com/dolfin-adjoint/pyadjoint.git
 
-Test your installation by running:
-
-.. code-block:: bash
-
-    python3 -c "import fenics_adjoint"
-
 
 Optional dependencies:
 ----------------------
@@ -44,7 +31,6 @@ Optional dependencies:
 
 - `Optizelle`_: An Open Source Software Library Designed To Solve General Purpose Nonlinear Optimization Problems.
 
-.. _FEniCS: http://fenicsproject.org
 .. _Optizelle: http://www.optimojoe.com/products/optizelle
 .. _SLEPc: http://www.grycap.upv.es/slepc/
 .. _IPOPT: https://projects.coin-or.org/Ipopt
