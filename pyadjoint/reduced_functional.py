@@ -55,7 +55,7 @@ class AbstractReducedFunctional(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def derivative(self, adj_input=1.0, apply_reisz=False):
+    def derivative(self, adj_input=1.0, apply_riesz=False):
         """Return the derivative of the functional w.r.t. the control.
 
         Using the adjoint method, the derivative of the functional with respect
@@ -73,17 +73,17 @@ class AbstractReducedFunctional(ABC):
         Returns:
             OverloadedType: The derivative with respect to the control.
                 If apply_riesz is False, should be an instance of the type dual
-                to that of the control. If apply_riesz is true should have the
+                to that of the control. If apply_riesz is True should have the
                 same type as the control.
 
         """
         raise NotImplementedError
 
     @abstractmethod
-    def hessian(self, m_dot, apply_reisz=False):
+    def hessian(self, m_dot, apply_riesz=False):
         """Return the action of the Hessian of the functional.
 
-        The Hessian is evaluate w.r.t. the control on a vector m_dot.
+        The Hessian is evaluated w.r.t. the control on a vector m_dot.
 
         Using the second-order adjoint method, the action of the Hessian of the
         functional with respect to the control, around the last supplied value
@@ -99,7 +99,7 @@ class AbstractReducedFunctional(ABC):
         Returns:
             OverloadedType: The action of the Hessian in the direction m_dot.
                 If apply_riesz is False, should be an instance of the type dual
-                to that of the control. If apply_riesz is true should have the
+                to that of the control. If apply_riesz is True should have the
                 same type as the control.
 
         """
