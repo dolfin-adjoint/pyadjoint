@@ -72,8 +72,8 @@ def compute_hessian(J, m, m_dot, tape=None, apply_riesz=False):
         with tape.marked_nodes(m):
             tape.evaluate_tlm(markings=True)
 
-    J.block_variable.hessian_value = J.block_variable.output._ad_convert_type(
-        0., options={'riesz_representation': None})
+    J.block_variable.hessian_value = (
+        J.block_variable.output._ad_init_zero(dual=True))
 
     with stop_annotating():
         with tape.marked_nodes(m):
