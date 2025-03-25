@@ -210,7 +210,7 @@ def test_assign_constant_scale():
     J = assemble(inner(f, f) ** 2  * dx)
 
     rf = ReducedFunctional(J, Control(c))
-    r = taylor_to_dict(rf, c, Constant(0.1))
+    r = taylor_to_dict(rf, c, Function(R).assign(0.1))
 
     assert min(r["R0"]["Rate"]) > 0.9
     assert min(r["R1"]["Rate"]) > 1.9
