@@ -1,5 +1,7 @@
 from .enlisting import Enlist
 from .tape import get_working_tape, stop_annotating
+from .adjfloat import AdjFloat
+from .overloaded_type import OverloadedType
 
 
 def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
@@ -105,9 +107,10 @@ def compute_tlm(J, m, m_dot, options=None, tape=None):
         with tape.marked_nodes(m):
             tape.evaluate_tlm(markings=True)
 
-    return J.block_variable.tlm_value._ad_copy()
-    # return J._ad_convert_type(J.block_variable.tlm_value,
-    #                           options=options)
+    try:
+        return J.block_variable.tlm_value._ad_copy()
+    except AttributeError:
+        return AdjFloat(J.block_variable.tlm_value)
 
 
 def solve_adjoint(J, tape=None, adj_value=1.0):
