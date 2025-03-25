@@ -128,7 +128,7 @@ class OverloadedType:
             OverloadedType: An instance of the same type as `self`.
 
         """
-        raise NotImplementedError(f"OverloadedType._ad_convert_type not defined for class {type(self)}.")
+        raise NotImplementedError(f"OverloadedType._ad_convert_riesz not defined for class {type(self)}.")
 
     def _ad_create_checkpoint(self):
         """This method must be overridden.

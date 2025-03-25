@@ -12,7 +12,7 @@ def compute_gradient(J, m, tape=None, adj_value=1.0, apply_riesz=False):
         m (list or instance of Control): The (list of) controls.
         tape: The tape to use. Default is the current tape.
         adj_value: The adjoint value to the result. Required if the functional
-            is not scalar-valued, or if the functional is not the final stage 
+            is not scalar-valued, or if the functional is not the final stage
             in the computation of an outer functional.
         apply_riesz: If True, apply the Riesz map of each control in order
             to return a primal gradient rather than a derivative in the

@@ -225,7 +225,6 @@ class ReducedFunctional(AbstractReducedFunctional):
             for derivative_cb_pre has changed. It should now return a
             list of controls (usually the same list as input.""")
 
-
         # Make sure `adj_input` is an OverloadedType
         adj_input = create_overloaded_object(adj_input)
         adj_value = adj_input._ad_mul(self.scale)
@@ -276,7 +275,7 @@ class ReducedFunctional(AbstractReducedFunctional):
         for i, value in enumerate(values):
             control_type = type(self.controls[i].control)
             if isinstance(value, (int, float)) and control_type is AdjFloat:
-                value = self.controls[i].control._ad_convert_type(value)
+                value = self.controls[i].control._ad_init_object(value)
             elif not isinstance(value, control_type):
                 if len(values) == 1:
                     raise TypeError(
