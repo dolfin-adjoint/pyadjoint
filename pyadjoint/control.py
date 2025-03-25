@@ -61,7 +61,7 @@ class Control(object):
             return self.control._ad_init_object(self.block_variable.adj_value)
 
     def get_hessian(self, apply_riesz=False):
-        if self.block_variable.adj_value is None:
+        if self.block_variable.hessian_value is None:
             logging.warning("Hessian value is None, is the functional independent of the control variable?")
             return self.control._ad_init_zero(dual=not apply_riesz)
         elif apply_riesz:

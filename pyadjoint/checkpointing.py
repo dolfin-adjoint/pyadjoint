@@ -1,5 +1,7 @@
 from enum import Enum
 import sys
+import gc
+import logging
 from functools import singledispatchmethod
 from checkpoint_schedules import Copy, Move, EndForward, EndReverse, \
     Forward, Reverse, StorageType, SingleMemoryStorageSchedule
@@ -37,6 +39,14 @@ class CheckpointManager:
     Args:
         schedule (checkpoint_schedules.schedule): A schedule provided by the `checkpoint_schedules` package.
         tape (Tape): A list of blocks :class:`Block` instances.
+        gc_timestep_frequency (None or int): The number of timesteps between garbage collections. The default
+        is `None`, which means no invoking the garbage collector during the executions. If an integer is
+        provided, the garbage collector is applied every `gc_timestep_frequency` timestep. That is useful when
+        being affected by the Python fails to track and clean all checkpoint objects in memory properly.
+        gc_generation (int): The generation for garbage collection. Default is 2 that runs a full collection.
+        To have more information about the garbage collector generation,
+        please refer to the `documentation
+        <https://docs.python.org/3/library/gc.html#gc.collect>`_.
 
     Attributes:
         tape (Tape): A list of blocks :class:`Block` instances.
@@ -52,7 +62,7 @@ class CheckpointManager:
         _current_action (checkpoint_schedules.CheckpointAction): The current `checkpoint_schedules` action.
 
     """
-    def __init__(self, schedule, tape):
+    def __init__(self, schedule, tape, gc_timestep_frequency=None, gc_generation=2):
         if (
             schedule.uses_storage_type(StorageType.DISK)
             and not tape._package_data
@@ -78,9 +88,15 @@ class CheckpointManager:
         self.forward_schedule.append(self._current_action)
         # Tell the tape to only checkpoint input data until told otherwise.
         self.tape.latest_checkpoint = 0
-        self.end_timestep(-1)
         self._keep_init_state_in_work = False
-        self._adj_deps_cleaned = False
+        self._gc_timestep_frequency = gc_timestep_frequency
+        self._gc_generation = gc_generation
+        # ``self._global_deps`` stores checkpoint dependencies that remain unchanged across
+        # timesteps (``self.tape.timesteps``). During the forward taping process, the code
+        # checks whether a dependency is in ``self._global_deps`` to avoid unnecessary clearing
+        # and recreation of its checkpoint data.
+        self._global_deps = set()
+        self.end_timestep(-1)
 
     def end_timestep(self, timestep):
         """Mark the end of one timestep when taping the forward model.
@@ -164,24 +180,49 @@ class CheckpointManager:
             ):
                 for package in self.tape._package_data.values():
                     package.continue_checkpointing()
+            if timestep == 1:
+                # Store the possible global dependencies.
+                for deps in self.tape.timesteps[timestep - 1].checkpointable_state:
+                    self._global_deps.add(deps)
+            else:
+                # Check if the block variables stored in `self._global_deps` are still
+                # dependencies in the previous timestep. If not, remove them from the
+                # global dependencies.
+                deps_to_clear = self._global_deps.difference(
+                    self.tape.timesteps[timestep - 1].checkpointable_state)
+
+                # Remove the block variables that are not global dependencies.
+                self._global_deps.difference_update(deps_to_clear)
+
+                # For no global dependencies, checkpoint storage occurs at a self.tape
+                # timestep only when required by an action from the schedule. Thus, we
+                # have to clear the checkpoint of block variables excluded from the self._global_deps.
+                for deps in deps_to_clear:
+                    deps._checkpoint = None
 
             self.tape.timesteps[timestep - 1].checkpoint(
-                _store_checkpointable_state, _store_adj_dependencies)
+                _store_checkpointable_state, _store_adj_dependencies, self._global_deps)
             # Remove unnecessary variables in working memory from previous steps.
-            for var in self.tape.timesteps[timestep - 1].checkpointable_state:
+            for var in self.tape.timesteps[timestep - 1].checkpointable_state - self._global_deps:
                 var._checkpoint = None
+
             for block in self.tape.timesteps[timestep - 1]:
                 for out in block.get_outputs():
                     out._checkpoint = None
+
+        if cp_action.storage == StorageType.DISK:
+            # Activate disk checkpointing only in the checkpointing process.
+            for package in self.tape._package_data.values():
+                package.pause_checkpointing()
+
+        if isinstance(self._gc_timestep_frequency, int) and timestep % self._gc_timestep_frequency == 0:
+            logging.info("Running a garbage collection cycle")
+            gc.collect(self._gc_generation)
+
         if timestep in cp_action and timestep < self.total_timesteps:
             self.tape.get_blocks().append_step()
             if cp_action.write_ics:
                 self.tape.latest_checkpoint = cp_action.n0
-
-            if cp_action.storage == StorageType.DISK:
-                # Activate disk checkpointing only in the checkpointing process.
-                for package in self.tape._package_data.values():
-                    package.pause_checkpointing()
             return True
         else:
             return False
@@ -300,7 +341,7 @@ class CheckpointManager:
                     for package in self.tape._package_data.values():
                         package.continue_checkpointing()
                 current_step.checkpoint(
-                    _store_checkpointable_state, _store_adj_dependencies)
+                    _store_checkpointable_state, _store_adj_dependencies, self._global_deps)
 
             to_keep = set()
             if step < (self.total_timesteps - 1):
@@ -310,7 +351,7 @@ class CheckpointManager:
             if functional:
                 to_keep = to_keep.union([functional.block_variable])
 
-            for var in current_step.checkpointable_state - to_keep:
+            for var in current_step.checkpointable_state - to_keep.union(self._global_deps):
                 # Handle the case where step is 0
                 if step == 0 and var not in current_step._checkpoint:
                     # Ensure initialisation state is kept.
@@ -346,6 +387,10 @@ class CheckpointManager:
                         if bv not in current_step.adjoint_dependencies.union(to_keep):
                             bv._checkpoint = None
 
+            if self._gc_timestep_frequency and step % self._gc_timestep_frequency == 0:
+                logging.info("Running a garbage collection cycle")
+                gc.collect(self._gc_generation)
+
             step += 1
             if cp_action.storage == StorageType.DISK:
                 # Activate disk checkpointing only in the checkpointing process.
@@ -361,11 +406,11 @@ class CheckpointManager:
             current_step = self.tape.timesteps[step]
             for block in reversed(current_step):
                 block.evaluate_adj(markings=markings)
-                if not self._adj_deps_cleaned:
+                if not current_step._adj_deps_cleaned:
                     for out in block._outputs:
                         if not out.marked_in_path:
                             current_step.adjoint_dependencies.discard(out)
-                    self._adj_deps_cleaned = True
+            current_step._adj_deps_cleaned = True
             # Output variables are used for the last time when running
             # backwards.
             to_keep = current_step.checkpointable_state
@@ -379,6 +424,9 @@ class CheckpointManager:
                         out.reset_variables(("adjoint", "hessian"))
                     if cp_action.clear_adj_deps and out not in to_keep:
                         out._checkpoint = None
+            if self._gc_timestep_frequency and step % self._gc_timestep_frequency == 0:
+                logging.info("Running a garbage collection cycle")
+                gc.collect(self._gc_generation)
 
     @process_operation.register(Copy)
     def _(self, cp_action, progress_bar, **kwargs):

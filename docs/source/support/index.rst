@@ -31,8 +31,6 @@ the problem:
 
 #. The error message.
 
-#. The *versions* of fenics, dolfin-adjoint, and pyadjoint.
-
 Contacting the authors
 ======================
 
