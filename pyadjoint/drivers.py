@@ -2,7 +2,7 @@ from .enlisting import Enlist
 from .tape import get_working_tape, stop_annotating
 
 
-def compute_gradient(J, m, tape=None, adj_value=1.0, apply_riesz=False):
+def compute_gradient(J, m, tape=None, adj_value=1.0, apply_riesz=True):
     """
     Compute the gradient of J with respect to the initialisation value of m,
     that is the value of m at its creation.
@@ -21,7 +21,7 @@ def compute_gradient(J, m, tape=None, adj_value=1.0, apply_riesz=False):
     Returns:
         OverloadedType: The derivative with respect to the control.
             If apply_riesz is False, should be an instance of the type dual
-            to that of the control. If apply_riesz is true should have the
+            to that of the control. If apply_riesz is True should have the
             same type as the control.
     """
     tape = tape or get_working_tape()
