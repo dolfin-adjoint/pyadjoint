@@ -1,8 +1,9 @@
+from warnings import deprecated
 from .enlisting import Enlist
 from .tape import get_working_tape, stop_annotating
 
 
-def compute_gradient(J, m, tape=None, adj_value=1.0, apply_riesz=True):
+def compute_derivative(J, m, tape=None, adj_value=1.0, apply_riesz=False):
     """
     Compute the gradient of J with respect to the initialisation value of m,
     that is the value of m at its creation.
@@ -36,6 +37,34 @@ def compute_gradient(J, m, tape=None, adj_value=1.0, apply_riesz=True):
 
     grads = [i.get_derivative(apply_riesz=apply_riesz) for i in m]
     return m.delist(grads)
+
+
+@deprecated("compute_gradient is deprecated in favour of compute_derivative.")
+def compute_gradient(J, m, tape=None, adj_value=1.0, apply_riesz=True):
+    """
+    Compute the gradient of J with respect to the initialisation value of m,
+    that is the value of m at its creation.
+
+    This function is deprecated in favour of :compute_derivative
+
+    Args:
+        J (OverloadedType):  The objective functional.
+        m (list or instance of Control): The (list of) controls.
+        tape: The tape to use. Default is the current tape.
+        adj_value: The adjoint value to the result. Required if the functional
+            is not scalar-valued, or if the functional is not the final stage
+            in the computation of an outer functional.
+        apply_riesz: If True, apply the Riesz map of each control in order
+            to return a primal gradient rather than a derivative in the
+            dual space.
+
+    Returns:
+        OverloadedType: The derivative with respect to the control.
+            If apply_riesz is False, should be an instance of the type dual
+            to that of the control. If apply_riesz is True should have the
+            same type as the control.
+    """
+    return compute_derivative(J, m, tape, adj_value, apply_riesz)
 
 
 def compute_hessian(J, m, m_dot, tape=None, apply_riesz=False):

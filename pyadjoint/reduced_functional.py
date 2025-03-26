@@ -1,7 +1,7 @@
 """Provide the abstract reduced functional, and a vanilla implementation."""
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from .drivers import compute_gradient, compute_hessian
+from .drivers import compute_derivative, compute_hessian
 from .enlisting import Enlist
 from .tape import get_working_tape, stop_annotating, no_annotations
 from .overloaded_type import OverloadedType, create_overloaded_object
@@ -167,7 +167,7 @@ class ReducedFunctional(AbstractReducedFunctional):
         derivative_cb_pre (function): Callback function before evaluating
             derivatives. Input is a list of Controls.
             Should return a list of Controls (usually the same
-            list as the input) to be passed to compute_gradient.
+            list as the input) to be passed to compute_derivative.
         derivative_cb_post (function): Callback function after evaluating
             derivatives.  Inputs are: functional.block_variable.checkpoint,
             list of functional derivatives, list of functional values.
@@ -229,7 +229,7 @@ class ReducedFunctional(AbstractReducedFunctional):
         adj_input = create_overloaded_object(adj_input)
         adj_value = adj_input._ad_mul(self.scale)
 
-        derivatives = compute_gradient(self.functional,
+        derivatives = compute_derivative(self.functional,
                                        controls,
                                        tape=self.tape,
                                        adj_value=adj_value,
