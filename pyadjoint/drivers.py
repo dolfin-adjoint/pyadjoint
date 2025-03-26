@@ -40,7 +40,7 @@ def compute_derivative(J, m, tape=None, adj_value=1.0, apply_riesz=False):
             with marked_controls(m):
                 tape.evaluate_adj(markings=True)
 
-    grads = [i.get_derivative(apply_riesz=apply_riesz) for i in m]
+        grads = [i.get_derivative(apply_riesz=apply_riesz) for i in m]
     return m.delist(grads)
 
 
