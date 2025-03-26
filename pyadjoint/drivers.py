@@ -1,4 +1,9 @@
-from warnings import deprecated
+try:
+    from warnings import deprecated
+except ImportError:
+    from warnings import warn
+    deprecated = None
+
 from .enlisting import Enlist
 from .tape import get_working_tape, stop_annotating
 
@@ -39,7 +44,6 @@ def compute_derivative(J, m, tape=None, adj_value=1.0, apply_riesz=False):
     return m.delist(grads)
 
 
-@deprecated("compute_gradient is deprecated in favour of compute_derivative.")
 def compute_gradient(J, m, tape=None, adj_value=1.0, apply_riesz=True):
     """
     Compute the gradient of J with respect to the initialisation value of m,
@@ -64,7 +68,17 @@ def compute_gradient(J, m, tape=None, adj_value=1.0, apply_riesz=True):
             to that of the control. If apply_riesz is True should have the
             same type as the control.
     """
+    if deprecated is None:
+        warn("compute_gradient is deprecated in favour of compute_derivative.",
+             FutureWarning)
+
     return compute_derivative(J, m, tape, adj_value, apply_riesz)
+
+
+if deprecated is not None:
+    compute_gradient = deprecated(
+        "compute_gradient is deprecated in favour of compute_derivative."
+    )(compute_gradient)
 
 
 def compute_hessian(J, m, m_dot, tape=None, apply_riesz=False):
