@@ -18,11 +18,13 @@ def get_working_tape():
 
 
 def pause_annotation():
+    """Switch off annotation."""
     global _annotation_enabled
     _annotation_enabled = False
 
 
 def continue_annotation():
+    """Switch on annotation."""
     global _annotation_enabled
     _annotation_enabled = True
     return _annotation_enabled

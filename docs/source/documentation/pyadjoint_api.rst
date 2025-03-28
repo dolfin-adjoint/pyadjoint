@@ -64,6 +64,8 @@ Core utility functions
 
 .. autofunction:: get_working_tape
 .. autofunction:: set_working_tape
+.. autofunction:: continue_annotation
+.. autofunction:: pause_annotation
 .. autofunction:: pyadjoint.tape.no_annotations
 .. autoclass:: stop_annotating
 .. autofunction:: annotate_tape
