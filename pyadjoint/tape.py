@@ -826,18 +826,21 @@ class TimeStep(list):
                         # because the global dependencies do not change.
                         self._checkpoint[var] = var._checkpoint
                     else:
-                        self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
+                        var.save_output(overwrite=True)
+                        self._checkpoint[var] = var._checkpoint
 
             if adj_dependencies:
                 if self._revised_adj_deps:
                     for var in self.adjoint_dependencies:
-                        self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
+                        var.save_output(overwrite=True)
+                        self._checkpoint[var] = var._checkpoint
                 else:
                     # The adjoint dependencies have not been revised yet. At this stage,
                     # the block nodes are not marked in the path because the control variable(s)
                     # are not yet determined.
                     for var in self.adjoint_dependencies.union(self.checkpointable_state):
-                        self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
+                        var.save_output(overwrite=True)
+                        self._checkpoint[var] = var._checkpoint
 
     def restore_from_checkpoint(self, from_storage):
         """Restore the block var checkpoints from the timestep checkpoint."""
