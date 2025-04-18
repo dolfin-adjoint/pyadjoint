@@ -1,26 +1,37 @@
+try:
+    from warnings import deprecated
+except ImportError:
+    from warnings import warn
+    deprecated = None
+
 from .enlisting import Enlist
 from .tape import get_working_tape, stop_annotating
 from .adjfloat import AdjFloat
 from .overloaded_type import OverloadedType
 
 
-def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
+def compute_derivative(J, m, tape=None, adj_value=1.0, apply_riesz=False):
     """
     Compute the gradient of J with respect to the initialisation value of m,
     that is the value of m at its creation.
 
     Args:
-        J (AdjFloat):  The objective functional.
+        J (OverloadedType):  The objective functional.
         m (list or instance of Control): The (list of) controls.
-        options (dict): A dictionary of options. To find a list of available options
-            have a look at the specific control type.
         tape: The tape to use. Default is the current tape.
+        adj_value: The adjoint value to the result. Required if the functional
+            is not scalar-valued, or if the functional is not the final stage
+            in the computation of an outer functional.
+        apply_riesz: If True, apply the Riesz map of each control in order
+            to return a primal gradient rather than a derivative in the
+            dual space.
 
     Returns:
-        OverloadedType: The derivative with respect to the control. Should be an instance of the same type as
-            the control.
+        OverloadedType: The derivative with respect to the control.
+            If apply_riesz is False, should be an instance of the type dual
+            to that of the control. If apply_riesz is True should have the
+            same type as the control.
     """
-    options = options or {}
     tape = tape or get_working_tape()
     tape.reset_variables()
     J.block_variable.adj_value = adj_value
@@ -31,52 +42,97 @@ def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
             with marked_controls(m):
                 tape.evaluate_adj(markings=True)
 
-    grads = [i.get_derivative(options=options) for i in m]
+        grads = [i.get_derivative(apply_riesz=apply_riesz) for i in m]
     return m.delist(grads)
 
 
-def compute_hessian(J, m, m_dot, options=None, tape=None,
-                    hessian_input=0.0, evaluate_tlm=True):
+def compute_gradient(J, m, tape=None, adj_value=1.0, apply_riesz=True):
+    """
+    Compute the gradient of J with respect to the initialisation value of m,
+    that is the value of m at its creation.
+
+    This function is deprecated in favour of :compute_derivative
+
+    Args:
+        J (OverloadedType):  The objective functional.
+        m (list or instance of Control): The (list of) controls.
+        tape: The tape to use. Default is the current tape.
+        adj_value: The adjoint value to the result. Required if the functional
+            is not scalar-valued, or if the functional is not the final stage
+            in the computation of an outer functional.
+        apply_riesz: If True, apply the Riesz map of each control in order
+            to return a primal gradient rather than a derivative in the
+            dual space.
+
+    Returns:
+        OverloadedType: The derivative with respect to the control.
+            If apply_riesz is False, should be an instance of the type dual
+            to that of the control. If apply_riesz is True should have the
+            same type as the control.
+    """
+    if deprecated is None:
+        warn("compute_gradient is deprecated in favour of compute_derivative.",
+             FutureWarning)
+
+    return compute_derivative(J, m, tape, adj_value, apply_riesz)
+
+
+if deprecated is not None:
+    compute_gradient = deprecated(
+        "compute_gradient is deprecated in favour of compute_derivative."
+    )(compute_gradient)
+
+
+def compute_hessian(J, m, m_dot, hessian_input=None, tape=None, evaluate_tlm=True, apply_riesz=False):
     """
     Compute the Hessian of J in a direction m_dot at the current value of m
 
     Args:
         J (AdjFloat):  The objective functional.
         m (list or instance of Control): The (list of) controls.
-        m_dot (list or instance of the control type): The direction in which to compute the Hessian.
-        options (dict): A dictionary of options. To find a list of available options
-            have a look at the specific control type.
+        m_dot (list or instance of the control type): The direction in which to
+            compute the Hessian.
+        hessian_input (OverloadedType): The value to start the Hessian accumulation
+            from after the TLM calculation.
         tape: The tape to use. Default is the current tape.
-        hessian_input (OverloadedType): The value to start the Hessian accumulation from after the TLM calculation.
-        evaluate_tlm (bool): Whether or not to compute the forward (tlm) part of the Hessian calculation.
-            If False, assumes that the tape has already been populated with required TLM values.
+        apply_riesz: If True, apply the Riesz map of each control in order
+            to return the (primal) Riesz representer of the Hessian
+            action.
+        evaluate_tlm (bool): Whether or not to compute the forward (tlm) part of
+            the Hessian calculation.  If False, assumes that the tape has already
+            been populated with the required TLM values.
 
     Returns:
-        OverloadedType: The second derivative with respect to the control in direction m_dot. Should be an instance of
-            the same type as the control.
+        OverloadedType: The action of the Hessian in the direction m_dot.
+            If apply_riesz is False, should be an instance of the type dual
+            to that of the control. If apply_riesz is true should have the
+            same type as the control.
     """
     tape = tape or get_working_tape()
-    options = options or {}
 
     # fill the relevant tlm values on the tape
     if evaluate_tlm:
-        compute_tlm(J, m, m_dot, options, tape)
+        compute_tlm(J, m, m_dot, tape)
 
     tape.reset_hessian_values()
 
-    J.block_variable.hessian_value = J.block_variable.output._ad_convert_type(
-        hessian_input, options={'riesz_representation': None})
+    if hessian_input is None:
+        J.block_variable.hessian_value = (
+            J.block_variable.output._ad_init_zero(dual=True))
+    else:
+        J.block_variable.hessian_value = (
+            J.block_variable.output._ad_init_object(hessian_input))
 
     m = Enlist(m)
     with stop_annotating():
         with tape.marked_nodes(m):
             tape.evaluate_hessian(markings=True)
 
-    r = [v.get_hessian(options=options) for v in m]
+    r = [v.get_hessian(apply_riesz=apply_riesz) for v in m]
     return m.delist(r)
 
 
-def compute_tlm(J, m, m_dot, options=None, tape=None):
+def compute_tlm(J, m, m_dot, tape=None):
     """
     Compute the tangent linear model of J in a direction m_dot at the current value of m
 
@@ -84,7 +140,6 @@ def compute_tlm(J, m, m_dot, options=None, tape=None):
         J (AdjFloat):  The objective functional.
         m (list or instance of Control): The (list of) controls.
         m_dot (list or instance of the control type): The direction in which to compute the tangent linear model.
-        options (dict): A dictionary of options. To find a list of available options
             have a look at the specific control type.
         tape: The tape to use. Default is the current tape.
 
@@ -93,8 +148,6 @@ def compute_tlm(J, m, m_dot, options=None, tape=None):
             Should be an instance of the same type as the functional.
     """
     tape = tape or get_working_tape()
-    options = options or {}
-
     tape.reset_tlm_values()
 
     m = Enlist(m)
@@ -107,10 +160,11 @@ def compute_tlm(J, m, m_dot, options=None, tape=None):
         with tape.marked_nodes(m):
             tape.evaluate_tlm(markings=True)
 
-    try:
-        return J.block_variable.tlm_value._ad_copy()
-    except AttributeError:
-        return AdjFloat(J.block_variable.tlm_value)
+    tlm_value = J.block_variable.tlm_value
+    if isinstance(tlm_value, float):  # AdjFloat ops may return float
+        return tlm_value
+    else:
+        return tlm_value._ad_copy()
 
 
 def solve_adjoint(J, tape=None, adj_value=1.0):
