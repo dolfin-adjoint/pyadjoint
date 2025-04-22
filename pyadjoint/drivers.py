@@ -6,8 +6,6 @@ except ImportError:
 
 from .enlisting import Enlist
 from .tape import get_working_tape, stop_annotating
-from .adjfloat import AdjFloat
-from .overloaded_type import OverloadedType
 
 
 def compute_derivative(J, m, tape=None, adj_value=1.0, apply_riesz=False):

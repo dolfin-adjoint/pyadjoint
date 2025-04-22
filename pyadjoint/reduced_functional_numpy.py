@@ -78,7 +78,7 @@ class ReducedFunctionalNumPy(AbstractReducedFunctional):
         return numpy.array(m_global, dtype="d")
 
     @no_annotations
-    def hessian(self, m_dot_array, hessian_input=None, evaluate_tlm=True, apply_riesz=False):
+    def hessian(self, m_dot_array, apply_riesz=True):
 
         if not apply_riesz:
             raise ValueError(
@@ -89,7 +89,7 @@ class ReducedFunctionalNumPy(AbstractReducedFunctional):
         self.derivative()
         m_copies = [control.copy_data() for control in self.controls]
         Hm = self.rf.hessian(self.set_local(m_copies, m_dot_array),
-                             apply_riesz)
+                             apply_riesz=apply_riesz)
         Hm = Enlist(Hm)
 
         m_global = []
