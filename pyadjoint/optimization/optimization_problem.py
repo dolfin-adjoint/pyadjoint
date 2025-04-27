@@ -2,7 +2,7 @@ import collections
 
 from .constraints import Constraint, canonicalise
 from ..overloaded_type import OverloadedType, create_overloaded_object
-from ..reduced_functional import ReducedFunctional
+from ..reduced_functional import AbstractReducedFunctional
 
 __all__ = ['MinimizationProblem', 'MaximizationProblem']
 
@@ -38,7 +38,7 @@ class OptimizationProblem(object):
         if type(self) is OptimizationProblem:
             raise TypeError("Instantiate a MinimizationProblem or MaximizationProblem.")
 
-        if not isinstance(reduced_functional, ReducedFunctional):
+        if not isinstance(reduced_functional, AbstractReducedFunctional):
             raise TypeError("reduced_functional should be a ReducedFunctional")
 
         if bounds is not None:

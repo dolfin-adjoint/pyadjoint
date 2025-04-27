@@ -377,8 +377,8 @@ class TAOObjective:
 
         m = Enlist(m)
         m_dot = Enlist(m_dot)
-        _ = self.reduced_functional(tuple(m_i._ad_copy() for m_i in m))
-        _ = self.reduced_functional.derivative()
+        # _ = self.reduced_functional(tuple(m_i._ad_copy() for m_i in m))
+        # _ = self.reduced_functional.derivative()
         ddJ = self.reduced_functional.hessian(tuple(m_dot_i._ad_copy() for m_dot_i in m_dot))
         return m.delist(ddJ)
 
@@ -477,6 +477,7 @@ class TAOSolver(OptimizationSolver):
             """
 
             def __init__(self):
+                self.problem = problem
                 self._shift = 0.0
 
             @cached_property
@@ -486,6 +487,7 @@ class TAOSolver(OptimizationSolver):
             def set_control_variable(self, x):
                 from_petsc(x, self._m)
                 self._shift = 0.0
+                tao_objective.objective_gradient(self._m)
 
             def shift(self, A, alpha):
                 self._shift += alpha
