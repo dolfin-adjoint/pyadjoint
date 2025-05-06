@@ -436,7 +436,7 @@ class TAOSolver(OptimizationSolver):
             :meth:`OverloadedType._ad_convert_type`.
     """
 
-    def __init__(self, problem, parameters, *, comm=None):
+    def __init__(self, problem, parameters, *, options_prefix=None, comm=None):
         if PETSc is None:
             raise RuntimeError("PETSc not available")
 
@@ -542,7 +542,7 @@ class TAOSolver(OptimizationSolver):
             to_petsc(ub_vec, ubs)
             tao.setVariableBounds(lb_vec, ub_vec)
 
-        options = OptionsManager(parameters, None)
+        options = OptionsManager(parameters, options_prefix)
         options.set_from_options(tao)
 
         if tao.getType() in {PETSc.TAO.Type.LMVM, PETSc.TAO.Type.BLMVM}:
