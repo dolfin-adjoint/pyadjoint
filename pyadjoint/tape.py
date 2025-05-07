@@ -18,11 +18,13 @@ def get_working_tape():
 
 
 def pause_annotation():
+    """Switch off annotation."""
     global _annotation_enabled
     _annotation_enabled = False
 
 
 def continue_annotation():
+    """Switch on annotation."""
     global _annotation_enabled
     _annotation_enabled = True
     return _annotation_enabled
@@ -794,9 +796,10 @@ class TimeStep(list):
         # A dictionary mapping the block variables in the checkpointable state
         # to their checkpoint values.
         self._checkpoint = {}
-        # A flag to indicate whether the adjoint dependencies have been cleaned
-        # from the outputs not marked in the path.
-        self._adj_deps_cleaned = False
+        # Flag indicating whether the adjoint dependencies have been revised
+        # by removing outputs not marked in the path and adding checkpointable
+        # states that are marked in the path.
+        self._revised_adj_deps = False
 
     def copy(self, blocks=None):
         out = TimeStep(blocks or self)
@@ -826,8 +829,15 @@ class TimeStep(list):
                         self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
 
             if adj_dependencies:
-                for var in self.adjoint_dependencies:
-                    self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
+                if self._revised_adj_deps:
+                    for var in self.adjoint_dependencies:
+                        self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
+                else:
+                    # The adjoint dependencies have not been revised yet. At this stage,
+                    # the block nodes are not marked in the path because the control variable(s)
+                    # are not yet determined.
+                    for var in self.adjoint_dependencies.union(self.checkpointable_state):
+                        self._checkpoint[var] = var.saved_output._ad_create_checkpoint()
 
     def restore_from_checkpoint(self, from_storage):
         """Restore the block var checkpoints from the timestep checkpoint."""
