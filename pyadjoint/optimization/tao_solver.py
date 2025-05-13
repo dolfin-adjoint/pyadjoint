@@ -542,8 +542,8 @@ class TAOSolver(OptimizationSolver):
             to_petsc(ub_vec, ubs)
             tao.setVariableBounds(lb_vec, ub_vec)
 
-        options = OptionsManager(parameters, options_prefix)
-        options.set_from_options(tao)
+        self.options = OptionsManager(parameters, options_prefix)
+        self.options.set_from_options(tao)
 
         if tao.getType() in {PETSc.TAO.Type.LMVM, PETSc.TAO.Type.BLMVM}:
             class InitialHessian:
@@ -628,9 +628,10 @@ class TAOSolver(OptimizationSolver):
         m = tuple(
             control.tape_value()._ad_copy()
             for control in self.tao_objective.reduced_functional.controls)
-        self._vec_interface.to_petsc(self.x, m)
-        self.tao.solve()
-        self._vec_interface.from_petsc(self.x, m)
+        with self.options.inserted_options():
+            self._vec_interface.to_petsc(self.x, m)
+            self.tao.solve()
+            self._vec_interface.from_petsc(self.x, m)
         if self.tao.getConvergedReason() <= 0:
             # Using the same format as Firedrake linear solver errors
             raise TAOConvergenceError(

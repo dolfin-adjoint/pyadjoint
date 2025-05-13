@@ -12,7 +12,7 @@ class OptimizationProblem(object):
     reduced optimisation problem. Don't instantiate this: instantiate
     a MinimizationProblem or a MaximizationProblem."""
 
-    def __init__(self, reduced_functional, bounds=None, constraints=None):
+    def __init__(self, reduced_functional, bounds=None, constraints=None, appctx=None):
 
         bounds = self.enlist(bounds)
         self.__check_arguments(reduced_functional, bounds, constraints)
@@ -32,6 +32,9 @@ class OptimizationProblem(object):
         #: None means no constraints, otherwise a Constraint object or a list of
         #: Constraints.
         self.constraints = canonicalise(constraints)
+
+        #: appctx: optional application context for storing additional user data
+        self.appctx = appctx
 
     def __check_arguments(self, reduced_functional, bounds, constraints):
 
