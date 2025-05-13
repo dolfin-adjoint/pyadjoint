@@ -377,35 +377,22 @@ class TAOObjective:
 
         m = Enlist(m)
         m_dot = Enlist(m_dot)
-        # _ = self.reduced_functional(tuple(m_i._ad_copy() for m_i in m))
-        # _ = self.reduced_functional.derivative()
+        _ = self.reduced_functional(tuple(m_i._ad_copy() for m_i in m))
+        _ = self.reduced_functional.derivative()
         ddJ = self.reduced_functional.hessian(tuple(m_dot_i._ad_copy() for m_dot_i in m_dot))
         return m.delist(ddJ)
 
-    def new_control_variable(self):
-        """Return new variables suitable for storing a control value. Not
-        initialized to zero.
+    def new_control_variable(self, dual=False):
+        """Return new variables suitable for storing a control value or its dual.
+
+        Args:
+            dual (bool): whether to return a dual type. If False then a primal type is returned.
 
         Returns:
-            tuple[OverloadedType]: New variables suitable for storing a control
-                value.
+            tuple[OverloadedType]: New variables suitable for storing a control value.
         """
 
-        # Not initialized to zero
-        return tuple(m.control._ad_copy()
-                     for m in self.reduced_functional.controls)
-
-    def new_dual_control_variable(self):
-        """Return new variables suitable for storing a value for a (dual space)
-        derivative of the functional with respect to the control.
-
-        Returns:
-            tuple[OverloadedType]: New variables suitable for storing a value
-                for a (dual space) derivative of the functional with respect to
-                the control.
-        """
-
-        return tuple(control._ad_init_zero(dual=True)
+        return tuple(control._ad_init_zero(dual=dual)
                      for control in self.reduced_functional.controls)
 
 
@@ -511,7 +498,7 @@ class TAOSolver(OptimizationSolver):
             """
 
             def mult(self, A, x, y):
-                dJ = tao_objective.new_dual_control_variable()
+                dJ = tao_objective.new_control_variable(dual=True)
                 from_petsc(x, dJ)
                 assert len(tao_objective.reduced_functional.controls) == len(dJ)
                 dJ = tuple(control._ad_convert_riesz(dJ_i, riesz_map=control.riesz_map)
@@ -555,7 +542,7 @@ class TAOSolver(OptimizationSolver):
                 """
 
                 def apply(self, pc, x, y):
-                    dJ = tao_objective.new_dual_control_variable()
+                    dJ = tao_objective.new_control_variable(dual=True)
                     from_petsc(x, dJ)
                     assert len(tao_objective.reduced_functional.controls) == len(dJ)
                     dJ = tuple(control._ad_convert_riesz(dJ_i, riesz_map=control.riesz_map)
