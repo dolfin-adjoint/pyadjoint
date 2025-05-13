@@ -240,7 +240,7 @@ class ReducedFunctional(AbstractReducedFunctional):
         return self._controls
 
     @no_annotations
-    def derivative(self, adj_input=1.0, apply_riesz=False):
+    def derivative(self, *, adj_input=1.0, apply_riesz=False):
         values = [c.tape_value() for c in self.controls]
         controls = self.derivative_cb_pre(self.controls)
 
@@ -273,7 +273,7 @@ class ReducedFunctional(AbstractReducedFunctional):
         return self.controls.delist(derivatives)
 
     @no_annotations
-    def hessian(self, m_dot, hessian_input=None, evaluate_tlm=True, apply_riesz=False):
+    def hessian(self, m_dot, *, hessian_input=None, evaluate_tlm=True, apply_riesz=False):
         # Call callback
         values = [c.tape_value() for c in self.controls]
         self.hessian_cb_pre(self.controls.delist(values))
