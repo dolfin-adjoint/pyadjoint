@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from functools import cached_property, wraps
+from functools import wraps
 import itertools
 from enum import Enum
 from numbers import Complex
@@ -142,6 +142,7 @@ def new_control_variable(reduced_functional, dual=False):
 
     return tuple(control._ad_init_zero(dual=dual)
                  for control in reduced_functional.controls)
+
 
 # Modified version of flatten_parameters function from firedrake/petsc.py,
 # Firedrake master branch 57e21cc8ebdb044c1d8423b48f3dbf70975d5548, first
@@ -364,6 +365,8 @@ class RFAction(Enum):
     TLM = 'tlm'
     Adjoint = 'adjoint'
     Hessian = 'hessian'
+
+
 TLMAction = RFAction.TLM
 AdjointAction = RFAction.Adjoint
 HessianAction = RFAction.Hessian
@@ -407,7 +410,8 @@ class ReducedFunctionalMatCtx:
         self.rf = rf
         self.appctx = appctx
         self.control_interface = PETScVecInterface(
-            rf.controls, comm=comm)
+            tuple(c.control for c in rf.controls),
+            comm=comm)
         self.apply_riesz = apply_riesz
         if action in (AdjointAction, TLMAction):
             self.functional_interface = PETScVecInterface(
@@ -482,7 +486,7 @@ class ReducedFunctionalMatCtx:
             adj_input=x, apply_riesz=self.apply_riesz)
 
 
-def ReducedFunctionalMat(rf, action=HessianAction, *, apply_riesz=False, appctx=None, comm=PETSc.COMM_WORLD):
+def ReducedFunctionalMat(rf, action=HessianAction, *, apply_riesz=False, appctx=None, comm=None):
     """
     PETSc.Mat to apply the action of a pyadjoint.ReducedFunctional.
 
@@ -511,7 +515,7 @@ def ReducedFunctionalMat(rf, action=HessianAction, *, apply_riesz=False, appctx=
 
     mat = PETSc.Mat().createPython(
         ((nrow, Nrow), (ncol, Ncol)),
-        ctx, comm=comm)
+        ctx, comm=ctx.control_interface.comm)
     if action == HessianAction:
         mat.setOption(PETSc.Mat.Option.SYMMETRIC, True)
     mat.setUp()
@@ -519,9 +523,43 @@ def ReducedFunctionalMat(rf, action=HessianAction, *, apply_riesz=False, appctx=
     return mat
 
 
+class RieszMapMatCtx:
+    def __init__(self, controls, comm=None):
+        comm = get_valid_comm(comm)
+
+        self.controls = Enlist(controls)
+        self.vec_interface = PETScVecInterface(
+            tuple(c.control for c in controls),
+            comm=comm)
+
+        self.dJ = tuple(c._ad_init_zero(dual=True)
+                        for c in self.controls)
+
+    def mult(self, mat, x, y):
+        self.vec_interface.from_petsc(x, self.dJ)
+        dJ = tuple(c._ad_convert_riesz(dJi, riesz_map=c.riesz_map)
+                   for c, dJi in zip(self.controls, self.dJ))
+        self.vec_interface.to_petsc(y, dJ)
+
+
+def RieszMapMat(controls, symmetric=True, comm=None):
+    ctx = RieszMapMatCtx(controls, comm=comm)
+
+    n = ctx.vec_interface.n
+    N = ctx.vec_interface.N
+
+    mat = PETSc.Mat().createPython(
+        ((n, N), (n, N)), ctx,
+        comm=ctx.vec_interface.comm)
+    if symmetric:
+        mat.setOption(PETSc.Mat.Option.SYMMETRIC, True)
+    mat.setUp()
+    mat.assemble()
+    return mat
+
+
 class TAOObjective:
-    """Utility class for computing functional values and associated
-    derivatives.
+    """Utility class for computing functional values and associated derivatives.
 
     Args:
         rf (ReducedFunctional): Defines the forward, and used to compute
@@ -620,9 +658,8 @@ class TAOSolver(OptimizationSolver):
         tao_objective = TAOObjective(rf)
 
         vec_interface = PETScVecInterface(
-            tuple(control.control for control in tao_objective.reduced_functional.controls),
-            comm=comm)
-        n, N = vec_interface.n, vec_interface.N
+            tuple(control.control for control in rf.controls), comm=comm)
+
         to_petsc, from_petsc = vec_interface.to_petsc, vec_interface.from_petsc
 
         tao = PETSc.TAO().create(comm=comm)
@@ -643,23 +680,8 @@ class TAOSolver(OptimizationSolver):
         tao.setHessian(hessian_mat.getPythonContext().update,
                        hessian_mat)
 
-        class GradientNorm:
-            """:class:`petsc4py.PETSc.Mat` context.
-            """
-
-            def mult(self, A, x, y):
-                dJ = new_control_variable(rf, dual=True)
-                from_petsc(x, dJ)
-                assert len(tao_objective.reduced_functional.controls) == len(dJ)
-                dJ = tuple(control._ad_convert_riesz(dJ_i, riesz_map=control.riesz_map)
-                           for control, dJ_i in zip(tao_objective.reduced_functional.controls, dJ))
-                to_petsc(y, dJ)
-
-        M_inv_matrix = PETSc.Mat().createPython(((n, N), (n, N)),
-                                                GradientNorm(), comm=comm)
-        M_inv_matrix.setOption(PETSc.Mat.Option.SYMMETRIC, True)
-        M_inv_matrix.setUp()
-        tao.setGradientNorm(M_inv_matrix)
+        Minv_mat = RieszMapMat(rf.controls, comm=comm)
+        tao.setGradientNorm(Minv_mat)
 
         if problem.bounds is not None:
             lbs = []
@@ -683,6 +705,8 @@ class TAOSolver(OptimizationSolver):
         self.options.set_from_options(tao)
 
         if tao.getType() in {PETSc.TAO.Type.LMVM, PETSc.TAO.Type.BLMVM}:
+            n, N = vec_interface.n, vec_interface.N
+
             class InitialHessian:
                 """:class:`petsc4py.PETSc.Mat` context.
                 """
