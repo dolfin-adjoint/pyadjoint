@@ -1,6 +1,7 @@
 from contextlib import contextmanager
-from functools import cached_property
+from functools import cached_property, wraps
 import itertools
+from enum import Enum
 from numbers import Complex
 import warnings
 
@@ -126,6 +127,21 @@ class PETScVecInterface:
                 raise TypeError(f"Unexpected type: {type(y_i)}")
             x_sub.restoreSubVector(iset, x_sub)
 
+
+def new_control_variable(reduced_functional, dual=False):
+    """Return new variables suitable for storing a control value or its dual.
+
+    Args:
+        reduced_functional (ReducedFunctional): The reduced functional whose
+        controls are to be copied.
+        dual (bool): whether to return a dual type. If False then a primal type is returned.
+
+    Returns:
+        tuple[OverloadedType]: New variables suitable for storing a control value.
+    """
+
+    return tuple(control._ad_init_zero(dual=dual)
+                 for control in reduced_functional.controls)
 
 # Modified version of flatten_parameters function from firedrake/petsc.py,
 # Firedrake master branch 57e21cc8ebdb044c1d8423b48f3dbf70975d5548, first
@@ -324,6 +340,185 @@ class OptionsManager(object):
                 del self.options_object[self.options_prefix + k]
 
 
+def get_valid_comm(comm):
+    """
+    Return a valid communicator from a user provided (possibly null) comm.
+
+    Args:
+        comm: Any[petsc4py.PETSc.Comm,mpi4py.MPI.Comm,None]
+
+    Returns:
+        mpi4py.MPI.Comm. COMM_WORLD if `comm is None`, otherwise `comm.tompi4py()`.
+    """
+    if comm is None:
+        comm = PETSc.COMM_WORLD
+    if hasattr(comm, "tompi4py"):
+        comm = comm.tompi4py()
+    return comm
+
+
+class RFAction(Enum):
+    """
+    The type of linear action that a ReducedFunctionalMat should apply.
+    """
+    TLM = 'tlm'
+    Adjoint = 'adjoint'
+    Hessian = 'hessian'
+TLMAction = RFAction.TLM
+AdjointAction = RFAction.Adjoint
+HessianAction = RFAction.Hessian
+
+
+def check_rf_action(action):
+    def check_rf_action_decorator(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if self.action != action:
+                raise NotImplementedError(
+                    f'Cannot apply {str(action)} action if {self.action = }')
+            return func(self, *args, **kwargs)
+        return wrapper
+    return check_rf_action_decorator
+
+
+class ReducedFunctionalMatCtx:
+    """
+    PETSc.Mat Python context to apply the action of a pyadjoint.ReducedFunctional.
+
+    If V is the control space and U is the functional space, each action has the following map:
+    Jhat : V -> U
+    TLM : V -> U
+    Adjoint : U* -> V*
+    Hessian : V x U* -> V* | V -> V*
+
+    Args:
+        rf (ReducedFunctional): Defines the forward model, and used to compute operator  actions.
+        action (RFAction): Whether to apply the TLM, adjoint, or Hessian action.
+        apply_riesz (bool): Whether to apply the riesz map before returning the
+            result of the action to PETSc.
+        appctx (Optional[dict]): User provided context.
+        comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
+    """
+
+    def __init__(self, rf, action=HessianAction, *,
+                 apply_riesz=False, appctx=None, comm=PETSc.COMM_WORLD):
+        comm = get_valid_comm(comm)
+
+        self.rf = rf
+        self.appctx = appctx
+        self.control_interface = PETScVecInterface(
+            rf.controls, comm=comm)
+        self.apply_riesz = apply_riesz
+        if action in (AdjointAction, TLMAction):
+            self.functional_interface = PETScVecInterface(
+                rf.functional, comm=comm)
+
+        if action == HessianAction:  # control -> control
+            self.xinterface = self.control_interface
+            self.yinterface = self.control_interface
+
+            self.x = new_control_variable(rf)
+            self.mult_impl = self._mult_hessian
+
+        elif action == AdjointAction:  # functional -> control
+            self.xinterface = self.functional_interface
+            self.yinterface = self.control_interface
+
+            self.x = rf.functional._ad_copy()
+            self.mult_impl = self._mult_adjoint
+
+        elif action == TLMAction:  # control -> functional
+            self.xinterface = self.control_interface
+            self.yinterface = self.functional_interface
+
+            self.x = new_control_variable(rf)
+            self.mult_impl = self._mult_tlm
+        else:
+            raise ValueError(
+                'Unrecognised {action = }.')
+
+        self.action = action
+        self._m = new_control_variable(rf)
+        self._shift = 0
+
+    @classmethod
+    def update(cls, obj, x, A, P):
+        ctx = A.getPythonContext()
+        ctx.control_interface.from_petsc(x, ctx._m)
+        ctx.update_tape_values(update_adjoint=True)
+        ctx._shift = 0
+
+    def shift(self, A, alpha):
+        self._shift += alpha
+
+    def update_tape_values(self, update_adjoint=True):
+        _ = self.rf(self._m)
+        if update_adjoint:
+            _ = self.rf.derivative(apply_riesz=False)
+
+    def mult(self, A, x, y):
+        self.xinterface.from_petsc(x, self.x)
+        out = self.mult_impl(A, self.x)
+        self.yinterface.to_petsc(y, out)
+
+        if self._shift != 0:
+            y.axpy(self._shift, x)
+
+    @check_rf_action(action=HessianAction)
+    def _mult_hessian(self, A, x):
+        self.update_tape_values(update_adjoint=True)
+        return self.rf.hessian(
+            x, apply_riesz=self.apply_riesz)
+
+    @check_rf_action(TLMAction)
+    def _mult_tlm(self, A, x):
+        self.update_tape_values(update_adjoint=False)
+        return self.rf.tlm(x)
+
+    @check_rf_action(AdjointAction)
+    def _mult_adjoint(self, A, x):
+        self.update_tape_values(update_adjoint=False)
+        return self.rf.derivative(
+            adj_input=x, apply_riesz=self.apply_riesz)
+
+
+def ReducedFunctionalMat(rf, action=HessianAction, *, apply_riesz=False, appctx=None, comm=PETSc.COMM_WORLD):
+    """
+    PETSc.Mat to apply the action of a pyadjoint.ReducedFunctional.
+
+    If V is the control space and U is the functional space, each action has the following map:
+    Jhat : V -> U
+    TLM : V -> U
+    Adjoint : U* -> V*
+    Hessian : V x U* -> V* | V -> V*
+
+    Args:
+        rf (ReducedFunctional): Defines the forward model, and used to compute operator  actions.
+        action (RFAction): Whether to apply the TLM, adjoint, or Hessian action.
+        apply_riesz (bool): Whether to apply the riesz map before returning the
+            result of the action to PETSc.
+        appctx (Optional[dict]): User provided context.
+        comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
+    """
+    ctx = ReducedFunctionalMatCtx(
+        rf, action, appctx=appctx, apply_riesz=apply_riesz, comm=comm)
+
+    ncol = ctx.xinterface.n
+    Ncol = ctx.xinterface.N
+
+    nrow = ctx.yinterface.n
+    Nrow = ctx.yinterface.N
+
+    mat = PETSc.Mat().createPython(
+        ((nrow, Nrow), (ncol, Ncol)),
+        ctx, comm=comm)
+    if action == HessianAction:
+        mat.setOption(PETSc.Mat.Option.SYMMETRIC, True)
+    mat.setUp()
+    mat.assemble()
+    return mat
+
+
 class TAOObjective:
     """Utility class for computing functional values and associated
     derivatives.
@@ -382,19 +577,6 @@ class TAOObjective:
         ddJ = self.reduced_functional.hessian(tuple(m_dot_i._ad_copy() for m_dot_i in m_dot))
         return m.delist(ddJ)
 
-    def new_control_variable(self, dual=False):
-        """Return new variables suitable for storing a control value or its dual.
-
-        Args:
-            dual (bool): whether to return a dual type. If False then a primal type is returned.
-
-        Returns:
-            tuple[OverloadedType]: New variables suitable for storing a control value.
-        """
-
-        return tuple(control._ad_init_zero(dual=dual)
-                     for control in self.reduced_functional.controls)
-
 
 class TAOConvergenceError(Exception):
     """Raised if a TAO solve fails to converge.
@@ -415,15 +597,15 @@ class TAOSolver(OptimizationSolver):
     """Use TAO to solve an optimization problem.
 
     Args:
-        problem (MinimizationProblem): Defines the optimization problem to be
-            solved.
+        problem (MinimizationProblem): Defines the optimization problem to be solved.
         parameters (Mapping): TAO options.
+        options_prefix (Optional[str]): prefix for the TAO solver.
+        appctx (Optional[dict]): User provided context.
         comm (petsc4py.PETSc.Comm or mpi4py.MPI.Comm): Communicator.
-        convert_options (Mapping): Defines the `options` argument to
-            :meth:`OverloadedType._ad_convert_type`.
     """
 
-    def __init__(self, problem, parameters, *, options_prefix=None, comm=None):
+    def __init__(self, problem, parameters, *,
+                 options_prefix=None, appctx=None, comm=None):
         if PETSc is None:
             raise RuntimeError("PETSc not available")
 
@@ -432,12 +614,10 @@ class TAOSolver(OptimizationSolver):
         if problem.constraints is not None:
             raise NotImplementedError("Constraints not implemented")
 
-        if comm is None:
-            comm = PETSc.COMM_WORLD
-        if hasattr(comm, "tompi4py"):
-            comm = comm.tompi4py()
+        comm = get_valid_comm(comm)
 
-        tao_objective = TAOObjective(problem.reduced_functional)
+        rf = problem.reduced_functional
+        tao_objective = TAOObjective(rf)
 
         vec_interface = PETScVecInterface(
             tuple(control.control for control in tao_objective.reduced_functional.controls),
@@ -448,7 +628,7 @@ class TAOSolver(OptimizationSolver):
         tao = PETSc.TAO().create(comm=comm)
 
         def objective_gradient(tao, x, g):
-            m = tao_objective.new_control_variable()
+            m = new_control_variable(rf)
             from_petsc(x, m)
             J_val, dJ = tao_objective.objective_gradient(m)
             to_petsc(g, dJ)
@@ -456,49 +636,19 @@ class TAOSolver(OptimizationSolver):
 
         tao.setObjectiveGradient(objective_gradient, None)
 
-        def hessian(tao, x, H, P):
-            H.getPythonContext().set_control_variable(x)
+        hessian_mat = ReducedFunctionalMat(
+            problem.reduced_functional, appctx=appctx,
+            action=HessianAction, comm=comm)
 
-        class Hessian:
-            """:class:`petsc4py.PETSc.Mat` context.
-            """
-
-            def __init__(self):
-                self.problem = problem
-                self._shift = 0.0
-
-            @cached_property
-            def _m(self):
-                return tao_objective.new_control_variable()
-
-            def set_control_variable(self, x):
-                from_petsc(x, self._m)
-                self._shift = 0.0
-                tao_objective.objective_gradient(self._m)
-
-            def shift(self, A, alpha):
-                self._shift += alpha
-
-            def mult(self, A, x, y):
-                m_dot = tao_objective.new_control_variable()
-                from_petsc(x, m_dot)
-                ddJ = tao_objective.hessian(self._m, m_dot)
-                to_petsc(y, ddJ)
-                if self._shift != 0.0:
-                    y.axpy(self._shift, x)
-
-        H_matrix = PETSc.Mat().createPython(((n, N), (n, N)),
-                                            Hessian(), comm=comm)
-        H_matrix.setOption(PETSc.Mat.Option.SYMMETRIC, True)
-        H_matrix.setUp()
-        tao.setHessian(hessian, H_matrix)
+        tao.setHessian(hessian_mat.getPythonContext().update,
+                       hessian_mat)
 
         class GradientNorm:
             """:class:`petsc4py.PETSc.Mat` context.
             """
 
             def mult(self, A, x, y):
-                dJ = tao_objective.new_control_variable(dual=True)
+                dJ = new_control_variable(rf, dual=True)
                 from_petsc(x, dJ)
                 assert len(tao_objective.reduced_functional.controls) == len(dJ)
                 dJ = tuple(control._ad_convert_riesz(dJ_i, riesz_map=control.riesz_map)
@@ -542,7 +692,7 @@ class TAOSolver(OptimizationSolver):
                 """
 
                 def apply(self, pc, x, y):
-                    dJ = tao_objective.new_control_variable(dual=True)
+                    dJ = new_control_variable(rf, dual=True)
                     from_petsc(x, dJ)
                     assert len(tao_objective.reduced_functional.controls) == len(dJ)
                     dJ = tuple(control._ad_convert_riesz(dJ_i, riesz_map=control.riesz_map)
