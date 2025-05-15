@@ -66,7 +66,8 @@ class ReducedFunctionalNumPy(AbstractReducedFunctional):
                 "ReducedFunctionalNumpy only returns primal gradients."
             )
 
-        dJdm = self.rf.derivative(adj_input, apply_riesz)
+        dJdm = self.rf.derivative(adj_input=adj_input,
+                                  apply_riesz=apply_riesz)
         dJdm = Enlist(dJdm)
 
         m_global = []
