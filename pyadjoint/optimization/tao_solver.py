@@ -470,18 +470,18 @@ class ReducedFunctionalMatCtx:
 
     @check_rf_action(action=HessianAction)
     def _mult_hessian(self, A, x):
-        self.update_tape_values(update_adjoint=True)
+        # self.update_tape_values(update_adjoint=True)
         return self.rf.hessian(
             x, apply_riesz=self.apply_riesz)
 
     @check_rf_action(TLMAction)
     def _mult_tlm(self, A, x):
-        self.update_tape_values(update_adjoint=False)
+        # self.update_tape_values(update_adjoint=False)
         return self.rf.tlm(x)
 
     @check_rf_action(AdjointAction)
     def _mult_adjoint(self, A, x):
-        self.update_tape_values(update_adjoint=False)
+        # self.update_tape_values(update_adjoint=False)
         return self.rf.derivative(
             adj_input=x, apply_riesz=self.apply_riesz)
 
@@ -577,6 +577,37 @@ class TAOObjective:
 
         return self._reduced_functional
 
+    def objective(self, m):
+        """Evaluate the forward.
+
+        Args:
+            m (OverloadedType or Sequence[OverloadedType]): Defines the control
+                value.
+        Returns:
+            AdjFloat: The value of the functional.
+        """
+
+        m = Enlist(m)
+        J = self.reduced_functional(tuple(m_i._ad_copy() for m_i in m))
+        return J
+
+    def gradient(self, m):
+        """Compute a first derivative.
+
+        Args:
+            m (OverloadedType or Sequence[OverloadedType]): Defines the control
+                value.
+        Returns:
+            AdjFloat: The value of the functional.
+            OverloadedType or Sequence[OverloadedType]: The (dual space)
+                derivative.
+        """
+
+        m = Enlist(m)
+        # J = self.reduced_functional(tuple(m_i._ad_copy() for m_i in m))
+        dJ = self.reduced_functional.derivative()
+        return m.delist(dJ)
+
     def objective_gradient(self, m):
         """Evaluate the forward, and compute a first derivative.
 
@@ -639,11 +670,13 @@ class TAOSolver(OptimizationSolver):
         parameters (Mapping): TAO options.
         options_prefix (Optional[str]): prefix for the TAO solver.
         appctx (Optional[dict]): User provided context.
+        Pmat (Optional petsc4py.PETSc.Mat): Hessian preconditioning matrix.
         comm (petsc4py.PETSc.Comm or mpi4py.MPI.Comm): Communicator.
     """
 
     def __init__(self, problem, parameters, *,
-                 options_prefix=None, appctx=None, comm=None):
+                 options_prefix=None, appctx=None,
+                 Pmat=None, comm=None):
         if PETSc is None:
             raise RuntimeError("PETSc not available")
 
@@ -664,6 +697,18 @@ class TAOSolver(OptimizationSolver):
 
         tao = PETSc.TAO().create(comm=comm)
 
+        def objective(tao, x, g):
+            m = new_control_variable(rf)
+            from_petsc(x, m)
+            J_val = tao_objective.objective(m)
+            return J_val
+
+        def gradient(tao, x, g):
+            m = new_control_variable(rf)
+            from_petsc(x, m)
+            dJ = tao_objective.gradient(m)
+            to_petsc(g, dJ)
+
         def objective_gradient(tao, x, g):
             m = new_control_variable(rf)
             from_petsc(x, m)
@@ -671,14 +716,17 @@ class TAOSolver(OptimizationSolver):
             to_petsc(g, dJ)
             return J_val
 
-        tao.setObjectiveGradient(objective_gradient, None)
+        tao.setObjectiveGradient(objective_gradient)
+        tao.setObjective(objective)
+        tao.setGradient(gradient)
 
         hessian_mat = ReducedFunctionalMat(
             problem.reduced_functional, appctx=appctx,
             action=HessianAction, comm=comm)
 
-        tao.setHessian(hessian_mat.getPythonContext().update,
-                       hessian_mat)
+        tao.setHessian(
+            hessian_mat.getPythonContext().update,
+            H=hessian_mat, P=Pmat or hessian_mat)
 
         Minv_mat = RieszMapMat(rf.controls, comm=comm)
         tao.setGradientNorm(Minv_mat)
