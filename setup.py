@@ -12,7 +12,7 @@ extras["all"] = list(chain(*extras.values()))
 
 setup(
     name="pyadjoint-ad",
-    version="2023.0.0.0.post0",
+    version="2023.0.0.post0",
     description="High-level automatic differentiation library for FEniCS.",
     author="Sebastian Kenji Mitusch",
     author_email="sebastkm@math.uio.no",
