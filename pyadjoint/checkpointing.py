@@ -264,8 +264,9 @@ class CheckpointManager:
         Args:
             last_block (int): The last block to be evaluated.
             markings (bool): If `True`, then each `BlockVariable` of the current block will have set
-            `marked_in_path` attribute indicating whether their adjoint components are relevant for
-            computing the final target adjoint values.
+            `is_control_dependent` attribute indicating whether their adjoint components are relevant
+            for computing the final target adjoint values and `is_jacobian_dependency` indicating
+            whether the Jacobian depends on their value.
         """
         # Work out other cases when they arise.
         if last_block != 0:
@@ -409,10 +410,10 @@ class CheckpointManager:
                 if not current_step._revised_adj_deps:
                     # Update the adjoint dependency set.
                     for deps in block.get_dependencies():
-                        if deps.marked_in_path:
+                        if deps.is_functional_dependency:
                             current_step.adjoint_dependencies.add(deps)
                     for out in block._outputs:
-                        if not out.marked_in_path:
+                        if not out.is_functional_dependency:
                             current_step.adjoint_dependencies.discard(out)
             current_step._revised_adj_deps = True
             # Output variables are used for the last time when running

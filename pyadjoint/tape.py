@@ -158,23 +158,6 @@ def annotate_tape(kwargs=None):
     return annotate
 
 
-def _find_relevant_nodes(tape, controls):
-    # This function is just a stripped down Block.optimize_for_controls
-    blocks = tape.get_blocks()
-    nodes = set([control.block_variable for control in controls])
-
-    for block in blocks:
-        depends_on_control = False
-        for dep in block.get_dependencies():
-            if dep in nodes:
-                depends_on_control = True
-
-        if depends_on_control:
-            for output in block.get_outputs():
-                nodes.add(output)
-    return nodes
-
-
 class Tape(object):
     """The tape.
 
@@ -365,8 +348,10 @@ class Tape(object):
         Args:
             last_block (int, optional): The index of the last block to evaluate.
             markings (bool, optional): If True, then each `BlockVariable` of the current block
-                will have set `marked_in_path` attribute indicating whether their adjoint
-                components are relevant for computing the final target adjoint values.
+                will have set `is_control_dependent` attribute indicating whether their adjoint
+                components are relevant for computing the final target adjoint values and
+                `is_functional_dependency` attribute indicating whether its value impacts the
+                value of the functional.
         """
         if self._checkpoint_manager:
             self._checkpoint_manager.evaluate_adj(last_block, markings)
@@ -520,13 +505,54 @@ class Tape(object):
         self._blocks = TimeStepSequence(steps=optimized_timesteps)
 
     @contextmanager
-    def marked_nodes(self, controls):
-        nodes = _find_relevant_nodes(self, controls)
+    def marked_control_dependents(self, controls):
+        """Mark all the block variables on which the given controls depend."""
+        nodes = self._nodes_dependent_on_controls(controls)
         for node in nodes:
-            node.marked_in_path = True
+            node.is_control_dependent = True
         yield
         for node in nodes:
-            node.marked_in_path = False
+            node.is_control_dependent = False
+
+    def _nodes_dependent_on_controls(self, controls):
+        # This method is just a stripped down Block.optimize_for_controls
+        nodes = set([control.block_variable for control in controls])
+
+        for block in self.get_blocks():
+            depends_on_control = False
+            for dep in block.get_dependencies():
+                if dep in nodes:
+                    depends_on_control = True
+
+            if depends_on_control:
+                for output in block.get_outputs():
+                    nodes.add(output)
+        return nodes
+
+    @contextmanager
+    def marked_functional_dependencies(self, functional):
+        """Mark all of the block variables on which the functional depends."""
+        nodes = self._functional_dependencies(functional)
+        for node in nodes:
+            node.is_functional_dependency = True
+        yield
+        for node in nodes:
+            node.is_functional_dependency = False
+ 
+    def _functional_dependencies(self, functional):
+        # This function is just a stripped down Block.optimize_for_controls
+        nodes = set([functional.block_variable])
+
+        for block in reversed(self.get_blocks()):
+            functional_dependency = False
+            for output in block.get_outputs():
+                if output in nodes:
+                    functional_dependency = True
+
+            if functional_dependency:
+                for dep in block.get_dependencies():
+                    nodes.add(dep)
+        return nodes
 
     @property
     def timesteps(self):
