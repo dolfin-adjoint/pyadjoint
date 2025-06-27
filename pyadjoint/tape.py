@@ -510,9 +510,11 @@ class Tape(object):
         nodes = self._nodes_dependent_on_controls(controls)
         for node in nodes:
             node.is_control_dependent = True
-        yield
-        for node in nodes:
-            node.is_control_dependent = False
+        try:
+            yield
+        except:
+            for node in nodes:
+                node.is_control_dependent = False
 
     def _nodes_dependent_on_controls(self, controls):
         # This method is just a stripped down Block.optimize_for_controls
@@ -535,9 +537,11 @@ class Tape(object):
         nodes = self._functional_dependencies(functional)
         for node in nodes:
             node.is_functional_dependency = True
-        yield
-        for node in nodes:
-            node.is_functional_dependency = False
+        try:
+            yield
+        except:
+            for node in nodes:
+                node.is_functional_dependency = False
  
     def _functional_dependencies(self, functional):
         # This function is just a stripped down Block.optimize_for_controls

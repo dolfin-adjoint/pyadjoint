@@ -265,8 +265,8 @@ class CheckpointManager:
             last_block (int): The last block to be evaluated.
             markings (bool): If `True`, then each `BlockVariable` of the current block will have set
             `is_control_dependent` attribute indicating whether their adjoint components are relevant
-            for computing the final target adjoint values and `is_jacobian_dependency` indicating
-            whether the Jacobian depends on their value.
+            for computing the final target adjoint values and `is_functional_dependency` indicating
+            whether the functional depends on their value.
         """
         # Work out other cases when they arise.
         if last_block != 0:
