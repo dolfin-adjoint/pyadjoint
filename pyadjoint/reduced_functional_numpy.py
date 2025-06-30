@@ -66,7 +66,8 @@ class ReducedFunctionalNumPy(AbstractReducedFunctional):
                 "ReducedFunctionalNumpy only returns primal gradients."
             )
 
-        dJdm = self.rf.derivative(adj_input, apply_riesz)
+        dJdm = self.rf.derivative(adj_input=adj_input,
+                                  apply_riesz=apply_riesz)
         dJdm = Enlist(dJdm)
 
         m_global = []
@@ -89,7 +90,7 @@ class ReducedFunctionalNumPy(AbstractReducedFunctional):
         self.derivative()
         m_copies = [control.copy_data() for control in self.controls]
         Hm = self.rf.hessian(self.set_local(m_copies, m_dot_array),
-                             apply_riesz)
+                             apply_riesz=apply_riesz)
         Hm = Enlist(Hm)
 
         m_global = []
@@ -102,6 +103,17 @@ class ReducedFunctionalNumPy(AbstractReducedFunctional):
         tape.reset_variables()
 
         return numpy.array(m_global, dtype="d")
+
+    @no_annotations
+    def tlm(self, m_dot_array):
+        m_copies = [control.copy_data() for control in self.controls]
+        tm = self.rf.tlm(self.set_local(m_copies, m_dot_array))
+        tm_global = self.functional._ad_to_list(tm)
+
+        tape = get_working_tape()
+        tape.reset_variables()
+
+        return numpy.array(tm_global, dtype="d")
 
     def obj_to_array(self, obj):
         return self.get_global(obj)

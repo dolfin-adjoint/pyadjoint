@@ -1,7 +1,7 @@
 """Provide the abstract reduced functional, and a vanilla implementation."""
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
-from .drivers import compute_derivative, compute_hessian
+from .drivers import compute_derivative, compute_hessian, compute_tlm
 from .enlisting import Enlist
 from .tape import get_working_tape, stop_annotating, no_annotations
 from .overloaded_type import OverloadedType, create_overloaded_object
@@ -105,6 +105,22 @@ class AbstractReducedFunctional(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def tlm(self, m_dot):
+        """Return the action of the tangent linear model of the functional.
+
+        The tangent linear model is evaluated w.r.t. the control on a vector
+        m_dot, around the last supplied value of the control.
+
+        Args:
+            m_dot ([OverloadedType]): The direction in which to compute the
+                action of the tangent linear model.
+
+        Returns:
+            OverloadedType: The action of the tangent linear model in the direction m_dot.
+                Should be an instance of the same type as the functional.
+        """
+
 
 def _get_extract_derivative_components(derivative_components):
     """Construct a function to pass as a pre derivative callback.
@@ -177,6 +193,10 @@ class ReducedFunctional(AbstractReducedFunctional):
             Input is a list of Controls.
         hessian_cb_post (function): Callback function after evaluating the Hessian.
             Inputs are the functional, a list of Hessian, and controls.
+        tlm_cb_pre (function): Callback function before evaluating the tangent linear model.
+            Input is a list of Controls.
+        tlm_cb_post (function): Callback function after evaluating the tangent linear model.
+            Inputs are the functional, the tlm result, and controls.
     """
 
     def __init__(self, functional, controls,
@@ -188,7 +208,9 @@ class ReducedFunctional(AbstractReducedFunctional):
                  derivative_cb_post=lambda checkpoint, derivative_components,
                  controls: derivative_components,
                  hessian_cb_pre=lambda *args: None,
-                 hessian_cb_post=lambda *args: None):
+                 hessian_cb_post=lambda *args: None,
+                 tlm_cb_pre=lambda *args: None,
+                 tlm_cb_post=lambda *args: None):
         if not isinstance(functional, OverloadedType):
             raise TypeError("Functional must be an OverloadedType.")
         self.functional = functional
@@ -202,6 +224,8 @@ class ReducedFunctional(AbstractReducedFunctional):
         self.derivative_cb_post = derivative_cb_post
         self.hessian_cb_pre = hessian_cb_pre
         self.hessian_cb_post = hessian_cb_post
+        self.tlm_cb_pre = tlm_cb_pre
+        self.tlm_cb_post = tlm_cb_post
 
         if self.derivative_components:
             # pre callback
@@ -230,10 +254,10 @@ class ReducedFunctional(AbstractReducedFunctional):
         adj_value = adj_input._ad_mul(self.scale)
 
         derivatives = compute_derivative(self.functional,
-                                       controls,
-                                       tape=self.tape,
-                                       adj_value=adj_value,
-                                       apply_riesz=apply_riesz)
+                                         controls,
+                                         tape=self.tape,
+                                         adj_value=adj_value,
+                                         apply_riesz=apply_riesz)
 
         # Call callback
         derivatives = self.derivative_cb_post(
@@ -249,13 +273,14 @@ class ReducedFunctional(AbstractReducedFunctional):
         return self.controls.delist(derivatives)
 
     @no_annotations
-    def hessian(self, m_dot, apply_riesz=False):
+    def hessian(self, m_dot, hessian_input=None, evaluate_tlm=True, apply_riesz=False):
         # Call callback
         values = [c.tape_value() for c in self.controls]
         self.hessian_cb_pre(self.controls.delist(values))
 
         r = compute_hessian(self.functional, self.controls, m_dot,
-                            tape=self.tape, apply_riesz=apply_riesz)
+                            hessian_input=hessian_input, tape=self.tape,
+                            evaluate_tlm=evaluate_tlm, apply_riesz=apply_riesz)
 
         # Call callback
         self.hessian_cb_post(self.functional.block_variable.checkpoint,
@@ -263,6 +288,20 @@ class ReducedFunctional(AbstractReducedFunctional):
                              self.controls.delist(values))
 
         return self.controls.delist(r)
+
+    @no_annotations
+    def tlm(self, m_dot):
+        # Call callback
+        values = [c.tape_value() for c in self.controls]
+        self.tlm_cb_pre(self.controls.delist(values))
+
+        tlm = compute_tlm(self.functional, self.controls, m_dot, tape=self.tape)
+
+        # Call callback
+        self.tlm_cb_post(self.functional.block_variable.checkpoint,
+                         tlm, self.controls.delist(values))
+
+        return tlm
 
     @no_annotations
     def __call__(self, values):
