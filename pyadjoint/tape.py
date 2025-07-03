@@ -512,7 +512,7 @@ class Tape(object):
             node.is_control_dependent = True
         try:
             yield
-        except:
+        finally:
             for node in nodes:
                 node.is_control_dependent = False
 
