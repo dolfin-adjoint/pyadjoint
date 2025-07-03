@@ -539,7 +539,7 @@ class Tape(object):
             node.is_functional_dependency = True
         try:
             yield
-        except:
+        finally:
             for node in nodes:
                 node.is_functional_dependency = False
  
