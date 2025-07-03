@@ -25,9 +25,10 @@ def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
     m = Enlist(m)
 
     with stop_annotating():
-        with tape.marked_nodes(m):
-            with marked_controls(m):
-                tape.evaluate_adj(markings=True)
+        with tape.marked_control_dependents(m):
+            with tape.marked_functional_dependencies(J):
+                with marked_controls(m):
+                    tape.evaluate_adj(markings=True)
 
     grads = [i.get_derivative(options=options) for i in m]
     return m.delist(grads)
@@ -61,15 +62,16 @@ def compute_hessian(J, m, m_dot, options=None, tape=None):
         m[i].tlm_value = m_dot[i]
 
     with stop_annotating():
-        with tape.marked_nodes(m):
+        with tape.marked_control_dependents(m):
             tape.evaluate_tlm(markings=True)
 
     J.block_variable.hessian_value = J.block_variable.output._ad_convert_type(
         0., options={'riesz_representation': None})
 
     with stop_annotating():
-        with tape.marked_nodes(m):
-            tape.evaluate_hessian(markings=True)
+        with tape.marked_control_dependents(m):
+            with tape.marked_functional_dependencies(J):
+                tape.evaluate_hessian(markings=True)
 
     r = [v.get_hessian(options=options) for v in m]
     return m.delist(r)
