@@ -13,6 +13,7 @@ def compute_gradient(J, m, options=None, tape=None, adj_value=1.0):
         options (dict): A dictionary of options. To find a list of available options
             have a look at the specific control type.
         tape: The tape to use. Default is the current tape.
+        adj_value (float): The external gradient (seed value) to use for the derivative.
 
     Returns:
         OverloadedType: The derivative with respect to the control. Should be an instance of the same type as
@@ -90,6 +91,7 @@ def solve_adjoint(J, tape=None, adj_value=1.0):
     Args:
         J (AdjFloat):  The objective functional.
         tape: The tape to use. Default is the current tape.
+        adj_value (float): The external gradient (seed value) to use for the derivative.
     """
     tape = tape or get_working_tape()
     tape.reset_variables()
