@@ -383,17 +383,15 @@ class TAOObjective:
         return m.delist(ddJ)
 
     def new_control_variable(self):
-        """Return new variables suitable for storing a control value. Not
-        initialized to zero.
+        """Return new variables suitable for storing a control value.
 
         Returns:
             tuple[OverloadedType]: New variables suitable for storing a control
                 value.
         """
 
-        # Not initialized to zero
-        return tuple(m.control._ad_copy()
-                     for m in self.reduced_functional.controls)
+        return tuple(control._ad_init_zero(dual=False)
+                     for control in self.reduced_functional.controls)
 
     def new_dual_control_variable(self):
         """Return new variables suitable for storing a value for a (dual space)
