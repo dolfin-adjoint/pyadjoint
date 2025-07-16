@@ -122,7 +122,7 @@ def compute_hessian(J, m, m_dot, tape=None, apply_riesz=False):
         with tape.marked_nodes(m):
             tape.evaluate_hessian(markings=True)
 
-    r = [v.get_hessian(apply_riesz=apply_riesz) for v in m]
+        r = [v.get_hessian(apply_riesz=apply_riesz) for v in m]
     return m.delist(r)
 
 
