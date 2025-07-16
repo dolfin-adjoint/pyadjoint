@@ -14,10 +14,12 @@ class AbstractReducedFunctional(ABC):
 
     An object which encompasses computations of the form::
 
-        J(u(m), m)
+        Jhat(m) = J(u(m), m)
 
     Where `u` is the system state and `m` is a `pyadjoint.Control` or list of
-    `pyadjoint.Control`.
+    `pyadjoint.Control`, `J` is an overloaded type providing the functional value,
+    and `Jhat` is a reduced functional where the explicit dependence on `u` has
+    been eliminated.
 
     A reduced functional is callable and takes as arguments the value(s) of the
     control(s) at which it is to be evaluated.
