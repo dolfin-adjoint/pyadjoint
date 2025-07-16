@@ -10,7 +10,7 @@ from .tape import get_working_tape, stop_annotating
 
 def compute_derivative(J, m, tape=None, adj_value=1.0, apply_riesz=False):
     """
-    Compute the gradient of J with respect to the initialisation value of m,
+    Compute the derivative of J with respect to the initialisation value of m,
     that is the value of m at its creation.
 
     Args:
