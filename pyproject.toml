@@ -38,12 +38,39 @@ all = [
   "sphinxcontrib-bibtex",
   "tensorflow",
 ]
-doc = ["sphinx", "sphinx-autobuild", "sphinxcontrib-bibtex"]
-meshing = ["pygmsh", "meshio"]
-moola = ["moola>=0.1.6"]
-test = ["pytest>=3.10", "flake8", "coverage"]
-visualisation = ["tensorflow", "protobuf", "networkx", "pygraphviz"]
+doc = [
+   "sphinx",
+   "sphinx-autobuild",
+   "sphinxcontrib-bibtex"
+]
+meshing = [
+   "pygmsh",
+   "meshio"
+]
+moola = [
+   "moola>=0.1.6"
+]
+test = [
+   "pytest>=3.10",
+   "flake8",
+   "coverage"
+]
+visualisation = [
+   "tensorflow",
+   "protobuf",
+   "networkx",
+   "pygraphviz"
+]
+tao = [
+   "petsc4py",
+   "petsctools>2025.0"
+]
 
 
 [tool.setuptools]
-packages = ["firedrake_adjoint", "numpy_adjoint", "pyadjoint", "pyadjoint.optimization"]
+packages = [
+   "firedrake_adjoint",
+   "numpy_adjoint",
+   "pyadjoint",
+   "pyadjoint.optimization"
+]
