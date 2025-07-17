@@ -36,9 +36,10 @@ def compute_derivative(J, m, tape=None, adj_value=1.0, apply_riesz=False):
     m = Enlist(m)
 
     with stop_annotating():
-        with tape.marked_nodes(m):
-            with marked_controls(m):
-                tape.evaluate_adj(markings=True)
+        with tape.marked_control_dependents(m):
+            with tape.marked_functional_dependencies(J):
+                with marked_controls(m):
+                    tape.evaluate_adj(markings=True)
 
         grads = [i.get_derivative(apply_riesz=apply_riesz) for i in m]
     return m.delist(grads)
@@ -112,15 +113,16 @@ def compute_hessian(J, m, m_dot, tape=None, apply_riesz=False):
         m[i].tlm_value = m_dot[i]
 
     with stop_annotating():
-        with tape.marked_nodes(m):
+        with tape.marked_control_dependents(m):
             tape.evaluate_tlm(markings=True)
 
     J.block_variable.hessian_value = (
         J.block_variable.output._ad_init_zero(dual=True))
 
     with stop_annotating():
-        with tape.marked_nodes(m):
-            tape.evaluate_hessian(markings=True)
+        with tape.marked_control_dependents(m):
+            with tape.marked_functional_dependencies(J):
+                tape.evaluate_hessian(markings=True)
 
         r = [v.get_hessian(apply_riesz=apply_riesz) for v in m]
     return m.delist(r)
