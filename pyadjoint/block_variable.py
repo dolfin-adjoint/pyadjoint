@@ -14,8 +14,9 @@ class BlockVariable(object):
         self._checkpoint = None
         self.is_control = False
         self.floating_type = False
-        # Helper flag for use during tape traversals.
-        self.marked_in_path = False
+        # Helper flags for use during tape traversals.
+        self.is_control_dependent = False
+        self.is_functional_dependency = False
         # By default assume the variable is created externally to the tape.
         self.creation_timestep = -1
         # The timestep during which this variable was last used as an input.
