@@ -157,7 +157,7 @@ def compute_tlm(J, m, m_dot, tape=None):
         mi.tlm_value = mdi
 
     with stop_annotating():
-        with tape.marked_nodes(m):
+        with tape.marked_control_dependents(m):
             tape.evaluate_tlm(markings=True)
 
     return J._ad_init_object(J.block_variable.tlm_value)
