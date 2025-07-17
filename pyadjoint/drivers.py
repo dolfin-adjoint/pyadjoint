@@ -82,7 +82,7 @@ if deprecated is not None:
     )(compute_gradient)
 
 
-def compute_hessian(J, m, m_dot, tape=None, apply_riesz=False):
+def compute_hessian(J, m, m_dot, hessian_input=None, tape=None, evaluate_tlm=True, apply_riesz=False):
     """
     Compute the Hessian of J in a direction m_dot at the current value of m
 
@@ -91,10 +91,15 @@ def compute_hessian(J, m, m_dot, tape=None, apply_riesz=False):
         m (list or instance of Control): The (list of) controls.
         m_dot (list or instance of the control type): The direction in which to
             compute the Hessian.
+        hessian_input (OverloadedType): The value to start the Hessian accumulation
+            from after the TLM calculation. Uses zero initialised value if None.
         tape: The tape to use. Default is the current tape.
         apply_riesz: If True, apply the Riesz map of each control in order
             to return the (primal) Riesz representer of the Hessian
             action.
+        evaluate_tlm (bool): Whether or not to compute the forward (TLM) part of
+            the Hessian calculation.  If False, assumes that the tape has already
+            been populated with the required TLM values.
 
     Returns:
         OverloadedType: The action of the Hessian in the direction m_dot.
@@ -104,21 +109,20 @@ def compute_hessian(J, m, m_dot, tape=None, apply_riesz=False):
     """
     tape = tape or get_working_tape()
 
-    tape.reset_tlm_values()
+    # fill the relevant tlm values on the tape
+    if evaluate_tlm:
+        compute_tlm(J, m, m_dot, tape)
+
     tape.reset_hessian_values()
 
+    if hessian_input is None:
+        J.block_variable.hessian_value = (
+            J.block_variable.output._ad_init_zero(dual=True))
+    else:
+        J.block_variable.hessian_value = (
+            J.block_variable.output._ad_init_object(hessian_input))
+
     m = Enlist(m)
-    m_dot = Enlist(m_dot)
-    for i, value in enumerate(m_dot):
-        m[i].tlm_value = m_dot[i]
-
-    with stop_annotating():
-        with tape.marked_control_dependents(m):
-            tape.evaluate_tlm(markings=True)
-
-    J.block_variable.hessian_value = (
-        J.block_variable.output._ad_init_zero(dual=True))
-
     with stop_annotating():
         with tape.marked_control_dependents(m):
             with tape.marked_functional_dependencies(J):
@@ -126,6 +130,37 @@ def compute_hessian(J, m, m_dot, tape=None, apply_riesz=False):
 
         r = [v.get_hessian(apply_riesz=apply_riesz) for v in m]
     return m.delist(r)
+
+
+def compute_tlm(J, m, m_dot, tape=None):
+    """
+    Compute the tangent linear model of J in a direction m_dot at the current value of m
+
+    Args:
+        J (OverloadedType):  The objective functional.
+        m (list or instance of Control): The (list of) controls.
+        m_dot (list or instance of the control type): The direction in which to
+            compute the tangent linear model.
+        tape: The tape to use. Default is the current tape.
+
+    Returns:
+        OverloadedType: The action of the tangent linear model with respect to the control
+            in direction m_dot. Should be an instance of the same type as the functional.
+    """
+    tape = tape or get_working_tape()
+    tape.reset_tlm_values()
+
+    m = Enlist(m)
+    m_dot = Enlist(m_dot)
+
+    for mi, mdi in zip(m, m_dot):
+        mi.tlm_value = mdi
+
+    with stop_annotating():
+        with tape.marked_control_dependents(m):
+            tape.evaluate_tlm(markings=True)
+
+    return J._ad_init_object(J.block_variable.tlm_value)
 
 
 def solve_adjoint(J, tape=None, adj_value=1.0):
