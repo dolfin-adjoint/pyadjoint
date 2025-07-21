@@ -5,6 +5,11 @@ from ..reduced_functional_numpy import ReducedFunctionalNumPy, gather
 from ..tape import no_annotations
 
 
+class SciPyConvergenceError(Exception):
+    """Raised if a SciPy minimization fails.
+    """
+
+
 def serialise_bounds(rf_np, bounds):
     """ Converts bounds to an array of (min, max) tuples and serialises it in a parallel environment. """
 
@@ -131,6 +136,9 @@ def minimize_scipy_generic(rf_np, method, bounds=None, derivative_options=None, 
         res = scipy_minimize(J, m_global, method=method, bounds=bounds, **kwargs)
     else:
         res = scipy_minimize(J, m_global, method=method, **kwargs)
+
+    if not res.success:
+        raise SciPyConvergenceError(f"SciPy minimization failed because: {res.message}")
 
     m = rf_np.set_controls(np.array(res["x"]))
     return m
