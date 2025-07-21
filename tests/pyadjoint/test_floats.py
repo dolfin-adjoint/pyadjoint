@@ -309,3 +309,11 @@ def test_float_components_minimize():
         z = minimize(rf)
         assert(z[1] == 1.0)
         assert(abs(z[0] + z[1]) < 5.0e-3)
+
+
+def test_scipy_failure():
+    a = AdjFloat(math.nan)
+    b = 2 * a
+    rf = ReducedFunctional(b, Control(a))
+    with pytest.raises(SciPyConvergenceError):
+        _ = minimize(rf)
