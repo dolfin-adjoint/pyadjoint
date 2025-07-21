@@ -138,7 +138,7 @@ def minimize_scipy_generic(rf_np, method, bounds=None, derivative_options=None, 
         res = scipy_minimize(J, m_global, method=method, **kwargs)
 
     if not res.success:
-        raise SciPyConvergenceError("SciPy minimization failed")
+        raise SciPyConvergenceError(f"SciPy minimization failed because: {res.message}")
 
     m = rf_np.set_controls(np.array(res["x"]))
     return m
