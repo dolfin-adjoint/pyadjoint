@@ -82,7 +82,7 @@ class AbstractReducedFunctional(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def hessian(self, m_dot, apply_riesz=False):
+    def hessian(self, m_dot, hessian_input=None, evaluate_tlm=True, apply_riesz=False):
         """Return the action of the Hessian of the functional.
 
         The Hessian is evaluated w.r.t. the control on a vector m_dot.
@@ -94,7 +94,13 @@ class AbstractReducedFunctional(ABC):
         Args:
             m_dot ([OverloadedType]): The direction in which to compute the
                 action of the Hessian.
-            apply_riesz: If True, apply the Riesz map of each control in order
+            hessian_input OverloadedType: The Hessian value for the functional result.
+                Required if the functional is not scalar-valued, or if the functional
+                is an intermediate result in the computation of an outer functional.
+            evaluate_tlm (bool): If True, will evaluate the tangent linear model before
+                evaluating the Hessian. If False, assumes that the tape is already
+                populated with the tangent linear values and does not evaluate them.
+            apply_riesz (bool): If True, apply the Riesz map of each control in order
                 to return the (primal) Riesz representer of the Hessian
                 action.
 
