@@ -38,7 +38,7 @@ def serialise_bounds(rf_np, bounds):
     return np.array(bounds_arr).T
 
 
-def minimize_scipy_generic(rf_np, method, bounds=None, derivative_options=None, **kwargs):
+def minimize_scipy_generic(rf_np, method, bounds=None, **kwargs):
     """Interface to the generic minimize method in scipy
 
     """
@@ -56,18 +56,11 @@ def minimize_scipy_generic(rf_np, method, bounds=None, derivative_options=None, 
 
         raise
 
-    if method in ["Newton-CG"]:
-        forget = None
-    else:
-        forget = False
-
-    project = kwargs.pop("project", False)
-
     m = [p.tape_value() for p in rf_np.controls]
     m_global = rf_np.obj_to_array(m)
     J = rf_np.__call__
-    dJ = lambda m: rf_np.derivative(m, forget=forget, project=project, options=derivative_options)
-    H = rf_np.hessian
+    dJ = lambda m: rf_np.derivative(apply_riesz=True)
+    H = lambda x, p: rf_np.hessian(p)
 
     if "options" not in kwargs:
         kwargs["options"] = {}
@@ -144,7 +137,7 @@ def minimize_scipy_generic(rf_np, method, bounds=None, derivative_options=None, 
     return m
 
 
-def minimize_custom(rf_np, bounds=None, derivative_options=None, **kwargs):
+def minimize_custom(rf_np, bounds=None, **kwargs):
     """ Interface to the user-provided minimisation method """
 
     try:
@@ -160,7 +153,7 @@ def minimize_custom(rf_np, bounds=None, derivative_options=None, **kwargs):
     m_global = rf_np.obj_to_array(m)
     J = rf_np.__call__
 
-    dJ = lambda m: rf_np.derivative(m, forget=None, options=derivative_options)
+    dJ = lambda m: rf_np.derivative(m, apply_riesz=True)
     H = rf_np.hessian
 
     if bounds is not None:
@@ -263,7 +256,7 @@ def minimize(rf, method='L-BFGS-B', scale=1.0, **kwargs):
         return opt
 
 
-def maximize(rf, method='L-BFGS-B', scale=1.0, derivative_options=None, **kwargs):
+def maximize(rf, method='L-BFGS-B', scale=1.0, **kwargs):
     """ Solves the maximisation problem with PDE constraint:
 
            max_m func(u, m)
@@ -282,7 +275,6 @@ def maximize(rf, method='L-BFGS-B', scale=1.0, derivative_options=None, **kwargs
         * 'method' specifies the optimization method to be used to solve the problem.
             The available methods can be listed with the print_optimization_methods function.
         * 'scale' is a factor to scale to problem (default: 1.0).
-        * 'derivative_options' is a dictionary of options that will be passed to the `rf.derivative`.
         * 'bounds' is an optional keyword parameter to support control constraints: bounds = (lb, ub).
             lb and ub must be of the same type than the parameters m.
 
@@ -291,7 +283,7 @@ def maximize(rf, method='L-BFGS-B', scale=1.0, derivative_options=None, **kwargs
         For detailed information about which arguments are supported for each optimization method,
         please refer to the documentaton of the optimization algorithm.
         """
-    return minimize(rf, method, scale=-scale, derivative_options=derivative_options, **kwargs)
+    return minimize(rf, method, scale=-scale, **kwargs)
 
 
 minimise = minimize

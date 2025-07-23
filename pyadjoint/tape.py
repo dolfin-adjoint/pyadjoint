@@ -542,7 +542,7 @@ class Tape(object):
         finally:
             for node in nodes:
                 node.is_functional_dependency = False
- 
+
     def _functional_dependencies(self, functional):
         # This function is just a stripped down Block.optimize_for_controls
         nodes = set([functional.block_variable])
