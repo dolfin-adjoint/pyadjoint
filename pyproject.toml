@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyadjoint-ad"
-version = "2025.04.0"
+version = "2025.04.1"
 dependencies = [
   "checkpoint_schedules",
   "scipy>=1.0",
@@ -43,6 +43,7 @@ meshing = ["pygmsh", "meshio"]
 moola = ["moola>=0.1.6"]
 test = ["pytest>=3.10", "flake8", "coverage"]
 visualisation = ["tensorflow", "protobuf", "networkx", "pygraphviz"]
+tao = ["petsc4py", "petsctools"]
 
 
 [tool.setuptools]
