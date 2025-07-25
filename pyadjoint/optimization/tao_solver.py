@@ -3,7 +3,6 @@ from functools import wraps
 import itertools
 from enum import Enum
 from numbers import Complex
-import warnings
 
 import numpy as np
 
@@ -17,6 +16,11 @@ try:
     import petsc4py.PETSc as PETSc
 except ModuleNotFoundError:
     PETSc = None
+try:
+    import petsctools
+    from petsctools import OptionsManager
+except ModuleNotFoundError:
+    petsctools = None
 
 __all__ = \
     [
@@ -679,6 +683,8 @@ class TAOSolver(OptimizationSolver):
                  Pmat=None, comm=None):
         if PETSc is None:
             raise RuntimeError("PETSc not available")
+        if petsctools is None:
+            raise RuntimeError("petsctools not available")
 
         if not isinstance(problem, MinimizationProblem):
             raise TypeError("MinimizationProblem required")
