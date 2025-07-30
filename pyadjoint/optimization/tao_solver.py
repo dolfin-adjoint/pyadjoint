@@ -15,6 +15,7 @@ except ModuleNotFoundError:
     PETSc = None
 try:
     import petsctools
+    from petsctools import OptionsManager
 except ModuleNotFoundError:
     petsctools = None
 
@@ -261,6 +262,8 @@ class TAOSolver(OptimizationSolver):
     def __init__(self, problem, parameters, *, comm=None, convert_options=None):
         if PETSc is None:
             raise RuntimeError("PETSc not available")
+        if petsctools is None:
+            raise RuntimeError("petsctools not available")
 
         if not isinstance(problem, MinimizationProblem):
             raise TypeError("MinimizationProblem required")
@@ -412,7 +415,8 @@ class TAOSolver(OptimizationSolver):
 
         x = vec_interface.new_petsc()
         tao.setSolution(x)
-        tao.setUp()
+        with petsctools.inserted_options(tao):
+            tao.setUp()
 
         super().__init__(problem, parameters)
         self._tao_objective = tao_objective
