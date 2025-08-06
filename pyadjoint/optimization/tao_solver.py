@@ -614,7 +614,8 @@ class TAOSolver(OptimizationSolver):
 
         x = vec_interface.new_petsc()
         tao.setSolution(x)
-        tao.setUp()
+        with self.options.inserted_options():
+            tao.setUp()
 
         super().__init__(problem, parameters)
         self._tao_objective = tao_objective
