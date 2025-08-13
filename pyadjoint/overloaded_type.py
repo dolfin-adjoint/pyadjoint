@@ -175,6 +175,20 @@ class OverloadedType(object):
         """
         raise NotImplementedError(f"OverloadedType._ad_convert_riesz not defined for class {type(self)}.")
 
+    def _ad_riesz_representation(self, options={}):
+        """This method must be overridden.
+
+        Should implement a way to return the Riesz representation of the overloaded object.
+
+        Args:
+            options (dict): A dictionary with options that may be supplied by the user. If the Riesz representation
+                functionality offers some options on how to compute it, this is the dictionary that should be used.
+
+        Returns:
+            OverloadedType: The Riesz representation of the overloaded object.
+        """
+        raise NotImplementedError(f"OverloadedType._riesz_representation not defined for class {type(self)}.")
+
     def _ad_create_checkpoint(self):
         """This method must be overridden.
 
