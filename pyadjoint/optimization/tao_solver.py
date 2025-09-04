@@ -134,8 +134,8 @@ class TAOObjective:
     derivatives.
 
     Args:
-        rf (ReducedFunctional): Defines the forward, and used to compute
-            derivative information.
+        rf (AbstractReducedFunctional): Defines the forward, and used to
+            compute derivative information.
     """
 
     def __init__(self, rf):
@@ -143,8 +143,8 @@ class TAOObjective:
 
     @property
     def reduced_functional(self):
-        """:class:`.ReducedFunctional`. Defines the forward, and used to
-        compute derivative information.
+        """:class:`.AbstractReducedFunctional`. Defines the forward, and used
+        to compute derivative information.
         """
 
         return self._reduced_functional
@@ -429,9 +429,8 @@ class TAOSolver(OptimizationSolver):
             OverloadedType or Sequence[OverloadedType]: The solution.
         """
 
-        m = tuple(
-            control.tape_value()._ad_copy()
-            for control in self.tao_objective.reduced_functional.controls)
+        controls = self.tao_objective.reduced_functional.controls
+        m = tuple(control.tape_value()._ad_copy() for control in controls)
         self._vec_interface.to_petsc(self.x, m)
         with self.options.inserted_options():
             self.tao.solve()
@@ -441,4 +440,7 @@ class TAOSolver(OptimizationSolver):
             raise TAOConvergenceError(
                 f"TAOSolver failed to converge after {self.tao.getIterationNumber()} iterations "
                 f"with reason: {_tao_reasons[self.tao.getConvergedReason()]}")
-        return self.tao_objective.reduced_functional.controls.delist(m)
+        if isinstance(controls, Enlist):
+            return controls.delist(m)
+        else:
+            return m
