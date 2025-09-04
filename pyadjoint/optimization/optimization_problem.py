@@ -2,7 +2,7 @@ import collections
 
 from .constraints import Constraint, canonicalise
 from ..overloaded_type import OverloadedType, create_overloaded_object
-from ..reduced_functional import ReducedFunctional
+from ..reduced_functional import AbstractReducedFunctional
 
 __all__ = ['MinimizationProblem', 'MaximizationProblem']
 
@@ -17,8 +17,8 @@ class OptimizationProblem(object):
         bounds = self.enlist(bounds)
         self.__check_arguments(reduced_functional, bounds, constraints)
 
-        #: reduced_functional: a dolfin_adjoint.ReducedFunctional object that
-        #: encapsulates a Function and Control
+        #: reduced_functional: a dolfin_adjoint.AbstractReducedFunctional
+        #: object that encapsulates a Function and Control
         self.reduced_functional = reduced_functional
 
         #: bounds: lower and upper bounds for the control (optional). None means
@@ -38,12 +38,12 @@ class OptimizationProblem(object):
         if type(self) is OptimizationProblem:
             raise TypeError("Instantiate a MinimizationProblem or MaximizationProblem.")
 
-        if not isinstance(reduced_functional, ReducedFunctional):
-            raise TypeError("reduced_functional should be a ReducedFunctional")
+        if not isinstance(reduced_functional, AbstractReducedFunctional):
+            raise TypeError("reduced_functional should be a AbstractReducedFunctional")
 
         if bounds is not None:
             if len(bounds) != len(reduced_functional.controls):
-                raise TypeError("bounds should be of length number of controls of the ReducedFunctional")
+                raise TypeError("bounds should be of length number of controls of the AbstractReducedFunctional")
             for (bound, control) in zip(bounds, reduced_functional.controls):
                 if len(bound) != 2:
                     raise TypeError("Each bound should be a tuple of length 2 (lb, ub)")

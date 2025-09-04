@@ -134,8 +134,8 @@ class TAOObjective:
     derivatives.
 
     Args:
-        rf (ReducedFunctional): Defines the forward, and used to compute
-            derivative information.
+        rf (AbstractReducedFunctional): Defines the forward, and used to
+            compute derivative information.
     """
 
     def __init__(self, rf):
@@ -143,8 +143,8 @@ class TAOObjective:
 
     @property
     def reduced_functional(self):
-        """:class:`.ReducedFunctional`. Defines the forward, and used to
-        compute derivative information.
+        """:class:`.AbstractReducedFunctional`. Defines the forward, and used
+        to compute derivative information.
         """
 
         return self._reduced_functional
