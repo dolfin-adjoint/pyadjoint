@@ -6,7 +6,7 @@ version: 2
 jobs:
   test-firedrake:
     docker:
-      - image: firedrakeproject/firedrake:latest
+      - image: firedrakeproject/firedrake-vanilla-default:dev-main
 
     working_directory: ~/repo
 
