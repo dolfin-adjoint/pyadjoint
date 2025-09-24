@@ -1,5 +1,3 @@
-# .. py:currentmodule:: firedrake_adjoint
-#
 # Topology optimisation of fluids in Stokes flow
 # ==============================================
 #
@@ -9,24 +7,16 @@
 #
 # Problem definition
 from firedrake import *
-
-# ROL appears to request lots of computations whose values
-# are never inspected. By default, firedrake implements
-# lazy evaluation, i.e. doesn't immediately compute these
-# values, but retains the computational graph that would allow
-# it to do so. Unfortunately, with ROL not using its computations,
-# firedrake's graph gets very large and the code spends most of
-# its time updating constants. We therefore disable firedrake's
-# lazy evaluation mode.
-parameters["pyop2_options"]["lazy_evaluation"] = False
-
-from firedrake_adjoint import *
+from firedrake.adjoint import *
 
 try:
     import ROL
 except ImportError:
     info_red("""This example depends on ROL.""")
     raise
+
+# Begin taping operations
+continue_annotation()
 
 mu = Constant(1.0)                   # viscosity
 alphaunderbar = 2.5 * mu / (100**2)  # parameter for \alpha
