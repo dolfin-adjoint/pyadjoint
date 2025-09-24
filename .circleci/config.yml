@@ -39,6 +39,7 @@ jobs:
 
       - run:
           name: Run firedrake adjoint tests
+          # Pass on exit codes of 0 (pass) or 5 (no tests found)
           command: |
             python3 -m pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[1]
             mpiexec -n 2 python3 -m pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[2] || [ $? == 5 ]
