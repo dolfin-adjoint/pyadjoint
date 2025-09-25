@@ -47,4 +47,4 @@ tao = ["petsc4py", "petsctools"]
 
 
 [tool.setuptools]
-packages = ["firedrake_adjoint", "numpy_adjoint", "pyadjoint", "pyadjoint.optimization"]
+packages = ["numpy_adjoint", "pyadjoint", "pyadjoint.optimization"]
