@@ -79,8 +79,8 @@ try:
         def riesz_map(self, derivs):
             dat = []
             opts = {"riesz_representation": self.inner_product}
-            for deriv in Enlist(derivs):
-                dat.append(deriv._ad_convert_type(deriv, options=opts))
+            for f, deriv in zip(self.dat, derivs):
+                dat.append(f._ad_convert_type(deriv, options=opts))
             return dat
 
         def dot(self, yy):
@@ -89,6 +89,15 @@ try:
             for (x, y) in zip(self.dat, yy.dat):
                 res += x._ad_dot(y, options=opts)
             return res
+
+        def dual(self) -> "ROLVector":
+            """Create a new `ROLVector` in the dual space of the current `self`.
+            """
+            dat = []
+            opts = {"riesz_map": self.inner_product}
+            for x in self.dat:
+                dat.append(x._ad_riesz_representation(options=opts))
+            return ROLVector(dat, inner_product=self.inner_product)
 
         def norm(self):
             return self.dot(self) ** 0.5
@@ -131,12 +140,14 @@ try:
             self.con.jacobian_action(x.dat, v.dat[0], jv.dat)
 
         def applyAdjointJacobian(self, jv, v, x, tol):
-            self.con.jacobian_adjoint_action(x.dat, v.dat, jv.dat[0])
-            jv.dat = jv.riesz_map(jv.dat)
+            tmp = jv.dual()
+            self.con.jacobian_adjoint_action(x.dat, v.dat, tmp.dat[0])
+            jv.dat = jv.riesz_map(tmp.dat)
 
         def applyAdjointHessian(self, ahuv, u, v, x, tol):
-            self.con.hessian_action(x.dat, u.dat[0], v.dat, ahuv.dat[0])
-            ahuv.dat = ahuv.riesz_map(ahuv.dat)
+            tmp = ahuv.dual()
+            self.con.hessian_action(x.dat, u.dat[0], v.dat, tmp.dat[0])
+            ahuv.dat = ahuv.riesz_map(tmp.dat)
 
     class ROLSolver(OptimizationSolver):
         """
