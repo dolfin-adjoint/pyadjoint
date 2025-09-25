@@ -20,13 +20,11 @@ try:
             return self._val
 
         def gradient(self, g, x, tol):
-            opts = {"riesz_representation": x.inner_product}
-            self.deriv = self.rf.derivative(options=opts)
+            self.deriv = self.rf.derivative(apply_riesz=True)
             g.dat = Enlist(self.deriv)
 
         def hessVec(self, hv, v, x, tol):
-            opts = {"riesz_representation": x.inner_product}
-            hessian_action = self.rf.hessian(v.dat, options=opts)
+            hessian_action = self.rf.hessian(v.dat, apply_riesz=True)
             hv.dat = Enlist(hessian_action)
 
         def update(self, x, flag, iteration):
@@ -78,9 +76,8 @@ try:
 
         def riesz_map(self, derivs):
             dat = []
-            opts = {"riesz_representation": self.inner_product}
             for deriv in Enlist(derivs):
-                dat.append(deriv._ad_convert_type(deriv, options=opts))
+                dat.append(deriv.riesz_representation(riesz_map=self.inner_product))
             return dat
 
         def dot(self, yy):
