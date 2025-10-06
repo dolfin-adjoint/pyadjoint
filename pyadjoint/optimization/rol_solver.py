@@ -21,6 +21,7 @@ try:
 
         def gradient(self, g, x, tol):
             opts = {"riesz_representation": x.inner_product}
+            opts.update(x.inner_product_solver_opts)
             self.deriv = self.rf.derivative(options=opts)
             g.dat = Enlist(self.deriv)
 
@@ -63,10 +64,11 @@ try:
                 self._val = self.rf(x.dat)
 
     class ROLVector(ROL.Vector):
-        def __init__(self, dat, inner_product="L2"):
+        def __init__(self, dat, inner_product="L2", inner_product_solver_opts={}):
             super(ROLVector, self).__init__()
             self.dat = dat
             self.inner_product = inner_product
+            self.inner_product_solver_opts = inner_product_solver_opts
 
         def plus(self, yy):
             for (x, y) in zip(self.dat, yy.dat):
@@ -97,7 +99,8 @@ try:
             dat = []
             for x in self.dat:
                 dat.append(x._ad_copy())
-            res = ROLVector(dat, inner_product=self.inner_product)
+            res = ROLVector(dat, inner_product=self.inner_product,
+                            inner_product_solver_opts=self.inner_product_solver_opts)
             res.scale(0.0)
             return res
 
@@ -143,7 +146,8 @@ try:
         Use ROL to solve the given optimisation problem.
         """
 
-        def __init__(self, problem, parameters, inner_product="L2"):
+        def __init__(self, problem, parameters, inner_product="L2",
+                     inner_product_solver_opts=None):
             """
             Create a new ROLSolver.
 
@@ -155,9 +159,9 @@ try:
             OptimizationSolver.__init__(self, problem, parameters)
             self.rolobjective = ROLObjective(problem.reduced_functional)
             x = [p.tape_value() for p in self.problem.reduced_functional.controls]
-            self.rolvector = ROLVector(x, inner_product=inner_product)
+            self.rolvector = ROLVector(x, inner_product=inner_product,
+                                       inner_product_solver_opts=inner_product_solver_opts)
             self.params_dict = parameters
-
             self.bounds = self.__get_bounds()
             self.constraints = self.__get_constraints()
 
