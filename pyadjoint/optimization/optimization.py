@@ -1,3 +1,5 @@
+from functools import partial
+
 import numpy as np
 
 from ..reduced_functional import ReducedFunctional
@@ -59,8 +61,8 @@ def minimize_scipy_generic(rf_np, method, bounds=None, **kwargs):
     m = [p.tape_value() for p in rf_np.controls]
     m_global = rf_np.obj_to_array(m)
     J = rf_np.__call__
-    dJ = lambda m: rf_np.derivative()
-    H = lambda x, p: rf_np.hessian(p)
+    dJ = lambda m: rf_np.derivative(apply_riesz=False)
+    H = lambda x, p: rf_np.hessian(p, apply_riesz=False)
 
     if "options" not in kwargs:
         kwargs["options"] = {}
@@ -153,8 +155,8 @@ def minimize_custom(rf_np, bounds=None, **kwargs):
     m_global = rf_np.obj_to_array(m)
     J = rf_np.__call__
 
-    dJ = lambda m: rf_np.derivative(m)
-    H = rf_np.hessian
+    dJ = partial(rf_np.derivative, apply_riesz=False)
+    H = partial(rf_np.hessian, apply_riesz=False)
 
     if bounds is not None:
         bounds = serialise_bounds(rf_np, bounds)

@@ -60,12 +60,6 @@ class ReducedFunctionalNumPy(AbstractReducedFunctional):
 
     @no_annotations
     def derivative(self, adj_input=1.0, apply_riesz=True):
-
-        if not apply_riesz:
-            raise ValueError(
-                "ReducedFunctionalNumpy only returns primal gradients."
-            )
-
         dJdm = self.rf.derivative(adj_input=adj_input,
                                   apply_riesz=apply_riesz)
         dJdm = Enlist(dJdm)
@@ -80,12 +74,6 @@ class ReducedFunctionalNumPy(AbstractReducedFunctional):
 
     @no_annotations
     def hessian(self, m_dot_array, apply_riesz=True):
-
-        if not apply_riesz:
-            raise ValueError(
-                "ReducedFunctionalNumpy only returns primal gradients."
-            )
-
         # Calling derivative is needed, see i.e. examples/stokes-shape-opt
         self.derivative()
         m_copies = [control.copy_data() for control in self.controls]
