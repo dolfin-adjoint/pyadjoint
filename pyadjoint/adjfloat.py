@@ -93,7 +93,12 @@ class AdjFloat(OverloadedType, float):
     def __pow__(self, power):
         return PowBlock(self, power)
 
-    def _ad_convert_type(self, value, options={}):
+    def _ad_init_zero(self, dual=False):
+        return type(self)(0.)
+
+    def _ad_convert_riesz(self, value, riesz_map=None):
+        if riesz_map is not None:
+            raise ValueError(f"Unexpected Riesz map for Adjfloat: {riesz_map}")
         return AdjFloat(value)
 
     def _ad_create_checkpoint(self):
@@ -343,7 +348,7 @@ class FloatOperatorBlock(Block):
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
         output = self.operator(*(term.saved_output for term in self.terms))
-        return self._outputs[0].saved_output._ad_convert_type(output)
+        return type(self._outputs[0].saved_output)(output)
 
     def __str__(self):
         return f"{self.terms[0]} {self.symbol} {self.terms[1]}"

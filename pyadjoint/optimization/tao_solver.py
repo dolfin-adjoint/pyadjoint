@@ -136,8 +136,8 @@ class TAOObjective:
     derivatives.
 
     Args:
-        rf (ReducedFunctional): Defines the forward, and used to compute
-            derivative information.
+        rf (AbstractReducedFunctional): Defines the forward, and used to
+            compute derivative information.
     """
 
     def __init__(self, rf):
@@ -145,8 +145,8 @@ class TAOObjective:
 
     @property
     def reduced_functional(self):
-        """:class:`.ReducedFunctional`. Defines the forward, and used to
-        compute derivative information.
+        """:class:`.AbstractReducedFunctional`. Defines the forward, and used
+        to compute derivative information.
         """
 
         return self._reduced_functional
@@ -165,9 +165,7 @@ class TAOObjective:
 
         m = Enlist(m)
         J = self.reduced_functional(tuple(m_i._ad_copy() for m_i in m))
-        _ = self.reduced_functional.derivative()
-        dJ = tuple(control.control.block_variable.adj_value
-                   for control in self.reduced_functional.controls)
+        dJ = self.reduced_functional.derivative()
         return J, m.delist(dJ)
 
     def hessian(self, m, m_dot):
@@ -188,28 +186,23 @@ class TAOObjective:
         m_dot = Enlist(m_dot)
         _ = self.reduced_functional(tuple(m_i._ad_copy() for m_i in m))
         _ = self.reduced_functional.derivative()
-        _ = self.reduced_functional.hessian(tuple(m_dot_i._ad_copy() for m_dot_i in m_dot))
-        ddJ = tuple(control.control.block_variable.hessian_value
-                    for control in self.reduced_functional.controls)
+        ddJ = self.reduced_functional.hessian(tuple(m_dot_i._ad_copy() for m_dot_i in m_dot))
         return m.delist(ddJ)
 
     def new_control_variable(self):
-        """Return new variables suitable for storing a control value. Not
-        initialized to zero.
+        """Return new variables suitable for storing a control value.
 
         Returns:
             tuple[OverloadedType]: New variables suitable for storing a control
                 value.
         """
 
-        # Not initialized to zero
-        return tuple(m.control._ad_copy()
-                     for m in self.reduced_functional.controls)
+        return tuple(control._ad_init_zero(dual=False)
+                     for control in self.reduced_functional.controls)
 
     def new_dual_control_variable(self):
         """Return new variables suitable for storing a value for a (dual space)
-        derivative of the functional with respect to the control. Not
-        initialized to zero.
+        derivative of the functional with respect to the control.
 
         Returns:
             tuple[OverloadedType]: New variables suitable for storing a value
@@ -217,19 +210,8 @@ class TAOObjective:
                 the control.
         """
 
-        # Not initialized to zero, requires adjoint or Hessian action values to
-        # have already been computed
-        m_dual = []
-        for control in self.reduced_functional.controls:
-            bv = control.control.block_variable
-            if bv.adj_value is not None:
-                m_dual.append(bv.adj_value)
-            elif bv.hessian_value is not None:
-                m_dual.append(bv.hessian_value)
-            else:
-                raise RuntimeError("Unable to instantiate new dual space "
-                                   "object")
-        return tuple(m_dual_i._ad_copy() for m_dual_i in m_dual)
+        return tuple(control._ad_init_zero(dual=True)
+                     for control in self.reduced_functional.controls)
 
 
 class TAOConvergenceError(Exception):
@@ -259,7 +241,7 @@ class TAOSolver(OptimizationSolver):
             :meth:`OverloadedType._ad_convert_type`.
     """
 
-    def __init__(self, problem, parameters, *, comm=None, convert_options=None):
+    def __init__(self, problem, parameters, *, comm=None):
         if PETSc is None:
             raise RuntimeError("PETSc not available")
         if petsctools is None:
@@ -274,9 +256,6 @@ class TAOSolver(OptimizationSolver):
             comm = PETSc.COMM_WORLD
         if hasattr(comm, "tompi4py"):
             comm = comm.tompi4py()
-        if convert_options is None:
-            convert_options = {}
-        convert_options = dict(convert_options)
 
         tao_objective = TAOObjective(problem.reduced_functional)
 
@@ -340,7 +319,7 @@ class TAOSolver(OptimizationSolver):
                 dJ = tao_objective.new_dual_control_variable()
                 from_petsc(x, dJ)
                 assert len(tao_objective.reduced_functional.controls) == len(dJ)
-                dJ = tuple(control._ad_convert_type(dJ_i, options=convert_options)
+                dJ = tuple(control._ad_convert_riesz(dJ_i, riesz_map=control.riesz_map)
                            for control, dJ_i in zip(tao_objective.reduced_functional.controls, dJ))
                 to_petsc(y, dJ)
 
@@ -385,7 +364,7 @@ class TAOSolver(OptimizationSolver):
                     dJ = tao_objective.new_dual_control_variable()
                     from_petsc(x, dJ)
                     assert len(tao_objective.reduced_functional.controls) == len(dJ)
-                    dJ = tuple(control._ad_convert_type(dJ_i, options=convert_options)
+                    dJ = tuple(control._ad_convert_riesz(dJ_i, riesz_map=control.riesz_map)
                                for control, dJ_i in zip(tao_objective.reduced_functional.controls, dJ))
                     to_petsc(y, dJ)
 
@@ -453,9 +432,8 @@ class TAOSolver(OptimizationSolver):
             OverloadedType or Sequence[OverloadedType]: The solution.
         """
 
-        m = tuple(
-            control.tape_value()._ad_copy()
-            for control in self.tao_objective.reduced_functional.controls)
+        controls = self.tao_objective.reduced_functional.controls
+        m = tuple(control.tape_value()._ad_copy() for control in controls)
         self._vec_interface.to_petsc(self.x, m)
         with petsctools.inserted_options(self.tao):
             self.tao.solve()
@@ -465,4 +443,7 @@ class TAOSolver(OptimizationSolver):
             raise TAOConvergenceError(
                 f"TAOSolver failed to converge after {self.tao.getIterationNumber()} iterations "
                 f"with reason: {_tao_reasons[self.tao.getConvergedReason()]}")
-        return self.tao_objective.reduced_functional.controls.delist(m)
+        if isinstance(controls, Enlist):
+            return controls.delist(m)
+        else:
+            return m

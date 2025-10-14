@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyadjoint-ad"
-version = "2025.04.1"
+version = "2025.10.0"
 dependencies = [
   "checkpoint_schedules",
   "scipy>=1.0",
@@ -69,7 +69,6 @@ tao = [
 
 [tool.setuptools]
 packages = [
-   "firedrake_adjoint",
    "numpy_adjoint",
    "pyadjoint",
    "pyadjoint.optimization"
