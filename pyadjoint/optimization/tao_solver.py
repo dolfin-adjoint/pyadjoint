@@ -40,6 +40,8 @@ class PETScVecInterface:
     def __init__(self, x, *, comm=None):
         if PETSc is None:
             raise RuntimeError("PETSc not available")
+        if petsctools is None:
+            raise RuntimeError("petsctools not available")
 
         x = Enlist(x)
         if comm is None:

@@ -90,7 +90,7 @@ class Block(object):
         """Resets all adjoint variables in the block dependencies and outputs.
 
         """
-        types = ("adjoint") if types is None else types
+        types = ("adjoint",) if types is None else types
 
         for dep in self._dependencies:
             dep.reset_variables(types)
