@@ -165,14 +165,16 @@ class RFAction(Enum):
     """
     The type of linear action that a ReducedFunctionalMat should apply.
     """
+    FORWARD = 'forward'
     TLM = 'tlm'
-    Adjoint = 'adjoint'
-    Hessian = 'hessian'
+    ADJOINT = 'adjoint'
+    HESSIAN = 'hessian'
 
 
-TLMAction = RFAction.TLM
-AdjointAction = RFAction.Adjoint
-HessianAction = RFAction.Hessian
+FORWARD = RFAction.FORWARD
+TLM = RFAction.TLM
+ADJOINT = RFAction.ADJOINT
+HESSIAN = RFAction.HESSIAN
 
 
 def check_rf_action(action):
@@ -203,11 +205,16 @@ class ReducedFunctionalMatCtx:
         apply_riesz (bool): Whether to apply the riesz map before returning the
             result of the action to PETSc.
         appctx (Optional[dict]): User provided context.
+        always_update_tape (bool): Whether to force reevaluation of the forward model every time
+            `mult` is called. If action is HESSIAN then this will also force the adjoint model to
+            be reevaluated at every call to `mult`.
         comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
     """
 
-    def __init__(self, rf, action=HessianAction, *,
-                 apply_riesz=False, appctx=None, comm=PETSc.COMM_WORLD):
+    def __init__(self, rf, action=HESSIAN, *,
+                 apply_riesz=False, appctx=None,
+                 always_update_tape=False,
+                 comm=PETSc.COMM_WORLD):
         comm = get_valid_comm(comm)
 
         self.rf = rf
@@ -216,25 +223,25 @@ class ReducedFunctionalMatCtx:
             tuple(c.control for c in rf.controls),
             comm=comm)
         self.apply_riesz = apply_riesz
-        if action in (AdjointAction, TLMAction):
+        if action in (ADJOINT, TLM):
             self.functional_interface = PETScVecInterface(
                 rf.functional, comm=comm)
 
-        if action == HessianAction:  # control -> control
+        if action == HESSIAN:  # control -> control
             self.xinterface = self.control_interface
             self.yinterface = self.control_interface
 
             self.x = new_control_variable(rf)
             self.mult_impl = self._mult_hessian
 
-        elif action == AdjointAction:  # functional -> control
+        elif action == ADJOINT:  # functional -> control
             self.xinterface = self.functional_interface
             self.yinterface = self.control_interface
 
             self.x = rf.functional._ad_copy()
             self.mult_impl = self._mult_adjoint
 
-        elif action == TLMAction:  # control -> functional
+        elif action == TLM:  # control -> functional
             self.xinterface = self.control_interface
             self.yinterface = self.functional_interface
 
@@ -247,13 +254,22 @@ class ReducedFunctionalMatCtx:
         self.action = action
         self._m = new_control_variable(rf)
         self._shift = 0
+        self.always_update_tape = always_update_tape
 
     @classmethod
     def update(cls, obj, x, A, P):
         ctx = A.getPythonContext()
         ctx.control_interface.from_petsc(x, ctx._m)
-        ctx.update_tape_values(update_adjoint=True)
+        ctx.update_tape_values(
+            update_adjoint=(ctx.action == HESSIAN))
         ctx._shift = 0
+
+        pctx = P.getPythonContext()
+        if pctx is not ctx:
+            pctx.control_interface.from_petsc(x, pctx._m)
+            pctx.update_tape_values(
+                update_adjoint=(pctx.action == HESSIAN))
+            pctx._shift = 0
 
     def shift(self, A, alpha):
         self._shift += alpha
@@ -271,25 +287,29 @@ class ReducedFunctionalMatCtx:
         if self._shift != 0:
             y.axpy(self._shift, x)
 
-    @check_rf_action(action=HessianAction)
+    @check_rf_action(HESSIAN)
     def _mult_hessian(self, A, x):
-        # self.update_tape_values(update_adjoint=True)
+        if self.always_update_tape:
+            self.update_tape_values(update_adjoint=True)
         return self.rf.hessian(
             x, apply_riesz=self.apply_riesz)
 
-    @check_rf_action(TLMAction)
+    @check_rf_action(TLM)
     def _mult_tlm(self, A, x):
-        # self.update_tape_values(update_adjoint=False)
+        if self.always_update_tape:
+            self.update_tape_values(update_adjoint=False)
         return self.rf.tlm(x)
 
-    @check_rf_action(AdjointAction)
+    @check_rf_action(ADJOINT)
     def _mult_adjoint(self, A, x):
-        # self.update_tape_values(update_adjoint=False)
+        if self.always_update_tape:
+            self.update_tape_values(update_adjoint=False)
         return self.rf.derivative(
             adj_input=x, apply_riesz=self.apply_riesz)
 
 
-def ReducedFunctionalMat(rf, action=HessianAction, *, apply_riesz=False, appctx=None, comm=None):
+def ReducedFunctionalMat(rf, action=HESSIAN, *, apply_riesz=False, appctx=None,
+                         always_update_tape=False, comm=None):
     """
     PETSc.Mat to apply the action of a pyadjoint.ReducedFunctional.
 
@@ -305,10 +325,14 @@ def ReducedFunctionalMat(rf, action=HessianAction, *, apply_riesz=False, appctx=
         apply_riesz (bool): Whether to apply the riesz map before returning the
             result of the action to PETSc.
         appctx (Optional[dict]): User provided context.
+        always_update_tape (bool): Whether to force reevaluation of the forward model every time
+            `mult` is called. If action is HESSIAN then this will also force the adjoint model to
+            be reevaluated at every call to `mult`.
         comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
     """
     ctx = ReducedFunctionalMatCtx(
-        rf, action, appctx=appctx, apply_riesz=apply_riesz, comm=comm)
+        rf, action, appctx=appctx, apply_riesz=apply_riesz,
+        always_update_tape=always_update_tape, comm=comm)
 
     ncol = ctx.xinterface.n
     Ncol = ctx.xinterface.N
@@ -319,7 +343,7 @@ def ReducedFunctionalMat(rf, action=HessianAction, *, apply_riesz=False, appctx=
     mat = PETSc.Mat().createPython(
         ((nrow, Nrow), (ncol, Ncol)),
         ctx, comm=ctx.control_interface.comm)
-    if action == HessianAction:
+    if action == HESSIAN:
         mat.setOption(PETSc.Mat.Option.SYMMETRIC, True)
     mat.setUp()
     mat.assemble()
@@ -367,17 +391,20 @@ class TAOObjective:
     Args:
         rf (AbstractReducedFunctional): Defines the forward, and used to
             compute derivative information.
+        always_update_tape (bool): Whether to force reevaluation of the forward model every time
+            gradient or hessian is called. If hessian is called then this will also force the
+            adjoint model to be reevaluated.
     """
 
-    def __init__(self, rf):
+    def __init__(self, rf, always_update_tape=True):
         self._reduced_functional = rf
+        self.always_update_tape = always_update_tape
 
     @property
     def reduced_functional(self):
         """:class:`.AbstractReducedFunctional`. Defines the forward, and used
         to compute derivative information.
         """
-
         return self._reduced_functional
 
     def objective(self, m):
@@ -389,7 +416,6 @@ class TAOObjective:
         Returns:
             AdjFloat: The value of the functional.
         """
-
         m = Enlist(m)
         J = self.reduced_functional(tuple(m_i._ad_copy() for m_i in m))
         return J
@@ -405,9 +431,9 @@ class TAOObjective:
             OverloadedType or Sequence[OverloadedType]: The (dual space)
                 derivative.
         """
-
         m = Enlist(m)
-        # J = self.reduced_functional(tuple(m_i._ad_copy() for m_i in m))
+        if self.always_update_tape:
+            _ = self.reduced_functional(tuple(m_i._ad_copy() for m_i in m))
         dJ = self.reduced_functional.derivative()
         return m.delist(dJ)
 
@@ -444,8 +470,9 @@ class TAOObjective:
 
         m = Enlist(m)
         m_dot = Enlist(m_dot)
-        _ = self.reduced_functional(tuple(m_i._ad_copy() for m_i in m))
-        _ = self.reduced_functional.derivative()
+        if self.always_update_tape:
+            _ = self.reduced_functional(tuple(m_i._ad_copy() for m_i in m))
+            _ = self.reduced_functional.derivative()
         ddJ = self.reduced_functional.hessian(tuple(m_dot_i._ad_copy() for m_dot_i in m_dot))
         return m.delist(ddJ)
 
@@ -498,27 +525,25 @@ class TAOSolver(OptimizationSolver):
         vec_interface = PETScVecInterface(
             tuple(control.control for control in rf.controls), comm=comm)
 
-        to_petsc, from_petsc = vec_interface.to_petsc, vec_interface.from_petsc
-
         tao = PETSc.TAO().create(comm=comm)
 
         def objective(tao, x):
             m = new_control_variable(rf)
-            from_petsc(x, m)
+            vec_interface.from_petsc(x, m)
             J_val = tao_objective.objective(m)
             return J_val
 
         def gradient(tao, x, g):
             m = new_control_variable(rf)
-            from_petsc(x, m)
+            vec_interface.from_petsc(x, m)
             dJ = tao_objective.gradient(m)
-            to_petsc(g, dJ)
+            vec_interface.to_petsc(g, dJ)
 
         def objective_gradient(tao, x, g):
             m = new_control_variable(rf)
-            from_petsc(x, m)
+            vec_interface.from_petsc(x, m)
             J_val, dJ = tao_objective.objective_gradient(m)
-            to_petsc(g, dJ)
+            vec_interface.to_petsc(g, dJ)
             return J_val
 
         tao.setObjectiveGradient(objective_gradient)
@@ -527,7 +552,7 @@ class TAOSolver(OptimizationSolver):
 
         hessian_mat = ReducedFunctionalMat(
             problem.reduced_functional, appctx=appctx,
-            action=HessianAction, comm=comm)
+            action=HESSIAN, comm=comm)
 
         tao.setHessian(
             hessian_mat.getPythonContext().update,
@@ -550,8 +575,8 @@ class TAOSolver(OptimizationSolver):
 
             lb_vec = vec_interface.new_petsc()
             ub_vec = vec_interface.new_petsc()
-            to_petsc(lb_vec, lbs)
-            to_petsc(ub_vec, ubs)
+            vec_interface.to_petsc(lb_vec, lbs)
+            vec_interface.to_petsc(ub_vec, ubs)
             tao.setVariableBounds(lb_vec, ub_vec)
 
         petsctools.set_from_options(
@@ -568,14 +593,8 @@ class TAOSolver(OptimizationSolver):
             class InitialHessianPreconditioner:
                 """:class:`petsc4py.PETSc.PC` context.
                 """
-
                 def apply(self, pc, x, y):
-                    dJ = new_control_variable(rf, dual=True)
-                    from_petsc(x, dJ)
-                    assert len(tao_objective.reduced_functional.controls) == len(dJ)
-                    dJ = tuple(control._ad_convert_riesz(dJ_i, riesz_map=control.riesz_map)
-                               for control, dJ_i in zip(tao_objective.reduced_functional.controls, dJ))
-                    to_petsc(y, dJ)
+                    Minv_mat.mult(x, y)
 
             # B_0_matrix is the initial Hessian approximation (following
             # Nocedal and Wright doi: 10.1007/978-0-387-40065-5 notation). This
@@ -586,8 +605,8 @@ class TAOSolver(OptimizationSolver):
             B_0_matrix.setOption(PETSc.Mat.Option.SYMMETRIC, True)
             B_0_matrix.setUp()
 
-            B_0_matrix_pc = PETSc.PC().createPython(InitialHessianPreconditioner(),
-                                                    comm=comm)
+            B_0_matrix_pc = PETSc.PC().createPython(
+                InitialHessianPreconditioner(), comm=comm)
             B_0_matrix_pc.setOperators(B_0_matrix)
             B_0_matrix_pc.setUp()
 
