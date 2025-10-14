@@ -110,8 +110,9 @@ class Block(object):
         This method will by default call the `evaluate_adj_component` method for each dependency.
 
         Args:
-            markings (bool): If True, then each block_variable will have set `marked_in_path` attribute indicating
-                whether their adjoint components are relevant for computing the final target adjoint values.
+            markings (bool): If True, then each block_variable will have set `is_control_dependent` attribute
+                indicating whether their adjoint components are relevant for computing the final target adjoint
+                values and `is_functional_dependency` indicating whether its value impacts the functional value.
                 Default is False.
 
         """
@@ -128,7 +129,7 @@ class Block(object):
 
         deps = self.get_dependencies()
         inputs = [bv.saved_output for bv in deps]
-        relevant_dependencies = [(i, bv) for i, bv in enumerate(deps) if bv.marked_in_path or not markings]
+        relevant_dependencies = [(i, bv) for i, bv in enumerate(deps) if bv.is_control_dependent or not markings]
 
         if len(relevant_dependencies) <= 0:
             return
@@ -190,7 +191,7 @@ class Block(object):
         This method will by default call the `evaluate_tlm_component` method for each output.
 
         Args:
-            markings (bool): If True, then each block_variable will have set `marked_in_path` attribute indicating
+            markings (bool): If True, then each block_variable will have set `is_control_dependent` attribute indicating
                 whether their tlm components are relevant for computing the final target tlm values.
                 Default is False.
 
@@ -208,7 +209,7 @@ class Block(object):
 
         outputs = self.get_outputs()
         inputs = [bv.saved_output for bv in deps]
-        relevant_outputs = [(i, bv) for i, bv in enumerate(outputs) if bv.marked_in_path or not markings]
+        relevant_outputs = [(i, bv) for i, bv in enumerate(outputs) if bv.is_control_dependent or not markings]
 
         if len(relevant_outputs) <= 0:
             return
@@ -280,7 +281,7 @@ class Block(object):
 
         deps = self.get_dependencies()
         inputs = [bv.saved_output for bv in deps]
-        relevant_dependencies = [(i, bv) for i, bv in enumerate(deps) if bv.marked_in_path or not markings]
+        relevant_dependencies = [(i, bv) for i, bv in enumerate(deps) if bv.is_control_dependent or not markings]
 
         if len(relevant_dependencies) <= 0:
             return
@@ -334,8 +335,9 @@ class Block(object):
         This method will by default call the `recompute_component` method for each output.
 
         Args:
-            markings (bool): If True, then each block_variable will have set `marked_in_path` attribute indicating
-                whether their checkpoints need to be recomputed for recomputing the final target function value.
+            markings (bool): If True, then each block_variable will have set `is_control_dependent` attribute
+                indicating whether their checkpoints need to be recomputed for recomputing the final target
+                function value.
                 Default is False.
 
         """
@@ -347,7 +349,7 @@ class Block(object):
                 return
 
         inputs = [bv.saved_output for bv in self.get_dependencies()]
-        relevant_outputs = [(i, bv) for i, bv in enumerate(outputs) if bv.marked_in_path or not markings]
+        relevant_outputs = [(i, bv) for i, bv in enumerate(outputs) if bv.is_control_dependent or not markings]
 
         if len(relevant_outputs) <= 0:
             return

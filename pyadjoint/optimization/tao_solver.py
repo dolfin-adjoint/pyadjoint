@@ -1,9 +1,6 @@
-from contextlib import contextmanager
 from functools import wraps
-import itertools
 from enum import Enum
 from numbers import Complex
-import warnings
 
 import numpy as np
 
@@ -17,12 +14,15 @@ try:
     import petsc4py.PETSc as PETSc
 except ModuleNotFoundError:
     PETSc = None
+try:
+    import petsctools
+except ModuleNotFoundError:
+    petsctools = None
 
-__all__ = \
-    [
-        "TAOConvergenceError",
-        "TAOSolver"
-    ]
+__all__ = [
+    "TAOConvergenceError",
+    "TAOSolver"
+]
 
 
 class PETScVecInterface:
@@ -142,203 +142,6 @@ def new_control_variable(reduced_functional, dual=False):
 
     return tuple(control._ad_init_zero(dual=dual)
                  for control in reduced_functional.controls)
-
-
-# Modified version of flatten_parameters function from firedrake/petsc.py,
-# Firedrake master branch 57e21cc8ebdb044c1d8423b48f3dbf70975d5548, first
-# added 2024-08-08
-def flatten_parameters(parameters, sep="_"):
-    """Flatten a nested parameters dict, joining keys with sep.
-
-    :arg parameters: a dict to flatten.
-    :arg sep: separator of keys.
-
-    Used to flatten parameter dictionaries with nested structure to a
-    flat dict suitable to pass to PETSc.  For example:
-
-    .. code-block:: python3
-
-       flatten_parameters({"a": {"b": {"c": 4}, "d": 2}, "e": 1}, sep="_")
-       => {"a_b_c": 4, "a_d": 2, "e": 1}
-
-    If a "prefix" key already ends with the provided separator, then
-    it is not used to concatenate the keys.  Hence:
-
-    .. code-block:: python3
-
-       flatten_parameters({"a_": {"b": {"c": 4}, "d": 2}, "e": 1}, sep="_")
-       => {"a_b_c": 4, "a_d": 2, "e": 1}
-       # rather than
-       => {"a__b_c": 4, "a__d": 2, "e": 1}
-    """
-    new = type(parameters)()
-
-    if not len(parameters):
-        return new
-
-    def flatten(parameters, *prefixes):
-        """Iterate over nested dicts, yielding (*keys, value) pairs."""
-        sentinel = object()
-        try:
-            option = sentinel
-            for option, value in parameters.items():
-                # Recurse into values to flatten any dicts.
-                for pair in flatten(value, option, *prefixes):
-                    yield pair
-            # Make sure zero-length dicts come back.
-            if option is sentinel:
-                yield (prefixes, parameters)
-        except AttributeError:
-            # Non dict values are just returned.
-            yield (prefixes, parameters)
-
-    def munge(keys):
-        """Ensure that each intermediate key in keys ends in sep.
-
-        Also, reverse the list."""
-        for key in reversed(keys[1:]):
-            if len(key) and not key.endswith(sep):
-                yield key + sep
-            else:
-                yield key
-        else:
-            yield keys[0]
-
-    for keys, value in flatten(parameters):
-        option = "".join(map(str, munge(keys)))
-        if option in new:
-            warnings.warn(("Ignoring duplicate option: %s (existing value %s, new value %s)")
-                          % (option, new[option], value))
-        new[option] = value
-    return new
-
-
-# Modified version of OptionsManager class from firedrake/petsc.py,
-# Firedrake master branch 57e21cc8ebdb044c1d8423b48f3dbf70975d5548, first
-# added 2024-08-08
-class OptionsManager(object):
-
-    # What appeared on the commandline, we should never clear these.
-    # They will override options passed in as a dict if an
-    # options_prefix was supplied.
-    if PETSc is not None:
-        commandline_options = frozenset(PETSc.Options().getAll())
-
-    if PETSc is not None:
-        options_object = PETSc.Options()
-
-    count = itertools.count()
-
-    """Mixin class that helps with managing setting petsc options.
-
-    :arg parameters: The dictionary of parameters to use.
-    :arg options_prefix: The prefix to look up items in the global
-        options database (may be ``None``, in which case only entries
-        from ``parameters`` will be considered.  If no trailing
-        underscore is provided, one is appended.  Hence ``foo_`` and
-        ``foo`` are treated equivalently.  As an exception, if the
-        prefix is the empty string, no underscore is appended.
-
-    To use this, you must call its constructor to with the parameters
-    you want in the options database.
-
-    You then call :meth:`set_from_options`, passing the PETSc object
-    you'd like to call ``setFromOptions`` on.  Note that this will
-    actually only call ``setFromOptions`` the first time (so really
-    this parameters object is a once-per-PETSc-object thing).
-
-    So that the runtime monitors which look in the options database
-    actually see options, you need to ensure that the options database
-    is populated at the time of a ``SNESSolve`` or ``KSPSolve`` call.
-    Do that using the :meth:`inserted_options` context manager.
-
-    .. code-block:: python3
-
-       with self.inserted_options():
-           self.snes.solve(...)
-
-    This ensures that the options database has the relevant entries
-    for the duration of the ``with`` block, before removing them
-    afterwards.  This is a much more robust way of dealing with the
-    fixed-size options database than trying to clear it out using
-    destructors.
-
-    This object can also be used only to manage insertion and deletion
-    into the PETSc options database, by using the context manager.
-    """
-    def __init__(self, parameters, options_prefix):
-        if PETSc is None:
-            raise RuntimeError("PETSc not available")
-
-        super().__init__()
-        if parameters is None:
-            parameters = {}
-        else:
-            # Convert nested dicts
-            parameters = flatten_parameters(parameters)
-        if options_prefix is None:
-            self.options_prefix = "pyadjoint_%d_" % next(self.count)
-            self.parameters = parameters
-            self.to_delete = set(parameters)
-        else:
-            if len(options_prefix) and not options_prefix.endswith("_"):
-                options_prefix += "_"
-            self.options_prefix = options_prefix
-            # Remove those options from the dict that were passed on
-            # the commandline.
-            self.parameters = {k: v for k, v in parameters.items()
-                               if options_prefix + k not in self.commandline_options}
-            self.to_delete = set(self.parameters)
-            # Now update parameters from options, so that they're
-            # available to solver setup (for, e.g., matrix-free).
-            # Can't ask for the prefixed guy in the options object,
-            # since that does not DTRT for flag options.
-            for k, v in self.options_object.getAll().items():
-                if k.startswith(self.options_prefix):
-                    self.parameters[k[len(self.options_prefix):]] = v
-        self._setfromoptions = False
-
-    def set_default_parameter(self, key, val):
-        """Set a default parameter value.
-
-        :arg key: The parameter name
-        :arg val: The parameter value.
-
-        Ensures that the right thing happens cleaning up the options
-        database.
-        """
-        k = self.options_prefix + key
-        if k not in self.options_object and key not in self.parameters:
-            self.parameters[key] = val
-            self.to_delete.add(key)
-
-    def set_from_options(self, petsc_obj):
-        """Set up petsc_obj from the options database.
-
-        :arg petsc_obj: The PETSc object to call setFromOptions on.
-
-        Matt says: "Only ever call setFromOptions once".  This
-        function ensures we do so.
-        """
-        if not self._setfromoptions:
-            with self.inserted_options():
-                petsc_obj.setOptionsPrefix(self.options_prefix)
-                # Call setfromoptions inserting appropriate options into
-                # the options database.
-                petsc_obj.setFromOptions()
-                self._setfromoptions = True
-
-    @contextmanager
-    def inserted_options(self):
-        """Context manager inside which the petsc options database
-    contains the parameters from this object."""
-        try:
-            for k, v in self.parameters.items():
-                self.options_object[self.options_prefix + k] = v
-            yield
-        finally:
-            for k in self.to_delete:
-                del self.options_object[self.options_prefix + k]
 
 
 def get_valid_comm(comm):
@@ -562,8 +365,8 @@ class TAOObjective:
     """Utility class for computing functional values and associated derivatives.
 
     Args:
-        rf (ReducedFunctional): Defines the forward, and used to compute
-            derivative information.
+        rf (AbstractReducedFunctional): Defines the forward, and used to
+            compute derivative information.
     """
 
     def __init__(self, rf):
@@ -571,8 +374,8 @@ class TAOObjective:
 
     @property
     def reduced_functional(self):
-        """:class:`.ReducedFunctional`. Defines the forward, and used to
-        compute derivative information.
+        """:class:`.AbstractReducedFunctional`. Defines the forward, and used
+        to compute derivative information.
         """
 
         return self._reduced_functional
@@ -679,6 +482,8 @@ class TAOSolver(OptimizationSolver):
                  Pmat=None, comm=None):
         if PETSc is None:
             raise RuntimeError("PETSc not available")
+        if petsctools is None:
+            raise RuntimeError("petsctools not available")
 
         if not isinstance(problem, MinimizationProblem):
             raise TypeError("MinimizationProblem required")
@@ -697,7 +502,7 @@ class TAOSolver(OptimizationSolver):
 
         tao = PETSc.TAO().create(comm=comm)
 
-        def objective(tao, x, g):
+        def objective(tao, x):
             m = new_control_variable(rf)
             from_petsc(x, m)
             J_val = tao_objective.objective(m)
@@ -749,8 +554,9 @@ class TAOSolver(OptimizationSolver):
             to_petsc(ub_vec, ubs)
             tao.setVariableBounds(lb_vec, ub_vec)
 
-        self.options = OptionsManager(parameters, options_prefix)
-        self.options.set_from_options(tao)
+        petsctools.set_from_options(
+            tao, parameters=parameters,
+            options_prefix=options_prefix)
 
         if tao.getType() in {PETSc.TAO.Type.LMVM, PETSc.TAO.Type.BLMVM}:
             n, N = vec_interface.n, vec_interface.N
@@ -797,7 +603,8 @@ class TAOSolver(OptimizationSolver):
 
         x = vec_interface.new_petsc()
         tao.setSolution(x)
-        tao.setUp()
+        with petsctools.inserted_options(tao):
+            tao.setUp()
 
         super().__init__(problem, parameters)
         self._tao_objective = tao_objective
@@ -834,16 +641,20 @@ class TAOSolver(OptimizationSolver):
             OverloadedType or Sequence[OverloadedType]: The solution.
         """
 
-        m = tuple(
-            control.tape_value()._ad_copy()
-            for control in self.tao_objective.reduced_functional.controls)
-        with self.options.inserted_options():
+        controls = self.tao_objective.reduced_functional.controls
+        m = tuple(control.tape_value()._ad_copy() for control in controls)
+
+        with petsctools.inserted_options(self.tao):
             self._vec_interface.to_petsc(self.x, m)
             self.tao.solve()
             self._vec_interface.from_petsc(self.x, m)
+
         if self.tao.getConvergedReason() <= 0:
             # Using the same format as Firedrake linear solver errors
             raise TAOConvergenceError(
                 f"TAOSolver failed to converge after {self.tao.getIterationNumber()} iterations "
                 f"with reason: {_tao_reasons[self.tao.getConvergedReason()]}")
-        return self.tao_objective.reduced_functional.controls.delist(m)
+        if isinstance(controls, Enlist):
+            return controls.delist(m)
+        else:
+            return m
