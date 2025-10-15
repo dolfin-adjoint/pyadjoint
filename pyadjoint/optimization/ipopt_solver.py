@@ -1,7 +1,5 @@
 from __future__ import print_function
 
-from functools import partial
-
 import numpy
 
 from . import constraints
@@ -43,7 +41,7 @@ class IPOPTSolver(OptimizationSolver):
 
         # A callback that evaluates the functional and derivative.
         J = self.rfn.__call__
-        dJ = partial(self.rfn.derivative, forget=False)
+        dJ = self.rfn.derivative
         nlp = cyipopt.Problem(
             n=len(ub),  # length of control vector
             lb=lb,  # lower bounds on control vector
