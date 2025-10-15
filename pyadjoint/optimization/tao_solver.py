@@ -1,4 +1,3 @@
-from functools import wraps
 from enum import Enum
 from numbers import Complex
 
@@ -173,24 +172,6 @@ class RFAction(Enum):
     HESSIAN = 'hessian'
 
 
-FORWARD = RFAction.FORWARD
-TLM = RFAction.TLM
-ADJOINT = RFAction.ADJOINT
-HESSIAN = RFAction.HESSIAN
-
-
-def check_rf_action(action):
-    def check_rf_action_decorator(func):
-        @wraps(func)
-        def wrapper(self, *args, **kwargs):
-            if self.action != action:
-                raise NotImplementedError(
-                    f'Cannot apply {str(action)} action if {self.action=}')
-            return func(self, *args, **kwargs)
-        return wrapper
-    return check_rf_action_decorator
-
-
 class ReducedFunctionalMatCtx:
     """
     PETSc.Mat Python context to apply the action of a pyadjoint.ReducedFunctional.
@@ -213,7 +194,7 @@ class ReducedFunctionalMatCtx:
         comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
     """
 
-    def __init__(self, rf, action=HESSIAN, *,
+    def __init__(self, rf, action=RFAction.HESSIAN, *,
                  apply_riesz=False, appctx=None,
                  always_update_tape=False,
                  comm=PETSc.COMM_WORLD):
@@ -225,25 +206,25 @@ class ReducedFunctionalMatCtx:
             tuple(c.control for c in rf.controls),
             comm=comm)
         self.apply_riesz = apply_riesz
-        if action in (ADJOINT, TLM):
+        if action in (RFAction.ADJOINT, RFAction.TLM):
             self.functional_interface = PETScVecInterface(
                 rf.functional, comm=comm)
 
-        if action == HESSIAN:  # control -> control
+        if action == RFAction.HESSIAN:  # control -> control
             self.xinterface = self.control_interface
             self.yinterface = self.control_interface
 
             self.x = new_control_variable(rf)
             self.mult_impl = self._mult_hessian
 
-        elif action == ADJOINT:  # functional -> control
+        elif action == RFAction.ADJOINT:  # functional -> control
             self.xinterface = self.functional_interface
             self.yinterface = self.control_interface
 
             self.x = rf.functional._ad_copy()
             self.mult_impl = self._mult_adjoint
 
-        elif action == TLM:  # control -> functional
+        elif action == RFAction.TLM:  # control -> functional
             self.xinterface = self.control_interface
             self.yinterface = self.functional_interface
 
@@ -263,14 +244,14 @@ class ReducedFunctionalMatCtx:
         ctx = A.getPythonContext()
         ctx.control_interface.from_petsc(x, ctx._m)
         ctx.update_tape_values(
-            update_adjoint=(ctx.action == HESSIAN))
+            update_adjoint=(ctx.action == RFAction.HESSIAN))
         ctx._shift = 0
 
         pctx = P.getPythonContext()
         if pctx is not ctx:
             pctx.control_interface.from_petsc(x, pctx._m)
             pctx.update_tape_values(
-                update_adjoint=(pctx.action == HESSIAN))
+                update_adjoint=(pctx.action == RFAction.HESSIAN))
             pctx._shift = 0
 
     def shift(self, A, alpha):
@@ -289,20 +270,17 @@ class ReducedFunctionalMatCtx:
         if self._shift != 0:
             y.axpy(self._shift, x)
 
-    @check_rf_action(HESSIAN)
     def _mult_hessian(self, A, x):
         if self.always_update_tape:
             self.update_tape_values(update_adjoint=True)
         return self.rf.hessian(
             x, apply_riesz=self.apply_riesz)
 
-    @check_rf_action(TLM)
     def _mult_tlm(self, A, x):
         if self.always_update_tape:
             self.update_tape_values(update_adjoint=False)
         return self.rf.tlm(x)
 
-    @check_rf_action(ADJOINT)
     def _mult_adjoint(self, A, x):
         if self.always_update_tape:
             self.update_tape_values(update_adjoint=False)
@@ -310,10 +288,9 @@ class ReducedFunctionalMatCtx:
             adj_input=x, apply_riesz=self.apply_riesz)
 
 
-def ReducedFunctionalMat(rf, action=HESSIAN, *, apply_riesz=False, appctx=None,
-                         always_update_tape=False, comm=None):
+class ReducedFunctionalMatBase:
     """
-    PETSc.Mat to apply the action of a pyadjoint.ReducedFunctional.
+    PETSc.Mat Python context to apply the action of a pyadjoint.ReducedFunctional.
 
     If V is the control space and U is the functional space, each action has the following map:
     Jhat : V -> U
@@ -330,11 +307,210 @@ def ReducedFunctionalMat(rf, action=HESSIAN, *, apply_riesz=False, appctx=None,
         always_update_tape (bool): Whether to force reevaluation of the forward model every time
             `mult` is called. If action is HESSIAN then this will also force the adjoint model to
             be reevaluated at every call to `mult`.
+        needs_functional_interface: Whether to create a PETScVecInterface for the rf.functional.
         comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
     """
-    ctx = ReducedFunctionalMatCtx(
-        rf, action, appctx=appctx, apply_riesz=apply_riesz,
-        always_update_tape=always_update_tape, comm=comm)
+
+    def __init__(self, rf, action=RFAction.HESSIAN, *,
+                 apply_riesz=False, appctx=None,
+                 always_update_tape=False,
+                 needs_functional_interface=False,
+                 comm=PETSc.COMM_WORLD):
+        comm = valid_comm(comm)
+
+        self.rf = rf
+        self.appctx = appctx
+        self.apply_riesz = apply_riesz
+
+        self.control_interface = PETScVecInterface(
+            tuple(c.control for c in rf.controls),
+            comm=comm)
+        if needs_functional_interface:
+            self.functional_interface = PETScVecInterface(
+                rf.functional, comm=comm)
+
+        self.action = action
+        self._m = new_control_variable(rf)
+        self._shift = 0
+        self.always_update_tape = always_update_tape
+
+    @classmethod
+    def update(cls, obj, x, A, P):
+        ctx = A.getPythonContext()
+        ctx.control_interface.from_petsc(x, ctx._m)
+        ctx.update_tape_values(
+            update_adjoint=(ctx.action == RFAction.HESSIAN))
+        ctx._shift = 0
+
+        pctx = P.getPythonContext()
+        if pctx is not ctx:
+            pctx.control_interface.from_petsc(x, pctx._m)
+            pctx.update_tape_values(
+                update_adjoint=(pctx.action == RFAction.HESSIAN))
+            pctx._shift = 0
+
+    def shift(self, A, alpha):
+        self._shift += alpha
+
+    def update_tape_values(self, *, update_adjoint=True):
+        _ = self.rf(self._m)
+        if update_adjoint:
+            _ = self.rf.derivative(apply_riesz=False)
+
+    def mult(self, A, x, y):
+        self.xinterface.from_petsc(x, self.x)
+        out = self.mult_impl(A, self.x)
+        self.yinterface.to_petsc(y, out)
+
+        if self._shift != 0:
+            y.axpy(self._shift, x)
+
+
+class ReducedFunctionalHessianMat(ReducedFunctionalMatBase):
+    """
+    PETSc.Mat Python context to apply the Hessian action of a pyadjoint.ReducedFunctional.
+
+    If V is the control space and U is the functional space, the Hessian action has the following map:
+    Jhat : V -> U
+    Hessian : V x U* -> V* | V -> V*
+
+    Args:
+        rf (ReducedFunctional): Defines the forward model, and used to compute operator actions.
+        apply_riesz (bool): Whether to apply the riesz map before returning the result of the
+            action to PETSc.
+        appctx (Optional[dict]): User provided context.
+        always_update_tape (bool): Whether to force reevaluation of the forward and adjoint models
+            every time `mult` is called.
+        comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
+    """
+
+    def __init__(self, rf, *, apply_riesz=False, appctx=None,
+                 always_update_tape=False, comm=PETSc.COMM_WORLD):
+
+        super().__init__(rf, RFAction.HESSIAN, apply_riesz=apply_riesz,
+                         appctx=appctx, needs_functional_interface=False,
+                         always_update_tape=always_update_tape, comm=comm)
+
+        self.xinterface = self.control_interface
+        self.yinterface = self.control_interface
+        self.x = new_control_variable(rf)
+
+    def mult_impl(self, A, x):
+        if self.always_update_tape:
+            self.update_tape_values(update_adjoint=True)
+        return self.rf.hessian(
+            x, apply_riesz=self.apply_riesz)
+
+
+class ReducedFunctionalAdjointMat(ReducedFunctionalMatBase):
+    """
+    PETSc.Mat Python context to apply the adjoint action of a pyadjoint.ReducedFunctional.
+
+    If V is the control space and U is the functional space, the adjoint action has the following map:
+    Jhat : V -> U
+    Adjoint : U* -> V*
+
+    Args:
+        rf (ReducedFunctional): Defines the forward model, and used to compute operator actions.
+        apply_riesz (bool): Whether to apply the riesz map before returning the result of the
+            action to PETSc.
+        appctx (Optional[dict]): User provided context.
+        always_update_tape (bool): Whether to force reevaluation of the forward model every time
+            `mult` is called.
+        comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
+    """
+
+    def __init__(self, rf, *, apply_riesz=False, appctx=None,
+                 always_update_tape=False, comm=PETSc.COMM_WORLD):
+
+        super().__init__(rf, RFAction.HESSIAN, apply_riesz=apply_riesz,
+                         appctx=appctx, needs_functional_interface=True,
+                         always_update_tape=always_update_tape, comm=comm)
+
+        self.xinterface = self.functional_interface
+        self.yinterface = self.control_interface
+        self.x = rf.functional._ad_copy()
+
+    def mult_impl(self, A, x):
+        if self.always_update_tape:
+            self.update_tape_values(update_adjoint=False)
+        return self.rf.derivative(
+            adj_input=x, apply_riesz=self.apply_riesz)
+
+
+class ReducedFunctionalTLMMat(ReducedFunctionalMatBase):
+    """
+    PETSc.Mat Python context to apply the tangent linear action of a pyadjoint.ReducedFunctional.
+
+    If V is the control space and U is the functional space, the tangent linear action has the following map:
+    Jhat : V -> U
+    TLM : V -> U
+
+    Args:
+        rf (ReducedFunctional): Defines the forward model, and used to compute operator actions.
+        appctx (Optional[dict]): User provided context.
+        always_update_tape (bool): Whether to force reevaluation of the forward model every time
+            `mult` is called.
+        comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
+    """
+
+    def __init__(self, rf, *, apply_riesz=False, appctx=None,
+                 always_update_tape=False, comm=PETSc.COMM_WORLD):
+
+        super().__init__(rf, RFAction.HESSIAN, apply_riesz=apply_riesz,
+                         appctx=appctx, needs_functional_interface=True,
+                         always_update_tape=always_update_tape, comm=comm)
+
+        self.xinterface = self.control_interface
+        self.yinterface = self.functional_interface
+        self.x = new_control_variable(rf)
+
+    def mult_impl(self, A, x):
+        if self.always_update_tape:
+            self.update_tape_values(update_adjoint=False)
+        return self.rf.tlm(x)
+
+
+def ReducedFunctionalMat(rf, action=RFAction.HESSIAN, *, apply_riesz=False, appctx=None,
+                         always_update_tape=False, comm=None):
+    """
+    PETSc.Mat to apply the action of a pyadjoint.ReducedFunctional.
+
+    If V is the control space and U is the functional space, each action has the following map:
+    Jhat : V -> U
+    TLM : V -> U
+    Adjoint : U* -> V*
+    Hessian : V x U* -> V* | V -> V*
+
+    Args:
+        rf (ReducedFunctional): Defines the forward model, and used to compute operator actions.
+        action (RFAction): Whether to apply the TLM, adjoint, or Hessian action.
+        apply_riesz (bool): Whether to apply the riesz map before returning the
+            result of the action to PETSc. Ignored if action is TLM.
+        appctx (Optional[dict]): User provided context.
+        always_update_tape (bool): Whether to force reevaluation of the forward model every time
+            `mult` is called. If action is HESSIAN then this will also force the adjoint model to
+            be reevaluated at every call to `mult`.
+        comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
+    """
+    if action == RFAction.HESSIAN:
+        ctx = ReducedFunctionalHessianMat(
+            rf, appctx=appctx, apply_riesz=apply_riesz,
+            always_update_tape=always_update_tape, comm=comm)
+
+    elif action == RFAction.ADJOINT:
+        ctx = ReducedFunctionalAdjointMat(
+            rf, appctx=appctx, apply_riesz=apply_riesz,
+            always_update_tape=always_update_tape, comm=comm)
+
+    elif action == RFAction.TLM:
+        ctx = ReducedFunctionalTLMMat(
+            rf, appctx=appctx,
+            always_update_tape=always_update_tape, comm=comm)
+
+    else:
+        raise ValueError(
+            'Unrecognised RFAction: {action}.')
 
     ncol = ctx.xinterface.n
     Ncol = ctx.xinterface.N
@@ -345,7 +521,7 @@ def ReducedFunctionalMat(rf, action=HESSIAN, *, apply_riesz=False, appctx=None,
     mat = PETSc.Mat().createPython(
         ((nrow, Nrow), (ncol, Ncol)),
         ctx, comm=ctx.control_interface.comm)
-    if action == HESSIAN:
+    if action == RFAction.HESSIAN:
         mat.setOption(PETSc.Mat.Option.SYMMETRIC, True)
     mat.setUp()
     mat.assemble()
@@ -554,7 +730,7 @@ class TAOSolver(OptimizationSolver):
 
         hessian_mat = ReducedFunctionalMat(
             problem.reduced_functional, appctx=appctx,
-            action=HESSIAN, comm=comm)
+            action=RFAction.HESSIAN, comm=comm)
 
         tao.setHessian(
             hessian_mat.getPythonContext().update,
