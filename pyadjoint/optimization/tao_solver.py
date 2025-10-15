@@ -146,12 +146,12 @@ def new_control_variable(reduced_functional, *, dual=False):
                  for control in reduced_functional.controls)
 
 
-def get_valid_comm(comm):
+def valid_comm(comm):
     """
-    Return a valid communicator from a user provided (possibly null) comm.
+    Return a valid communicator from a user provided Comm or None.
 
     Args:
-        comm: Any[petsc4py.PETSc.Comm,mpi4py.MPI.Comm,None]
+        comm: Optional[Any[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]]
 
     Returns:
         mpi4py.MPI.Comm. COMM_WORLD if `comm is None`, otherwise `comm.tompi4py()`.
@@ -217,7 +217,7 @@ class ReducedFunctionalMatCtx:
                  apply_riesz=False, appctx=None,
                  always_update_tape=False,
                  comm=PETSc.COMM_WORLD):
-        comm = get_valid_comm(comm)
+        comm = valid_comm(comm)
 
         self.rf = rf
         self.appctx = appctx
@@ -354,7 +354,7 @@ def ReducedFunctionalMat(rf, action=HESSIAN, *, apply_riesz=False, appctx=None,
 
 class RieszMapMatCtx:
     def __init__(self, controls, comm=None):
-        comm = get_valid_comm(comm)
+        comm = valid_comm(comm)
 
         self.controls = Enlist(controls)
         self.vec_interface = PETScVecInterface(
@@ -519,7 +519,7 @@ class TAOSolver(OptimizationSolver):
         if problem.constraints is not None:
             raise NotImplementedError("Constraints not implemented")
 
-        comm = get_valid_comm(comm)
+        comm = valid_comm(comm)
 
         rf = problem.reduced_functional
         tao_objective = TAOObjective(rf)
