@@ -130,7 +130,7 @@ class PETScVecInterface:
             x_sub.restoreSubVector(iset, x_sub)
 
 
-def new_control_variable(reduced_functional, dual=False):
+def new_control_variable(reduced_functional, *, dual=False):
     """Return new variables suitable for storing a control value or its dual.
 
     Args:
@@ -202,7 +202,7 @@ class ReducedFunctionalMatCtx:
     Hessian : V x U* -> V* | V -> V*
 
     Args:
-        rf (ReducedFunctional): Defines the forward model, and used to compute operator  actions.
+        rf (ReducedFunctional): Defines the forward model, and used to compute operator actions.
         action (RFAction): Whether to apply the TLM, adjoint, or Hessian action.
         apply_riesz (bool): Whether to apply the riesz map before returning the
             result of the action to PETSc.
@@ -276,7 +276,7 @@ class ReducedFunctionalMatCtx:
     def shift(self, A, alpha):
         self._shift += alpha
 
-    def update_tape_values(self, update_adjoint=True):
+    def update_tape_values(self, *, update_adjoint=True):
         _ = self.rf(self._m)
         if update_adjoint:
             _ = self.rf.derivative(apply_riesz=False)
@@ -322,7 +322,7 @@ def ReducedFunctionalMat(rf, action=HESSIAN, *, apply_riesz=False, appctx=None,
     Hessian : V x U* -> V* | V -> V*
 
     Args:
-        rf (ReducedFunctional): Defines the forward model, and used to compute operator  actions.
+        rf (ReducedFunctional): Defines the forward model, and used to compute operator actions.
         action (RFAction): Whether to apply the TLM, adjoint, or Hessian action.
         apply_riesz (bool): Whether to apply the riesz map before returning the
             result of the action to PETSc.
@@ -398,7 +398,7 @@ class TAOObjective:
             adjoint model to be reevaluated.
     """
 
-    def __init__(self, rf, always_update_tape=True):
+    def __init__(self, rf, *, always_update_tape=True):
         self._reduced_functional = rf
         self.always_update_tape = always_update_tape
 
