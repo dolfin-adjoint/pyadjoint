@@ -454,11 +454,10 @@ class ReducedFunctionalTLMMat(ReducedFunctionalMatBase):
         comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
     """
 
-    def __init__(self, rf, *, apply_riesz=False, appctx=None,
-                 always_update_tape=False, comm=PETSc.COMM_WORLD):
+    def __init__(self, rf, *, appctx=None, always_update_tape=False, comm=PETSc.COMM_WORLD):
 
-        super().__init__(rf, RFAction.HESSIAN, apply_riesz=apply_riesz,
-                         appctx=appctx, needs_functional_interface=True,
+        super().__init__(rf, RFAction.HESSIAN, appctx=appctx,
+                         needs_functional_interface=True,
                          always_update_tape=always_update_tape, comm=comm)
 
         self.xinterface = self.control_interface
