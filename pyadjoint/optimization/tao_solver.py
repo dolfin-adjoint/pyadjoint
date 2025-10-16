@@ -172,122 +172,6 @@ class RFAction(Enum):
     HESSIAN = 'hessian'
 
 
-class ReducedFunctionalMatCtx:
-    """
-    PETSc.Mat Python context to apply the action of a pyadjoint.ReducedFunctional.
-
-    If V is the control space and U is the functional space, each action has the following map:
-    Jhat : V -> U
-    TLM : V -> U
-    Adjoint : U* -> V*
-    Hessian : V x U* -> V* | V -> V*
-
-    Args:
-        rf (ReducedFunctional): Defines the forward model, and used to compute operator actions.
-        action (RFAction): Whether to apply the TLM, adjoint, or Hessian action.
-        apply_riesz (bool): Whether to apply the riesz map before returning the
-            result of the action to PETSc.
-        appctx (Optional[dict]): User provided context.
-        always_update_tape (bool): Whether to force reevaluation of the forward model every time
-            `mult` is called. If action is HESSIAN then this will also force the adjoint model to
-            be reevaluated at every call to `mult`.
-        comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
-    """
-
-    def __init__(self, rf, action=RFAction.HESSIAN, *,
-                 apply_riesz=False, appctx=None,
-                 always_update_tape=False,
-                 comm=PETSc.COMM_WORLD):
-        comm = valid_comm(comm)
-
-        self.rf = rf
-        self.appctx = appctx
-        self.control_interface = PETScVecInterface(
-            tuple(c.control for c in rf.controls),
-            comm=comm)
-        self.apply_riesz = apply_riesz
-        if action in (RFAction.ADJOINT, RFAction.TLM):
-            self.functional_interface = PETScVecInterface(
-                rf.functional, comm=comm)
-
-        if action == RFAction.HESSIAN:  # control -> control
-            self.xinterface = self.control_interface
-            self.yinterface = self.control_interface
-
-            self.x = new_control_variable(rf)
-            self.mult_impl = self._mult_hessian
-
-        elif action == RFAction.ADJOINT:  # functional -> control
-            self.xinterface = self.functional_interface
-            self.yinterface = self.control_interface
-
-            self.x = rf.functional._ad_copy()
-            self.mult_impl = self._mult_adjoint
-
-        elif action == RFAction.TLM:  # control -> functional
-            self.xinterface = self.control_interface
-            self.yinterface = self.functional_interface
-
-            self.x = new_control_variable(rf)
-            self.mult_impl = self._mult_tlm
-        else:
-            raise ValueError(
-                'Unrecognised {action = }.')
-
-        self.action = action
-        self._m = new_control_variable(rf)
-        self._shift = 0
-        self.always_update_tape = always_update_tape
-
-    @classmethod
-    def update(cls, obj, x, A, P):
-        ctx = A.getPythonContext()
-        ctx.control_interface.from_petsc(x, ctx._m)
-        ctx.update_tape_values(
-            update_adjoint=(ctx.action == RFAction.HESSIAN))
-        ctx._shift = 0
-
-        pctx = P.getPythonContext()
-        if pctx is not ctx:
-            pctx.control_interface.from_petsc(x, pctx._m)
-            pctx.update_tape_values(
-                update_adjoint=(pctx.action == RFAction.HESSIAN))
-            pctx._shift = 0
-
-    def shift(self, A, alpha):
-        self._shift += alpha
-
-    def update_tape_values(self, *, update_adjoint=True):
-        _ = self.rf(self._m)
-        if update_adjoint:
-            _ = self.rf.derivative(apply_riesz=False)
-
-    def mult(self, A, x, y):
-        self.xinterface.from_petsc(x, self.x)
-        out = self.mult_impl(A, self.x)
-        self.yinterface.to_petsc(y, out)
-
-        if self._shift != 0:
-            y.axpy(self._shift, x)
-
-    def _mult_hessian(self, A, x):
-        if self.always_update_tape:
-            self.update_tape_values(update_adjoint=True)
-        return self.rf.hessian(
-            x, apply_riesz=self.apply_riesz)
-
-    def _mult_tlm(self, A, x):
-        if self.always_update_tape:
-            self.update_tape_values(update_adjoint=False)
-        return self.rf.tlm(x)
-
-    def _mult_adjoint(self, A, x):
-        if self.always_update_tape:
-            self.update_tape_values(update_adjoint=False)
-        return self.rf.derivative(
-            adj_input=x, apply_riesz=self.apply_riesz)
-
-
 class ReducedFunctionalMatBase:
     """
     PETSc.Mat Python context to apply the action of a pyadjoint.ReducedFunctional.
@@ -341,13 +225,6 @@ class ReducedFunctionalMatBase:
         ctx.update_tape_values(
             update_adjoint=(ctx.action == RFAction.HESSIAN))
         ctx._shift = 0
-
-        pctx = P.getPythonContext()
-        if pctx is not ctx:
-            pctx.control_interface.from_petsc(x, pctx._m)
-            pctx.update_tape_values(
-                update_adjoint=(pctx.action == RFAction.HESSIAN))
-            pctx._shift = 0
 
     def shift(self, A, alpha):
         self._shift += alpha
