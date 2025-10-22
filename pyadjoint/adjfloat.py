@@ -17,6 +17,31 @@ def register_function(np_operator):
     return register
 
 
+@register_function(np.hypot)
+class _pyadjoint_hypot(sp.Function):
+    def fdiff(self, argindex=1):
+        if argindex == 1:
+            return self.args[0] / _pyadjoint_hypot(self.args[0],
+                                                   self.args[1])
+        elif argindex == 2:
+            return self.args[1] / _pyadjoint_hypot(self.args[0],
+                                                   self.args[1])
+
+
+@register_function(np.expm1)
+class _pyadjoint_expm1(sp.Function):
+    def fdiff(self, argindex=1):
+        if argindex == 1:
+            return sp.exp(self.args[0])
+
+
+@register_function(np.log1p)
+class _pyadjoint_log1p(sp.Function):
+    def fdiff(self, argindex=1):
+        if argindex == 1:
+            return sp.Integer(1) / (sp.Integer(1) + self.args[0])
+
+
 @lru_cache(maxsize=128)
 def codegen(expr, symbols, diff=()):
     for idx in diff:
@@ -154,6 +179,10 @@ class AdjFloat(OverloadedType, float):
             return NotImplemented
         return _ops[ufunc](*inputs)
 
+    @annotate_operator(Operator(sp.Abs, 1))
+    def __abs__(self):
+        return super().__abs__()
+
     @annotate_operator(Operator(operator.pos, 1))
     def __pos__(self):
         return super().__pos__()
@@ -202,6 +231,7 @@ class AdjFloat(OverloadedType, float):
     def __rpow__(self, other):
         return super().__rpow__(other)
 
+    abs = register_operator(np.abs, operator.abs, 1)
     positive = register_operator(np.positive, operator.pos, 1)
     negative = register_operator(np.negative, operator.neg, 1)
     multiply = register_operator(np.multiply, operator.mul, 2)
@@ -209,8 +239,6 @@ class AdjFloat(OverloadedType, float):
     add = register_operator(np.add, operator.add, 2)
     subtract = register_operator(np.subtract, operator.sub, 2)
     power = register_operator(np.power, operator.pow, 2)
-    exp = register_operator(np.exp, sp.exp, 1)
-    log = register_operator(np.log, sp.log, 1)
     minimum = register_operator(
         np.minimum,
         lambda self, other: sp.Piecewise((self, self <= other),
@@ -221,6 +249,32 @@ class AdjFloat(OverloadedType, float):
         lambda self, other: sp.Piecewise((self, self >= other),
                                          (other, True)),
         2)
+
+    sin = register_operator(np.sin, sp.sin, 1)
+    cos = register_operator(np.cos, sp.cos, 1)
+    tan = register_operator(np.tan, sp.tan, 1)
+    arcsin = register_operator(np.arcsin, sp.asin, 1)
+    arccos = register_operator(np.arccos, sp.acos, 1)
+    arctan = register_operator(np.arctan, sp.atan, 1)
+    arctan2 = register_operator(np.arctan2, sp.atan2, 2)
+    hypot = register_operator(np.hypot, _pyadjoint_hypot, 2)
+    sinh = register_operator(np.sinh, sp.sinh, 1)
+    cosh = register_operator(np.cosh, sp.cosh, 1)
+    tanh = register_operator(np.tanh, sp.tanh, 1)
+    arcsinh = register_operator(np.arcsinh, sp.asinh, 1)
+    arccosh = register_operator(np.arccosh, sp.acosh, 1)
+    arctanh = register_operator(np.arctanh, sp.atanh, 1)
+    exp = register_operator(np.exp, sp.exp, 1)
+    exp2 = register_operator(np.exp2, lambda x: 2 ** x, 1)
+    expm1 = register_operator(np.expm1, _pyadjoint_expm1, 1)
+    log = register_operator(np.log, sp.log, 1)
+    log2 = register_operator(np.log2, lambda x: sp.log(x, 2), 1)
+    log10 = register_operator(np.log10, lambda x: sp.log(x, 10), 1)
+    log1p = register_operator(np.log1p, _pyadjoint_log1p, 1)
+    sqrt = register_operator(np.sqrt, sp.sqrt, 1)
+    square = register_operator(np.square, lambda x: x ** 2, 1)
+    cbrt = register_operator(np.cbrt, lambda x: x ** sp.Rational(1, 3), 1)
+    reciprocal = register_operator(np.reciprocal, lambda x: 1 / x, 1)
 
     def _ad_init_zero(self, dual=False):
         return type(self)(0.)
