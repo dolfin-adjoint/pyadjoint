@@ -164,12 +164,6 @@ def register_operator(np_operator, sp_operator, nargs):
 
 @register_overloaded_type
 class AdjFloat(OverloadedType, float):
-    def __new__(cls, *args, **kwargs):
-        return float.__new__(cls, *args)
-
-    def __init__(self, *args, **kwargs):
-        super(AdjFloat, self).__init__(*args, **kwargs)
-
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         if method != "__call__":
             return NotImplemented
