@@ -49,6 +49,8 @@ class Operator:
 
 class AdjFloatExprBlock(Block):
     def __init__(self, sp_operator, *args):
+        if len(set(arg.block_variable for arg in args)) != len(args):
+            raise ValueError("Duplicate argument")
         super().__init__()
         self._sp_operator = sp_operator
         for arg in args:
@@ -100,6 +102,12 @@ def annotate_operator(sp_operator):
             args = tuple(arg if isinstance(arg, OverloadedType) else cls(arg) for arg in args)
             output = cls(output)
             if annotate_tape():
+                args = list(args)
+                bv = set()
+                for i, arg in enumerate(args):
+                    if arg.block_variable in bv:
+                        args[i] = +arg  # copy
+                    bv.add(arg.block_variable)
                 block = AdjFloatExprBlock(sp_operator, *args)
                 tape = get_working_tape()
                 tape.add_block(block)
