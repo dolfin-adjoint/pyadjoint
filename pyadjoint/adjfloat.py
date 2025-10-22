@@ -274,7 +274,7 @@ class AdjFloat(OverloadedType, float):
     sqrt = register_operator(np.sqrt, sp.sqrt, 1)
     square = register_operator(np.square, lambda x: x ** 2, 1)
     cbrt = register_operator(np.cbrt, lambda x: x ** sp.Rational(1, 3), 1)
-    reciprocal = register_operator(np.reciprocal, lambda x: 1 / x, 1)
+    reciprocal = register_operator(np.reciprocal, lambda x: sp.Integer(1) / x, 1)
 
     def _ad_init_zero(self, dual=False):
         return type(self)(0.)
