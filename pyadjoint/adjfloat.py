@@ -6,7 +6,6 @@ from .overloaded_type import OverloadedType, register_overloaded_type
 from .tape import get_working_tape, annotate_tape
 import numpy as np
 import sympy as sp
-from sympy.printing.numpy import NumPyPrinter
 
 _op_fns = {}
 
@@ -66,7 +65,7 @@ class AdjFloatExprBlock(Block):
         for idx1 in range(self._sp_operator.nargs):
             if tlm_inputs[idx1] is not None:
                 val += self._sp_operator.codegen(diff=(idx1,))(*inputs) * tlm_inputs[idx1]
-        return val 
+        return val
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
@@ -85,10 +84,10 @@ class AdjFloatExprBlock(Block):
         return self._sp_operator.codegen(diff=())(*inputs)
 
 
-def register_operator(sp_operator):
+def annotate_operator(sp_operator):
     def wrapper(fn):
         @wraps(fn)
-        def annotate_operator(*args):
+        def annotated_operator(*args):
             for arg in args:
                 if isinstance(arg, OverloadedType):
                     cls = type(arg)
@@ -106,7 +105,7 @@ def register_operator(sp_operator):
                 tape.add_block(block)
                 block.add_output(output.block_variable)
             return output
-        return annotate_operator
+        return annotated_operator
     return wrapper
 
 
@@ -115,15 +114,16 @@ def roperator(operator):
         return operator(b, a)
     return roperator
 
+
 _ops = {}
 
 
-def register_numpy_operator(np_operator, sp_operator, nargs):
+def register_operator(np_operator, sp_operator, nargs):
     def wrapped_operator(*args):
         if len(args) != nargs:
             return NotImplemented
         return np_operator(*(float(arg) if isinstance(arg, AdjFloat) else arg for arg in args))
-    _ops[np_operator] = register_operator(Operator(sp_operator, nargs))(wrapped_operator)
+    _ops[np_operator] = annotate_operator(Operator(sp_operator, nargs))(wrapped_operator)
     return _ops[np_operator]
 
 
@@ -146,52 +146,60 @@ class AdjFloat(OverloadedType, float):
             return NotImplemented
         return _ops[ufunc](*inputs)
 
-    @register_operator(Operator(operator.mul, 2))
-    def __mul__(self, other):
-        return super().__mul__(other)
-
-    @register_operator(Operator(operator.truediv, 2))
-    def __truediv__(self, other):
-        return super().__truediv__(other)
-
-    @register_operator(Operator(operator.neg, 1))
+    @annotate_operator(Operator(operator.neg, 1))
     def __neg__(self):
         return super().__neg__()
 
-    @register_operator(Operator(roperator(operator.mul), 2))
+    @annotate_operator(Operator(operator.mul, 2))
+    def __mul__(self, other):
+        return super().__mul__(other)
+
+    @annotate_operator(Operator(roperator(operator.mul), 2))
     def __rmul__(self, other):
         return super().__rmul__(other)
 
-    @register_operator(Operator(operator.add, 2))
+    @annotate_operator(Operator(operator.truediv, 2))
+    def __truediv__(self, other):
+        return super().__truediv__(other)
+
+    @annotate_operator(Operator(operator.add, 2))
     def __add__(self, other):
         return super().__add__(other)
 
-    @register_operator(Operator(roperator(operator.add), 2))
+    @annotate_operator(Operator(roperator(operator.add), 2))
     def __radd__(self, other):
         return super().__radd__(other)
 
-    @register_operator(Operator(operator.sub, 2))
+    @annotate_operator(Operator(operator.sub, 2))
     def __sub__(self, other):
         return super().__sub__(other)
 
-    @register_operator(Operator(roperator(operator.sub), 2))
+    @annotate_operator(Operator(roperator(operator.sub), 2))
     def __rsub__(self, other):
         return super().__rsub__(other)
 
-    @register_operator(Operator(operator.pow, 2))
+    @annotate_operator(Operator(operator.pow, 2))
     def __pow__(self, power):
         return super().__pow__(power)
 
-    multiply = register_numpy_operator(np.multiply, operator.mul, 2)
-    divide = register_numpy_operator(np.divide, operator.truediv, 2)
-    negative = register_numpy_operator(np.negative, operator.neg, 1)
-    add = register_numpy_operator(np.add, operator.add, 2)
-    subtract = register_numpy_operator(np.subtract, operator.sub, 2)
-    power = register_numpy_operator(np.power, operator.pow, 2)
-    exp = register_numpy_operator(np.exp, sp.exp, 1)
-    log = register_numpy_operator(np.log, sp.log, 1)    
-    minimum = register_numpy_operator(np.minimum, lambda self, other: sp.Piecewise((self, self <= other), (other, True)), 2)
-    maximum = register_numpy_operator(np.maximum, lambda self, other: sp.Piecewise((self, self >= other), (other, True)), 2)
+    negative = register_operator(np.negative, operator.neg, 1)
+    multiply = register_operator(np.multiply, operator.mul, 2)
+    divide = register_operator(np.divide, operator.truediv, 2)
+    add = register_operator(np.add, operator.add, 2)
+    subtract = register_operator(np.subtract, operator.sub, 2)
+    power = register_operator(np.power, operator.pow, 2)
+    exp = register_operator(np.exp, sp.exp, 1)
+    log = register_operator(np.log, sp.log, 1)
+    minimum = register_operator(
+        np.minimum,
+        lambda self, other: sp.Piecewise((self, self <= other),
+                                         (other, True)),
+        2)
+    maximum = register_operator(
+        np.maximum,
+        lambda self, other: sp.Piecewise((self, self >= other),
+                                         (other, True)),
+        2)
 
     def _ad_init_zero(self, dual=False):
         return type(self)(0.)
