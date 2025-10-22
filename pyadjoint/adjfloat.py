@@ -146,6 +146,10 @@ class AdjFloat(OverloadedType, float):
             return NotImplemented
         return _ops[ufunc](*inputs)
 
+    @annotate_operator(Operator(operator.pos, 1))
+    def __pos__(self):
+        return super().__pos__()
+
     @annotate_operator(Operator(operator.neg, 1))
     def __neg__(self):
         return super().__neg__()
@@ -161,6 +165,10 @@ class AdjFloat(OverloadedType, float):
     @annotate_operator(Operator(operator.truediv, 2))
     def __truediv__(self, other):
         return super().__truediv__(other)
+
+    @annotate_operator(Operator(roperator(operator.truediv), 2))
+    def __rtruediv__(self, other):
+        return super().__rtruediv__(other)
 
     @annotate_operator(Operator(operator.add, 2))
     def __add__(self, other):
@@ -179,9 +187,14 @@ class AdjFloat(OverloadedType, float):
         return super().__rsub__(other)
 
     @annotate_operator(Operator(operator.pow, 2))
-    def __pow__(self, power):
-        return super().__pow__(power)
+    def __pow__(self, other):
+        return super().__pow__(other)
 
+    @annotate_operator(Operator(roperator(operator.pow), 2))
+    def __rpow__(self, other):
+        return super().__rpow__(other)
+
+    positive = register_operator(np.positive, operator.pos, 1)
     negative = register_operator(np.negative, operator.neg, 1)
     multiply = register_operator(np.multiply, operator.mul, 2)
     divide = register_operator(np.divide, operator.truediv, 2)
