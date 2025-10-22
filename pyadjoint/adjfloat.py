@@ -46,7 +46,7 @@ class _pyadjoint_log1p(sp.Function):
 @lru_cache(maxsize=128)
 def codegen(expr, symbols, diff=()):
     for idx in diff:
-        expr = sp.simplify(expr.diff(symbols[idx]))
+        expr = expr.diff(symbols[idx])
     return sp.lambdify(symbols, expr, modules=["numpy", _op_fns])
 
 
