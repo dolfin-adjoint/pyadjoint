@@ -53,9 +53,13 @@ def codegen(expr, symbols, diff=()):
 class Operator:
     _symbol_count = count()
 
-    def __init__(self, fn, nargs):
-        self._fn = fn
+    def __init__(self, sp_operator, nargs):
+        self._sp_operator = sp_operator
         self._nargs = nargs
+
+    @property
+    def sp_operator(self):
+        return self._sp_operator
 
     @property
     def nargs(self):
@@ -67,7 +71,7 @@ class Operator:
 
     @cached_property
     def expr(self):
-        return self._fn(*self.symbols)
+        return self.sp_operator(*self.symbols)
 
     def codegen(self, diff=()):
         return codegen(self.expr, self.symbols, diff=diff)
@@ -122,7 +126,6 @@ def annotate_operator(sp_operator):
 
             if annotate_tape():
                 args = list(args)
-                adjfloat_bv = set()
                 for i, arg in enumerate(args):
                     if isinstance(arg, OverloadedType):
                         pass
