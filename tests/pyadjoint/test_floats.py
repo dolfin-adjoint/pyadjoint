@@ -1,5 +1,6 @@
 import pytest
 import math
+import numpy as np
 from numpy.testing import assert_approx_equal
 from numpy.random import rand
 from pyadjoint import *
@@ -155,7 +156,8 @@ def test_float_neg():
     assert rf2.derivative() == - 2.0
 
 
-def test_float_logexp():
+@pytest.mark.parametrize("exp", (exp, lambda x: 1 + np.expm1(x)))
+def test_float_logexp(exp):
     a = AdjFloat(3.0)
     b = exp(a)
     c = log(b)
