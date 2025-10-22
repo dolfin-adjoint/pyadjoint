@@ -8,6 +8,8 @@ from .tape import get_working_tape, annotate_tape
 import numpy as np
 import sympy as sp
 
+__all__ = ["AdjFloat"]
+
 _op_fns = {}
 
 
@@ -78,23 +80,23 @@ class Operator:
 
 
 class AdjFloatExprBlock(Block):
-    def __init__(self, sp_operator, *args):
+    def __init__(self, operator, *args):
         super().__init__()
-        self._sp_operator = sp_operator
+        self._operator = operator
         for arg in args:
             self.add_dependency(arg)
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         adj_input, = adj_inputs
-        return self._sp_operator.codegen(diff=(idx,))(*inputs) * adj_input
+        return self._operator.codegen(diff=(idx,))(*inputs) * adj_input
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
         if idx != 0:
             raise ValueError("Unexpected idx")
         val = 0.0
-        for idx1 in range(self._sp_operator.nargs):
+        for idx1 in range(self._operator.nargs):
             if tlm_inputs[idx1] is not None:
-                val += self._sp_operator.codegen(diff=(idx1,))(*inputs) * tlm_inputs[idx1]
+                val += self._operator.codegen(diff=(idx1,))(*inputs) * tlm_inputs[idx1]
         return val
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
@@ -104,17 +106,17 @@ class AdjFloatExprBlock(Block):
         tlm_inputs = tuple(dep.tlm_value for dep in self.get_dependencies())
         val = 0.0
         if hessian_input is not None:
-            val += self._sp_operator.codegen(diff=(idx,))(*inputs) * hessian_input
-        for idx1 in range(self._sp_operator.nargs):
+            val += self._operator.codegen(diff=(idx,))(*inputs) * hessian_input
+        for idx1 in range(self._operator.nargs):
             if adj_input is not None and tlm_inputs[idx1] is not None:
-                val += self._sp_operator.codegen(diff=(idx, idx1))(*inputs) * adj_input * tlm_inputs[idx1]
+                val += self._operator.codegen(diff=(idx, idx1))(*inputs) * adj_input * tlm_inputs[idx1]
         return val
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        return self._sp_operator.codegen(diff=())(*inputs)
+        return self._operator.codegen(diff=())(*inputs)
 
 
-def annotate_operator(sp_operator):
+def annotate_operator(operator):
     def wrapper(fn):
         @wraps(fn)
         def annotated_operator(*args):
@@ -135,7 +137,7 @@ def annotate_operator(sp_operator):
                         # Not annotated
                         return output
 
-                block = AdjFloatExprBlock(sp_operator, *args)
+                block = AdjFloatExprBlock(operator, *args)
                 tape = get_working_tape()
                 tape.add_block(block)
                 block.add_output(output.block_variable)
