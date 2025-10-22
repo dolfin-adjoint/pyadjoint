@@ -75,8 +75,6 @@ class Operator:
 
 class AdjFloatExprBlock(Block):
     def __init__(self, sp_operator, *args):
-        if len(set(arg.block_variable for arg in args)) != len(args):
-            raise ValueError("Duplicate argument")
         super().__init__()
         self._sp_operator = sp_operator
         for arg in args:
@@ -126,11 +124,7 @@ def annotate_operator(sp_operator):
                 args = list(args)
                 adjfloat_bv = set()
                 for i, arg in enumerate(args):
-                    if isinstance(arg, AdjFloat):
-                        if arg.block_variable in adjfloat_bv:
-                            args[i] = +arg  # copy
-                        adjfloat_bv.add(arg.block_variable)
-                    elif isinstance(arg, OverloadedType):
+                    if isinstance(arg, OverloadedType):
                         pass
                     elif isinstance(arg, numbers.Complex):
                         args[i] = AdjFloat(arg)  # Error here if not real
