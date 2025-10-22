@@ -1,5 +1,6 @@
 from functools import cached_property, lru_cache, wraps
 from itertools import count
+import numbers
 import operator
 from .block import Block
 from .overloaded_type import OverloadedType, register_overloaded_type
@@ -115,24 +116,28 @@ def annotate_operator(sp_operator):
     def wrapper(fn):
         @wraps(fn)
         def annotated_operator(*args):
-            for arg in args:
-                if isinstance(arg, OverloadedType):
-                    cls = type(arg)
-                    break
-            else:
-                raise TypeError("OverloadedType required")
             output = fn(*args)
-            if output is NotImplemented:
+            if not isinstance(output, numbers.Complex):
+                # Not annotated
                 return output
-            args = tuple(arg if isinstance(arg, OverloadedType) else cls(arg) for arg in args)
-            output = cls(output)
+            output = AdjFloat(output)  # Error here if not real
+
             if annotate_tape():
                 args = list(args)
-                bv = set()
+                adjfloat_bv = set()
                 for i, arg in enumerate(args):
-                    if arg.block_variable in bv:
-                        args[i] = +arg  # copy
-                    bv.add(arg.block_variable)
+                    if isinstance(arg, AdjFloat):
+                        if arg.block_variable in adjfloat_bv:
+                            args[i] = +arg  # copy
+                        adjfloat_bv.add(arg.block_variable)
+                    elif isinstance(arg, OverloadedType):
+                        pass
+                    elif isinstance(arg, numbers.Complex):
+                        args[i] = AdjFloat(arg)  # Error here if not real
+                    else:
+                        # Not annotated
+                        return output
+
                 block = AdjFloatExprBlock(sp_operator, *args)
                 tape = get_working_tape()
                 tape.add_block(block)
@@ -173,11 +178,13 @@ class AdjFloat(OverloadedType, float):
             return NotImplemented
         if len(kwargs) > 0:
             return NotImplemented
-        if ufunc not in _ops:
-            return NotImplemented
         if len(inputs) == 0:
             return NotImplemented
-        return _ops[ufunc](*inputs)
+        if ufunc in _ops:
+            return _ops[ufunc](*inputs)
+        else:
+            # Not annotated
+            return ufunc(*(float(arg) if isinstance(arg, AdjFloat) else arg for arg in inputs))
 
     @annotate_operator(Operator(sp.Abs, 1))
     def __abs__(self):
