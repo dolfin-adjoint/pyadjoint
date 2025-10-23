@@ -80,9 +80,10 @@ class Operator:
 
 
 class AdjFloatExprBlock(Block):
-    def __init__(self, operator, *args):
+    def __init__(self, operator, *args, np_operator=None):
         super().__init__()
         self._operator = operator
+        self._np_operator = np_operator
         for arg in args:
             self.add_dependency(arg)
 
@@ -111,10 +112,13 @@ class AdjFloatExprBlock(Block):
         return val
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
-        return self._operator.codegen(diff=())(*inputs)
+        if self._np_operator is None:
+            return self._operator.codegen(diff=())(*inputs)
+        else:
+            return self._np_operator(*inputs)
 
 
-def annotate_operator(operator):
+def annotate_operator(operator, np_operator=None):
     def wrapper(fn):
         @wraps(fn)
         def annotated_operator(*args):
@@ -135,7 +139,9 @@ def annotate_operator(operator):
                         # Not annotated
                         return output
 
-                block = AdjFloatExprBlock(operator, *args)
+                block = AdjFloatExprBlock(
+                    operator, *args,
+                    np_operator=fn if np_operator is None else np_operator)
                 tape = get_working_tape()
                 tape.add_block(block)
                 block.add_output(output.block_variable)
@@ -177,55 +183,55 @@ class AdjFloat(OverloadedType, float):
             # Not annotated
             return ufunc(*(float(arg) if isinstance(arg, AdjFloat) else arg for arg in inputs))
 
-    @annotate_operator(Operator(sp.Abs, 1))
+    @annotate_operator(Operator(sp.Abs, 1), operator.abs)
     def __abs__(self):
         return super().__abs__()
 
-    @annotate_operator(Operator(operator.pos, 1))
+    @annotate_operator(Operator(operator.pos, 1), operator.pos)
     def __pos__(self):
         return super().__pos__()
 
-    @annotate_operator(Operator(operator.neg, 1))
+    @annotate_operator(Operator(operator.neg, 1), operator.neg)
     def __neg__(self):
         return super().__neg__()
 
-    @annotate_operator(Operator(operator.mul, 2))
+    @annotate_operator(Operator(operator.mul, 2), operator.mul)
     def __mul__(self, other):
         return super().__mul__(other)
 
-    @annotate_operator(Operator(roperator(operator.mul), 2))
+    @annotate_operator(Operator(roperator(operator.mul), 2), roperator(operator.mul))
     def __rmul__(self, other):
         return super().__rmul__(other)
 
-    @annotate_operator(Operator(operator.truediv, 2))
+    @annotate_operator(Operator(operator.truediv, 2), operator.truediv)
     def __truediv__(self, other):
         return super().__truediv__(other)
 
-    @annotate_operator(Operator(roperator(operator.truediv), 2))
+    @annotate_operator(Operator(roperator(operator.truediv), 2), roperator(operator.truediv))
     def __rtruediv__(self, other):
         return super().__rtruediv__(other)
 
-    @annotate_operator(Operator(operator.add, 2))
+    @annotate_operator(Operator(operator.add, 2), operator.add)
     def __add__(self, other):
         return super().__add__(other)
 
-    @annotate_operator(Operator(roperator(operator.add), 2))
+    @annotate_operator(Operator(roperator(operator.add), 2), roperator(operator.add))
     def __radd__(self, other):
         return super().__radd__(other)
 
-    @annotate_operator(Operator(operator.sub, 2))
+    @annotate_operator(Operator(operator.sub, 2), operator.sub)
     def __sub__(self, other):
         return super().__sub__(other)
 
-    @annotate_operator(Operator(roperator(operator.sub), 2))
+    @annotate_operator(Operator(roperator(operator.sub), 2), roperator(operator.sub))
     def __rsub__(self, other):
         return super().__rsub__(other)
 
-    @annotate_operator(Operator(operator.pow, 2))
+    @annotate_operator(Operator(operator.pow, 2), operator.pow)
     def __pow__(self, other):
         return super().__pow__(other)
 
-    @annotate_operator(Operator(roperator(operator.pow), 2))
+    @annotate_operator(Operator(roperator(operator.pow), 2), roperator(operator.pow))
     def __rpow__(self, other):
         return super().__rpow__(other)
 
