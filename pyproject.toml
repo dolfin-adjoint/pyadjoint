@@ -8,6 +8,7 @@ version = "2025.10.0"
 dependencies = [
   "checkpoint_schedules",
   "scipy>=1.0",
+  "sympy",
 ]
 authors = [
   {name = "Jørgen S. Dokken", email = "dokken@simula.no"},
