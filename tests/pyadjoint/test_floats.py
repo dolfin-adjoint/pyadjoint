@@ -156,6 +156,17 @@ def test_float_neg():
     assert rf2.derivative() == - 2.0
 
 
+@pytest.mark.parametrize("v", (1.0, -1.0, 2.0, -2.0))
+def test_exp(v):
+    a = AdjFloat(v)
+    b = exp(a)
+    assert_approx_equal(b, math.exp(v))
+
+    rf = ReducedFunctional(b, Control(a))
+    assert_approx_equal(rf.derivative(), math.exp(v))
+    assert_approx_equal(rf.hessian(1.0), math.exp(v))
+
+
 @pytest.mark.parametrize("exp", (exp, lambda x: 1 + np.expm1(x)))
 def test_float_logexp(exp):
     a = AdjFloat(3.0)
