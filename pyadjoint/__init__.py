@@ -14,7 +14,7 @@ from .optimization.optimization import (
 from .control import Control
 from .overloaded_type import OverloadedType, create_overloaded_object
 from .verification import taylor_test, taylor_to_dict
-from .drivers import compute_gradient, compute_hessian, solve_adjoint
+from .drivers import compute_gradient, compute_derivative, compute_tlm, compute_hessian, solve_adjoint
 from .checkpointing import disk_checkpointing_callback
 from .reduced_functional import ReducedFunctional
 from .adjfloat import AdjFloat, exp, log
@@ -57,6 +57,8 @@ __all__ = [
     "create_overloaded_object",
     "OverloadedType",
     "compute_gradient",
+    "compute_derivative",
+    "compute_tlm",
     "compute_hessian",
     "solve_adjoint",
     "taylor_test",
