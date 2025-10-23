@@ -162,7 +162,7 @@ def valid_comm(comm):
     return comm
 
 
-class RFAction(Enum):
+class RFOperation(Enum):
     """
     The type of linear action that a ReducedFunctionalMat should apply.
     """
@@ -184,18 +184,22 @@ class ReducedFunctionalMatBase:
 
     Args:
         rf (ReducedFunctional): Defines the forward model, and used to compute operator actions.
-        action (RFAction): Whether to apply the TLM, adjoint, or Hessian action.
+        action (RFOperation): Whether to apply the TLM, adjoint, or Hessian action.
         apply_riesz (bool): Whether to apply the riesz map before returning the
             result of the action to PETSc.
         appctx (Optional[dict]): User provided context.
         always_update_tape (bool): Whether to force reevaluation of the forward model every time
             `mult` is called. If action is HESSIAN then this will also force the adjoint model to
             be reevaluated at every call to `mult`.
+            The default is False because PETSc will call the update method before each KSP solve
+            and we evaluate the forward model there (and adjoint in the case of RFOperation.HESSIAN).
         needs_functional_interface: Whether to create a PETScVecInterface for the rf.functional.
+            This is required when RFOperation is ADJOINT or TLM, because then this Mat is rectangular
+            rather than square as in the case of HESSIAN.
         comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
     """
 
-    def __init__(self, rf, action=RFAction.HESSIAN, *,
+    def __init__(self, rf, action=RFOperation.HESSIAN, *,
                  apply_riesz=False, appctx=None,
                  always_update_tape=False,
                  needs_functional_interface=False,
@@ -223,7 +227,7 @@ class ReducedFunctionalMatBase:
         ctx = A.getPythonContext()
         ctx.control_interface.from_petsc(x, ctx._m)
         ctx.update_tape_values(
-            update_adjoint=(ctx.action == RFAction.HESSIAN))
+            update_adjoint=(ctx.action == RFOperation.HESSIAN))
         ctx._shift = 0
 
     def shift(self, A, alpha):
@@ -264,7 +268,7 @@ class ReducedFunctionalHessianMat(ReducedFunctionalMatBase):
     def __init__(self, rf, *, apply_riesz=False, appctx=None,
                  always_update_tape=False, comm=PETSc.COMM_WORLD):
 
-        super().__init__(rf, RFAction.HESSIAN, apply_riesz=apply_riesz,
+        super().__init__(rf, RFOperation.HESSIAN, apply_riesz=apply_riesz,
                          appctx=appctx, needs_functional_interface=False,
                          always_update_tape=always_update_tape, comm=comm)
 
@@ -300,7 +304,7 @@ class ReducedFunctionalAdjointMat(ReducedFunctionalMatBase):
     def __init__(self, rf, *, apply_riesz=False, appctx=None,
                  always_update_tape=False, comm=PETSc.COMM_WORLD):
 
-        super().__init__(rf, RFAction.HESSIAN, apply_riesz=apply_riesz,
+        super().__init__(rf, RFOperation.HESSIAN, apply_riesz=apply_riesz,
                          appctx=appctx, needs_functional_interface=True,
                          always_update_tape=always_update_tape, comm=comm)
 
@@ -333,7 +337,7 @@ class ReducedFunctionalTLMMat(ReducedFunctionalMatBase):
 
     def __init__(self, rf, *, appctx=None, always_update_tape=False, comm=PETSc.COMM_WORLD):
 
-        super().__init__(rf, RFAction.HESSIAN, appctx=appctx,
+        super().__init__(rf, RFOperation.HESSIAN, appctx=appctx,
                          needs_functional_interface=True,
                          always_update_tape=always_update_tape, comm=comm)
 
@@ -347,7 +351,7 @@ class ReducedFunctionalTLMMat(ReducedFunctionalMatBase):
         return self.rf.tlm(x)
 
 
-def ReducedFunctionalMat(rf, action=RFAction.HESSIAN, *, apply_riesz=False, appctx=None,
+def ReducedFunctionalMat(rf, action=RFOperation.HESSIAN, *, apply_riesz=False, appctx=None,
                          always_update_tape=False, comm=None):
     """
     PETSc.Mat to apply the action of a pyadjoint.ReducedFunctional.
@@ -360,7 +364,7 @@ def ReducedFunctionalMat(rf, action=RFAction.HESSIAN, *, apply_riesz=False, appc
 
     Args:
         rf (ReducedFunctional): Defines the forward model, and used to compute operator actions.
-        action (RFAction): Whether to apply the TLM, adjoint, or Hessian action.
+        action (RFOperation): Whether to apply the TLM, adjoint, or Hessian action.
         apply_riesz (bool): Whether to apply the riesz map before returning the
             result of the action to PETSc. Ignored if action is TLM.
         appctx (Optional[dict]): User provided context.
@@ -369,24 +373,24 @@ def ReducedFunctionalMat(rf, action=RFAction.HESSIAN, *, apply_riesz=False, appc
             be reevaluated at every call to `mult`.
         comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
     """
-    if action == RFAction.HESSIAN:
+    if action == RFOperation.HESSIAN:
         ctx = ReducedFunctionalHessianMat(
             rf, appctx=appctx, apply_riesz=apply_riesz,
             always_update_tape=always_update_tape, comm=comm)
 
-    elif action == RFAction.ADJOINT:
+    elif action == RFOperation.ADJOINT:
         ctx = ReducedFunctionalAdjointMat(
             rf, appctx=appctx, apply_riesz=apply_riesz,
             always_update_tape=always_update_tape, comm=comm)
 
-    elif action == RFAction.TLM:
+    elif action == RFOperation.TLM:
         ctx = ReducedFunctionalTLMMat(
             rf, appctx=appctx,
             always_update_tape=always_update_tape, comm=comm)
 
     else:
         raise ValueError(
-            'Unrecognised RFAction: {action}.')
+            f'Unrecognised RFOperation: {action}.')
 
     ncol = ctx.xinterface.n
     Ncol = ctx.xinterface.N
@@ -397,7 +401,7 @@ def ReducedFunctionalMat(rf, action=RFAction.HESSIAN, *, apply_riesz=False, appc
     mat = PETSc.Mat().createPython(
         ((nrow, Nrow), (ncol, Ncol)),
         ctx, comm=ctx.control_interface.comm)
-    if action == RFAction.HESSIAN:
+    if action == RFOperation.HESSIAN:
         mat.setOption(PETSc.Mat.Option.SYMMETRIC, True)
     mat.setUp()
     mat.assemble()
@@ -606,7 +610,7 @@ class TAOSolver(OptimizationSolver):
 
         hessian_mat = ReducedFunctionalMat(
             problem.reduced_functional, appctx=appctx,
-            action=RFAction.HESSIAN, comm=comm)
+            action=RFOperation.HESSIAN, comm=comm)
 
         tao.setHessian(
             hessian_mat.getPythonContext().update,
