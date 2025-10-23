@@ -45,7 +45,7 @@ class _pyadjoint_log1p(sp.Function):
             return sp.Integer(1) / (sp.Integer(1) + self.args[0])
 
 
-@lru_cache(maxsize=128)
+@lru_cache(maxsize=256)
 def codegen(expr, symbols, diff=()):
     for idx in diff:
         expr = expr.diff(symbols[idx])
