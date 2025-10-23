@@ -104,11 +104,10 @@ class AdjFloatExprBlock(Block):
         hessian_input, = hessian_inputs
         adj_input, = adj_inputs
         val = self._operator.codegen(diff=(idx,))(*inputs) * hessian_input
-        if adj_input is not None:
-            for idx1, dep in relevant_dependencies:
-                tlm_input = dep.tlm_value
-                if tlm_input is not None:
-                    val += self._operator.codegen(diff=(idx, idx1))(*inputs) * adj_input * tlm_input
+        for idx1, dep in relevant_dependencies:
+            tlm_input = dep.tlm_value
+            if tlm_input is not None:
+                val += self._operator.codegen(diff=(idx, idx1))(*inputs) * adj_input * tlm_input
         return val
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
