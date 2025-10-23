@@ -183,7 +183,7 @@ class AdjFloat(OverloadedType, float):
             # Not annotated
             return ufunc(*(float(arg) if isinstance(arg, AdjFloat) else arg for arg in inputs))
 
-    @annotate_operator(Operator(sp.Abs, 1), operator.abs)
+    @annotate_operator(Operator(lambda x: sp.Piecewise((x, x >= 0), (-x, True)), 1), operator.abs)
     def __abs__(self):
         return super().__abs__()
 
