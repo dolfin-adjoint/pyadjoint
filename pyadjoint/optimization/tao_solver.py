@@ -246,6 +246,30 @@ class ReducedFunctionalMatBase:
         if self._shift != 0:
             y.axpy(self._shift, x)
 
+    def multHermitian(self, A, x, y):
+        self.yinterface.from_petsc(x, self.x)
+        out = self.multHermitian_impl(A, self.x)
+        self.xinterface.to_petsc(y, out)
+
+        if self._shift != 0:
+            y.axpy(self._shift, x)
+
+    def mult_impl(self, A, x):
+        """
+        This method must be overriden.
+
+        Provides the implementation of a particular type of ReducedFunctional action.
+        """
+        raise NotImplementedError
+
+    def multHermitian_impl(self, A, y):
+        """
+        This method must be overriden.
+
+        Provides the implementation of the Hermitian of a particular type of ReducedFunctional action.
+        """
+        raise NotImplementedError
+
 
 class ReducedFunctionalHessianMat(ReducedFunctionalMatBase):
     """
@@ -281,6 +305,9 @@ class ReducedFunctionalHessianMat(ReducedFunctionalMatBase):
             self.update_tape_values(update_adjoint=True)
         return self.rf.hessian(
             x, apply_riesz=self.apply_riesz)
+
+    def multHermitian_impl(self, A, x):
+        return self.mult_impl(A, x)
 
 
 class ReducedFunctionalAdjointMat(ReducedFunctionalMatBase):
@@ -318,6 +345,11 @@ class ReducedFunctionalAdjointMat(ReducedFunctionalMatBase):
         return self.rf.derivative(
             adj_input=x, apply_riesz=self.apply_riesz)
 
+    def multHermitian_impl(self, A, x):
+        if self.always_update_tape:
+            self.update_tape_values(update_adjoint=False)
+        return self.rf.tlm(x)
+
 
 class ReducedFunctionalTLMMat(ReducedFunctionalMatBase):
     """
@@ -349,6 +381,12 @@ class ReducedFunctionalTLMMat(ReducedFunctionalMatBase):
         if self.always_update_tape:
             self.update_tape_values(update_adjoint=False)
         return self.rf.tlm(x)
+
+    def multHermitian_impl(self, A, x):
+        if self.always_update_tape:
+            self.update_tape_values(update_adjoint=False)
+        return self.rf.derivative(
+            adj_input=x, apply_riesz=self.apply_riesz)
 
 
 def ReducedFunctionalMat(rf, action=RFOperation.HESSIAN, *, apply_riesz=False, appctx=None,
