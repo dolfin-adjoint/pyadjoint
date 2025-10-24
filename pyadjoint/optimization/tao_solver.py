@@ -224,7 +224,7 @@ class ReducedFunctionalMatBase:
     def update(cls, obj, x, A, P):
         ctx = A.getPythonContext()
         ctx.control_interface.from_petsc(x, ctx._m)
-        ctx.update_tape_values(update_adjoint=self.update_adjoint)
+        ctx.update_tape_values(update_adjoint=ctx.update_adjoint)
         ctx._shift = 0
 
     def shift(self, A, alpha):
