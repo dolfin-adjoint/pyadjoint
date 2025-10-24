@@ -142,6 +142,104 @@ class AdjFloat(OverloadedType, float):
         raise NotImplementedError("_ad_from_petsc not implemented for AdjFloat.")
 
 
+@register_overloaded_type
+class AdjComplex(OverloadedType, complex):
+    def __new__(cls, *args, **kwargs):
+        return complex.__new__(cls, *args)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    @annotate_operator
+    def __mul__(self, other):
+        return MulBlock(self, other)
+
+    @annotate_operator
+    def __div__(self, other):
+        return DivBlock(self, other)
+
+    @annotate_operator
+    def __truediv__(self, other):
+        return DivBlock(self, other)
+
+    @annotate_operator
+    def __neg__(self):
+        return NegBlock(self)
+
+    @annotate_operator
+    def __rmul__(self, other):
+        return MulBlock(self, other)
+
+    @annotate_operator
+    def __add__(self, other):
+        return AddBlock(self, other)
+
+    @annotate_operator
+    def __radd__(self, other):
+        return AddBlock(self, other)
+
+    @annotate_operator
+    def __sub__(self, other):
+        return SubBlock(self, other)
+
+    @annotate_operator
+    def __rsub__(self, other):
+        # NOTE: order is important here
+        return SubBlock(other, self)
+
+    @annotate_operator
+    def __pow__(self, power):
+        return PowBlock(self, power)
+
+    def _ad_init_zero(self, dual=False):
+        return type(self)(0.)
+
+    def _ad_convert_riesz(self, value, riesz_map=None):
+        if riesz_map is not None:
+            raise ValueError(f"Unexpected Riesz map for Adjfloat: {riesz_map}")
+        return type(self)(value)
+
+    def _ad_create_checkpoint(self):
+        # Floats are immutable.
+        return self
+
+    def _ad_restore_at_checkpoint(self, checkpoint):
+        return checkpoint
+
+    def _ad_mul(self, other):
+        return self * other
+
+    def _ad_add(self, other):
+        return self + other
+
+    def _ad_dot(self, other):
+        return complex.__mul__(self, other)
+
+    @staticmethod
+    def _ad_assign_numpy(dst, src, offset):
+        dst = type(dst)(src[offset:offset + 1])
+        offset += 1
+        return dst, offset
+
+    @staticmethod
+    def _ad_to_list(value):
+        return [value]
+
+    def _ad_copy(self):
+        return self
+
+    @property
+    def _ad_str(self):
+        """Return the string of the taped value of this variable."""
+        return str(self.block_variable.saved_output)
+
+    def _ad_to_petsc(self, vec=None):
+        raise NotImplementedError("_ad_to_petsc not implemented for AdjFloat.")
+
+    def _ad_from_petsc(self, vec):
+        raise NotImplementedError("_ad_from_petsc not implemented for AdjFloat.")
+
+
 _exp = math.exp
 _log = math.log
 

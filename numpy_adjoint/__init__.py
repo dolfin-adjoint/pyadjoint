@@ -14,5 +14,6 @@ from .array import ndarray
 # Use pyadjoint AdjFloat for numpy.float64.
 import numpy
 from pyadjoint.overloaded_type import register_overloaded_type
-from pyadjoint.adjfloat import AdjFloat
+from pyadjoint.adjfloat import AdjFloat, AdjComplex
 register_overloaded_type(AdjFloat, numpy.float64)
+register_overloaded_type(AdjComplex, numpy.complex128)
