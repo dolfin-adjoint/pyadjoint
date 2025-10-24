@@ -140,7 +140,6 @@ def new_control_variable(reduced_functional, *, dual=False):
     Returns:
         tuple[OverloadedType]: New variables suitable for storing a control value.
     """
-
     return tuple(control._ad_init_zero(dual=dual)
                  for control in reduced_functional.controls)
 
