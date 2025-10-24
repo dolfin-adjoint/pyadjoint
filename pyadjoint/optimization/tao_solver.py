@@ -286,7 +286,7 @@ class ReducedFunctionalHessianMat(ReducedFunctionalMatBase):
         appctx (Optional[dict]): User provided context.
         always_update_tape (bool): Whether to force reevaluation of the forward and adjoint models
             every time `mult` is called.
-        comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
+        comm (Optional[Union[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]]): Communicator that the rf is defined over.
     """
 
     def __init__(self, rf, *, apply_riesz=False, appctx=None,
