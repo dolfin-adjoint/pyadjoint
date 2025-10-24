@@ -39,7 +39,7 @@ class OptimizationProblem(object):
             raise TypeError("Instantiate a MinimizationProblem or MaximizationProblem.")
 
         if not isinstance(reduced_functional, AbstractReducedFunctional):
-            raise TypeError("reduced_functional should be a AbstractReducedFunctional")
+            raise TypeError("reduced_functional should be an AbstractReducedFunctional")
 
         if bounds is not None:
             if len(bounds) != len(reduced_functional.controls):
