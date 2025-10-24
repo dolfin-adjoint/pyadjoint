@@ -457,7 +457,7 @@ def ReducedFunctionalMat(rf, action=RFOperation.HESSIAN, *, apply_riesz=False, a
 
 class RieszMapMatCtx:
     """
-    PETSc.Mat to apply the Riesz map to an element in the dual of the control space.
+    PETSc.Mat Python context to apply the Riesz map to an element in the dual of the control space.
 
     If V is the control space then this has the followiung signature:
     RieszMap : V* -> V
