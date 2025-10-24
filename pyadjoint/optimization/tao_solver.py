@@ -256,16 +256,28 @@ class ReducedFunctionalMatBase:
         This method must be overriden.
 
         Provides the implementation of a particular type of ReducedFunctional action.
+
+        Args:
+            A (PETSc.Mat): The Mat that this python context is attached to.
+            x (Union[OverloadedType, list[OverloadedType]]): An element in either the control
+                or functional space of the ReducedFunctional that this Mat will act on.
         """
-        raise NotImplementedError
+        raise NotImplementedError(
+            "Must provide implementation of the action of this matrix on an OverloadedType")
 
     def multHermitian_impl(self, A, y):
         """
         This method must be overriden.
 
         Provides the implementation of the Hermitian of a particular type of ReducedFunctional action.
+
+        Args:
+            A (PETSc.Mat): The Mat that this python context is attached to.
+            y (Union[OverloadedType, list[OverloadedType]]): An element in either the control
+                or functional space of the ReducedFunctional that this Mat will act on.
         """
-        raise NotImplementedError
+        raise NotImplementedError(
+            "Must provide implementation of the Hermitian action of this matrix on an OverloadedType")
 
 
 class ReducedFunctionalHessianMat(ReducedFunctionalMatBase):
@@ -444,6 +456,16 @@ def ReducedFunctionalMat(rf, action=RFOperation.HESSIAN, *, apply_riesz=False, a
 
 
 class RieszMapMatCtx:
+    """
+    PETSc.Mat to apply the Riesz map to an element in the dual of the control space.
+
+    If V is the control space then this has the followiung signature:
+    RieszMap : V* -> V
+
+    Args:
+        controls (Union[Control,list[Control]]): The controls defining the primal control space.
+        comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the controls are defined over.
+    """
     def __init__(self, controls, comm=None):
         comm = valid_comm(comm)
 
@@ -463,6 +485,17 @@ class RieszMapMatCtx:
 
 
 def RieszMapMat(controls, symmetric=True, comm=None):
+    """
+    PETSc.Mat to apply the Riesz map to an element in the dual of the control space.
+
+    If V is the control space then this has the followiung signature:
+    RieszMap : V* -> V
+
+    Args:
+        controls (Union[Control,list[Control]]): The controls defining the primal control space.
+        symmetric (bool): Whether the Riesz map attached to the Control is symmetric.
+        comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the controls are defined over.
+    """
     ctx = RieszMapMatCtx(controls, comm=comm)
 
     n = ctx.vec_interface.n
