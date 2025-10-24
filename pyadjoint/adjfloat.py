@@ -17,14 +17,20 @@ def annotate_operator(operator):
     # the actual float operation is derived from the name of operator
     try:
         float_op = getattr(float, operator.__name__)
+        complex_op = getattr(complex, operator.__name__)
     except AttributeError:
         if operator.__name__ == '__div__':
             float_op = float.__truediv__
+            complex_op = complex.__truediv__
         else:
             raise
 
     def annotated_operator(self, *args):
-        output = float_op(self, *args)
+        if isinstance(self, AdjFloat):
+            output = float_op(self, *args)
+        else:
+            assert isinstance(self, AdjComplex)
+            output = complex_op(self, *args)
         if output is NotImplemented:
             return NotImplemented
 
