@@ -152,7 +152,7 @@ def valid_comm(comm):
         comm: Optional[Any[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]]
 
     Returns:
-        mpi4py.MPI.Comm. COMM_WORLD if `comm is None`, otherwise `comm.tompi4py()`.
+        mpi4py.MPI.Comm.COMM_WORLD if `comm is None`, otherwise `comm.tompi4py()`.
     """
     if comm is None:
         comm = PETSc.COMM_WORLD
