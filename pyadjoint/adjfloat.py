@@ -235,7 +235,7 @@ class AdjFloat(OverloadedType, float):
     def __rpow__(self, other):
         return super().__rpow__(other)
 
-    absolute = register_operator(np.absolute, operator.abs, 1)
+    absolute = register_operator(np.absolute, lambda x: sp.Piecewise((x, x >= 0), (-x, True)), 1)
     positive = register_operator(np.positive, operator.pos, 1)
     negative = register_operator(np.negative, operator.neg, 1)
     multiply = register_operator(np.multiply, operator.mul, 2)

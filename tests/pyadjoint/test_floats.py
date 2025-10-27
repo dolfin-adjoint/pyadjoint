@@ -1,6 +1,7 @@
 import pytest
 import math
 import numpy as np
+import operator
 from numpy.testing import assert_approx_equal
 from numpy.random import rand
 from pyadjoint import *
@@ -154,6 +155,18 @@ def test_float_neg():
     assert rf2.derivative() == - 2.0
     assert rf2(g) == - 14.0
     assert rf2.derivative() == - 2.0
+
+
+@pytest.mark.parametrize("v", (-math.sqrt(math.pi), 0.0, math.sqrt(math.pi)))
+@pytest.mark.parametrize("abs", (operator.abs, np.absolute))
+def test_float_abs(v, abs):
+    a = AdjFloat(v)
+    b = abs(a)
+    assert_approx_equal(b, abs(v))
+
+    rf = ReducedFunctional(b, Control(a))
+    assert_approx_equal(rf.derivative(), 1.0 if v >= 0 else -1.0)
+    assert_approx_equal(rf.hessian(1.0), 0.0)
 
 
 @pytest.mark.parametrize("v", (1.0, -1.0, 2.0, -2.0))
