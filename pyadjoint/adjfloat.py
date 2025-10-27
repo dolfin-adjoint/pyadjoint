@@ -171,17 +171,17 @@ def register_operator(np_operator, sp_operator, nargs):
 @register_overloaded_type
 class AdjFloat(OverloadedType, float):
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        if ufunc not in _ops:
+            # Not annotated
+            return getattr(ufunc, method)(
+                *(float(arg) if isinstance(arg, AdjFloat) else arg for arg in inputs), **kwargs)
         if method != "__call__":
-            return NotImplemented
-        if len(kwargs) > 0:
             return NotImplemented
         if len(inputs) == 0:
             return NotImplemented
-        if ufunc in _ops:
-            return _ops[ufunc](*inputs)
-        else:
-            # Not annotated
-            return ufunc(*(float(arg) if isinstance(arg, AdjFloat) else arg for arg in inputs))
+        if len(kwargs) > 0:
+            return NotImplemented
+        return _ops[ufunc](*inputs)
 
     @annotate_operator(Operator(lambda x: sp.Piecewise((x, x >= 0), (-x, True)), 1), operator.abs)
     def __abs__(self):
