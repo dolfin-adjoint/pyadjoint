@@ -285,8 +285,8 @@ class AdjFloat(OverloadedType, float):
 
     def _ad_convert_riesz(self, value, riesz_map=None):
         if riesz_map is not None:
-            raise ValueError(f"Unexpected Riesz map for Adjfloat: {riesz_map}")
-        return AdjFloat(value)
+            raise ValueError(f"Unexpected Riesz map: {riesz_map}")
+        return type(self)(value)
 
     def _ad_create_checkpoint(self):
         # Floats are immutable.
