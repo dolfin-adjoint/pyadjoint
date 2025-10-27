@@ -157,7 +157,8 @@ def test_float_neg():
 
 
 @pytest.mark.parametrize("v", (1.0, -1.0, 2.0, -2.0))
-def test_float_exp(v):
+@pytest.mark.parametrize("exp", (exp, np.exp, lambda x: 1 + np.expm1(x)))
+def test_float_exp(v, exp):
     a = AdjFloat(v)
     b = exp(a)
     assert_approx_equal(b, math.exp(v))
@@ -167,7 +168,8 @@ def test_float_exp(v):
     assert_approx_equal(rf.hessian(1.0), math.exp(v))
 
 
-def test_float_loglog():
+@pytest.mark.parametrize("log", (log, np.log))
+def test_float_loglog(log):
     v = 10.0
     a = AdjFloat(v)
     b = log(log(a))
@@ -178,8 +180,7 @@ def test_float_loglog():
     assert_approx_equal(rf.hessian(1.0), -(1.0 + math.log(v)) / ((v * math.log(v)) ** 2))
 
 
-@pytest.mark.parametrize("exp", (exp, lambda x: 1 + np.expm1(x)))
-def test_float_logexp(exp):
+def test_float_logexp():
     a = AdjFloat(3.0)
     b = exp(a)
     c = log(b)
