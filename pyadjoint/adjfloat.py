@@ -160,11 +160,12 @@ _ops = {}
 
 
 def register_operator(np_operator, sp_operator, nargs):
+    @annotate_operator(Operator(sp_operator, nargs))
     def wrapped_operator(*args):
         if len(args) != nargs:
             return NotImplemented
         return np_operator(*(float(arg) if isinstance(arg, AdjFloat) else arg for arg in args))
-    _ops[np_operator] = annotate_operator(Operator(sp_operator, nargs))(wrapped_operator)
+    _ops[np_operator] = wrapped_operator
     return _ops[np_operator]
 
 
@@ -176,8 +177,6 @@ class AdjFloat(OverloadedType, float):
             return getattr(ufunc, method)(
                 *(float(arg) if isinstance(arg, AdjFloat) else arg for arg in inputs), **kwargs)
         if method != "__call__":
-            return NotImplemented
-        if len(inputs) == 0:
             return NotImplemented
         if len(kwargs) > 0:
             return NotImplemented
