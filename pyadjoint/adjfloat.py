@@ -301,7 +301,7 @@ class AdjFloat(OverloadedType, float):
         return self + other
 
     def _ad_dot(self, other):
-        return float.__mul__(self, other)
+        return super().__mul__(other)
 
     @staticmethod
     def _ad_assign_numpy(dst, src, offset):
