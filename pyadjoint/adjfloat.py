@@ -112,6 +112,8 @@ class AdjFloatExprBlock(Block):
         return val
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
+        if idx != 0:
+            raise ValueError("Unexpected idx")
         if self._np_operator is None:
             return self._operator.codegen(diff=())(*inputs)
         else:
