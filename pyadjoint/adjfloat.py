@@ -297,10 +297,10 @@ class AdjFloat(OverloadedType, float):
         return checkpoint
 
     def _ad_mul(self, other):
-        return self * other
+        return super().__mul__(other)
 
     def _ad_add(self, other):
-        return self + other
+        return super().__add__(other)
 
     def _ad_dot(self, other):
         return super().__mul__(other)
