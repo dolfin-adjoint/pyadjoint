@@ -20,6 +20,20 @@ def register_function(np_operator):
     return register
 
 
+@register_function(np.power)
+class _pyadjoint_power(sp.Function):
+    def fdiff(self, argindex=1):
+        if argindex == 1:
+            return sp.Piecewise(
+                # Let SymPy decide how to handle indeterminate form
+                ((self.args[0] ** self.args[1]).diff(self.args[0]), sp.And(self.args[0] == 0, self.args[1] == 0)),
+                # Otherwise simplify
+                (sp.S.Zero, self.args[1] == 0),
+                (_pyadjoint_power(self.args[0], self.args[1] - 1) * self.args[1], True))
+        elif argindex == 2:
+            return (self.args[0] ** self.args[1]).diff(self.args[1])
+
+
 @register_function(np.hypot)
 class _pyadjoint_hypot(sp.Function):
     def fdiff(self, argindex=1):
@@ -228,11 +242,11 @@ class AdjFloat(OverloadedType, float):
     def __rsub__(self, other):
         return super().__rsub__(other)
 
-    @annotate_operator(Operator(operator.pow, 2), operator.pow)
+    @annotate_operator(Operator(_pyadjoint_power, 2), operator.pow)
     def __pow__(self, other):
         return super().__pow__(other)
 
-    @annotate_operator(Operator(roperator(operator.pow), 2), roperator(operator.pow))
+    @annotate_operator(Operator(roperator(_pyadjoint_power), 2), roperator(operator.pow))
     def __rpow__(self, other):
         return super().__rpow__(other)
 
@@ -243,7 +257,7 @@ class AdjFloat(OverloadedType, float):
     divide = register_operator(np.divide, operator.truediv, 2)
     add = register_operator(np.add, operator.add, 2)
     subtract = register_operator(np.subtract, operator.sub, 2)
-    power = register_operator(np.power, operator.pow, 2)
+    power = register_operator(np.power, _pyadjoint_power, 2)
     minimum = register_operator(
         np.minimum,
         lambda self, other: sp.Piecewise((self, self <= other),
