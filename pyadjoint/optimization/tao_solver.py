@@ -181,6 +181,11 @@ class ReducedFunctionalMatBase:
     Adjoint : U* -> V*
     Hessian : V x U* -> V* | V -> V*
 
+    Child classes must implement:
+    - mult_impl
+    - multHermitian_impl
+    - update_adjoint
+
     Args:
         rf (ReducedFunctional): Defines the forward model. Used to compute Mat actions.
         apply_riesz (bool): Whether to apply the riesz map before returning the
@@ -189,9 +194,6 @@ class ReducedFunctionalMatBase:
         always_update_tape (bool): Whether to force reevaluation of the forward model
             every time `mult` is called. If needs_adjoint_update then this will also force
             the adjoint model to be reevaluated at every call to `mult`.
-        update_adjoint (bool): Whether to update the adjoint as well as the forward
-            model when updating the Mat. If True then `rf.derivative` will be called by
-            the `update` method. Required for Hessian but not for TLM or Adjoint Mats.
         needs_functional_interface: Whether to create a PETScVecInterface for rf.functional.
         comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
     """
@@ -199,7 +201,6 @@ class ReducedFunctionalMatBase:
     def __init__(self, rf, *,
                  apply_riesz=False, appctx=None,
                  always_update_tape=False,
-                 update_adjoint=False,
                  needs_functional_interface=False,
                  comm=PETSc.COMM_WORLD):
         comm = valid_comm(comm)
@@ -215,7 +216,6 @@ class ReducedFunctionalMatBase:
             self.functional_interface = PETScVecInterface(
                 rf.functional, comm=comm)
 
-        self.update_adjoint = update_adjoint
         self._m = new_control_variable(rf)
         self._shift = 0
         self.always_update_tape = always_update_tape
@@ -224,7 +224,7 @@ class ReducedFunctionalMatBase:
     def update(cls, obj, x, A, P):
         ctx = A.getPythonContext()
         ctx.control_interface.from_petsc(x, ctx._m)
-        ctx.update_tape_values(update_adjoint=ctx.update_adjoint)
+        ctx.update_tape_values(update_adjoint=cls.update_adjoint())
         ctx._shift = 0
 
     def shift(self, A, alpha):
@@ -279,6 +279,14 @@ class ReducedFunctionalMatBase:
         raise NotImplementedError(
             "Must provide implementation of the Hermitian action of this matrix on an OverloadedType")
 
+    @classmethod
+    def update_adjoint(self):
+        """
+        Whether to update the adjoint as well as the forward model when updating
+        the Mat. If True then `rf.derivative` will be called by the `update` method.
+        """
+        raise NotImplementedError
+
 
 class ReducedFunctionalHessianMat(ReducedFunctionalMatBase):
     """
@@ -302,12 +310,16 @@ class ReducedFunctionalHessianMat(ReducedFunctionalMatBase):
                  always_update_tape=False, comm=PETSc.COMM_WORLD):
 
         super().__init__(rf, apply_riesz=apply_riesz, appctx=appctx,
-                         needs_functional_interface=False, update_adjoint=True,
+                         needs_functional_interface=False,
                          always_update_tape=always_update_tape, comm=comm)
 
         self.xinterface = self.control_interface
         self.yinterface = self.control_interface
         self.x = new_control_variable(rf)
+
+    @classmethod
+    def update_adjoint(self):
+        return True
 
     def mult_impl(self, A, x):
         if self.always_update_tape:
@@ -341,12 +353,16 @@ class ReducedFunctionalAdjointMat(ReducedFunctionalMatBase):
                  always_update_tape=False, comm=PETSc.COMM_WORLD):
 
         super().__init__(rf, apply_riesz=apply_riesz, appctx=appctx,
-                         needs_functional_interface=True, update_adjoint=False,
+                         needs_functional_interface=True,
                          always_update_tape=always_update_tape, comm=comm)
 
         self.xinterface = self.functional_interface
         self.yinterface = self.control_interface
         self.x = rf.functional._ad_copy()
+
+    @classmethod
+    def update_adjoint(self):
+        return False
 
     def mult_impl(self, A, x):
         if self.always_update_tape:
@@ -377,14 +393,16 @@ class ReducedFunctionalTLMMat(ReducedFunctionalMatBase):
     """
 
     def __init__(self, rf, *, appctx=None, always_update_tape=False, comm=PETSc.COMM_WORLD):
-
-        super().__init__(rf, appctx=appctx, update_adjoint=False,
-                         needs_functional_interface=True,
+        super().__init__(rf, appctx=appctx, needs_functional_interface=True,
                          always_update_tape=always_update_tape, comm=comm)
 
         self.xinterface = self.control_interface
         self.yinterface = self.functional_interface
         self.x = new_control_variable(rf)
+
+    @classmethod
+    def update_adjoint(self):
+        return False
 
     def mult_impl(self, A, x):
         if self.always_update_tape:
