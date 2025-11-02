@@ -43,10 +43,7 @@ class PETScVecInterface:
             raise RuntimeError("petsctools not available")
 
         x = Enlist(x)
-        if comm is None:
-            comm = PETSc.COMM_WORLD
-        if hasattr(comm, "tompi4py"):
-            comm = comm.tompi4py()
+        comm = valid_comm(comm)
 
         vecs = tuple(x_i._ad_to_petsc() for x_i in x)
         n = sum(vec.getLocalSize() for vec in vecs)
@@ -152,7 +149,7 @@ def valid_comm(comm):
         comm: Optional[Any[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]]
 
     Returns:
-        mpi4py.MPI.Comm.COMM_WORLD if `comm is None`, otherwise `comm.tompi4py()`.
+        petsc4py.PETSc.COMM_WORLD if `comm is None`, otherwise `comm.tompi4py()`.
     """
     if comm is None:
         comm = PETSc.COMM_WORLD
@@ -202,7 +199,7 @@ class ReducedFunctionalMatBase:
                  apply_riesz=False, appctx=None,
                  always_update_tape=False,
                  needs_functional_interface=False,
-                 comm=PETSc.COMM_WORLD):
+                 comm=None):
         comm = valid_comm(comm)
 
         self.rf = rf
@@ -307,7 +304,7 @@ class ReducedFunctionalHessianMat(ReducedFunctionalMatBase):
     """
 
     def __init__(self, rf, *, apply_riesz=False, appctx=None,
-                 always_update_tape=False, comm=PETSc.COMM_WORLD):
+                 always_update_tape=False, comm=None):
 
         super().__init__(rf, apply_riesz=apply_riesz, appctx=appctx,
                          needs_functional_interface=False,
@@ -350,7 +347,7 @@ class ReducedFunctionalAdjointMat(ReducedFunctionalMatBase):
     """
 
     def __init__(self, rf, *, apply_riesz=False, appctx=None,
-                 always_update_tape=False, comm=PETSc.COMM_WORLD):
+                 always_update_tape=False, comm=None):
 
         super().__init__(rf, apply_riesz=apply_riesz, appctx=appctx,
                          needs_functional_interface=True,
@@ -392,7 +389,7 @@ class ReducedFunctionalTLMMat(ReducedFunctionalMatBase):
         comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
     """
 
-    def __init__(self, rf, *, appctx=None, always_update_tape=False, comm=PETSc.COMM_WORLD):
+    def __init__(self, rf, *, appctx=None, always_update_tape=False, comm=None):
         super().__init__(rf, appctx=appctx, needs_functional_interface=True,
                          always_update_tape=always_update_tape, comm=comm)
 
