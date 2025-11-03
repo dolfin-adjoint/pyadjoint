@@ -191,8 +191,8 @@ class Block(object):
         This method will by default call the `evaluate_tlm_component` method for each output.
 
         Args:
-            markings (bool): If True, then each block_variable will have set `is_control_dependent` attribute indicating
-                whether their tlm components are relevant for computing the final target tlm values.
+            markings (bool): If True, then each block_variable will have set `is_control_dependent` attribute
+                indicating whether their tlm components are relevant for computing the final target tlm values.
                 Default is False.
 
         """
