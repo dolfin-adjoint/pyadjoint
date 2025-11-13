@@ -699,9 +699,6 @@ class TAOSolver(OptimizationSolver):
             hessian_mat.getPythonContext().update,
             H=hessian_mat, P=Pmat or hessian_mat)
 
-        Minv_mat = RieszMapMat(rf.controls, comm=comm)
-        tao.setGradientNorm(Minv_mat)
-
         if problem.bounds is not None:
             lbs = []
             ubs = []
@@ -726,6 +723,9 @@ class TAOSolver(OptimizationSolver):
 
         if tao.getType() in {PETSc.TAO.Type.LMVM, PETSc.TAO.Type.BLMVM}:
             n, N = vec_interface.n, vec_interface.N
+
+            Minv_mat = RieszMapMat(rf.controls, comm=comm)
+            tao.setGradientNorm(Minv_mat)
 
             class InitialHessian:
                 """:class:`petsc4py.PETSc.Mat` context.
