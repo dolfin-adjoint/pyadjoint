@@ -123,7 +123,7 @@ class PETScVecInterface:
                 y_i._ad_to_petsc(vec=x_sub)
             else:
                 raise TypeError(f"Unexpected type: {type(y_i)}")
-            x_sub.restoreSubVector(iset, x_sub)
+            x.restoreSubVector(iset, x_sub)
 
 
 def new_control_variable(reduced_functional, *, dual=False):
@@ -699,9 +699,6 @@ class TAOSolver(OptimizationSolver):
             hessian_mat.getPythonContext().update,
             H=hessian_mat, P=Pmat or hessian_mat)
 
-        Minv_mat = RieszMapMat(rf.controls, comm=comm)
-        tao.setGradientNorm(Minv_mat)
-
         if problem.bounds is not None:
             lbs = []
             ubs = []
@@ -726,6 +723,9 @@ class TAOSolver(OptimizationSolver):
 
         if tao.getType() in {PETSc.TAO.Type.LMVM, PETSc.TAO.Type.BLMVM}:
             n, N = vec_interface.n, vec_interface.N
+
+            Minv_mat = RieszMapMat(rf.controls, comm=comm)
+            tao.setGradientNorm(Minv_mat)
 
             class InitialHessian:
                 """:class:`petsc4py.PETSc.Mat` context.
