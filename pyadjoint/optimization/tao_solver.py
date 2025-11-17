@@ -123,7 +123,7 @@ class PETScVecInterface:
                 y_i._ad_to_petsc(vec=x_sub)
             else:
                 raise TypeError(f"Unexpected type: {type(y_i)}")
-            x_sub.restoreSubVector(iset, x_sub)
+            x.restoreSubVector(iset, x_sub)
 
 
 def new_control_variable(reduced_functional, *, dual=False):
