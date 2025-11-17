@@ -636,6 +636,11 @@ else:
 class TAOSolver(OptimizationSolver):
     """Use TAO to solve an optimization problem.
 
+    Only `LMVM` and `BLMVM` types use the Riesz map to configure the optimizer
+    -- specifically to define the gradient norm using `TaoSetGradientNorm` and
+    to define the initial Hessian inverse approximation using `TaoLMVMGetH0`.
+    Other types use PETSc defaults.
+
     Args:
         problem (MinimizationProblem): Defines the optimization problem to be solved.
         parameters (Mapping): TAO options.
