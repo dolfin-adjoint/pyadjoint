@@ -1,105 +1,307 @@
-from functools import wraps
+from functools import cached_property, lru_cache, wraps
+from itertools import count
+import numbers
+import operator
 from .block import Block
-from .overloaded_type import OverloadedType, register_overloaded_type, create_overloaded_object
-from .tape import get_working_tape, annotate_tape, stop_annotating
-import math
+from .overloaded_type import OverloadedType, register_overloaded_type
+from .tape import get_working_tape, annotate_tape
+import numpy as np
+import sympy as sp
+
+__all__ = ["AdjFloat"]
+
+_op_fns = {}
 
 
-def annotate_operator(operator):
-    """Decorate float operator like __add__, __sub__, etc.
+def register_function(np_operator):
+    def register(cls):
+        _op_fns[cls.__name__] = np_operator
+        return cls
+    return register
 
-    The provided operator is only expected to create the Block that
-    corresponds to this operation. The decorator returns a wrapper code
-    that checks whether annotation is needed, ensures all arguments are
-    overloaded, calls the block-creating operator, and puts the Block
-    on tape."""
 
-    # the actual float operation is derived from the name of operator
-    try:
-        float_op = getattr(float, operator.__name__)
-    except AttributeError:
-        if operator.__name__ == '__div__':
-            float_op = float.__truediv__
+@register_function(np.power)
+class _pyadjoint_power(sp.Function):
+    def fdiff(self, argindex=1):
+        if argindex == 1:
+            return sp.Piecewise(
+                # Let SymPy decide how to handle indeterminate form
+                ((self.args[0] ** self.args[1]).diff(self.args[0]), sp.And(self.args[0] == 0, self.args[1] == 0)),
+                # Otherwise simplify
+                (sp.S.Zero, self.args[1] == 0),
+                (_pyadjoint_power(self.args[0], self.args[1] - 1) * self.args[1], True))
+        elif argindex == 2:
+            return (self.args[0] ** self.args[1]).diff(self.args[1])
+
+
+@register_function(np.hypot)
+class _pyadjoint_hypot(sp.Function):
+    def fdiff(self, argindex=1):
+        if argindex == 1:
+            return self.args[0] / _pyadjoint_hypot(self.args[0],
+                                                   self.args[1])
+        elif argindex == 2:
+            return self.args[1] / _pyadjoint_hypot(self.args[0],
+                                                   self.args[1])
+
+
+@register_function(np.expm1)
+class _pyadjoint_expm1(sp.Function):
+    def fdiff(self, argindex=1):
+        if argindex == 1:
+            return sp.exp(self.args[0])
+
+
+@register_function(np.log1p)
+class _pyadjoint_log1p(sp.Function):
+    def fdiff(self, argindex=1):
+        if argindex == 1:
+            return sp.Integer(1) / (sp.Integer(1) + self.args[0])
+
+
+@lru_cache(maxsize=256)
+def codegen(expr, symbols, diff=()):
+    for idx in diff:
+        expr = expr.diff(symbols[idx])
+    return sp.lambdify(symbols, expr, modules=["numpy", _op_fns])
+
+
+class Operator:
+    _symbol_count = count()
+
+    def __init__(self, sp_operator, nargs):
+        self._sp_operator = sp_operator
+        self._nargs = nargs
+
+    @property
+    def sp_operator(self):
+        return self._sp_operator
+
+    @property
+    def nargs(self):
+        return self._nargs
+
+    @cached_property
+    def symbols(self):
+        return tuple(sp.Symbol(f"_pyadjoint_symbol_{next(self._symbol_count)}", real=True) for _ in range(self.nargs))
+
+    @cached_property
+    def expr(self):
+        return self.sp_operator(*self.symbols)
+
+    def codegen(self, diff=()):
+        return codegen(self.expr, self.symbols, diff=diff)
+
+
+class AdjFloatExprBlock(Block):
+    def __init__(self, operator, *args, np_operator=None):
+        super().__init__()
+        self._operator = operator
+        self._np_operator = np_operator
+        for arg in args:
+            self.add_dependency(arg)
+
+    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
+        adj_input, = adj_inputs
+        return self._operator.codegen(diff=(idx,))(*inputs) * adj_input
+
+    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
+        if idx != 0:
+            raise ValueError("Unexpected idx")
+        val = 0.0
+        for idx1 in range(self._operator.nargs):
+            if tlm_inputs[idx1] is not None:
+                val += self._operator.codegen(diff=(idx1,))(*inputs) * tlm_inputs[idx1]
+        return val
+
+    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
+                                   relevant_dependencies, prepared=None):
+        hessian_input, = hessian_inputs
+        adj_input, = adj_inputs
+        val = self._operator.codegen(diff=(idx,))(*inputs) * hessian_input
+        for idx1, dep in relevant_dependencies:
+            tlm_input = dep.tlm_value
+            if tlm_input is not None:
+                val += self._operator.codegen(diff=(idx, idx1))(*inputs) * adj_input * tlm_input
+        return val
+
+    def recompute_component(self, inputs, block_variable, idx, prepared):
+        if idx != 0:
+            raise ValueError("Unexpected idx")
+        if self._np_operator is None:
+            return self._operator.codegen(diff=())(*inputs)
         else:
-            raise
+            return self._np_operator(*inputs)
 
-    def annotated_operator(self, *args):
-        output = float_op(self, *args)
-        if output is NotImplemented:
+
+def annotate_operator(operator, np_operator=None):
+    def wrapper(fn):
+        @wraps(fn)
+        def annotated_operator(*args):
+            output = fn(*args)
+            if not isinstance(output, numbers.Complex):
+                # Not annotated
+                return output
+            output = AdjFloat(output)  # Error here if not real
+
+            if annotate_tape():
+                args = list(args)
+                for i, arg in enumerate(args):
+                    if isinstance(arg, OverloadedType):
+                        pass
+                    elif isinstance(arg, numbers.Complex):
+                        args[i] = AdjFloat(arg)  # Error here if not real
+                    else:
+                        # Not annotated
+                        return output
+
+                block = AdjFloatExprBlock(
+                    operator, *args,
+                    np_operator=fn if np_operator is None else np_operator)
+                tape = get_working_tape()
+                tape.add_block(block)
+                block.add_output(output.block_variable)
+            return output
+        return annotated_operator
+    return wrapper
+
+
+def roperator(operator):
+    def roperator(a, b):
+        return operator(b, a)
+    return roperator
+
+
+_ops = {}
+
+
+def register_operator(np_operator, sp_operator, nargs):
+    @annotate_operator(Operator(sp_operator, nargs))
+    def wrapped_operator(*args):
+        if len(args) != nargs:
             return NotImplemented
-
-        # ensure all arguments are of OverloadedType
-        args = [arg if isinstance(arg, OverloadedType) else self.__class__(arg) for arg in args]
-
-        output = self.__class__(output)
-        if annotate_tape():
-            block = operator(self, *args)
-
-            tape = get_working_tape()
-            tape.add_block(block)
-            block.add_output(output.block_variable)
-
-        return output
-
-    return annotated_operator
+        return np_operator(*(float(arg) if isinstance(arg, AdjFloat) else arg for arg in args))
+    _ops[np_operator] = wrapped_operator
+    return _ops[np_operator]
 
 
 @register_overloaded_type
 class AdjFloat(OverloadedType, float):
-    def __new__(cls, *args, **kwargs):
-        return float.__new__(cls, *args)
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        if ufunc not in _ops:
+            # Not annotated
+            return getattr(ufunc, method)(
+                *(float(arg) if isinstance(arg, AdjFloat) else arg for arg in inputs), **kwargs)
+        if method != "__call__":
+            return NotImplemented
+        if len(kwargs) > 0:
+            return NotImplemented
+        return _ops[ufunc](*inputs)
 
-    def __init__(self, *args, **kwargs):
-        super(AdjFloat, self).__init__(*args, **kwargs)
+    @annotate_operator(Operator(lambda x: sp.Piecewise((x, x >= 0), (-x, True)), 1), operator.abs)
+    def __abs__(self):
+        return super().__abs__()
 
-    @annotate_operator
-    def __mul__(self, other):
-        return MulBlock(self, other)
+    @annotate_operator(Operator(operator.pos, 1), operator.pos)
+    def __pos__(self):
+        return super().__pos__()
 
-    @annotate_operator
-    def __div__(self, other):
-        return DivBlock(self, other)
-
-    @annotate_operator
-    def __truediv__(self, other):
-        return DivBlock(self, other)
-
-    @annotate_operator
+    @annotate_operator(Operator(operator.neg, 1), operator.neg)
     def __neg__(self):
-        return NegBlock(self)
+        return super().__neg__()
 
-    @annotate_operator
+    @annotate_operator(Operator(operator.mul, 2), operator.mul)
+    def __mul__(self, other):
+        return super().__mul__(other)
+
+    @annotate_operator(Operator(roperator(operator.mul), 2), roperator(operator.mul))
     def __rmul__(self, other):
-        return MulBlock(self, other)
+        return super().__rmul__(other)
 
-    @annotate_operator
+    @annotate_operator(Operator(operator.truediv, 2), operator.truediv)
+    def __truediv__(self, other):
+        return super().__truediv__(other)
+
+    @annotate_operator(Operator(roperator(operator.truediv), 2), roperator(operator.truediv))
+    def __rtruediv__(self, other):
+        return super().__rtruediv__(other)
+
+    @annotate_operator(Operator(operator.add, 2), operator.add)
     def __add__(self, other):
-        return AddBlock(self, other)
+        return super().__add__(other)
 
-    @annotate_operator
+    @annotate_operator(Operator(roperator(operator.add), 2), roperator(operator.add))
     def __radd__(self, other):
-        return AddBlock(self, other)
+        return super().__radd__(other)
 
-    @annotate_operator
+    @annotate_operator(Operator(operator.sub, 2), operator.sub)
     def __sub__(self, other):
-        return SubBlock(self, other)
+        return super().__sub__(other)
 
-    @annotate_operator
+    @annotate_operator(Operator(roperator(operator.sub), 2), roperator(operator.sub))
     def __rsub__(self, other):
-        # NOTE: order is important here
-        return SubBlock(other, self)
+        return super().__rsub__(other)
 
-    @annotate_operator
-    def __pow__(self, power):
-        return PowBlock(self, power)
+    @annotate_operator(Operator(_pyadjoint_power, 2), operator.pow)
+    def __pow__(self, other):
+        return super().__pow__(other)
+
+    @annotate_operator(Operator(roperator(_pyadjoint_power), 2), roperator(operator.pow))
+    def __rpow__(self, other):
+        return super().__rpow__(other)
+
+    absolute = register_operator(np.absolute, lambda x: sp.Piecewise((x, x >= 0), (-x, True)), 1)
+    positive = register_operator(np.positive, operator.pos, 1)
+    negative = register_operator(np.negative, operator.neg, 1)
+    multiply = register_operator(np.multiply, operator.mul, 2)
+    divide = register_operator(np.divide, operator.truediv, 2)
+    add = register_operator(np.add, operator.add, 2)
+    subtract = register_operator(np.subtract, operator.sub, 2)
+    power = register_operator(np.power, _pyadjoint_power, 2)
+    minimum = register_operator(
+        np.minimum,
+        lambda self, other: sp.Piecewise((self, self <= other),
+                                         (other, True)),
+        2)
+    maximum = register_operator(
+        np.maximum,
+        lambda self, other: sp.Piecewise((self, self >= other),
+                                         (other, True)),
+        2)
+
+    sin = register_operator(np.sin, sp.sin, 1)
+    cos = register_operator(np.cos, sp.cos, 1)
+    tan = register_operator(np.tan, sp.tan, 1)
+    arcsin = register_operator(np.arcsin, sp.asin, 1)
+    arccos = register_operator(np.arccos, sp.acos, 1)
+    arctan = register_operator(np.arctan, sp.atan, 1)
+    arctan2 = register_operator(np.arctan2, sp.atan2, 2)
+    hypot = register_operator(np.hypot, _pyadjoint_hypot, 2)
+    sinh = register_operator(np.sinh, sp.sinh, 1)
+    cosh = register_operator(np.cosh, sp.cosh, 1)
+    tanh = register_operator(np.tanh, sp.tanh, 1)
+    arcsinh = register_operator(np.arcsinh, sp.asinh, 1)
+    arccosh = register_operator(np.arccosh, sp.acosh, 1)
+    arctanh = register_operator(np.arctanh, sp.atanh, 1)
+    exp = register_operator(np.exp, sp.exp, 1)
+    exp2 = register_operator(np.exp2, lambda x: 2 ** x, 1)
+    expm1 = register_operator(np.expm1, _pyadjoint_expm1, 1)
+    log = register_operator(np.log, sp.log, 1)
+    log2 = register_operator(np.log2, lambda x: sp.log(x, 2), 1)
+    log10 = register_operator(np.log10, lambda x: sp.log(x, 10), 1)
+    log1p = register_operator(np.log1p, _pyadjoint_log1p, 1)
+    sqrt = register_operator(np.sqrt, sp.sqrt, 1)
+    square = register_operator(np.square, lambda x: x ** 2, 1)
+    cbrt = register_operator(np.cbrt, lambda x: x ** sp.Rational(1, 3), 1)
+    reciprocal = register_operator(np.reciprocal, lambda x: sp.Integer(1) / x, 1)
 
     def _ad_init_zero(self, dual=False):
         return type(self)(0.)
 
     def _ad_convert_riesz(self, value, riesz_map=None):
         if riesz_map is not None:
-            raise ValueError(f"Unexpected Riesz map for Adjfloat: {riesz_map}")
-        return AdjFloat(value)
+            raise ValueError(f"Unexpected Riesz map: {riesz_map}")
+        return type(self)(value)
 
     def _ad_create_checkpoint(self):
         # Floats are immutable.
@@ -109,17 +311,17 @@ class AdjFloat(OverloadedType, float):
         return checkpoint
 
     def _ad_mul(self, other):
-        return self * other
+        return super().__mul__(other)
 
     def _ad_add(self, other):
-        return self + other
+        return super().__add__(other)
 
     def _ad_dot(self, other):
-        return float.__mul__(self, other)
+        return super().__mul__(other)
 
     @staticmethod
     def _ad_assign_numpy(dst, src, offset):
-        dst = type(dst)(src[offset:offset + 1])
+        dst = type(dst)(src[offset])
         offset += 1
         return dst, offset
 
@@ -142,480 +344,8 @@ class AdjFloat(OverloadedType, float):
         raise NotImplementedError("_ad_from_petsc not implemented for AdjFloat.")
 
 
-_exp = math.exp
-_log = math.log
-
-
-@wraps(_exp)
-def exp(a, **kwargs):
-    annotate = annotate_tape(kwargs)
-    if annotate:
-        a = create_overloaded_object(a)
-
-        block = ExpBlock(a)
-        tape = get_working_tape()
-        tape.add_block(block)
-
-    with stop_annotating():
-        out = _exp(a)
-    out = AdjFloat(out)
-
-    if annotate:
-        block.add_output(out.block_variable)
-    return out
-
-
-def log(a, **kwargs):
-    """Return the natural logarithm of a."""
-    annotate = annotate_tape(kwargs)
-    if annotate:
-        a = create_overloaded_object(a)
-
-        block = LogBlock(a)
-        tape = get_working_tape()
-        tape.add_block(block)
-
-    with stop_annotating():
-        out = _log(a)
-    out = AdjFloat(out)
-
-    if annotate:
-        block.add_output(out.block_variable)
-    return out
-
-
-class ExpBlock(Block):
-    def __init__(self, a):
-        super().__init__()
-        self.add_dependency(a)
-
-    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        adj_input = adj_inputs[0]
-        input0 = inputs[0]
-        return _exp(input0) * adj_input
-
-    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
-        tlm_input = tlm_inputs[0]
-        input0 = inputs[0]
-        return _exp(input0) * tlm_input
-
-    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
-                                   relevant_dependencies, prepared=None):
-        input0 = inputs[0]
-        hessian = hessian_inputs[0]
-        return _exp(input0) * hessian
-
-    def recompute_component(self, inputs, block_variable, idx, prepared):
-        return _exp(inputs[0])
-
-
-class LogBlock(Block):
-    def __init__(self, a):
-        super().__init__()
-        self.add_dependency(a)
-
-    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        adj_input = adj_inputs[0]
-        input0 = inputs[0]
-        return adj_input / input0
-
-    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
-        tlm_input = tlm_inputs[0]
-        input0 = inputs[0]
-        return tlm_input / input0
-
-    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
-                                   relevant_dependencies, prepared=None):
-        input0 = inputs[0]
-        hessian = hessian_inputs[0]
-        return -hessian / input0 / input0
-
-    def recompute_component(self, inputs, block_variable, idx, prepared):
-        return _log(inputs[0])
-
-
-_min = min
-_max = max
-
-
-def min(a, b, **kwargs):
-    annotate = annotate_tape(kwargs)
-    if annotate:
-        # Ensure a and b are of OverloadedType
-        a = create_overloaded_object(a)
-        b = create_overloaded_object(b)
-
-        block = MinBlock(a, b)
-        tape = get_working_tape()
-        tape.add_block(block)
-
-    with stop_annotating():
-        out = _min(a, b)
-    out = AdjFloat(out)
-
-    if annotate:
-        block.add_output(out.block_variable)
-    return out
-
-
-def max(a, b, **kwargs):
-    annotate = annotate_tape(kwargs)
-    if annotate:
-        # Ensure a and b are of OverloadedType
-        a = create_overloaded_object(a)
-        b = create_overloaded_object(b)
-
-        block = MaxBlock(a, b)
-        tape = get_working_tape()
-        tape.add_block(block)
-
-    with stop_annotating():
-        out = _max(a, b)
-    out = AdjFloat(out)
-
-    if annotate:
-        block.add_output(out.block_variable)
-    return out
-
-
-class MinBlock(Block):
-    def __init__(self, a, b):
-        super().__init__()
-        self.add_dependency(a)
-        self.add_dependency(b)
-
-    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        adj_input = adj_inputs[0]
-        active_idx = 0 if inputs[0] <= inputs[1] else 1
-        if idx == active_idx:
-            return adj_input
-        else:
-            return 0.
-
-    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
-        idx = 0 if inputs[0] <= inputs[1] else 1
-        return tlm_inputs[idx]
-
-    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
-                                   relevant_dependencies, prepared=None):
-        return self.evaluate_adj_component(inputs, hessian_inputs, block_variable, idx, prepared)
-
-    def recompute_component(self, inputs, block_variable, idx, prepared):
-        return _min(inputs[0], inputs[1])
-
-
-class MaxBlock(Block):
-    def __init__(self, a, b):
-        super().__init__()
-        self.add_dependency(a)
-        self.add_dependency(b)
-
-    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        adj_input = adj_inputs[0]
-        active_idx = 0 if inputs[0] >= inputs[1] else 1
-        if idx == active_idx:
-            return adj_input
-        else:
-            return 0.
-
-    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
-        idx = 0 if inputs[0] >= inputs[1] else 1
-        return tlm_inputs[idx]
-
-    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
-                                   relevant_dependencies, prepared=None):
-        return self.evaluate_adj_component(inputs, hessian_inputs, block_variable, idx, prepared)
-
-    def recompute_component(self, inputs, block_variable, idx, prepared):
-        r = _max(inputs[0], inputs[1])
-        return r
-
-
-class FloatOperatorBlock(Block):
-    # the float operator annotated in this Block
-    operator = None
-    symbol = None
-
-    def __init__(self, *args):
-        super(FloatOperatorBlock, self).__init__()
-        # the terms are stored seperately here and added as dependencies
-        # this is because get_dependencies() only returns the terms with
-        # duplicates taken out; for evaluation however order and position
-        # of the terms is significant
-        self.terms = [arg.block_variable for arg in args]
-        for dep in args:
-            self.add_dependency(dep)
-
-    def recompute_component(self, inputs, block_variable, idx, prepared):
-        output = self.operator(*(term.saved_output for term in self.terms))
-        return type(self._outputs[0].saved_output)(output)
-
-    def __str__(self):
-        return f"{self.terms[0]} {self.symbol} {self.terms[1]}"
-
-
-class PowBlock(FloatOperatorBlock):
-    operator = staticmethod(float.__pow__)
-    symbol = "**"
-
-    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        base_value = inputs[0]
-        exponent_value = inputs[1]
-        adj_input = adj_inputs[0]
-
-        if idx == 0:
-            return float.__mul__(float.__mul__(adj_input, exponent_value),
-                                 float.__pow__(base_value, exponent_value - 1))
-        else:
-            from numpy import log
-            return float.__mul__(float.__mul__(adj_input, log(base_value)),
-                                 float.__pow__(base_value, exponent_value))
-
-    def evaluate_tlm(self, markings=False):
-        output = self.get_outputs()[0]
-
-        base = self.terms[0]
-        exponent = self.terms[1]
-
-        base_value = base.saved_output
-        exponent_value = exponent.saved_output
-
-        if base.tlm_value is not None:
-            base_tlm = float.__mul__(float.__mul__(base.tlm_value, exponent_value),
-                                     float.__pow__(base_value, exponent_value - 1))
-            output.add_tlm_output(base_tlm)
-
-        if exponent.tlm_value is not None:
-            from numpy import log
-            exponent_adj = float.__mul__(float.__mul__(exponent.tlm_value, log(base_value)),
-                                         float.__pow__(base_value, exponent_value))
-            output.add_tlm_output(exponent_adj)
-
-    def evaluate_hessian(self, markings=False):
-        output = self.get_outputs()[0]
-        hessian_input = output.hessian_value
-        adj_input = output.adj_value
-        if hessian_input is None:
-            return
-
-        base = self.terms[0]
-        exponent = self.terms[1]
-
-        base_value = base.saved_output
-        exponent_value = exponent.saved_output
-
-        # First we do the base hessian (minus the mixed derivative)
-        if base.tlm_value is not None:
-            second_order = float.__mul__(float.__mul__(
-                float.__mul__(adj_input, float.__mul__(exponent_value, exponent_value - 1)),
-                float.__pow__(base_value, exponent_value - 2)), base.tlm_value)
-            base.add_hessian_output(second_order)
-
-        first_order = float.__mul__(float.__mul__(hessian_input, exponent_value),
-                                    float.__pow__(base_value, exponent_value - 1))
-        base.add_hessian_output(first_order)
-
-        # Then we do the exponent hessian (minus the mixed derivative)
-        from numpy import log
-        if exponent.tlm_value is not None:
-            second_order = float.__mul__(float.__mul__(float.__mul__(adj_input, float.__pow__(log(base_value), 2)),
-                                                       float.__pow__(base_value, exponent_value)), exponent.tlm_value)
-            exponent.add_hessian_output(second_order)
-
-        first_order = float.__mul__(float.__mul__(hessian_input, log(base_value)),
-                                    float.__pow__(base_value, exponent_value))
-        exponent.add_hessian_output(first_order)
-
-        # Lastly we add mixed derivative terms
-        mixed = float.__mul__(adj_input, float.__mul__(
-            float.__pow__(base_value, exponent_value - 1),
-            float.__add__(float.__mul__(exponent_value, log(base_value)), 1)))
-        if exponent.tlm_value is not None:
-            base.add_hessian_output(float.__mul__(exponent.tlm_value, mixed))
-        if base.tlm_value is not None:
-            exponent.add_hessian_output(float.__mul__(base.tlm_value, mixed))
-
-
-class AddBlock(FloatOperatorBlock):
-    operator = staticmethod(float.__add__)
-    symbol = "+"
-
-    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        return adj_inputs[0]
-
-    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
-        tlm_output = 0.
-        for term in self.terms:
-            tlm_input = term.tlm_value
-
-            if tlm_input is None:
-                continue
-
-            tlm_output += tlm_input
-        return tlm_output
-
-    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
-                                   relevant_dependencies, prepared=None):
-        return hessian_inputs[0]
-
-
-class SubBlock(FloatOperatorBlock):
-    operator = staticmethod(float.__sub__)
-    symbol = "-"
-
-    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        if idx == 0:
-            return adj_inputs[0]
-        else:
-            return float.__neg__(adj_inputs[0])
-
-    def evaluate_tlm(self, markings=False):
-        output = self.get_outputs()[0]
-        tlm_input_0 = self.terms[0].tlm_value
-        if tlm_input_0 is not None:
-            output.add_tlm_output(tlm_input_0)
-        tlm_input_1 = self.terms[1].tlm_value
-        if tlm_input_1 is not None:
-            output.add_tlm_output(float.__neg__(tlm_input_1))
-
-    def evaluate_hessian(self, markings=False):
-        hessian_input = self.get_outputs()[0].hessian_value
-        if hessian_input is None:
-            return
-
-        self.terms[0].add_hessian_output(hessian_input)
-        self.terms[1].add_hessian_output(float.__neg__(hessian_input))
-
-
-class MulBlock(FloatOperatorBlock):
-    operator = staticmethod(float.__mul__)
-    symbol = "*"
-
-    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        other_idx = 0 if idx == 1 else 1
-        return float.__mul__(adj_inputs[0], inputs[other_idx])
-
-    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
-        tlm_output = 0.
-        for i, j in zip((0, 1), (1, 0)):
-            tlm_input = self.terms[i].tlm_value
-
-            if tlm_input is None:
-                continue
-
-            tlm_output += float.__mul__(tlm_input, self.terms[j].saved_output)
-        return tlm_output
-
-    def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
-                                   relevant_dependencies, prepared=None):
-        adj_input = adj_inputs[0]
-        hessian_input = hessian_inputs[0]
-        other_idx = 0 if idx == 1 else 1
-        mixed = 0.0
-        for other_idx, bv in relevant_dependencies:
-            if other_idx != idx and bv.tlm_value is not None:
-                mixed = float.__mul__(adj_input, bv.tlm_value)
-        return float.__add__(mixed, float.__mul__(hessian_input, inputs[other_idx]))
-
-
-class DivBlock(FloatOperatorBlock):
-    operator = staticmethod(float.__truediv__)
-    symbol = "/"
-
-    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        if idx == 0:
-            return float.__mul__(
-                adj_inputs[0],
-                float.__truediv__(1., inputs[1])
-            )
-        else:
-            return float.__mul__(
-                adj_inputs[0],
-                float.__neg__(float.__truediv__(
-                    inputs[0],
-                    float.__pow__(inputs[1], 2)
-                ))
-            )
-
-    def evaluate_tlm(self, markings=False):
-        output = self.get_outputs()[0]
-
-        if self.terms[0].tlm_value is not None:
-            output.add_tlm_output(float.__mul__(
-                self.terms[0].tlm_value,
-                float.__truediv__(1., self.terms[1].saved_output)
-            ))
-        if self.terms[1].tlm_value is not None:
-            output.add_tlm_output(float.__mul__(
-                self.terms[1].tlm_value,
-                float.__neg__(float.__truediv__(
-                    self.terms[0].saved_output,
-                    float.__pow__(self.terms[1].saved_output, 2)
-                ))
-            ))
-
-    def evaluate_hessian(self, markings=False):
-        output = self.get_outputs()[0]
-        hessian_input = output.hessian_value
-        adj_input = output.adj_value
-        if hessian_input is None:
-            return
-
-        numerator = self.terms[0]
-        denominator = self.terms[1]
-
-        numerator_value = numerator.saved_output
-        denominator_value = denominator.saved_output
-
-        # The function is linear in the numerator
-        numerator.add_hessian_output(float.__mul__(
-            hessian_input,
-            float.__truediv__(1., denominator_value)
-        ))
-
-        # Now for the denominator
-        denominator.add_hessian_output(float.__mul__(
-            hessian_input,
-            float.__neg__(float.__truediv__(
-                numerator_value,
-                float.__pow__(denominator_value, 2.)
-            ))
-        ))
-
-        if denominator.tlm_value is not None:
-            denominator.add_hessian_output(float.__mul__(
-                float.__mul__(
-                    adj_input,
-                    float.__truediv__(
-                        float.__mul__(2., numerator_value),
-                        float.__pow__(denominator_value, 3)
-                    )
-                ), denominator.tlm_value))
-
-        # Now for mixed derivative
-        mixed = float.__neg__(float.__truediv__(adj_input, float.__pow__(denominator_value, 2)))
-        if denominator.tlm_value is not None:
-            numerator.add_hessian_output(float.__mul__(denominator.tlm_value, mixed))
-        if numerator.tlm_value is not None:
-            denominator.add_hessian_output(float.__mul__(numerator.tlm_value, mixed))
-
-
-class NegBlock(FloatOperatorBlock):
-    operator = staticmethod(float.__neg__)
-    symbol = "-"
-
-    def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
-        return float.__neg__(adj_inputs[0])
-
-    def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
-        return float.__neg__(tlm_inputs[0])
-
-    def evaluate_hessian(self, markings=False):
-        hessian_input = self.get_outputs()[0].hessian_value
-        if hessian_input is None:
-            return
-
-        self.terms[0].add_hessian_output(float.__neg__(hessian_input))
-
-    def __str__(self):
-        return f"{self.symbol} {self.terms[0]}"
+# Backwards compatibility
+exp = np.exp
+log = np.log
+min = np.minimum
+max = np.maximum

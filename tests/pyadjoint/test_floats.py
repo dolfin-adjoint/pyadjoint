@@ -1,5 +1,8 @@
 import pytest
 import math
+import numpy as np
+import operator
+import sympy as sp
 from numpy.testing import assert_approx_equal
 from numpy.random import rand
 from pyadjoint import *
@@ -155,6 +158,145 @@ def test_float_neg():
     assert rf2.derivative() == - 2.0
 
 
+@pytest.mark.parametrize("v", (-math.sqrt(math.pi), 0.0, math.sqrt(math.pi)))
+@pytest.mark.parametrize("abs", (operator.abs, np.absolute))
+def test_float_abs(v, abs):
+    a = AdjFloat(v)
+    b = abs(a)
+    assert_approx_equal(b, abs(v))
+
+    rf = ReducedFunctional(b, Control(a))
+    assert_approx_equal(rf(v), abs(v))
+    assert_approx_equal(rf.tlm(1.0), 1.0 if v >= 0 else -1.0)
+    assert_approx_equal(rf.derivative(), 1.0 if v >= 0 else -1.0)
+    assert_approx_equal(rf.hessian(1.0), 0.0)
+
+
+@pytest.mark.parametrize("v", (1.0, -1.0, 2.0, -2.0))
+@pytest.mark.parametrize("exp", (exp, np.exp, lambda x: 1 + np.expm1(x)))
+def test_float_exp(v, exp):
+    a = AdjFloat(v)
+    b = exp(a)
+    assert_approx_equal(b, math.exp(v))
+
+    rf = ReducedFunctional(b, Control(a))
+    assert_approx_equal(rf(v), math.exp(v))
+    assert_approx_equal(rf.tlm(1.0), math.exp(v))
+    assert_approx_equal(rf.derivative(), math.exp(v))
+    assert_approx_equal(rf.hessian(1.0), math.exp(v))
+
+
+@pytest.mark.parametrize("log", (log, np.log))
+def test_float_loglog(log):
+    v = 10.0
+    a = AdjFloat(v)
+    b = log(log(a))
+    assert_approx_equal(b, math.log(math.log(v)))
+
+    rf = ReducedFunctional(b, Control(a))
+    assert_approx_equal(rf(v), math.log(math.log(v)))
+    assert_approx_equal(rf.tlm(1.0), 1.0 / (v * math.log(v)))
+    assert_approx_equal(rf.derivative(), 1.0 / (v * math.log(v)))
+    assert_approx_equal(rf.hessian(1.0), -(1.0 + math.log(v)) / ((v * math.log(v)) ** 2))
+
+
+def compose(*args):
+    def fn(x):
+        for arg in reversed(args):
+            x = arg(x)
+        return x
+    return fn
+
+
+def sq(x):
+    return x ** 2
+
+
+def hypotsq(x):
+    return 1 + x ** 2
+
+
+@pytest.mark.parametrize("np_operator, sp_operator",
+                         (
+                             (operator.abs, lambda x: sp.Piecewise((x, x >= 0), (-x, True))),
+                             (operator.pos, operator.pos),
+                             (operator.neg, operator.neg),
+                             (lambda x: 1 + x, lambda x: 1 + x),
+                             (lambda x: x + 1, lambda x: 1 + x),
+                             (lambda x: 1 - x, lambda x: 1 - x),
+                             (lambda x: x - 1, lambda x: x - 1),
+                             (lambda x: 2 * x, lambda x: 2 * x),
+                             (lambda x: x * 2, lambda x: 2 * x),
+                             (compose(lambda x: 2 / x, hypotsq), compose(lambda x: 2 / x, hypotsq)),
+                             (lambda x: x / 2, lambda x: x / 2),
+                             (lambda x: 2 ** x, lambda x: 2 ** x),
+                             (lambda x: x ** 2, sq),
+                             (np.absolute, lambda x: sp.Piecewise((x, x >= 0), (-x, True))),
+                             (np.positive, operator.pos),
+                             (np.negative, operator.neg),
+                             (lambda x: np.add(x, 1), lambda x: 1 + x),
+                             (lambda x: np.add(1, x), lambda x: 1 + x),
+                             (lambda x: np.subtract(x, 1), lambda x: x - 1),
+                             (lambda x: np.subtract(1, x), lambda x: 1 - x),
+                             (lambda x: np.multiply(x, 2), lambda x: 2 * x),
+                             (lambda x: np.multiply(2, x), lambda x: 2 * x),
+                             (lambda x: np.divide(x, 2), lambda x: x / 2),
+                             (compose(lambda x: np.divide(2, x), hypotsq), compose(lambda x: 2 / x, hypotsq)),
+                             (lambda x: np.power(x, 2), sq),
+                             (lambda x: np.power(2, x), lambda x: 2 ** x),
+                             (np.sin, sp.sin),
+                             (np.cos, sp.cos),
+                             (np.tan, sp.tan),
+                             (compose(np.arcsin, np.tanh), compose(sp.asin, sp.tanh)),
+                             (compose(np.arccos, np.tanh), compose(sp.acos, sp.tanh)),
+                             (np.arctan, sp.atan),
+                             (lambda x: np.arctan2(x, 1), sp.atan),
+                             (lambda x: np.arctan2(1, x), lambda x: sp.atan2(1, x)),
+                             (compose(sq, lambda x: np.hypot(1, x)), hypotsq),
+                             (compose(sq, lambda x: np.hypot(x, 1)), hypotsq),
+                             (np.sinh, sp.sinh),
+                             (np.cosh, sp.cosh),
+                             (np.tanh, sp.tanh),
+                             (np.arcsinh, sp.asinh),
+                             (compose(np.arccosh, hypotsq, hypotsq), (compose(sp.acosh, hypotsq, hypotsq))),
+                             (compose(np.arctanh, np.sin), compose(sp.atanh, sp.sin)),
+                             (np.exp, sp.exp),
+                             (np.exp2, lambda x: 2 ** x),
+                             (np.expm1, lambda x: sp.exp(x) - 1),
+                             (compose(np.log, hypotsq), compose(sp.log, hypotsq)),
+                             (compose(np.log2, hypotsq), compose(lambda x: sp.log(x, 2), hypotsq)),
+                             (compose(np.log10, hypotsq), compose(lambda x: sp.log(x, 10), hypotsq)),
+                             (compose(np.log1p, sq), compose(sp.log, hypotsq)),
+                             (compose(np.sqrt, hypotsq), compose(sp.sqrt, hypotsq)),
+                             (np.square, sq),
+                             (compose(np.cbrt, hypotsq), compose(lambda x: x ** sp.Rational(1, 3), hypotsq)),
+                             (compose(np.reciprocal, hypotsq), compose(lambda x: 1 / x, hypotsq)),
+                             (lambda x: np.minimum(x, 1), lambda x: sp.Piecewise((x, x <= 1), (sp.S.One, True))),
+                             (lambda x: np.minimum(1, x), lambda x: sp.Piecewise((x, x <= 1), (sp.S.One, True))),
+                             (lambda x: np.maximum(x, 1), lambda x: sp.Piecewise((x, x >= 1), (sp.S.One, True))),
+                             (lambda x: np.maximum(1, x), lambda x: sp.Piecewise((x, x >= 1), (sp.S.One, True))),
+                         ))
+@pytest.mark.parametrize("v", (-np.sqrt(np.pi), 0, np.exp(0.5)))
+def test_float_operators(np_operator, sp_operator, v):
+    np_operator = compose(np.exp, np_operator)
+    sp_operator = compose(sp.exp, sp_operator)
+
+    a = AdjFloat(v)
+    b = np_operator(a)
+
+    x = sp.Symbol("x", real=True)
+    op_ref = sp.lambdify((x,), sp_operator(x), modules=["numpy"])(v)
+    dop_ref = sp.lambdify((x,), sp_operator(x).diff(x), modules=["numpy"])(v)
+    ddop_ref = sp.lambdify((x,), sp_operator(x).diff(x).diff(x), modules=["numpy"])(v)
+
+    assert_approx_equal(b, op_ref)
+    rf = ReducedFunctional(b, Control(a))
+    assert_approx_equal(rf(v), op_ref)
+    assert_approx_equal(rf.tlm(1.0), dop_ref)
+    assert_approx_equal(rf.derivative(), dop_ref)
+    assert_approx_equal(rf.hessian(1.0), ddop_ref)
+
+
 def test_float_logexp():
     a = AdjFloat(3.0)
     b = exp(a)
@@ -201,8 +343,6 @@ def test_float_exponentiation():
     assert rf(AdjFloat(2.0)) == 4.0
     # d(a**a)/da = dexp(a log(a))/da = a**a * (log(a) + 1)
     assert_approx_equal(rf.derivative(), 4.0 * (math.log(2.0)+1.0))
-
-    # TODO: __rpow__ is not yet implemented
 
 
 @pytest.mark.parametrize("B", [3,4])
