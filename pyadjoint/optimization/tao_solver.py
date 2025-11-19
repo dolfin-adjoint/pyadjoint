@@ -722,7 +722,8 @@ class TAOSolver(OptimizationSolver):
 
         petsctools.set_from_options(
             tao, parameters=parameters,
-            options_prefix=options_prefix)
+            options_prefix=options_prefix,
+            default_prefix="pyadjoint")
 
         if tao.getType() in {PETSc.TAO.Type.LMVM, PETSc.TAO.Type.BLMVM}:
             n, N = vec_interface.n, vec_interface.N
