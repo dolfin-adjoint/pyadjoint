@@ -636,6 +636,11 @@ else:
 class TAOSolver(OptimizationSolver):
     """Use TAO to solve an optimization problem.
 
+    Only `LMVM` and `BLMVM` types use the Riesz map to configure the optimizer
+    -- specifically to define the gradient norm using `TaoSetGradientNorm` and
+    to define the initial Hessian inverse approximation using `TaoLMVMGetH0`.
+    Other types use PETSc defaults.
+
     Args:
         problem (MinimizationProblem): Defines the optimization problem to be solved.
         parameters (Mapping): TAO options.
@@ -699,9 +704,6 @@ class TAOSolver(OptimizationSolver):
             hessian_mat.getPythonContext().update,
             H=hessian_mat, P=Pmat or hessian_mat)
 
-        Minv_mat = RieszMapMat(rf.controls, comm=comm)
-        tao.setGradientNorm(Minv_mat)
-
         if problem.bounds is not None:
             lbs = []
             ubs = []
@@ -727,6 +729,9 @@ class TAOSolver(OptimizationSolver):
 
         if tao.getType() in {PETSc.TAO.Type.LMVM, PETSc.TAO.Type.BLMVM}:
             n, N = vec_interface.n, vec_interface.N
+
+            Minv_mat = RieszMapMat(rf.controls, comm=comm)
+            tao.setGradientNorm(Minv_mat)
 
             class InitialHessian:
                 """:class:`petsc4py.PETSc.Mat` context.
