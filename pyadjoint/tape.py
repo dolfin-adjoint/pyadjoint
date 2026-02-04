@@ -30,13 +30,12 @@ def continue_annotation():
     return _annotation_enabled
 
 
-class set_working_tape(ContextDecorator):
+class set_working_tape:
     """Set a new tape as the working tape.
 
     This class can be used in three ways:
        1) as a free function to replace the working tape,
        2) as a context manager within which a new tape is set as the working tape,
-       3) as a function decorator so that the new tape is set only inside the function.
 
        Example usage:
 
@@ -54,22 +53,6 @@ class set_working_tape(ContextDecorator):
 
                 with set_working_tape() as tape:
                     ...
-
-        3) Set the local tape inside a decorated function.
-           The two functions below are equivalent:
-
-            .. highlight:: python
-            .. code-block:: python
-
-                @set_working_tape()
-                def decorated_function(*args, **kwargs):
-                    # do something here
-                    return ReducedFunctional(functional, control)
-
-                def context_function(*args, **kwargs):
-                    with set_working_tape():
-                        # do something here
-                        return ReducedFunctional(functional, control)
 
     """
 
