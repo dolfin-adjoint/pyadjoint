@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -15,7 +15,8 @@ authors = [
 ]
 description = "High-level automatic differentiation library"
 readme = "README.md"
-license = {file = "LICENSE"}
+license = "LGPL-3.0-only"
+license-files = ["LICENSE"]
 classifiers = [
   "Programming Language :: Python",
 ]
