@@ -311,13 +311,13 @@ class AdjFloat(OverloadedType, float):
         return checkpoint
 
     def _ad_mul(self, other):
-        return super().__mul__(other)
+        return self*other
 
     def _ad_add(self, other):
-        return super().__add__(other)
+        return self + other
 
     def _ad_dot(self, other):
-        return super().__mul__(other)
+        return float(self*other)
 
     @staticmethod
     def _ad_assign_numpy(dst, src, offset):
