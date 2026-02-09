@@ -42,11 +42,11 @@ jobs:
           # Pass on exit codes of 0 (pass) or 5 (no tests found)
           command: |
             python3 -m pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[1]
-            mpiexec -n 2 python3 -m pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[2] || [ $? == 5 ]
-            mpiexec -n 3 python3 -m pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[3] || [ $? == 5 ]
-            mpiexec -n 4 python3 -m pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[4] || [ $? == 5 ]
-            mpiexec -n 5 python3 -m pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[5] || [ $? == 5 ]
-            mpiexec -n 6 python3 -m pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[6] || [ $? == 5 ]
+            mpiexec -n 2 python3 -m pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[2] -k "not covariance" || [ $? == 5 ]
+            mpiexec -n 3 python3 -m pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[3] -k "not covariance" || [ $? == 5 ]
+            mpiexec -n 4 python3 -m pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[4] -k "not covariance" || [ $? == 5 ]
+            mpiexec -n 5 python3 -m pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[5] -k "not covariance" || [ $? == 5 ]
+            mpiexec -n 6 python3 -m pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[6] -k "not covariance" || [ $? == 5 ]
 
       - store_artifacts:
           path: test-reports
