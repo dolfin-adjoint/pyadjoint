@@ -73,7 +73,7 @@ class set_working_tape(ContextDecorator):
 
     """
 
-    def __init__(self, tape=None, continue_annotation=True, **tape_kwargs):
+    def __init__(self, tape=None, continue_annotation=False, **tape_kwargs):
         # Get working tape
         global _working_tape
         # Store current tape
