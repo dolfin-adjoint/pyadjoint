@@ -56,7 +56,7 @@ class set_working_tape:
 
     """
 
-    def __init__(self, tape=None, **tape_kwargs):
+    def __init__(self, tape=None, continue_annotation=False, **tape_kwargs):
         # Get working tape
         global _working_tape
         # Store current tape
@@ -64,14 +64,20 @@ class set_working_tape:
         # Set new tape
         self.tape = tape or Tape(**tape_kwargs)
         _working_tape = self.tape
+        self._continue_annotation = continue_annotation
 
     def __enter__(self):
+        if self._continue_annotation:
+            self._was_annotating = annotate_tape()
+            continue_annotation()
         return self.tape
 
     def __exit__(self, *args):
         # Re-establish the original tape
         global _working_tape
         _working_tape = self.old_tape
+        if self._continue_annotation and not self._was_annotating:
+            pause_annotation()
 
 
 class stop_annotating(ContextDecorator):
