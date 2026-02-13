@@ -16,7 +16,7 @@ from .overloaded_type import OverloadedType, create_overloaded_object
 from .verification import taylor_test, taylor_to_dict
 from .drivers import compute_gradient, compute_derivative, compute_tlm, compute_hessian, solve_adjoint
 from .checkpointing import disk_checkpointing_callback
-from .reduced_functional import ReducedFunctional
+from .reduced_functional import ReducedFunctional, ParametrisedReducedFunctional
 from .adjfloat import AdjFloat, exp, log
 from .tape import (
     Tape,
@@ -54,6 +54,7 @@ __all__ = [
     "log",
     "Control",
     "ReducedFunctional",
+    "ParametrisedReducedFunctional",
     "create_overloaded_object",
     "OverloadedType",
     "compute_gradient",
