@@ -440,16 +440,10 @@ class ParametrisedReducedFunctional(AbstractReducedFunctional):
         self._controls = Enlist(controls)
         self._parameters = Enlist(parameters)
         self.n_opt = len(self._controls)
-        self.derivative_components = tuple(range(self.n_opt)) # Tuple of indices corresponding to optimization controls which are included in derivative calculations.
-
-
         self._all_controls= self._controls + Enlist(Control(parameters))
-
-       
-
+        
         self._reduced_functional = ReducedFunctional(functional=functional, 
                                                      controls=self._all_controls, 
-                                                     derivative_components=self.derivative_components, 
                                                      scale=scale, 
                                                      tape=tape,
                                                      eval_cb_pre=eval_cb_pre, 
