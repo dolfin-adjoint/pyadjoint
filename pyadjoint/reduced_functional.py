@@ -380,7 +380,7 @@ class ReducedFunctional(AbstractReducedFunctional):
             for control in self.controls:
                 control.unmark_as_control()
 
-class ParametrisedReducedFunctional():
+class ParametrisedReducedFunctional(AbstractReducedFunctional):
     """Class representing the reduced functional with parameters.
 
     A reduced functional maps a control value to the provided functional.
