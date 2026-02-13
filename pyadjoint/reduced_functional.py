@@ -380,7 +380,7 @@ class ReducedFunctional(AbstractReducedFunctional):
             for control in self.controls:
                 control.unmark_as_control()
 
-class ParametrisedReducedFunctional(ReducedFunctional):
+class ParametrisedReducedFunctional(AbstractReducedFunctional):
     """Class representing the reduced functional with parameters.
 
     A reduced functional maps a control value to the provided functional.
@@ -422,7 +422,6 @@ class ParametrisedReducedFunctional(ReducedFunctional):
         tlm_cb_post (function): Callback function after evaluating the tangent linear model.
             Inputs are the functional, the tlm result, and controls.
     """
-
     def __init__(self, functional, controls, parameters,
                  scale=1.0, tape=None,
                  eval_cb_pre=lambda *args: None,
@@ -434,63 +433,190 @@ class ParametrisedReducedFunctional(ReducedFunctional):
                  hessian_cb_post=lambda *args: None,
                  tlm_cb_pre=lambda *args: None,
                  tlm_cb_post=lambda *args: None):
+        if not isinstance(functional, OverloadedType):
+            raise TypeError("Functional must be an OverloadedType.")
+        if parameters is None:
+            raise ValueError("Parameters must be provided. If no parameters are needed, use ReducedFunctional instead.")
+        print("using the new code now")
 
-
-
-
+        self.functional = functional
+        self.tape = get_working_tape() if tape is None else tape
+        self._controls = Enlist(controls)
         self._parameters = Enlist(parameters)
-        controls = Enlist(controls)
-        self.n_opt = len(controls) 
-        derivative_components = tuple(range(self.n_opt)) # Tuple of indices corresponding to optimization controls which are included in derivative calculations.
+        self.n_opt = len(self._controls)
+        self.derivative_components = tuple(range(self.n_opt)) # Tuple of indices corresponding to optimization controls which are included in derivative calculations.
+        self.scale = scale
+        self.eval_cb_pre = eval_cb_pre
+        self.eval_cb_post = eval_cb_post
+        self.derivative_cb_pre = derivative_cb_pre
+        self.derivative_cb_post = derivative_cb_post
+        self.hessian_cb_pre = hessian_cb_pre
+        self.hessian_cb_post = hessian_cb_post
+        self.tlm_cb_pre = tlm_cb_pre
+        self.tlm_cb_post = tlm_cb_post
 
-        # Prepare controls + parameters list for base class. By default, parameters are appended after the optimization controls.
-        all_controls = controls + Enlist(Control(parameters))
+        self._all_controls= Enlist(self._controls + Enlist(Control(parameters))) 
 
-        super().__init__(functional=functional,
-                         controls=all_controls,
-                         derivative_components=derivative_components,
-                         scale=scale,
-                         tape=tape,
-                         eval_cb_pre=eval_cb_pre,
-                         eval_cb_post=eval_cb_post,
-                         derivative_cb_pre=derivative_cb_pre,
-                         derivative_cb_post=derivative_cb_post,
-                         hessian_cb_pre=hessian_cb_pre,
-                         hessian_cb_post=hessian_cb_post,
-                         tlm_cb_pre=tlm_cb_pre,
-                         tlm_cb_post=tlm_cb_post)
+        self.derivative_cb_pre = _get_extract_derivative_components(self.derivative_components)
+        self.derivative_cb_post = _get_pack_derivative_components(self._all_controls, self.derivative_components)
 
 
-
+    @property
+    def controls(self) -> list[Control]:
+        return self._controls
     
     @property
     def parameters(self) -> list[Control]:
         return self._parameters
     
+    @property
+    def all_controls(self) -> list[Control]:
+        return self._all_controls
+    
+    @no_annotations
+    def derivative(self, adj_input=1.0, apply_riesz=False):
+        values = [c.tape_value() for c in self.all_controls]
+        controls = self.derivative_cb_pre(self.all_controls)
+
+        if not controls:
+            raise ValueError("""Note that the callback interface
+            for derivative_cb_pre has changed. It should now return a
+            list of controls (usually the same list as input.""")
+        
+        # Make sure `adj_input` is an OverloadedType
+        adj_input = create_overloaded_object(adj_input)
+        adj_value = adj_input._ad_mul(self.scale)
+
+        derivatives = compute_derivative(self.functional, 
+                                         controls, 
+                                         tape=self.tape,
+                                         adj_value=adj_value,
+                                         apply_riesz=apply_riesz)
+        
+        # Call callback
+        derivatives = self.derivative_cb_post(
+            self.functional.block_variable.checkpoint,
+            derivatives,
+            values)
+        
+        if not derivatives:
+            raise ValueError("""Note that the callback interface
+            for derivative_cb_post has changed. It should now return a
+            list of derivatives, usually the same list as input.""")
+        
+        return Enlist(self.all_controls.delist(derivatives))[:self.n_opt] 
+    
     @no_annotations
     def parameter_update(self, new_parameters):
         if len(Enlist(new_parameters)) != len(self._parameters):
             raise ValueError(
-                "new_parameters should be a list of same length as parameters."
+                """new_parameters should be a list of the same 
+                length as parameters."""
             )
         self._parameters = Enlist(new_parameters)
 
 
     @no_annotations
-    def derivative(self, adj_input=1.0, apply_riesz=False):
-        derivatives_full = super().derivative(adj_input=adj_input, apply_riesz=apply_riesz)
-        # Return only derivatives corresponding to optimization controls
-        return Enlist(derivatives_full)[:self.n_opt]
+    def hessian(self, m_dot, hessian_input=None, evaluate_tlm=True, apply_riesz=False):
+        # Call callback
+        values = [c.tape_value() for c in self.all_controls]
+        self.hessian_cb_pre(self.all_controls.delist(values))
 
+        r = compute_hessian(self.functional, self.all_controls, m_dot,
+                            hessian_input=hessian_input, tape=self.tape,
+                            evaluate_tlm=evaluate_tlm, apply_riesz=apply_riesz)
+
+        # Call callback
+        self.hessian_cb_post(self.functional.block_variable.checkpoint,
+                             self.all_controls.delist(r),
+                             self.all_controls.delist(values))
+
+        return self.all_controls.delist(r)
+    
 
     @no_annotations
+    def tlm(self, m_dot):
+        # Call callback
+        values = [c.tape_value() for c in self.all_controls]
+        self.tlm_cb_pre(self.all_controls.delist(values))
+
+        tlm = compute_tlm(self.functional, self.all_controls, m_dot, tape=self.tape)
+
+        # Call callback
+        self.tlm_cb_post(self.functional.block_variable.checkpoint,
+                         tlm, self.all_controls.delist(values))
+        return tlm
+    
+    @no_annotations
     def __call__(self, values):
+
         values = Enlist(values)
-        if len(values) != self.n_opt:
+        if len(values) != len(self.controls):
             raise ValueError("Length of values passed to ParametrisedReducedFunctional" \
             " must match the number of optimization controls.")
-        # concatenate optimization controls + parameters
-        full_values = values + self._parameters
-        return super().__call__(full_values)
+
+        all_values = values + self._parameters 
+ 
+
+        for i, value in enumerate(all_values):
+            control_type = type(self.all_controls[i].control) 
+            if isinstance(value, (int, float)) and control_type is AdjFloat:
+                value = self.all_controls[i].control._ad_init_object(value)
+            elif not isinstance(value, control_type):
+                if len(all_values) == 1:
+                    raise TypeError(
+                        "Control value must be an `OverloadedType` object with the same "
+                        f"type as the control, which is {control_type}"
+                    )
+                else:
+                    raise TypeError(
+                        f"The control at index {i} must be an `OverloadedType` object "
+                        f"with the same type as the control, which is {control_type}"
+                    )
+                # concatenate optimization controls + parameters
+        # Call callback.
+        self.eval_cb_pre(self.all_controls.delist(all_values))
 
 
+        for i, value in enumerate(all_values):
+            self.all_controls[i].update(value)
+
+        self.tape.reset_blocks()
+        blocks = self.tape.get_blocks()
+        self.tape._recompute_count += 1
+        with self.marked_controls():
+            with stop_annotating():
+                if self.tape._checkpoint_manager:
+                    self.tape._checkpoint_manager.recompute(self.functional)
+                else:
+                    for i in self.tape._bar("Evaluating functional").iter(
+                        range(len(blocks))
+                    ):
+                        blocks[i].recompute()
+
+        # ReducedFunctional can result in a scalar or an assembled 1-form
+        func_value = self.functional.block_variable.saved_output
+        # Scale the underlying functional value
+        func_value *= self.scale
+
+        # Call callback
+        self.eval_cb_post(func_value, self.all_controls.delist(all_values))
+        return func_value
+    
+    def optimize_tape(self):
+        self.tape.optimize(
+            controls=self.all_controls,
+            functionals=[self.functional]
+        )
+
+    @contextmanager
+    def marked_controls(self):
+        """Return a context manager which marks the active controls."""
+        for control in self.all_controls:
+            control.mark_as_control()
+        try:
+            yield
+        finally:
+            for control in self.all_controls:
+                control.unmark_as_control()
+    
