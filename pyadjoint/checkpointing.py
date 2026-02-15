@@ -361,7 +361,7 @@ class CheckpointManager:
 
                 # Handle the case for SingleMemoryStorageSchedule
                 if isinstance(self._schedule, SingleMemoryStorageSchedule):
-                    if step > 1 and var not in self.tape.timesteps[step - 1].adjoint_dependencies:
+                    if var.output.block_variable is var:
                         var._checkpoint = None
                     continue
 
