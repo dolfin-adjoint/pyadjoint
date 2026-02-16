@@ -1,7 +1,8 @@
 import pytest
 from pyadjoint import *
 from pyadjoint.control import Control
-from pyadjoint.reduced_functional import ParametrisedReducedFunctional
+from pyadjoint.tape import set_working_tape
+from pyadjoint.reduced_functional import ParametrisedReducedFunctional, ReducedFunctional
 
 
 # ============================================================================
@@ -346,6 +347,37 @@ def test_parametrised_rf_multiple_parameter_updates(c_val, c_new, p_val, p_new1,
     assert result == expected
 
 
+@pytest.mark.parametrize("c_val, c_new, p_val, p_new", [
+    (2.0, 5.0, 6.0, 7.0),
+    (1.5, 3.0, 4.0, 5.0),
+    (4.0, 2.5, 3.0, 4.0),
+])
+def test_parametrised_rf_against_rf(c_val, c_new, p_val, p_new):
+    """Test that the parametrised reduced functional gives the same results as a standard reduced functional with 
+     derivative components."""
+    # Build reduced functional with parameter as control and derivative component
+    with set_working_tape() as tape_1:
+        c = AdjFloat(c_val)
+        p = AdjFloat(p_val)
+        J = c * p
+        Jhat_rf = ReducedFunctional(J, [Control(c), Control(p)], derivative_components=[0])
+    
+    # Build parametrised reduced functional
+    with set_working_tape() as tape_2:
+        Jhat_param_rf = build_single_control_single_param(c_val, p_val)
+    
+    # Test initial evaluation
+    result_rf = Jhat_rf([c_new, p_val])
+    result_param_rf = Jhat_param_rf(c_new)
+    assert result_rf == result_param_rf
+    
+    # Update parameter and test again
+    result_rf_updated = Jhat_rf([c_new, p_new])
+    Jhat_param_rf.parameter_update(p_new)
+    result_param_rf_updated = Jhat_param_rf(c_new)
+    assert result_rf_updated == result_param_rf_updated
 
-
-
+    # Test derivatives
+    derivs_rf = Jhat_rf.derivative()
+    derivs_param_rf = Jhat_param_rf.derivative()
+    assert derivs_rf[0] == derivs_param_rf[0]  # dJ/dc should be the same
