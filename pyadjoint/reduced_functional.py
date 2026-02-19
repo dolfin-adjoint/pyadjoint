@@ -42,7 +42,7 @@ class AbstractReducedFunctional(ABC):
         """Compute the reduced functional with supplied control value.
 
         Args:
-            values ([OverloadedType]): If you have multiple controls this
+            values ([pyadjoint.OverloadedType]): If you have multiple controls this
                 should be a list of new values for each control in the order
                 you listed the controls to the constructor. If you have a
                 single control it can either be a list or a single object.
@@ -50,8 +50,8 @@ class AbstractReducedFunctional(ABC):
                 control.
 
         Returns:
-            :obj:`OverloadedType`: The computed value. Often of type
-                :class:`AdjFloat`.
+            :obj:`~pyadjoint.OverloadedType`: The computed value. Often of type
+                :class:`~pyadjoint.AdjFloat`.
 
         """
         raise NotImplementedError
@@ -73,7 +73,7 @@ class AbstractReducedFunctional(ABC):
                 dual space.
 
         Returns:
-            OverloadedType: The derivative with respect to the control.
+            pyadjoint.OverloadedType: The derivative with respect to the control.
                 If apply_riesz is False, should be an instance of the type dual
                 to that of the control. If apply_riesz is True should have the
                 same type as the control.
@@ -92,9 +92,9 @@ class AbstractReducedFunctional(ABC):
         of the control, is computed and returned.
 
         Args:
-            m_dot ([OverloadedType]): The direction in which to compute the
+            m_dot ([pyadjoint.OverloadedType]): The direction in which to compute the
                 action of the Hessian.
-            hessian_input OverloadedType: The Hessian value for the functional result.
+            hessian_input (pyadjoint.OverloadedType): The Hessian value for the functional result.
                 Required if the functional is not scalar-valued, or if the functional
                 is an intermediate result in the computation of an outer functional.
             evaluate_tlm (bool): If True, will evaluate the tangent linear model before
@@ -105,7 +105,7 @@ class AbstractReducedFunctional(ABC):
                 action.
 
         Returns:
-            OverloadedType: The action of the Hessian in the direction m_dot.
+            pyadjoint.OverloadedType: The action of the Hessian in the direction m_dot.
                 If apply_riesz is False, should be an instance of the type dual
                 to that of the control. If apply_riesz is True should have the
                 same type as the control.
@@ -121,11 +121,11 @@ class AbstractReducedFunctional(ABC):
         m_dot, around the last supplied value of the control.
 
         Args:
-            m_dot ([OverloadedType]): The direction in which to compute the
+            m_dot ([pyadjoint.OverloadedType]): The direction in which to compute the
                 action of the tangent linear model.
 
         Returns:
-            OverloadedType: The action of the tangent linear model in the direction m_dot.
+            pyadjoint.OverloadedType: The action of the tangent linear model in the direction m_dot.
                 Should be an instance of the same type as the functional.
         """
 
