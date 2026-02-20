@@ -442,7 +442,7 @@ class ParametrisedReducedFunctional(AbstractReducedFunctional):
         self._controls = Enlist(controls)
         self._parameters = Enlist(parameters)
         self.n_opt = len(self._controls)
-        self._all_controls= self._controls + Enlist([Control(p) if not isinstance(p, Control) else p for p in self._parameters])
+        self._all_controls= self._controls + Enlist([Control(p) for p in self._parameters])
 
         self._reduced_functional = ReducedFunctional(functional=functional, 
                                                      controls=self._all_controls, 
