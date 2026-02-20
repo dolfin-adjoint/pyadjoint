@@ -515,5 +515,3 @@ class ParametrisedReducedFunctional(AbstractReducedFunctional):
             controls=self._reduced_functional.controls,
             functionals=[self._reduced_functional.functional]
         )
-
-  
