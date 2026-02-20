@@ -489,7 +489,7 @@ class ParametrisedReducedFunctional(AbstractReducedFunctional):
             " must match the number of optimization controls.")
         # concatenate optimization controls + parameters
         full_values = values + self._parameters
-        return self._reduced_functional.__call__(full_values)
+        return self._reduced_functional(full_values)
     
 
 
