@@ -100,7 +100,7 @@ def test_parametrised_rf_basic(c_val, p_val, mult_factor):
     
     # Test parameter update
     new_p = p_val * mult_factor
-    Jhat.parameter_update(new_p)
+    Jhat.update_parameters(new_p)
     result = Jhat(c_val)
     expected = c_val * new_p
     assert result == expected
@@ -137,7 +137,7 @@ def test_parametrised_rf_parameters_property(c_val, p1_val, p2_val, p1_new, p2_n
     assert params[1] == p2_val
     
     # Update and check again
-    Jhat.parameter_update([p1_new, p2_new])
+    Jhat.update_parameters([p1_new, p2_new])
     params = Jhat.parameters
     assert len(params) == 2
     assert params[0] == p1_new
@@ -169,19 +169,19 @@ def test_parametrised_rf_call_validation(c1_val, c2_val, p_val):
     (1.5, 3.5, 4.5),
     (3.0, 2.0, 3.0),
 ])        
-def test_parametrised_rf_parameter_update_validation(c_val, p1_val, p2_val):
-    """Test that parameter_update validates length of new parameters."""
+def test_parametrised_rf_update_parameters_validation(c_val, p1_val, p2_val):
+    """Test that update_parameters validates length of new parameters."""
     Jhat = build_single_control_multi_param(c_val, p1_val, p2_val)
     
     # Valid update
-    Jhat.parameter_update([p1_val + 1, p2_val + 1])
+    Jhat.update_parameters([p1_val + 1, p2_val + 1])
     
     # Invalid update - wrong number of parameters
     with pytest.raises(ValueError):
-        Jhat.parameter_update([p1_val])  # Only 1 parameter instead of 2
+        Jhat.update_parameters([p1_val])  # Only 1 parameter instead of 2
     
     with pytest.raises(ValueError):
-        Jhat.parameter_update([p1_val, p2_val, p1_val + 1])  # 3 parameters instead of 2
+        Jhat.update_parameters([p1_val, p2_val, p1_val + 1])  # 3 parameters instead of 2
 
 
 @pytest.mark.parametrize("c_val,c_new,p_val,p_new", [
@@ -203,7 +203,7 @@ def test_parametrised_rf_with_single_control_single_parameter(c_val, c_new, p_va
     assert deriv[0] == p_val
     
     # Update parameter
-    Jhat.parameter_update(p_new)
+    Jhat.update_parameters(p_new)
     result = Jhat(c_new)
     assert result == c_new * p_new
     
@@ -235,7 +235,7 @@ def test_parametrised_rf_with_multiple_controls_single_parameter(c1_val, c2_val,
 
     
     # Update parameter
-    Jhat.parameter_update(p_new)
+    Jhat.update_parameters(p_new)
     result = Jhat([c1_new, c2_new])
     assert result == c1_new * c2_new * p_new
     
@@ -264,7 +264,7 @@ def test_parametrised_rf_with_single_control_multiple_parameters(c_val, c_new, p
     assert derivs[0] == p1_val * p2_val  # dJ/dc = p1 * p2
     
     # Update parameters
-    Jhat.parameter_update([p1_new, p2_new])
+    Jhat.update_parameters([p1_new, p2_new])
     result = Jhat(c_new)
     assert result == c_new * p1_new * p2_new
     
@@ -295,7 +295,7 @@ def test_parametrised_rf_with_multiple_controls_multiple_parameters(c1_val,c2_va
     assert derivs[1] == c1_new * c1_new * p1_val + 2.0 * c2_new * p2_val  # dJ/dc2 = c1^2*p1 + 2*c2*p2
     
     # Update parameters
-    Jhat.parameter_update([p1_new, p2_new])
+    Jhat.update_parameters([p1_new, p2_new])
     result = Jhat([c1_new, c2_new])
     expected = c1_new * c1_new * c2_new * p1_new + c2_new * c2_new * p2_new
     assert result == expected
@@ -324,7 +324,7 @@ def test_parametrised_rf_complex_expression(c1_val,c2_val,c1_new,c2_new,p1_val,p
     assert result == expected
     
     # Update and test again
-    Jhat.parameter_update([p1_new, p2_new])
+    Jhat.update_parameters([p1_new, p2_new])
     result = Jhat([c1_new, c2_new])
     expected = (c1_new + c2_new) ** 2 * p1_new - c1_new * p2_new
     assert result == expected
@@ -334,13 +334,13 @@ def test_parametrised_rf_complex_expression(c1_val,c2_val,c1_new,c2_new,p1_val,p
     (1.5, 3.0, 4.0, 5.0, 6.0),
     (4.0, 2.5, 3.0, 4.0, 5.0),
 ])
-def test_parametrised_rf_multiple_parameter_updates(c_val, c_new, p_val, p_new1, p_new2):
+def test_parametrised_rf_multiple_update_parameterss(c_val, c_new, p_val, p_new1, p_new2):
     """Test that, in case of multiple parameter updates before a call, the last update is used correctly."""
     Jhat = build_single_control_single_param(c_val, p_val)
     # First update
-    Jhat.parameter_update(p_new1)
+    Jhat.update_parameters(p_new1)
     # Second update
-    Jhat.parameter_update(p_new2)
+    Jhat.update_parameters(p_new2)
     # Test evaluation uses the last updated parameter
     result = Jhat(c_new)
     expected = c_new * p_new2
@@ -373,7 +373,7 @@ def test_parametrised_rf_against_rf(c_val, c_new, p_val, p_new):
     
     # Update parameter and test again
     result_rf_updated = Jhat_rf([c_new, p_new])
-    Jhat_param_rf.parameter_update(p_new)
+    Jhat_param_rf.update_parameters(p_new)
     result_param_rf_updated = Jhat_param_rf(c_new)
     assert result_rf_updated == result_param_rf_updated
 

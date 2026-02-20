@@ -466,7 +466,7 @@ class ParametrisedReducedFunctional(AbstractReducedFunctional):
         return self._parameters
 
     @no_annotations
-    def parameter_update(self, new_parameters):
+    def update_parameters(self, new_parameters):
         if len(Enlist(new_parameters)) != len(self._parameters):
             raise ValueError(
                 """new_parameters should be a list of the same 
