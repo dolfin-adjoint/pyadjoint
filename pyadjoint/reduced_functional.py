@@ -490,9 +490,6 @@ class ParametrisedReducedFunctional(AbstractReducedFunctional):
         # concatenate optimization controls + parameters
         full_values = values + self._parameters
         return self._reduced_functional(full_values)
-    
-
-
 
     @no_annotations
     def hessian(self, m_dot, hessian_input=None, evaluate_tlm=True, apply_riesz=False):
