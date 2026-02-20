@@ -511,7 +511,4 @@ class ParametrisedReducedFunctional(AbstractReducedFunctional):
     
 
     def optimize_tape(self):
-        self._reduced_functional.tape.optimize(
-            controls=self._reduced_functional.controls,
-            functionals=[self._reduced_functional.functional]
-        )
+        self._reduced_functional.optimize_tape()
