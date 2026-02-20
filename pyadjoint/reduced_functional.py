@@ -379,3 +379,135 @@ class ReducedFunctional(AbstractReducedFunctional):
         finally:
             for control in self.controls:
                 control.unmark_as_control()
+
+class ParametrisedReducedFunctional(AbstractReducedFunctional):
+    """Class representing the reduced functional with parameters.
+
+    A reduced functional maps a control value to the provided functional.
+    It may also be used to compute the derivative of the functional with
+    respect to the control. In addition, parameters may be specified which
+    are updated, but not included in the derivative calculations.
+
+    Args:
+        functional (:obj:`OverloadedType`): An instance of an OverloadedType,
+            usually :class:`AdjFloat`. This should be the return value of the
+            functional you want to reduce.
+        controls (list[Control]): A list of Control instances, which you want
+            to map to the functional. It is also possible to supply a single
+            Control instance instead of a list.
+        parameters (list): A list of parameters, which are updated, but not included in the derivative.
+        scale (float): A scaling factor applied to the functional and its
+            gradient with respect to the control.
+        tape (Tape): A tape object that the reduced functional will use to
+            evaluate the functional and its gradients (or derivatives).
+        eval_cb_pre (function): Callback function before evaluating the
+            functional. Input is a list of Controls.
+        eval_cb_pos (function): Callback function after evaluating the
+            functional. Inputs are the functional value and a list of Controls.
+        derivative_cb_pre (function): Callback function before evaluating
+            derivatives. Input is a list of Controls.
+            Should return a list of Controls (usually the same
+            list as the input) to be passed to compute_derivative.
+        derivative_cb_post (function): Callback function after evaluating
+            derivatives.  Inputs are: functional.block_variable.checkpoint,
+            list of functional derivatives, list of functional values.
+            Should return a list of derivatives (usually the same
+            list as the input) to be returned from self.derivative.
+        hessian_cb_pre (function): Callback function before evaluating the Hessian.
+            Input is a list of Controls.
+        hessian_cb_post (function): Callback function after evaluating the Hessian.
+            Inputs are the functional, a list of Hessian, and controls.
+        tlm_cb_pre (function): Callback function before evaluating the tangent linear model.
+            Input is a list of Controls.
+        tlm_cb_post (function): Callback function after evaluating the tangent linear model.
+            Inputs are the functional, the tlm result, and controls.
+    """
+    def __init__(self, functional, controls, parameters,
+                 scale=1.0, tape=None,
+                 eval_cb_pre=lambda *args: None,
+                 eval_cb_post=lambda *args: None,
+                 derivative_cb_pre=lambda controls: controls,
+                 derivative_cb_post=lambda checkpoint, derivative_components,
+                 controls: derivative_components,
+                 hessian_cb_pre=lambda *args: None,
+                 hessian_cb_post=lambda *args: None,
+                 tlm_cb_pre=lambda *args: None,
+                 tlm_cb_post=lambda *args: None):
+        if not isinstance(functional, OverloadedType):
+            raise TypeError("Functional must be an OverloadedType.")
+        if parameters is None:
+            raise ValueError("Parameters must be provided. If no parameters are needed, use ReducedFunctional instead.")
+        if len(Enlist(parameters)) == 0:
+            raise ValueError("Parameters list cannot be empty. If no parameters are needed, use ReducedFunctional instead.")
+        self._controls = Enlist(controls)
+        self._parameters = Enlist(parameters)
+        self.n_opt = len(self._controls)
+        self._all_controls= self._controls + Enlist([Control(p) for p in self._parameters])
+
+        self._reduced_functional = ReducedFunctional(functional=functional, 
+                                                     controls=self._all_controls, 
+                                                     scale=scale, 
+                                                     tape=tape,
+                                                     eval_cb_pre=eval_cb_pre, 
+                                                     eval_cb_post=eval_cb_post, 
+                                                     derivative_cb_pre=derivative_cb_pre, 
+                                                     derivative_cb_post=derivative_cb_post,
+                                                     hessian_cb_pre=hessian_cb_pre, 
+                                                     hessian_cb_post=hessian_cb_post, 
+                                                     tlm_cb_pre=tlm_cb_pre, 
+                                                     tlm_cb_post=tlm_cb_post)
+
+
+
+    @property
+    def controls(self) -> list[Control]:
+        return self._controls
+    
+    @property
+    def parameters(self) -> list[OverloadedType]:
+        return self._parameters
+
+    @no_annotations
+    def update_parameters(self, new_parameters):
+        if len(Enlist(new_parameters)) != len(self._parameters):
+            raise ValueError(
+                """new_parameters should be a list of the same 
+                length as parameters."""
+            )
+        self._parameters = Enlist(new_parameters)
+    
+    @no_annotations
+    def derivative(self, adj_input=1.0, apply_riesz=False):
+        derivatives_all = self._reduced_functional.derivative(adj_input=adj_input, 
+                                                                    apply_riesz=apply_riesz)
+        
+        return Enlist(derivatives_all)[:self.n_opt] 
+    
+    @no_annotations
+    def __call__(self, values):
+        values = Enlist(values)
+        if len(values) != self.n_opt:
+            raise ValueError("Length of values passed to ParametrisedReducedFunctional" \
+            " must match the number of optimization controls.")
+        # concatenate optimization controls + parameters
+        full_values = values + self._parameters
+        return self._reduced_functional(full_values)
+
+    @no_annotations
+    def hessian(self, m_dot, hessian_input=None, evaluate_tlm=True, apply_riesz=False):
+        hessian_all = self._reduced_functional.hessian(m_dot, 
+                                                              hessian_input=hessian_input, 
+                                                              evaluate_tlm=evaluate_tlm, 
+                                                              apply_riesz=apply_riesz)
+
+        return hessian_all[:self.n_opt] # Return only the hessian components corresponding to optimization controls.
+    
+
+    @no_annotations
+    def tlm(self, m_dot):
+        tlm_all = self._reduced_functional.tlm(m_dot)
+        return tlm_all[:self.n_opt] # Return only the tlm components corresponding to optimization controls.
+    
+
+    def optimize_tape(self):
+        self._reduced_functional.optimize_tape()
