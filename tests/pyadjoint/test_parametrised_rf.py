@@ -183,6 +183,13 @@ def test_parametrised_rf_update_parameters_validation(c_val, p1_val, p2_val):
     with pytest.raises(ValueError):
         Jhat.update_parameters([p1_val, p2_val, p1_val + 1])  # 3 parameters instead of 2
 
+def test_parametrised_rf_empty_parameter_list():
+    """Test that creating a ParametrisedReducedFunctional with an empty parameter list raises an error."""
+    c = AdjFloat(2.0)
+    J = c * 3.0 
+    with pytest.raises(ValueError):
+        Jhat = ParametrisedReducedFunctional(J, Control(c), parameters=[])
+
 
 @pytest.mark.parametrize("c_val,c_new,p_val,p_new", [
     (2.0, 3.0, 5.0, 7.0),

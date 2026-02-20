@@ -437,6 +437,8 @@ class ParametrisedReducedFunctional(AbstractReducedFunctional):
             raise TypeError("Functional must be an OverloadedType.")
         if parameters is None:
             raise ValueError("Parameters must be provided. If no parameters are needed, use ReducedFunctional instead.")
+        if len(Enlist(parameters)) == 0:
+            raise ValueError("Parameters list cannot be empty. If no parameters are needed, use ReducedFunctional instead.")
         self._controls = Enlist(controls)
         self._parameters = Enlist(parameters)
         self.n_opt = len(self._controls)
