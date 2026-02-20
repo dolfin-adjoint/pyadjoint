@@ -334,7 +334,7 @@ def test_parametrised_rf_complex_expression(c1_val,c2_val,c1_new,c2_new,p1_val,p
     (1.5, 3.0, 4.0, 5.0, 6.0),
     (4.0, 2.5, 3.0, 4.0, 5.0),
 ])
-def test_parametrised_rf_multiple_update_parameterss(c_val, c_new, p_val, p_new1, p_new2):
+def test_parametrised_rf_multiple_update_parameters(c_val, c_new, p_val, p_new1, p_new2):
     """Test that, in case of multiple parameter updates before a call, the last update is used correctly."""
     Jhat = build_single_control_single_param(c_val, p_val)
     # First update
