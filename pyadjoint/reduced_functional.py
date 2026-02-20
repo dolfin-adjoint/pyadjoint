@@ -462,7 +462,7 @@ class ParametrisedReducedFunctional(AbstractReducedFunctional):
         return self._controls
     
     @property
-    def parameters(self) -> list[Control]:
+    def parameters(self) -> list[OverloadedType]:
         return self._parameters
 
     @no_annotations
