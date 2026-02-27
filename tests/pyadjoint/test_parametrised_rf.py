@@ -3,82 +3,35 @@ from pyadjoint import *
 from pyadjoint.control import Control
 from pyadjoint.tape import set_working_tape
 from pyadjoint.reduced_functional import ParametrisedReducedFunctional, ReducedFunctional
+from pyadjoint.verification import taylor_to_dict
+import numpy as np
 
 
 # ============================================================================
 # Helper functions to build functionals with different combinations of controls and parameters
 # ============================================================================
+def single_control_single_param_expr(c_val, p_val):
+    return c_val ** 3 * p_val
 
-def build_single_control_single_param(c_val, p_val):
-    """Build J(c, p) = c * p with single control and parameter.
-    
-    Returns:
-        tuple: (Jhat, c_val, p_val)
-    """
-    c = AdjFloat(c_val)
-    p = AdjFloat(p_val)
-    J = c * p
-    Jhat = ParametrisedReducedFunctional(J, Control(c), p)
-    return Jhat
+def multi_control_single_param_expr(c1_val, c2_val, p_val):
+    return c1_val**3 * c2_val**4 * p_val
 
+def single_control_multi_param_expr(c_val, p1_val, p2_val):
+    return c_val**3 * p1_val * p2_val
 
-def build_multi_control_single_param(c1_val, c2_val, p_val):
-    """Build J(c1, c2, p) = c1 * c2 * p with multiple controls and single parameter.
-    
-    Returns:
-        tuple: (Jhat, c1_val, c2_val, p_val)
-    """
-    c1 = AdjFloat(c1_val)
-    c2 = AdjFloat(c2_val)
-    p = AdjFloat(p_val)
-    J = c1 * c2 * p
-    Jhat = ParametrisedReducedFunctional(J, [Control(c1), Control(c2)], p)
-    return Jhat
+def multi_control_multi_param_expr(c1_val, c2_val, p1_val, p2_val):
+    return c1_val**3 * c2_val**4 * p1_val + c1_val**2 * c2_val**5 * p2_val
 
-def build_single_control_multi_param(c_val, p1_val, p2_val):
-    """Build J(c, p1, p2) = c * p1 * p2 with single control and multiple parameters.
-    
-    Returns:
-        tuple: (Jhat, c_val, p1_val, p2_val)
-    """
-    c = AdjFloat(c_val)
-    p1 = AdjFloat(p1_val)
-    p2 = AdjFloat(p2_val)
-    J = c * p1 * p2
-    Jhat = ParametrisedReducedFunctional(J, Control(c), [p1, p2])
-    return Jhat
+def complex_expression(c1_val, c2_val, p1_val, p2_val):
+    return (c1_val + c2_val)**3 * p1_val - c1_val**2 * c2_val**2 * p2_val 
 
-
-def build_multi_control_multi_param(c1_val, c2_val, p1_val, p2_val):
-    """Build J(c1, c2, p1, p2) = c1^2 * c2 * p1 + c2^2 * p2.
-    
-    Returns:
-        tuple: (Jhat, c1_val, c2_val, p1_val, p2_val)
-    """
-    c1 = AdjFloat(c1_val)
-    c2 = AdjFloat(c2_val)
-    p1 = AdjFloat(p1_val)
-    p2 = AdjFloat(p2_val)
-    J = c1 * c1 * c2 * p1 + c2 * c2 * p2
-    Jhat = ParametrisedReducedFunctional(J, [Control(c1), Control(c2)], [p1, p2])
-    return Jhat
-
-
-def build_complex_expression(u1_val, u2_val, p1_val, p2_val):
-    """Build J(u1, u2, p1, p2) = (u1 + u2)^2 * p1 - u1 * p2.
-    
-    Returns:
-        tuple: (Jhat, u1_val, u2_val, p1_val, p2_val)
-    """
-    u1 = AdjFloat(u1_val)
-    u2 = AdjFloat(u2_val)
-    p1 = AdjFloat(p1_val)
-    p2 = AdjFloat(p2_val)
-    sum_u = u1 + u2
-    J = sum_u * sum_u * p1 - u1 * p2
-    Jhat = ParametrisedReducedFunctional(J, [Control(u1), Control(u2)], [p1, p2])
-    return Jhat
-
+def check_taylor_test_convergence(Jhat, controls):
+    """Helper function to check that the taylor test convergence rates are as expected."""
+    h = [AdjFloat(1.0) for _ in controls]
+    taylor_results = taylor_to_dict(Jhat, controls, h)
+    assert min(taylor_results["R0"]["Rate"]) >= 0.95, f"Error in R0 rate: {taylor_results['R0']['Rate']}"
+    assert min(taylor_results["R1"]["Rate"]) >= 1.95, f"Error in R1 rate: {taylor_results['R1']['Rate']}"
+    assert min(taylor_results["R2"]["Rate"]) >= 2.95, f"Error in R2 rate: {taylor_results['R2']['Rate']}"
 
 # ============================================================================
 # Tests 
@@ -91,23 +44,26 @@ def build_complex_expression(u1_val, u2_val, p1_val, p2_val):
 ])
 def test_parametrised_rf_basic(c_val, p_val, mult_factor):
     """Test basic evaluation of parametrised reduced functional with various values."""
-    Jhat= build_single_control_single_param(c_val, p_val)
+    c_val = AdjFloat(c_val)
+    p_val = AdjFloat(p_val)
+    J = single_control_single_param_expr(c_val, p_val)
+    Jhat= ParametrisedReducedFunctional(J, Control(c_val), p_val)
     
     # Test initial evaluation
     result = Jhat(c_val)
-    expected = c_val * p_val
-    assert result == expected
+    expected = single_control_single_param_expr(c_val, p_val)
+    assert np.isclose(result, expected, atol=1e-8)
     
     # Test parameter update
     new_p = p_val * mult_factor
     Jhat.update_parameters(new_p)
     result = Jhat(c_val)
-    expected = c_val * new_p
+    expected = single_control_single_param_expr(c_val, new_p)
     assert result == expected
     
     # Test derivative
-    deriv = Jhat.derivative()
-    assert deriv[0] == new_p
+    check_taylor_test_convergence(Jhat, [c_val])
+ 
 
 
 @pytest.mark.parametrize("c_val,p_val", [
@@ -117,7 +73,10 @@ def test_parametrised_rf_basic(c_val, p_val, mult_factor):
 ])
 def test_parametrised_rf_controls_property(c_val, p_val):
     """Test that controls property returns only user controls, not parameters."""
-    Jhat = build_single_control_single_param(c_val, p_val)
+    c_val = AdjFloat(c_val)
+    p_val = AdjFloat(p_val)
+    J = single_control_single_param_expr(c_val, p_val)
+    Jhat = ParametrisedReducedFunctional(J, Control(c_val), p_val)
     assert len(Jhat.controls) == 1
     assert Jhat.controls[0] is not None
 
@@ -128,7 +87,11 @@ def test_parametrised_rf_controls_property(c_val, p_val):
 ])
 def test_parametrised_rf_parameters_property(c_val, p1_val, p2_val, p1_new, p2_new):
     """Test that parameters property returns the current parameter values."""
-    Jhat = build_single_control_multi_param(c_val, p1_val, p2_val)
+    c_val = AdjFloat(c_val)
+    p1_val = AdjFloat(p1_val)
+    p2_val = AdjFloat(p2_val)
+    J = single_control_multi_param_expr(c_val, p1_val, p2_val)
+    Jhat = ParametrisedReducedFunctional(J, Control(c_val), parameters=[p1_val, p2_val])
     
     # Check initial parameters
     params = Jhat.parameters
@@ -151,11 +114,17 @@ def test_parametrised_rf_parameters_property(c_val, p1_val, p2_val, p1_new, p2_n
 ])
 def test_parametrised_rf_call_validation(c1_val, c2_val, p_val):
     """Test that __call__ validates number of control values."""
-    Jhat = build_multi_control_single_param(c1_val, c2_val, p_val)
+    c1_val = AdjFloat(c1_val)
+    c2_val = AdjFloat(c2_val)
+    p_val = AdjFloat(p_val)
+
+    J = multi_control_single_param_expr(c1_val, c2_val, p_val)
+    Jhat = ParametrisedReducedFunctional(J, [Control(c1_val), Control(c2_val)], parameters=p_val)
     
     # Valid call
     result = Jhat([c1_val, c2_val])
-    assert result == c1_val * c2_val * p_val
+    expected = multi_control_single_param_expr(c1_val, c2_val, p_val)
+    assert np.isclose(result, expected, atol=1e-8)
     
     # Invalid call - wrong number of control values
     with pytest.raises(ValueError):
@@ -171,7 +140,11 @@ def test_parametrised_rf_call_validation(c1_val, c2_val, p_val):
 ])        
 def test_parametrised_rf_update_parameters_validation(c_val, p1_val, p2_val):
     """Test that update_parameters validates length of new parameters."""
-    Jhat = build_single_control_multi_param(c_val, p1_val, p2_val)
+    c_val = AdjFloat(c_val)
+    p1_val = AdjFloat(p1_val)
+    p2_val = AdjFloat(p2_val)
+    J = single_control_multi_param_expr(c_val, p1_val, p2_val)
+    Jhat = ParametrisedReducedFunctional(J, Control(c_val), parameters=[p1_val, p2_val])
     
     # Valid update
     Jhat.update_parameters([p1_val + 1, p2_val + 1])
@@ -198,26 +171,33 @@ def test_parametrised_rf_empty_parameter_list():
 ])
 def test_parametrised_rf_with_single_control_single_parameter(c_val, c_new, p_val, p_new):
     """Test parametrised RF with single control and single parameter at various values."""
-    Jhat = build_single_control_single_param(c_val, p_val)
+    c_val = AdjFloat(c_val)
+    p_val = AdjFloat(p_val)
+    c_new = AdjFloat(c_new)
+    p_new = AdjFloat(p_new)
+    J = single_control_single_param_expr(c_val, p_val)
+    Jhat = ParametrisedReducedFunctional(J, Control(c_val), p_val)
     
     # Test initial evaluation
     result = Jhat(c_new)
-    assert result == c_new * p_val
+    expected = single_control_single_param_expr(c_new, p_val)
+    assert np.isclose(result, expected, atol=1e-8)
     
     # Test derivative before update
     deriv = Jhat.derivative()
     assert len(deriv) == 1
-    assert deriv[0] == p_val
+    check_taylor_test_convergence(Jhat, [c_new])
     
     # Update parameter
     Jhat.update_parameters(p_new)
     result = Jhat(c_new)
-    assert result == c_new * p_new
+    expected = single_control_single_param_expr(c_new, p_new)
+    assert np.isclose(result, expected, atol=1e-8)
     
     # Test derivative after update
     deriv = Jhat.derivative()
     assert len(deriv) == 1
-    assert deriv[0] == p_new
+    check_taylor_test_convergence(Jhat, [c_new])
 
 
 @pytest.mark.parametrize("c1_val,c2_val, c1_new, c2_new, p_val,p_new", [
@@ -227,29 +207,37 @@ def test_parametrised_rf_with_single_control_single_parameter(c_val, c_new, p_va
 ])
 def test_parametrised_rf_with_multiple_controls_single_parameter(c1_val, c2_val, c1_new, c2_new, p_val, p_new):
     """Test parametrised RF with multiple controls and single parameter."""
-    Jhat = build_multi_control_single_param(c1_val, c2_val, p_val)
+    c1_val = AdjFloat(c1_val)
+    c2_val = AdjFloat(c2_val)
+    p_val = AdjFloat(p_val)
+    c1_new = AdjFloat(c1_new)
+    c2_new = AdjFloat(c2_new)
+    p_new = AdjFloat(p_new)
+    J = multi_control_single_param_expr(c1_val, c2_val, p_val)
+    Jhat = ParametrisedReducedFunctional(J, [Control(c1_val), Control(c2_val)], parameters=p_val)
     
     # Test initial evaluation
     result = Jhat([c1_new, c2_new])
-    assert result == c1_new * c2_new * p_val
+    expected = multi_control_single_param_expr(c1_new, c2_new, p_val)
+    assert np.isclose(result, expected, atol=1e-8)
     
     # Test initial derivatives
     derivs = Jhat.derivative()
     assert len(derivs) == 2
-    assert derivs[0] == c2_new * p_val  # dJ/dc1 = c2 * p
-    assert derivs[1] == c1_new * p_val  # dJ/dc2 = c1 * p
+    check_taylor_test_convergence(Jhat, [c1_new, c2_new])
 
 
     
     # Update parameter
     Jhat.update_parameters(p_new)
     result = Jhat([c1_new, c2_new])
-    assert result == c1_new * c2_new * p_new
+    expected = multi_control_single_param_expr(c1_new, c2_new, p_new)
+    assert np.isclose(result, expected, atol=1e-8)
     
     # Test derivatives after update
     derivs = Jhat.derivative()
-    assert derivs[0] == c2_new * p_new  # dJ/dc1 = c2 * p_new
-    assert derivs[1] == c1_new * p_new  # dJ/dc2 = c1 * p_new
+    assert len(derivs) == 2
+    check_taylor_test_convergence(Jhat, [c1_new, c2_new])
 
 
 @pytest.mark.parametrize("c_val, c_new, p1_val,p2_val,p1_new,p2_new", [
@@ -259,26 +247,34 @@ def test_parametrised_rf_with_multiple_controls_single_parameter(c1_val, c2_val,
 ])
 def test_parametrised_rf_with_single_control_multiple_parameters(c_val, c_new, p1_val, p2_val, p1_new, p2_new):
     """Test parametrised RF with single control and multiple parameters."""
-    Jhat = build_single_control_multi_param(c_val, p1_val, p2_val)
-    
+    c_val = AdjFloat(c_val)
+    p1_val = AdjFloat(p1_val)
+    p2_val = AdjFloat(p2_val)
+    c_new = AdjFloat(c_new)
+    p1_new = AdjFloat(p1_new)
+    p2_new = AdjFloat(p2_new)
+    J = single_control_multi_param_expr(c_val, p1_val, p2_val)
+    Jhat = ParametrisedReducedFunctional(J, Control(c_val), parameters=[p1_val, p2_val])    
     # Test initial evaluation
     result = Jhat(c_new)
-    assert result == c_new * p1_val * p2_val
-    
+    expected = single_control_multi_param_expr(c_new, p1_val, p2_val)
+    assert np.isclose(result, expected, atol=1e-8)
+
     # Test initial derivatives
     derivs = Jhat.derivative()
     assert len(derivs) == 1
-    assert derivs[0] == p1_val * p2_val  # dJ/dc = p1 * p2
+    check_taylor_test_convergence(Jhat, [c_new])
     
     # Update parameters
     Jhat.update_parameters([p1_new, p2_new])
     result = Jhat(c_new)
-    assert result == c_new * p1_new * p2_new
+    expected = single_control_multi_param_expr(c_new, p1_new, p2_new)
+    assert np.isclose(result, expected, atol=1e-8)
     
     # Test derivatives after update
     derivs = Jhat.derivative()
     assert len(derivs) == 1
-    assert derivs[0] == p1_new * p2_new  # dJ/dc = p1_new * p2_new
+    check_taylor_test_convergence(Jhat, [c_new])
 
 
 @pytest.mark.parametrize("c1_val,c2_val, c1_new, c2_new, p1_val,p2_val,p1_new,p2_new", [
@@ -288,32 +284,37 @@ def test_parametrised_rf_with_single_control_multiple_parameters(c_val, c_new, p
 ])
 def test_parametrised_rf_with_multiple_controls_multiple_parameters(c1_val,c2_val,c1_new,c2_new,p1_val,p2_val,p1_new,p2_new):
     """Test parametrised RF with multiple controls and multiple parameters."""
-    Jhat = build_multi_control_multi_param(c1_val, c2_val, p1_val, p2_val)
+    c1_val = AdjFloat(c1_val)
+    c2_val = AdjFloat(c2_val)
+    p1_val = AdjFloat(p1_val)
+    p2_val = AdjFloat(p2_val)
+    c1_new = AdjFloat(c1_new)
+    c2_new = AdjFloat(c2_new)
+    p1_new = AdjFloat(p1_new)
+    p2_new = AdjFloat(p2_new)
+
+    J = multi_control_multi_param_expr(c1_val, c2_val, p1_val, p2_val)
+    Jhat = ParametrisedReducedFunctional(J, [Control(c1_val), Control(c2_val)], parameters=[p1_val, p2_val])
     
-    # Test new evaluation: J = c1^2 * c2 * p1 + c2^2 * p2
     result = Jhat([c1_new, c2_new])
-    expected = c1_new * c1_new * c2_new * p1_val + c2_new * c2_new * p2_val
-    assert result == expected
+    expected = multi_control_multi_param_expr(c1_new, c2_new, p1_val, p2_val)
+    assert np.isclose(result, expected, atol=1e-8)
     
     # Test newderivatives
     derivs = Jhat.derivative()
     assert len(derivs) == 2
-    assert derivs[0] == 2.0 * c1_new * c2_new * p1_val  # dJ/dc1 = 2*c1*c2*p1
-    assert derivs[1] == c1_new * c1_new * p1_val + 2.0 * c2_new * p2_val  # dJ/dc2 = c1^2*p1 + 2*c2*p2
+    check_taylor_test_convergence(Jhat, [c1_new, c2_new])
     
     # Update parameters
     Jhat.update_parameters([p1_new, p2_new])
     result = Jhat([c1_new, c2_new])
-    expected = c1_new * c1_new * c2_new * p1_new + c2_new * c2_new * p2_new
-    assert result == expected
+    expected = multi_control_multi_param_expr(c1_new, c2_new, p1_new, p2_new)
+    assert np.isclose(result, expected, atol=1e-8)
     
     # Test derivatives after update
     derivs = Jhat.derivative()
-    assert derivs[0] == 2.0 * c1_new * c2_new * p1_new  # dJ/dc1 = 2*c1*c2*p1_new
-    assert derivs[1] == c1_new * c1_new * p1_new + 2.0 * c2_new * p2_new  # dJ/dc2 = c1^2*p1_new + 2*c2*p2_new
-
-
-
+    assert len(derivs) == 2
+    check_taylor_test_convergence(Jhat, [c1_new, c2_new])
 
 
 @pytest.mark.parametrize("c1_val,c2_val,c1_new, c2_new,p1_val,p2_val,p1_new,p2_new", [
@@ -323,18 +324,27 @@ def test_parametrised_rf_with_multiple_controls_multiple_parameters(c1_val,c2_va
 ])
 def test_parametrised_rf_complex_expression(c1_val,c2_val,c1_new,c2_new,p1_val,p2_val,p1_new,p2_new):
     """Test parametrised RF with complex mathematical operations J = (c1 + c2)^2 * p1 - c1 * p2."""
-    Jhat = build_complex_expression(c1_val, c2_val, p1_val, p2_val)
-    
+    c1_val = AdjFloat(c1_val)
+    c2_val = AdjFloat(c2_val)
+    p1_val = AdjFloat(p1_val)
+    p2_val = AdjFloat(p2_val)
+    c1_new = AdjFloat(c1_new)
+    c2_new = AdjFloat(c2_new)
+    p1_new = AdjFloat(p1_new)
+    p2_new = AdjFloat(p2_new)
+    J = complex_expression(c1_val, c2_val, p1_val, p2_val)
+    Jhat = ParametrisedReducedFunctional(J, [Control(c1_val), Control(c2_val)], parameters=[p1_val, p2_val])
+
     # Test initial evaluation
     result = Jhat([c1_new, c2_new])
-    expected = (c1_new + c2_new) ** 2 * p1_val - c1_new * p2_val
-    assert result == expected
+    expected = complex_expression(c1_new, c2_new, p1_val, p2_val)
+    assert np.isclose(result, expected, atol=1e-8)
     
     # Update and test again
     Jhat.update_parameters([p1_new, p2_new])
     result = Jhat([c1_new, c2_new])
-    expected = (c1_new + c2_new) ** 2 * p1_new - c1_new * p2_new
-    assert result == expected
+    expected = complex_expression(c1_new, c2_new, p1_new, p2_new)
+    assert np.isclose(result, expected, atol=1e-8)
 
 @pytest.mark.parametrize("c_val, c_new, p_val, p_new1, p_new2", [
     (2.0, 5.0, 6.0, 7.0, 8.0),
@@ -343,15 +353,21 @@ def test_parametrised_rf_complex_expression(c1_val,c2_val,c1_new,c2_new,p1_val,p
 ])
 def test_parametrised_rf_multiple_update_parameters(c_val, c_new, p_val, p_new1, p_new2):
     """Test that, in case of multiple parameter updates before a call, the last update is used correctly."""
-    Jhat = build_single_control_single_param(c_val, p_val)
+    c_val = AdjFloat(c_val)
+    p_val = AdjFloat(p_val)
+    c_new = AdjFloat(c_new)
+    p_new1 = AdjFloat(p_new1)
+    p_new2 = AdjFloat(p_new2)
+    J = single_control_single_param_expr(c_val, p_val)
+    Jhat = ParametrisedReducedFunctional(J, Control(c_val), parameters=p_val)
     # First update
     Jhat.update_parameters(p_new1)
     # Second update
     Jhat.update_parameters(p_new2)
     # Test evaluation uses the last updated parameter
     result = Jhat(c_new)
-    expected = c_new * p_new2
-    assert result == expected
+    expected = single_control_single_param_expr(c_new, p_new2)
+    assert np.isclose(result, expected, atol=1e-8)
 
 
 @pytest.mark.parametrize("c_val, c_new, p_val, p_new", [
@@ -371,20 +387,21 @@ def test_parametrised_rf_against_rf(c_val, c_new, p_val, p_new):
     
     # Build parametrised reduced functional
     with set_working_tape() as tape_2:
-        Jhat_param_rf = build_single_control_single_param(c_val, p_val)
+        J = c * p
+        Jhat_param_rf = ParametrisedReducedFunctional(J, Control(c), parameters=p)
     
     # Test initial evaluation
     result_rf = Jhat_rf([c_new, p_val])
     result_param_rf = Jhat_param_rf(c_new)
-    assert result_rf == result_param_rf
+    assert np.isclose(result_rf, result_param_rf, atol=1e-8)
     
     # Update parameter and test again
     result_rf_updated = Jhat_rf([c_new, p_new])
     Jhat_param_rf.update_parameters(p_new)
     result_param_rf_updated = Jhat_param_rf(c_new)
-    assert result_rf_updated == result_param_rf_updated
+    assert np.isclose(result_rf_updated, result_param_rf_updated, atol=1e-8)
 
     # Test derivatives
     derivs_rf = Jhat_rf.derivative()
     derivs_param_rf = Jhat_param_rf.derivative()
-    assert derivs_rf[0] == derivs_param_rf[0]  # dJ/dc should be the same
+    assert np.isclose(derivs_rf[0], derivs_param_rf[0], atol=1e-8)  # dJ/dc should be the same
