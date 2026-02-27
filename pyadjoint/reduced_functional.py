@@ -382,11 +382,21 @@ class ReducedFunctional(AbstractReducedFunctional):
 
 class ParametrisedReducedFunctional(AbstractReducedFunctional):
     """Class representing the reduced functional with parameters.
+    An object which encompasses computations of the form::
 
-    A reduced functional maps a control value to the provided functional.
-    It may also be used to compute the derivative of the functional with
-    respect to the control. In addition, parameters may be specified which
-    are updated, but not included in the derivative calculations.
+        Jhat(m, p) = J(u(m, p), m, p)
+
+    Where `u` is the system state and `m` is a `pyadjoint.Control` or list of
+    `pyadjoint.Control`, `p` is a list of parameters, `J` is an overloaded type providing 
+    the functional value, and `Jhat` is a reduced functional where the explicit dependence 
+    on `u` has been eliminated. The parameters `p` can be updated, after which evaluation 
+    of the reduced functional is performed with the updated parameters, but they are not 
+    included in the derivative calculations.
+
+    A parametrised reduced functional is callable and maps a control value and parameter/s 
+    to the provided functional. It may also be used to compute the derivative of the functional 
+    with respect to the control. In addition, parameters can be updated, but are not included 
+    in the derivative calculations.
 
     Args:
         functional (:obj:`OverloadedType`): An instance of an OverloadedType,
