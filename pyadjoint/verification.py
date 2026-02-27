@@ -144,6 +144,8 @@ def taylor_to_dict(J, m, h):
 
         for key in error_dict.keys():
             if key != "eps":
+                if min(error_dict[key]["Residual"])< 1E-15:
+                    logging.warning("The taylor remainder for {} is close to machine precision.".format(key))
                 error_dict[key]["Rate"] = convergence_rates(error_dict[key]
                                                             ["Residual"][:],
                                                             error_dict["eps"],
