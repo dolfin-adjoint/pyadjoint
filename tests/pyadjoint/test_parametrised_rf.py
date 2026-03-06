@@ -4,11 +4,12 @@ from pyadjoint.control import Control
 from pyadjoint.tape import set_working_tape
 from pyadjoint.reduced_functional import ParametrisedReducedFunctional, ReducedFunctional
 from pyadjoint.verification import taylor_to_dict
+from pyadjoint.optimization.optimization import minimize
 import numpy as np
 
 
 # ============================================================================
-# Helper functions to build functionals with different combinations of controls and parameters
+#       Helper functions to build functionals with different combinations of controls and parameters
 # ============================================================================
 def single_control_single_param_expr(c_val, p_val):
     return c_val ** 3 * p_val
@@ -33,8 +34,14 @@ def check_taylor_test_convergence(Jhat, controls):
     assert min(taylor_results["R1"]["Rate"]) >= 1.95, f"Error in R1 rate: {taylor_results['R1']['Rate']}"
     assert min(taylor_results["R2"]["Rate"]) >= 2.95, f"Error in R2 rate: {taylor_results['R2']['Rate']}"
 
+def quadratic_expression(c_val, p_val1, p_val2, p_val3):
+    """A simple quadratic expression to test optimisation."""
+    expression  = c_val**2 * p_val1 + c_val * p_val2 + p_val3
+    optima = - p_val2 / (2 * p_val1)
+    return expression, optima 
+
 # ============================================================================
-# Tests 
+#                                                      Tests 
 # ============================================================================
 
 @pytest.mark.parametrize("c_val,p_val, mult_factor", [
@@ -405,3 +412,37 @@ def test_parametrised_rf_against_rf(c_val, c_new, p_val, p_new):
     derivs_rf = Jhat_rf.derivative()
     derivs_param_rf = Jhat_param_rf.derivative()
     assert np.isclose(derivs_rf[0], derivs_param_rf[0], atol=1e-8)  # dJ/dc should be the same
+
+@pytest.mark.parametrize("c_val, p_val1, p_val2, p_val3, p_val1_new, p_val2_new, p_val3_new", [
+    (4.0, 3.0, 6.9, 7.4, 8.5, -3.8, 9.0),
+    (5.5, 3.4, -4.0, 15.0, 9.2, 8.4, 6.7),
+    (9.0, 2.5, 6.3, 1.0, 5.9, 0.0, -1.0),
+])
+def test_optimisation_on_quadratic_polynomial(c_val, p_val1, p_val2, p_val3, p_val1_new, p_val2_new, p_val3_new):
+    """Test that we can perform an optimisation with a parametrised reduced functional on a simple quadratic polynomial."""
+
+    c_val = AdjFloat(c_val)
+    p_val1 = AdjFloat(p_val1)
+    p_val2 = AdjFloat(p_val2)
+    p_val3 = AdjFloat(p_val3)
+    J, optima = quadratic_expression(c_val, p_val1, p_val2, p_val3)
+    Jhat_prf = ParametrisedReducedFunctional(J, Control(c_val), parameters=[p_val1, p_val2, p_val3])
+    
+    # Perform optimisation
+    result_prf = minimize(Jhat_prf)
+    # Check that the optimal control value is close to the expected minimum of the quadratic
+    assert np.isclose(result_prf, optima, atol=1e-6)
+
+    # Update parameter
+    p_val1_new = AdjFloat(p_val1_new)
+    p_val2_new = AdjFloat(p_val2_new)
+    p_val3_new = AdjFloat(p_val3_new)
+    Jhat_prf.update_parameters([p_val1_new, p_val2_new, p_val3_new])
+    _, new_optima = quadratic_expression(c_val, p_val1_new, p_val2_new, p_val3_new)
+    # Perform optimisation
+    result_prf_new = minimize(Jhat_prf)
+    # Check that the optimal control value is close to the expected minimum of the quadratic
+    assert np.isclose(result_prf_new, new_optima, atol=1e-6)
+
+
+    
