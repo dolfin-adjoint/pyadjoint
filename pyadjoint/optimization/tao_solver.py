@@ -240,13 +240,13 @@ class ReducedFunctionalMatBase:
         if self._shift != 0:
             y.axpy(self._shift, x)
 
-    def multHermitian(self, A, x, y):
-        self.yinterface.from_petsc(x, self.x)
-        out = self.multHermitian_impl(A, self.x)
-        self.xinterface.to_petsc(y, out)
+    def multHermitian(self, AT, y, x):
+        self.yinterface.from_petsc(y, self.y)
+        out = self.multHermitian_impl(AT, self.y)
+        self.xinterface.to_petsc(x, out)
 
         if self._shift != 0:
-            y.axpy(self._shift, x)
+            x.axpy(self._shift, y)
 
     def mult_impl(self, A, x):
         """
@@ -355,7 +355,7 @@ class ReducedFunctionalAdjointMat(ReducedFunctionalMatBase):
 
         self.xinterface = self.functional_interface
         self.yinterface = self.control_interface
-        self.x = rf.functional._ad_copy()
+        self.x = rf.functional._ad_init_zero(dual=True)
 
     @classmethod
     def update_adjoint(self):
