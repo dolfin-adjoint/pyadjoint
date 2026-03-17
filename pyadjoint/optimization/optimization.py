@@ -1,7 +1,7 @@
 import numpy as np
 
-from ..reduced_functional import ReducedFunctional
-from ..reduced_functional_numpy import ReducedFunctionalNumPy, gather
+from ..reduced_functional import ReducedFunctional, ParametrisedReducedFunctional
+from ..reduced_functional_numpy import ReducedFunctionalNumPy, ParametrisedReducedFunctionalNumPy, gather
 from ..tape import no_annotations
 
 
@@ -227,10 +227,12 @@ def minimize(rf, method='L-BFGS-B', scale=1.0, **kwargs):
 
     """
     rf.scale = scale
-    if isinstance(rf, ReducedFunctionalNumPy):
+    if isinstance(rf, (ReducedFunctionalNumPy, ParametrisedReducedFunctionalNumPy)):
         rf_np = rf
     elif isinstance(rf, ReducedFunctional):
         rf_np = ReducedFunctionalNumPy(rf)
+    elif isinstance(rf, ParametrisedReducedFunctional):
+        rf_np = ParametrisedReducedFunctionalNumPy(rf)
     else:
         # Assume the user knows what he is doing - he might for example written
         # his own reduced functional class.
