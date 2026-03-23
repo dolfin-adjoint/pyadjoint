@@ -505,12 +505,15 @@ class ParametrisedReducedFunctional(AbstractReducedFunctional):
 
     @no_annotations
     def hessian(self, m_dot, hessian_input=None, evaluate_tlm=True, apply_riesz=False):
-        hessian_all = self._reduced_functional.hessian(m_dot, 
+        # self._reduced_functional.hessian will expect len(m_dot) = len(self._all_controls), so we pad it with zeros.
+        m_dot_all = Enlist(m_dot) + [p._ad_init_zero() for p in self._parameters] 
+        hessian_all = self._reduced_functional.hessian(m_dot_all, 
                                                               hessian_input=hessian_input, 
                                                               evaluate_tlm=evaluate_tlm, 
                                                               apply_riesz=apply_riesz)
-
-        return hessian_all[:self.n_opt] # Return only the hessian components corresponding to optimization controls.
+                                                              
+        # Return only the hessian components corresponding to optimization controls.
+        return self.controls.delist(Enlist(hessian_all)[:self.n_opt])
     
 
     @no_annotations
