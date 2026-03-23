@@ -511,15 +511,17 @@ class ParametrisedReducedFunctional(AbstractReducedFunctional):
                                                               hessian_input=hessian_input, 
                                                               evaluate_tlm=evaluate_tlm, 
                                                               apply_riesz=apply_riesz)
-                                                              
+
         # Return only the hessian components corresponding to optimization controls.
         return self.controls.delist(Enlist(hessian_all)[:self.n_opt])
     
 
     @no_annotations
     def tlm(self, m_dot):
-        tlm_all = self._reduced_functional.tlm(m_dot)
-        return tlm_all[:self.n_opt] # Return only the tlm components corresponding to optimization controls.
+        # self._reduced_functional.tlm will expect len(m_dot) = len(self._all_controls), so we pad it with zeros.
+        m_dot_all = Enlist(m_dot) + [p._ad_init_zero() for p in self._parameters] 
+        tlm = self._reduced_functional.tlm(m_dot_all)
+        return tlm
     
 
     def optimize_tape(self):
