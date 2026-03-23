@@ -1,11 +1,15 @@
+import numpy as np
 import pytest
-from pyadjoint import *
 from pyadjoint.control import Control
 from pyadjoint.tape import set_working_tape
 from pyadjoint.reduced_functional import ParametrisedReducedFunctional, ReducedFunctional
 from pyadjoint.verification import taylor_to_dict
 from pyadjoint.optimization.optimization import minimize
-import numpy as np
+from pyadjoint.optimization.tao_solver import MinimizationProblem, TAOSolver
+from firedrake import *
+from firedrake.adjoint import *
+from petsc4py import PETSc
+PETSc.Sys.popErrorHandler()
 
 
 # ============================================================================
@@ -444,5 +448,46 @@ def test_optimisation_on_quadratic_polynomial(c_val, p_val1, p_val2, p_val3, p_v
     # Check that the optimal control value is close to the expected minimum of the quadratic
     assert np.isclose(result_prf_new, new_optima, atol=1e-6)
 
+@pytest.mark.parametrize("c_val, p_val1, p_val2, p_val3, p_val1_new, p_val2_new, p_val3_new", [
+    (4.0, 3.0, 6.9, 7.4, 8.5, -3.8, 9.0),
+    (5.5, 3.4, -4.0, 15.0, 9.2, 8.4, 6.7),
+    (9.0, 2.5, 6.3, 1.0, 5.9, 0.0, -1.0),
+])
+def test_optimisation_on_quadratic_polynomial_w_TAO(c_val, p_val1, p_val2, p_val3, p_val1_new, p_val2_new, p_val3_new):
+    """Test that we can perform an optimisation with a parametrised reduced functional on a simple quadratic polynomial
+        with the TAO solver."""
+    n = 30
+    mesh = UnitIntervalMesh(n)
+    V = FunctionSpace(mesh, "CG", 2)
+    c_val = project(Constant(c_val), V)
+    p_val1 = project(Constant(p_val1), V)
+    p_val2 = project(Constant(p_val2), V)
+    p_val3 = project(Constant(p_val3), V)
+    p_val1_new = project(Constant(p_val1_new), V)
+    p_val2_new = project(Constant(p_val2_new), V)
+    p_val3_new = project(Constant(p_val3_new), V)
+
+    J, optima = quadratic_expression(c_val, p_val1, p_val2, p_val3)
+    J = assemble(J*dx)
+    Jhat = ParametrisedReducedFunctional(J, Control(c_val), [p_val1, p_val2, p_val3])
+    problem = MinimizationProblem(Jhat)
+    parameters = { 'method': 'nls',
+                   'max_it': 20,
+                   'fatol' : 0.0,
+                   'frtol' : 0.0,
+                   'gatol' : 1e-9,
+                   'grtol' : 0.0
+                   }
 
     
+    solver = TAOSolver(problem, parameters=parameters)
+    m_opt = solver.solve()
+
+    assert np.isclose(norm(m_opt-optima), 0 ,atol=1e-6)
+
+    # Test optimisation after parameter update
+    Jhat.update_parameters([p_val1_new, p_val2_new, p_val3_new])
+    _, optima = quadratic_expression(c_val, p_val1_new, p_val2_new, p_val3_new)
+    m_opt = solver.solve()
+
+    assert np.isclose(norm(m_opt-optima), 0 ,atol=1e-6)
