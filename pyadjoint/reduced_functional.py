@@ -491,7 +491,7 @@ class ParametrisedReducedFunctional(AbstractReducedFunctional):
         derivatives_all = self._reduced_functional.derivative(adj_input=adj_input, 
                                                                     apply_riesz=apply_riesz)
         
-        return Enlist(derivatives_all)[:self.n_opt] 
+        return self.controls.delist(Enlist(derivatives_all)[:self.n_opt])
     
     @no_annotations
     def __call__(self, values):

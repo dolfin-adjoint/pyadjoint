@@ -195,8 +195,6 @@ def test_parametrised_rf_with_single_control_single_parameter(c_val, c_new, p_va
     assert np.isclose(result, expected, atol=1e-8)
     
     # Test derivative before update
-    deriv = Jhat.derivative()
-    assert len(deriv) == 1
     check_taylor_test_convergence(Jhat, [c_new])
     
     # Update parameter
@@ -205,9 +203,7 @@ def test_parametrised_rf_with_single_control_single_parameter(c_val, c_new, p_va
     expected = single_control_single_param_expr(c_new, p_new)
     assert np.isclose(result, expected, atol=1e-8)
     
-    # Test derivative after update
-    deriv = Jhat.derivative()
-    assert len(deriv) == 1
+    # # Test derivative after update
     check_taylor_test_convergence(Jhat, [c_new])
 
 
@@ -272,8 +268,6 @@ def test_parametrised_rf_with_single_control_multiple_parameters(c_val, c_new, p
     assert np.isclose(result, expected, atol=1e-8)
 
     # Test initial derivatives
-    derivs = Jhat.derivative()
-    assert len(derivs) == 1
     check_taylor_test_convergence(Jhat, [c_new])
     
     # Update parameters
@@ -282,9 +276,7 @@ def test_parametrised_rf_with_single_control_multiple_parameters(c_val, c_new, p
     expected = single_control_multi_param_expr(c_new, p1_new, p2_new)
     assert np.isclose(result, expected, atol=1e-8)
     
-    # Test derivatives after update
-    derivs = Jhat.derivative()
-    assert len(derivs) == 1
+    # # Test derivatives after update
     check_taylor_test_convergence(Jhat, [c_new])
 
 
@@ -415,7 +407,8 @@ def test_parametrised_rf_against_rf(c_val, c_new, p_val, p_new):
     # Test derivatives
     derivs_rf = Jhat_rf.derivative()
     derivs_param_rf = Jhat_param_rf.derivative()
-    assert np.isclose(derivs_rf[0], derivs_param_rf[0], atol=1e-8)  # dJ/dc should be the same
+    assert np.isclose(derivs_rf[0], derivs_param_rf, atol=1e-8)  # dJ/dc should be the same
+    assert np.isclose(derivs_rf[1], 0.0, atol=1e-8)
 
 @pytest.mark.parametrize("c_val, p_val1, p_val2, p_val3, p_val1_new, p_val2_new, p_val3_new", [
     (4.0, 3.0, 6.9, 7.4, 8.5, -3.8, 9.0),
