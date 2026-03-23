@@ -414,35 +414,49 @@ class ParametrisedReducedFunctional(AbstractReducedFunctional):
             functional. Input is a list of Controls.
         eval_cb_pos (function): Callback function after evaluating the
             functional. Inputs are the functional value and a list of Controls.
-        derivative_cb_pre (function): Callback function before evaluating
+        derivative_cb_pre_for_controls (function): Callback function before evaluating
             derivatives. Input is a list of Controls.
             Should return a list of Controls (usually the same
             list as the input) to be passed to compute_derivative.
-        derivative_cb_post (function): Callback function after evaluating
+        derivative_cb_post_for_controls (function): Callback function after evaluating
             derivatives.  Inputs are: functional.block_variable.checkpoint,
             list of functional derivatives, list of functional values.
             Should return a list of derivatives (usually the same
             list as the input) to be returned from self.derivative.
-        hessian_cb_pre (function): Callback function before evaluating the Hessian.
+        hessian_cb_pre_for_controls (function): Callback function before evaluating the Hessian.
             Input is a list of Controls.
-        hessian_cb_post (function): Callback function after evaluating the Hessian.
+        hessian_cb_post_for_controls (function): Callback function after evaluating the Hessian.
             Inputs are the functional, a list of Hessian, and controls.
-        tlm_cb_pre (function): Callback function before evaluating the tangent linear model.
+        tlm_cb_pre_controls (function): Callback function before evaluating the tangent linear model.
             Input is a list of Controls.
-        tlm_cb_post (function): Callback function after evaluating the tangent linear model.
+        tlm_cb_post_controls (function): Callback function after evaluating the tangent linear model.
             Inputs are the functional, the tlm result, and controls.
+        derivative_cb_pre_for_parameters (function): Callback function before evaluating derivatives. Input is a list of parameters.
+            Should return a list of parameters (usually the same list as the input) to be passed to compute_derivative.
+        derivative_cb_post_for_parameters (function): Callback function after evaluating derivatives.  Inputs are: functional.block_variable.checkpoint,
+            list of functional derivatives, list of functional values. Should return a list of derivatives (usually the same list as the input) to be returned from self.derivative.
+        hessian_cb_pre_for_parameters (function): Callback function before evaluating the Hessian. Input is a list of parameters.
+        hessian_cb_post_for_parameters (function): Callback function after evaluating the Hessian. Inputs are the functional, a list of Hessian, and parameters.
+        tlm_cb_pre_for_parameters (function): Callback function before evaluating the tangent linear model. Input is a list of parameters.
+        tlm_cb_post_for_parameters (function): Callback function after evaluating the tangent linear model. Inputs are the functional, the tlm result, and parameters.
     """
     def __init__(self, functional, controls, parameters,
                  scale=1.0, tape=None,
                  eval_cb_pre=lambda *args: None,
                  eval_cb_post=lambda *args: None,
-                 derivative_cb_pre=lambda controls: controls,
-                 derivative_cb_post=lambda checkpoint, derivative_components,
+                 derivative_cb_pre_for_controls=lambda controls: controls,
+                 derivative_cb_post_for_controls=lambda checkpoint, derivative_components,
                  controls: derivative_components,
-                 hessian_cb_pre=lambda *args: None,
-                 hessian_cb_post=lambda *args: None,
-                 tlm_cb_pre=lambda *args: None,
-                 tlm_cb_post=lambda *args: None):
+                 hessian_cb_pre_for_controls=lambda *args: None,
+                 hessian_cb_post_for_controls=lambda *args: None,
+                 tlm_cb_pre_for_controls=lambda *args: None,
+                 tlm_cb_post_for_controls=lambda *args: None,
+                 derivative_cb_pre_for_parameters=lambda *args: None,
+                 derivative_cb_post_for_parameters=lambda *args: None,
+                 hessian_cb_pre_for_parameters=lambda *args: None,
+                 hessian_cb_post_for_parameters=lambda *args: None,
+                 tlm_cb_pre_for_parameters=lambda *args: None,
+                 tlm_cb_post_for_parameters=lambda *args: None):
         if not isinstance(functional, OverloadedType):
             raise TypeError("Functional must be an OverloadedType.")
         if parameters is None:
@@ -460,12 +474,12 @@ class ParametrisedReducedFunctional(AbstractReducedFunctional):
                                                      tape=tape,
                                                      eval_cb_pre=eval_cb_pre, 
                                                      eval_cb_post=eval_cb_post, 
-                                                     derivative_cb_pre=derivative_cb_pre, 
-                                                     derivative_cb_post=derivative_cb_post,
-                                                     hessian_cb_pre=hessian_cb_pre, 
-                                                     hessian_cb_post=hessian_cb_post, 
-                                                     tlm_cb_pre=tlm_cb_pre, 
-                                                     tlm_cb_post=tlm_cb_post)
+                                                     derivative_cb_pre=derivative_cb_pre_for_controls, 
+                                                     derivative_cb_post=derivative_cb_post_for_controls,
+                                                     hessian_cb_pre=hessian_cb_pre_for_controls, 
+                                                     hessian_cb_post=hessian_cb_post_for_controls, 
+                                                     tlm_cb_pre=tlm_cb_pre_for_controls, 
+                                                     tlm_cb_post=tlm_cb_post_for_controls)
 
 
 
