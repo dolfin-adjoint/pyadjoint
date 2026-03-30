@@ -476,11 +476,11 @@ def test_optimisation_on_quadratic_polynomial_w_TAO(c_val, p_val1, p_val2, p_val
     solver = TAOSolver(problem, parameters=parameters)
     m_opt = solver.solve()
 
-    assert np.isclose(norm(m_opt-optima), 0 ,atol=1e-6)
+    assert np.isclose(norm(m_opt-optima), 0 ,atol=1e-8)
 
     # Test optimisation after parameter update
     Jhat.update_parameters([p_val1_new, p_val2_new, p_val3_new])
     _, optima = quadratic_expression(c_val, p_val1_new, p_val2_new, p_val3_new)
     m_opt = solver.solve()
 
-    assert np.isclose(norm(m_opt-optima), 0 ,atol=1e-6)
+    assert np.isclose(norm(m_opt-optima), 0 ,atol=1e-8)
