@@ -1,4 +1,6 @@
+from abc import abstractmethod
 from enum import Enum
+from functools import cached_property
 from numbers import Complex
 
 import numpy as np
@@ -217,6 +219,30 @@ class ReducedFunctionalMatBase:
         self._shift = 0
         self.always_update_tape = always_update_tape
 
+    @property
+    @abstractmethod
+    def x(self):
+        """An OverloadedType for the input to a mat-vec multiplication."""
+        pass
+
+    @property
+    @abstractmethod
+    def y(self):
+        """An OverloadedType for the input to a Hermitian mat-vec multiplication."""
+        pass
+
+    @property
+    @abstractmethod
+    def xinterface(self):
+        """A PETScVecInterface for the input to a mat-vec multiplication."""
+        pass
+
+    @property
+    @abstractmethod
+    def yinterface(self):
+        """A PETScVecInterface for the input to a Hermitian mat-vec multiplication."""
+        pass
+
     @classmethod
     def update(cls, obj, x, A, P):
         ctx = A.getPythonContext()
@@ -310,9 +336,21 @@ class ReducedFunctionalHessianMat(ReducedFunctionalMatBase):
                          needs_functional_interface=False,
                          always_update_tape=always_update_tape, comm=comm)
 
-        self.xinterface = self.control_interface
-        self.yinterface = self.control_interface
-        self.x = new_control_variable(rf)
+    @cached_property
+    def x(self):
+        return new_control_variable(self.rf)
+
+    @cached_property
+    def y(self):
+        return new_control_variable(self.rf)
+
+    @property
+    def xinterface(self):
+        return self.control_interface
+
+    @property
+    def yinterface(self):
+        return self.control_interface
 
     @classmethod
     def update_adjoint(self):
@@ -353,9 +391,21 @@ class ReducedFunctionalAdjointMat(ReducedFunctionalMatBase):
                          needs_functional_interface=True,
                          always_update_tape=always_update_tape, comm=comm)
 
-        self.xinterface = self.functional_interface
-        self.yinterface = self.control_interface
-        self.x = rf.functional._ad_init_zero(dual=True)
+    @cached_property
+    def x(self):
+        return self.rf.functional._ad_init_zero(dual=True)
+
+    @cached_property
+    def y(self):
+        return new_control_variable(self.rf)
+
+    @property
+    def xinterface(self):
+        return self.functional_interface
+
+    @property
+    def yinterface(self):
+        return self.control_interface
 
     @classmethod
     def update_adjoint(self):
@@ -390,12 +440,25 @@ class ReducedFunctionalTLMMat(ReducedFunctionalMatBase):
     """
 
     def __init__(self, rf, *, appctx=None, always_update_tape=False, comm=None):
+
         super().__init__(rf, appctx=appctx, needs_functional_interface=True,
                          always_update_tape=always_update_tape, comm=comm)
 
-        self.xinterface = self.control_interface
-        self.yinterface = self.functional_interface
-        self.x = new_control_variable(rf)
+    @cached_property
+    def x(self):
+        return new_control_variable(self.rf)
+
+    @cached_property
+    def y(self):
+        return self.rf.functional._ad_init_zero()
+
+    @property
+    def xinterface(self):
+        return self.control_interface
+
+    @property
+    def yinterface(self):
+        return self.functional_interface
 
     @classmethod
     def update_adjoint(self):
