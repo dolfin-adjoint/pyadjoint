@@ -172,18 +172,24 @@ class RFOperation(Enum):
 
 class ReducedFunctionalMatBase:
     """
-    PETSc.Mat Python context to apply the action of a pyadjoint.ReducedFunctional.
+    Base class for PETSc.Mat Python contexts for applying the action of a ReducedFunctional.
 
-    If V is the control space and U is the functional space, each action has the following map:
-    Jhat : V -> U
-    TLM : V -> U
-    Adjoint : U* -> V*
-    Hessian : V x U* -> V* | V -> V*
+    If V is the control space and U is the functional space, then the ReducedFunctional
+    Jhat and its methods map between the following spaces:
+    * Jhat : V -> U
+    * TLM : V -> U
+    * Adjoint : U* -> V*
+    * Hessian : V x U* -> V* | V -> V*
+    Child classes implement the matrix action for a particular method of Jhat.
 
-    Child classes must implement:
-    - mult_impl
-    - multHermitian_impl
+    For the matrix action Ax=y the input x and output y will live in either
+    V, U, V*, or U* (e.g. for the tlm action x is in V and y is in U).
+
+    Child classes must implement the following (see docstrings for details):
+    - mult_impl, multHermitian_impl
     - update_adjoint
+    - x, y
+    - xinterface, yinterface
 
     Args:
         rf (ReducedFunctional): Defines the forward model. Used to compute Mat actions.
@@ -191,7 +197,7 @@ class ReducedFunctionalMatBase:
             result of the action to PETSc.
         appctx (Optional[dict]): User provided context.
         always_update_tape (bool): Whether to force reevaluation of the forward model
-            every time `mult` is called. If needs_adjoint_update then this will also force
+            every time `mult` is called. If update_adjoint is True then this will also force
             the adjoint model to be reevaluated at every call to `mult`.
         needs_functional_interface: Whether to create a PETScVecInterface for rf.functional.
         comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
@@ -222,25 +228,39 @@ class ReducedFunctionalMatBase:
     @property
     @abstractmethod
     def x(self):
-        """An OverloadedType for the input to a mat-vec multiplication."""
+        """An instance of (OverloadedType | list[OverloadedType]) that is suitable to
+        be the input to the matrix action.
+
+        e.g. the tlm action is (V -> U) so x would be in V, the control space.
+        """
         pass
 
     @property
     @abstractmethod
     def y(self):
-        """An OverloadedType for the input to a Hermitian mat-vec multiplication."""
+        """An instance of (OverloadedType | list[OverloadedType]) that is suitable to
+        be the output to the matrix action.
+
+        e.g. the tlm action is (V -> U) so y would be in U, the functional space.
+        """
         pass
 
     @property
     @abstractmethod
     def xinterface(self):
-        """A PETScVecInterface for the input to a mat-vec multiplication."""
+        """A PETScVecInterface for x to transfer data to/from PETSc Vecs.
+
+        Should be either self.control_interface or self.functional_interface.
+        """
         pass
 
     @property
     @abstractmethod
     def yinterface(self):
-        """A PETScVecInterface for the input to a Hermitian mat-vec multiplication."""
+        """A PETScVecInterface for y to transfer data to/from PETSc Vecs.
+
+        Should be either self.control_interface or self.functional_interface.
+        """
         pass
 
     @classmethod
@@ -284,6 +304,9 @@ class ReducedFunctionalMatBase:
             A (PETSc.Mat): The Mat that this python context is attached to.
             x (Union[OverloadedType, list[OverloadedType]]): An element in either the control
                 or functional space of the ReducedFunctional that this Mat will act on.
+
+        Returns:
+            (Union[OverloadedType, list[OverloadedType]]): The result of the matrix action.
         """
         raise NotImplementedError(
             "Must provide implementation of the action of this matrix on an OverloadedType")
@@ -298,6 +321,9 @@ class ReducedFunctionalMatBase:
             A (PETSc.Mat): The Mat that this python context is attached to.
             y (Union[OverloadedType, list[OverloadedType]]): An element in either the control
                 or functional space of the ReducedFunctional that this Mat will act on.
+
+        Returns:
+            (Union[OverloadedType, list[OverloadedType]]): The result of the Hermitian matrix action.
         """
         raise NotImplementedError(
             "Must provide implementation of the Hermitian action of this matrix on an OverloadedType")
@@ -342,7 +368,7 @@ class ReducedFunctionalHessianMat(ReducedFunctionalMatBase):
 
     @cached_property
     def y(self):
-        return new_control_variable(self.rf)
+        return new_control_variable(self.rf, dual=not self.apply_riesz)
 
     @property
     def xinterface(self):
@@ -397,7 +423,7 @@ class ReducedFunctionalAdjointMat(ReducedFunctionalMatBase):
 
     @cached_property
     def y(self):
-        return new_control_variable(self.rf)
+        return new_control_variable(self.rf, dual=not self.apply_riesz)
 
     @property
     def xinterface(self):
