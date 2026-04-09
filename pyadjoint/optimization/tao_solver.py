@@ -355,7 +355,7 @@ class ReducedFunctionalAdjointMat(ReducedFunctionalMatBase):
 
         self.xinterface = self.functional_interface
         self.yinterface = self.control_interface
-        self.x = rf.functional._ad_copy()
+        self.x = rf.functional._ad_init_zero(dual=True)
 
     @classmethod
     def update_adjoint(self):
