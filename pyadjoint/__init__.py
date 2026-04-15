@@ -32,11 +32,11 @@ from .block import Block
 from importlib.metadata import metadata
 
 meta = metadata("pyadjoint-ad")
-__version__ = meta["Version"]
+__version__ = meta.get("Version", "")
 __author__ = meta.get("Author", "")
-__license__ = meta["License"]
-__email__ = meta["Author-email"]
-__program_name__ = meta["Name"]
+__license__ = meta.get("License", "Unknown")
+__email__ = meta.get("Author-email", "")
+__program_name__ = meta.get("Name", "")
 
 
 __all__ = [
