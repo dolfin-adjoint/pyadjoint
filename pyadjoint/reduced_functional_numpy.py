@@ -129,7 +129,6 @@ class ReducedFunctionalNumPy(AbstractReducedFunctional):
             control.update(m_i)
         return m
 
-
 def set_local(coeffs, m_array):
     offset = 0
     for m in Enlist(coeffs):
