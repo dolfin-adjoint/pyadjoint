@@ -406,7 +406,7 @@ class Block(object):
         for xpos, dep in enumerate(self.get_dependencies()):
             G.add_edge(id(dep), id(self))
             if "label" not in G.nodes[id(dep)]:
-                G.nodes[id(dep)]['label'] = escape(str(dep))
+                G.nodes[id(dep)]['label'] = _maybe_truncate_label(escape(str(dep)))
                 G.nodes[id(dep)]['node_color'] = "r"
                 G.nodes[id(dep)]['position'] = (0.1 * xpos, -pos + 0.5)
 
@@ -414,14 +414,20 @@ class Block(object):
         for xpos, out in enumerate(self.get_outputs()):
             G.add_edge(id(self), id(out))
             if "label" not in G.nodes[id(out)]:
-                G.nodes[id(out)]['label'] = escape(str(out))
+                G.nodes[id(out)]['label'] = _maybe_truncate_label(escape(str(out)))
                 G.nodes[id(out)]['node_color'] = "r"
                 G.nodes[id(out)]['position'] = (0.1 * xpos, -pos - 0.5)
 
         # Set properties for Block node
-        G.nodes[id(self)]['label'] = escape(str(self))
+        G.nodes[id(self)]['label'] = _maybe_truncate_label(escape(str(self)))
         G.nodes[id(self)]['node_color'] = "b"
         G.nodes[id(self)]['position'] = (0, -pos)
         G.nodes[id(self)]['shape'] = "box"
         G.nodes[id(self)]['style'] = "filled"
         G.nodes[id(self)]['fillcolor'] = "lightgrey"
+
+
+def _maybe_truncate_label(label):
+    if len(label) > 200:
+        label = f"{label[:100]} . . . {label[-100:]}"
+    return label
