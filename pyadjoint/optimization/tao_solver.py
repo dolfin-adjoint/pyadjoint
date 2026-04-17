@@ -10,34 +10,6 @@ from .optimization_problem import MinimizationProblem
 from .optimization_solver import OptimizationSolver
 
 
-def import_petsctools():
-    """Return the petsctools module.
-
-    Delay importing petsctools so that we can put TAOSolver
-    in the top-level pyadjoint namespace without requiring
-    petsctools or petsc4py to be installed.
-    """
-    try:
-        import petsctools
-        return petsctools
-    except ModuleNotFoundError as err:
-        raise RuntimeError("petsctools not available") from err
-
-
-def import_petsc():
-    """Return the petsc4py.PETSc module.
-
-    Delay importing petsc4py so that we can put TAOSolver
-    in the top-level pyadjoint namespace without requiring
-    petsctools or petsc4py to be installed.
-    """
-    try:
-        from petsc4py import PETSc
-        return PETSc
-    except ModuleNotFoundError as err:
-        raise RuntimeError("PETSc not available") from err
-
-
 __all__ = [
     "TAOConvergenceError",
     "TAOSolver"
@@ -57,7 +29,7 @@ class PETScVecInterface:
     """
 
     def __init__(self, x, *, comm=None):
-        PETSc = import_petsc()
+        from petsc4py import PETSc
 
         x = Enlist(x)
         comm = valid_comm(comm)
@@ -97,7 +69,7 @@ class PETScVecInterface:
         Returns:
             petsc4py.PETSc.Vec: The new :class:`petsc4py.PETSc.Vec`.
         """
-        PETSc = import_petsc()
+        from petsc4py import PETSc
 
         vec = PETSc.Vec().create(comm=self.comm)
         vec.setSizes((self.n, self.N))
@@ -170,7 +142,7 @@ def valid_comm(comm):
         petsc4py.PETSc.COMM_WORLD if `comm is None`, otherwise `comm.tompi4py()`.
     """
     if comm is None:
-        PETSc = import_petsc()
+        from petsc4py import PETSc
         comm = PETSc.COMM_WORLD
     if hasattr(comm, "tompi4py"):
         comm = comm.tompi4py()
@@ -454,7 +426,7 @@ def ReducedFunctionalMat(rf, action=RFOperation.HESSIAN, *, apply_riesz=False, a
             be reevaluated at every call to `mult`.
         comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
     """
-    PETSc = import_petsc()
+    from petsc4py import PETSc
     if action == RFOperation.HESSIAN:
         ctx = ReducedFunctionalHessianMat(
             rf, appctx=appctx, apply_riesz=apply_riesz,
@@ -531,7 +503,7 @@ def RieszMapMat(controls, symmetric=True, comm=None):
         symmetric (bool): Whether the Riesz map attached to the Control is symmetric.
         comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the controls are defined over.
     """
-    PETSc = import_petsc()
+    from petsc4py import PETSc
     ctx = RieszMapMatCtx(controls, comm=comm)
 
     n = ctx.vec_interface.n
@@ -659,8 +631,8 @@ class TAOSolver(OptimizationSolver):
     def __init__(self, problem, parameters, *,
                  options_prefix=None, appctx=None,
                  Pmat=None, comm=None):
-        PETSc = import_petsc()
-        petsctools = import_petsctools()
+        from petsc4py import PETSc
+        import petsctools
 
         if not isinstance(problem, MinimizationProblem):
             raise TypeError("MinimizationProblem required")
@@ -808,7 +780,7 @@ class TAOSolver(OptimizationSolver):
     def _tao_reasons(self):
         """Dictionary of TAO convergence reason int codes -> python objects
         """
-        PETSc = import_petsc()
+        from petsc4py import PETSc
         # Same approach as in _make_reasons in firedrake/solving_utils.py,
         # Firedrake master branch 57e21cc8ebdb044c1d8423b48f3dbf70975d5548
         return {getattr(PETSc.TAO.Reason, key): key
@@ -821,7 +793,7 @@ class TAOSolver(OptimizationSolver):
         Returns:
             OverloadedType or Sequence[OverloadedType]: The solution.
         """
-        petsctools = import_petsctools()
+        import petsctools
 
         controls = self.tao_objective.reduced_functional.controls
         m = tuple(control.tape_value()._ad_copy() for control in controls)
