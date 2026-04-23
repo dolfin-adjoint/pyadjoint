@@ -21,6 +21,8 @@ class BlockVariable(object):
         self.creation_timestep = -1
         # The timestep during which this variable was last used as an input.
         self.last_use = -1
+        # Whether this variable is adjoint dependency.
+        self.is_adjoint_dependency = False
 
     def add_adj_output(self, val):
         if self.adj_value is None:
@@ -82,6 +84,7 @@ class BlockVariable(object):
         if tape._eagerly_checkpoint_outputs:
             self.save_output()
         tape.add_to_adjoint_dependencies(self, self.last_use - 1)
+        self.is_adjoint_dependency = True
 
     def __str__(self):
         return str(self.output._ad_str)
