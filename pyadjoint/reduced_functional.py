@@ -393,7 +393,7 @@ class ParametrisedReducedFunctional(AbstractReducedFunctional):
     of the reduced functional is performed with the updated parameters, but they are not 
     included in the derivative calculations.
 
-    A parametrised reduced functional is callable and maps a control value and parameter/s 
+    A parametrised reduced functional is callable and maps a control value and parameters 
     to the provided functional. It may also be used to compute the derivative of the functional 
     with respect to the control. In addition, parameters can be updated, but are not included 
     in the derivative calculations.
