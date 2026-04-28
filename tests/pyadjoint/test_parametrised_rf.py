@@ -8,8 +8,7 @@ from pyadjoint.optimization.optimization import minimize
 from pyadjoint.optimization.tao_solver import MinimizationProblem, TAOSolver
 from firedrake import *
 from firedrake.adjoint import *
-from petsc4py import PETSc
-PETSc.Sys.popErrorHandler()
+
 
 
 # ============================================================================
@@ -451,6 +450,11 @@ def test_optimisation_on_quadratic_polynomial(c_val, p_val1, p_val2, p_val3, p_v
 def test_optimisation_on_quadratic_polynomial_w_TAO(c_val, p_val1, p_val2, p_val3, p_val1_new, p_val2_new, p_val3_new):
     """Test that we can perform an optimisation with a parametrised reduced functional on a simple quadratic polynomial
         with the TAO solver."""
+    try:  
+        from petsc4py import PETSc
+        PETSc.Sys.popErrorHandler()
+    except ImportError:  
+        pytest.skip(reason="petsc4py not installed") 
     n = 30
     mesh = UnitIntervalMesh(n)
     V = FunctionSpace(mesh, "CG", 2)
