@@ -389,7 +389,7 @@ class ParametrisedReducedFunctional(AbstractReducedFunctional):
     Where `u` is the system state and `m` is a `pyadjoint.Control` or list of
     `pyadjoint.Control`, `p` is a list of parameters, `J` is an overloaded type providing 
     the functional value, and `Jhat` is a reduced functional where the explicit dependence 
-    on `u` has been eliminated. The parameters `p` can be updated, after which evaluation 
+    on `u` has been eliminated. The parameters `p` can be updated between evaluations, after which evaluation 
     of the reduced functional is performed with the updated parameters, but they are not 
     included in the derivative calculations.
 
