@@ -384,7 +384,7 @@ class ParametrisedReducedFunctional(AbstractReducedFunctional):
     """Class representing the reduced functional with parameters.
     An object which encompasses computations of the form::
 
-        Jhat(m, p) = J(u(m, p), m, p)
+        Jhat(m; p) = J(u(m; p), m; p)
 
     Where `u` is the system state and `m` is a `pyadjoint.Control` or list of
     `pyadjoint.Control`, `p` is a list of parameters, `J` is an overloaded type providing 
