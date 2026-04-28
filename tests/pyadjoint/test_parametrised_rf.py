@@ -390,6 +390,8 @@ def test_parametrised_rf_against_rf(c_val, c_new, p_val, p_new):
     
     # Build parametrised reduced functional
     with set_working_tape() as tape_2:
+        c = AdjFloat(c_val)
+        p = AdjFloat(p_val)
         J = c * p
         Jhat_param_rf = ParametrisedReducedFunctional(J, Control(c), parameters=p)
     
