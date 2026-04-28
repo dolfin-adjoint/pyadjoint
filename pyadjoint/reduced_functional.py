@@ -412,7 +412,7 @@ class ParametrisedReducedFunctional(AbstractReducedFunctional):
             evaluate the functional and its gradients (or derivatives).
         eval_cb_pre (function): Callback function before evaluating the
             functional. Input is a list of Controls.
-        eval_cb_pos (function): Callback function after evaluating the
+        eval_cb_post (function): Callback function after evaluating the
             functional. Inputs are the functional value and a list of Controls.
         derivative_cb_pre_for_controls (function): Callback function before evaluating
             derivatives. Input is a list of Controls.
