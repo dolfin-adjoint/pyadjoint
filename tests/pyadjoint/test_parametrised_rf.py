@@ -27,7 +27,7 @@ def single_control_multi_param_expr(c_val, p1_val, p2_val):
 def multi_control_multi_param_expr(c1_val, c2_val, p1_val, p2_val):
     return c1_val**3 * c2_val**4 * p1_val + c1_val**2 * c2_val**5 * p2_val
 
-def complex_expression(c1_val, c2_val, p1_val, p2_val):
+def complicated_expression(c1_val, c2_val, p1_val, p2_val):
     return (c1_val + c2_val)**3 * p1_val - c1_val**2 * c2_val**2 * p2_val 
 
 def check_taylor_test_convergence(Jhat, controls):
