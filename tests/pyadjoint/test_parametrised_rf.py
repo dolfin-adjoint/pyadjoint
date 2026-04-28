@@ -325,8 +325,8 @@ def test_parametrised_rf_with_multiple_controls_multiple_parameters(c1_val,c2_va
     (1.5, 2.5, 3.0, 4.5, 3.0, 4.5, 4.0, 5.5),
     (3.0, 1.0, 2.0, 3.0, 2.0, 3.0, 3.0, 4.0),
 ])
-def test_parametrised_rf_complex_expression(c1_val,c2_val,c1_new,c2_new,p1_val,p2_val,p1_new,p2_new):
-    """Test parametrised RF with complex mathematical operations J = (c1 + c2)^2 * p1 - c1 * p2."""
+def test_parametrised_rf_complicated_expression(c1_val,c2_val,c1_new,c2_new,p1_val,p2_val,p1_new,p2_new):
+    """Test parametrised RF with complicated mathematical operations J = (c1 + c2)^2 * p1 - c1 * p2."""
     c1_val = AdjFloat(c1_val)
     c2_val = AdjFloat(c2_val)
     p1_val = AdjFloat(p1_val)
@@ -335,18 +335,18 @@ def test_parametrised_rf_complex_expression(c1_val,c2_val,c1_new,c2_new,p1_val,p
     c2_new = AdjFloat(c2_new)
     p1_new = AdjFloat(p1_new)
     p2_new = AdjFloat(p2_new)
-    J = complex_expression(c1_val, c2_val, p1_val, p2_val)
+    J = complicated_expression(c1_val, c2_val, p1_val, p2_val)
     Jhat = ParametrisedReducedFunctional(J, [Control(c1_val), Control(c2_val)], parameters=[p1_val, p2_val])
 
     # Test initial evaluation
     result = Jhat([c1_new, c2_new])
-    expected = complex_expression(c1_new, c2_new, p1_val, p2_val)
+    expected = complicated_expression(c1_new, c2_new, p1_val, p2_val)
     assert np.isclose(result, expected, atol=1e-8)
     
     # Update and test again
     Jhat.update_parameters([p1_new, p2_new])
     result = Jhat([c1_new, c2_new])
-    expected = complex_expression(c1_new, c2_new, p1_new, p2_new)
+    expected = complicated_expression(c1_new, c2_new, p1_new, p2_new)
     assert np.isclose(result, expected, atol=1e-8)
 
 @pytest.mark.parametrize("c_val, c_new, p_val, p_new1, p_new2", [
