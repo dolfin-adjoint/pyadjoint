@@ -33,9 +33,9 @@ def check_taylor_test_convergence(Jhat, controls):
     """Helper function to check that the taylor test convergence rates are as expected."""
     h = [AdjFloat(1.0) for _ in controls]
     taylor_results = taylor_to_dict(Jhat, controls, h)
-    assert min(taylor_results["R0"]["Rate"]) >= 0.95, f"Error in R0 rate: {taylor_results['R0']['Rate']}"
-    assert min(taylor_results["R1"]["Rate"]) >= 1.95, f"Error in R1 rate: {taylor_results['R1']['Rate']}"
-    assert min(taylor_results["R2"]["Rate"]) >= 2.95, f"Error in R2 rate: {taylor_results['R2']['Rate']}"
+    assert min(taylor_results["R0"]["Rate"]) >= 0.95, f"Error in R0 rate: {taylor_results['R0']}"
+    assert min(taylor_results["R1"]["Rate"]) >= 1.95, f"Error in R1 rate: {taylor_results['R1']}"
+    assert min(taylor_results["R2"]["Rate"]) >= 2.95, f"Error in R2 rate: {taylor_results['R2']}"
 
 def quadratic_expression(c_val, p_val1, p_val2, p_val3):
     """A simple quadratic expression to test optimisation."""
