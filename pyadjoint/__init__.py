@@ -54,7 +54,6 @@ __all__ = [
     "log",
     "Control",
     "ReducedFunctional",
-    "ParametrisedReducedFunctional",
     "create_overloaded_object",
     "OverloadedType",
     "compute_gradient",
