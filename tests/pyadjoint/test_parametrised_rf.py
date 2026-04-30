@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from pyadjoint.control import Control
 from pyadjoint.tape import set_working_tape
-from pyadjoint.reduced_functional import ParametrisedReducedFunctional, ReducedFunctional
+from pyadjoint.reduced_functional import ReducedFunctional
 from pyadjoint.verification import taylor_to_dict
 from pyadjoint.optimization.optimization import minimize
 from pyadjoint.optimization.tao_solver import MinimizationProblem, TAOSolver
@@ -46,18 +46,32 @@ def quadratic_expression(c_val, p_val1, p_val2, p_val3):
 # ============================================================================
 #                                                      Tests 
 # ============================================================================
+def test_rf_init():
+    """Test that we can create a parametrised reduced functional with valid inputs."""
+    c = AdjFloat(2.0)
+    p = AdjFloat(3.0)
+    J = c * p
+    Jhat = ReducedFunctional(J, Control(c), parameters=p)
+    assert Jhat is not None
+    Jhat = ReducedFunctional(J, Control(c), parameters=[p])
+    assert Jhat is not None
+    Jhat = ReducedFunctional(J, [Control(c), Control(p)], derivative_components=[0])
+    assert Jhat is not None
+    with pytest.raises(ValueError):
+        Jhat = ReducedFunctional(J, [Control(c), Control(p)], derivative_components=[0], parameters=p)
+    
 
 @pytest.mark.parametrize("c_val,p_val, mult_factor", [
     (2.0, 5.0, 1.0),
     (1.5, 3.0, 2.0),
     (4.0, 2.5, 0.5),
 ])
-def test_parametrised_rf_basic(c_val, p_val, mult_factor):
+def test_rf_basic(c_val, p_val, mult_factor):
     """Test basic evaluation of parametrised reduced functional with various values."""
     c_val = AdjFloat(c_val)
     p_val = AdjFloat(p_val)
     J = single_control_single_param_expr(c_val, p_val)
-    Jhat= ParametrisedReducedFunctional(J, Control(c_val), p_val)
+    Jhat= ReducedFunctional(J, Control(c_val), parameters=p_val)
     
     # Test initial evaluation
     result = Jhat(c_val)
@@ -71,7 +85,7 @@ def test_parametrised_rf_basic(c_val, p_val, mult_factor):
     expected = single_control_single_param_expr(c_val, new_p)
     assert result == expected
     
-    # Test derivative
+    #Test derivative
     check_taylor_test_convergence(Jhat, [c_val])
  
 
@@ -81,12 +95,12 @@ def test_parametrised_rf_basic(c_val, p_val, mult_factor):
     (1.0, 1.0),
     (3.5, 4.5),
 ])
-def test_parametrised_rf_controls_property(c_val, p_val):
+def test_rf_controls_property(c_val, p_val):
     """Test that controls property returns only user controls, not parameters."""
     c_val = AdjFloat(c_val)
     p_val = AdjFloat(p_val)
     J = single_control_single_param_expr(c_val, p_val)
-    Jhat = ParametrisedReducedFunctional(J, Control(c_val), p_val)
+    Jhat = ReducedFunctional(J, Control(c_val), p_val)
     assert len(Jhat.controls) == 1
     assert Jhat.controls[0] is not None
 
@@ -95,13 +109,13 @@ def test_parametrised_rf_controls_property(c_val, p_val):
     (1.5, 2.5, 3.5, 4.5, 5.5),
     (3.0, 1.0, 2.0, 3.0, 4.0),
 ])
-def test_parametrised_rf_parameters_property(c_val, p1_val, p2_val, p1_new, p2_new):
+def test_rf_parameters_property(c_val, p1_val, p2_val, p1_new, p2_new):
     """Test that parameters property returns the current parameter values."""
     c_val = AdjFloat(c_val)
     p1_val = AdjFloat(p1_val)
     p2_val = AdjFloat(p2_val)
     J = single_control_multi_param_expr(c_val, p1_val, p2_val)
-    Jhat = ParametrisedReducedFunctional(J, Control(c_val), parameters=[p1_val, p2_val])
+    Jhat = ReducedFunctional(J, Control(c_val), parameters=[p1_val, p2_val])
     
     # Check initial parameters
     params = Jhat.parameters
@@ -122,14 +136,14 @@ def test_parametrised_rf_parameters_property(c_val, p1_val, p2_val, p1_new, p2_n
     (1.5, 2.5, 3.0),
     (4.0, 1.0, 6.0),
 ])
-def test_parametrised_rf_call_validation(c1_val, c2_val, p_val):
+def test_rf_call_validation(c1_val, c2_val, p_val):
     """Test that __call__ validates number of control values."""
     c1_val = AdjFloat(c1_val)
     c2_val = AdjFloat(c2_val)
     p_val = AdjFloat(p_val)
 
     J = multi_control_single_param_expr(c1_val, c2_val, p_val)
-    Jhat = ParametrisedReducedFunctional(J, [Control(c1_val), Control(c2_val)], parameters=p_val)
+    Jhat = ReducedFunctional(J, [Control(c1_val), Control(c2_val)], parameters=p_val)
     
     # Valid call
     result = Jhat([c1_val, c2_val])
@@ -148,13 +162,13 @@ def test_parametrised_rf_call_validation(c1_val, c2_val, p_val):
     (1.5, 3.5, 4.5),
     (3.0, 2.0, 3.0),
 ])        
-def test_parametrised_rf_update_parameters_validation(c_val, p1_val, p2_val):
+def test_rf_update_parameters_validation(c_val, p1_val, p2_val):
     """Test that update_parameters validates length of new parameters."""
     c_val = AdjFloat(c_val)
     p1_val = AdjFloat(p1_val)
     p2_val = AdjFloat(p2_val)
     J = single_control_multi_param_expr(c_val, p1_val, p2_val)
-    Jhat = ParametrisedReducedFunctional(J, Control(c_val), parameters=[p1_val, p2_val])
+    Jhat = ReducedFunctional(J, Control(c_val), parameters=[p1_val, p2_val])
     
     # Valid update
     Jhat.update_parameters([p1_val + 1, p2_val + 1])
@@ -166,12 +180,12 @@ def test_parametrised_rf_update_parameters_validation(c_val, p1_val, p2_val):
     with pytest.raises(ValueError):
         Jhat.update_parameters([p1_val, p2_val, p1_val + 1])  # 3 parameters instead of 2
 
-def test_parametrised_rf_empty_parameter_list():
-    """Test that creating a ParametrisedReducedFunctional with an empty parameter list raises an error."""
+def test_rf_empty_parameter_list():
+    """Test that creating a ReducedFunctional with an empty parameter list raises an error."""
     c = AdjFloat(2.0)
     J = c * 3.0 
     with pytest.raises(ValueError):
-        Jhat = ParametrisedReducedFunctional(J, Control(c), parameters=[])
+        Jhat = ReducedFunctional(J, Control(c), parameters=[])
 
 
 @pytest.mark.parametrize("c_val,c_new,p_val,p_new", [
@@ -179,14 +193,14 @@ def test_parametrised_rf_empty_parameter_list():
     (1.5, 2.5, 3.0, 4.5),
     (4.0, 1.0, 6.0, 2.0),
 ])
-def test_parametrised_rf_with_single_control_single_parameter(c_val, c_new, p_val, p_new):
+def test_rf_with_single_control_single_parameter(c_val, c_new, p_val, p_new):
     """Test parametrised RF with single control and single parameter at various values."""
     c_val = AdjFloat(c_val)
     p_val = AdjFloat(p_val)
     c_new = AdjFloat(c_new)
     p_new = AdjFloat(p_new)
     J = single_control_single_param_expr(c_val, p_val)
-    Jhat = ParametrisedReducedFunctional(J, Control(c_val), p_val)
+    Jhat = ReducedFunctional(J, Control(c_val), parameters=p_val)
     
     # Test initial evaluation
     result = Jhat(c_new)
@@ -211,7 +225,7 @@ def test_parametrised_rf_with_single_control_single_parameter(c_val, c_new, p_va
     (1.5, 2.5, 3.0, 4.5, 3.0, 4.5),
     (4.0, 1.0, 6.0, 2.0, 2.0, 3.0),
 ])
-def test_parametrised_rf_with_multiple_controls_single_parameter(c1_val, c2_val, c1_new, c2_new, p_val, p_new):
+def test_rf_with_multiple_controls_single_parameter(c1_val, c2_val, c1_new, c2_new, p_val, p_new):
     """Test parametrised RF with multiple controls and single parameter."""
     c1_val = AdjFloat(c1_val)
     c2_val = AdjFloat(c2_val)
@@ -220,7 +234,7 @@ def test_parametrised_rf_with_multiple_controls_single_parameter(c1_val, c2_val,
     c2_new = AdjFloat(c2_new)
     p_new = AdjFloat(p_new)
     J = multi_control_single_param_expr(c1_val, c2_val, p_val)
-    Jhat = ParametrisedReducedFunctional(J, [Control(c1_val), Control(c2_val)], parameters=p_val)
+    Jhat = ReducedFunctional(J, [Control(c1_val), Control(c2_val)], parameters=p_val)
     
     # Test initial evaluation
     result = Jhat([c1_new, c2_new])
@@ -251,7 +265,7 @@ def test_parametrised_rf_with_multiple_controls_single_parameter(c1_val, c2_val,
     (1.5, 2.5, 3.5, 4.5, 5.5, 6.5),
     (3.0, 1.0, 2.0, 3.0, 4.0, 5.0),
 ])
-def test_parametrised_rf_with_single_control_multiple_parameters(c_val, c_new, p1_val, p2_val, p1_new, p2_new):
+def test_rf_with_single_control_multiple_parameters(c_val, c_new, p1_val, p2_val, p1_new, p2_new):
     """Test parametrised RF with single control and multiple parameters."""
     c_val = AdjFloat(c_val)
     p1_val = AdjFloat(p1_val)
@@ -260,7 +274,7 @@ def test_parametrised_rf_with_single_control_multiple_parameters(c_val, c_new, p
     p1_new = AdjFloat(p1_new)
     p2_new = AdjFloat(p2_new)
     J = single_control_multi_param_expr(c_val, p1_val, p2_val)
-    Jhat = ParametrisedReducedFunctional(J, Control(c_val), parameters=[p1_val, p2_val])    
+    Jhat = ReducedFunctional(J, Control(c_val), parameters=[p1_val, p2_val])    
     # Test initial evaluation
     result = Jhat(c_new)
     expected = single_control_multi_param_expr(c_new, p1_val, p2_val)
@@ -284,7 +298,7 @@ def test_parametrised_rf_with_single_control_multiple_parameters(c_val, c_new, p
     (1.5, 2.5, 3.0, 4.5, 3.0, 4.5, 4.0, 5.5),
     (3.0, 1.0, 2.0, 3.0, 2.0, 3.0, 3.0, 4.0),
 ])
-def test_parametrised_rf_with_multiple_controls_multiple_parameters(c1_val,c2_val,c1_new,c2_new,p1_val,p2_val,p1_new,p2_new):
+def test_rf_with_multiple_controls_multiple_parameters(c1_val,c2_val,c1_new,c2_new,p1_val,p2_val,p1_new,p2_new):
     """Test parametrised RF with multiple controls and multiple parameters."""
     c1_val = AdjFloat(c1_val)
     c2_val = AdjFloat(c2_val)
@@ -296,7 +310,7 @@ def test_parametrised_rf_with_multiple_controls_multiple_parameters(c1_val,c2_va
     p2_new = AdjFloat(p2_new)
 
     J = multi_control_multi_param_expr(c1_val, c2_val, p1_val, p2_val)
-    Jhat = ParametrisedReducedFunctional(J, [Control(c1_val), Control(c2_val)], parameters=[p1_val, p2_val])
+    Jhat = ReducedFunctional(J, [Control(c1_val), Control(c2_val)], parameters=[p1_val, p2_val])
     
     result = Jhat([c1_new, c2_new])
     expected = multi_control_multi_param_expr(c1_new, c2_new, p1_val, p2_val)
@@ -324,7 +338,7 @@ def test_parametrised_rf_with_multiple_controls_multiple_parameters(c1_val,c2_va
     (1.5, 2.5, 3.0, 4.5, 3.0, 4.5, 4.0, 5.5),
     (3.0, 1.0, 2.0, 3.0, 2.0, 3.0, 3.0, 4.0),
 ])
-def test_parametrised_rf_complicated_expression(c1_val,c2_val,c1_new,c2_new,p1_val,p2_val,p1_new,p2_new):
+def test_rf_complicated_expression(c1_val,c2_val,c1_new,c2_new,p1_val,p2_val,p1_new,p2_new):
     """Test parametrised RF with complicated mathematical operations J = (c1 + c2)^2 * p1 - c1 * p2."""
     c1_val = AdjFloat(c1_val)
     c2_val = AdjFloat(c2_val)
@@ -335,7 +349,7 @@ def test_parametrised_rf_complicated_expression(c1_val,c2_val,c1_new,c2_new,p1_v
     p1_new = AdjFloat(p1_new)
     p2_new = AdjFloat(p2_new)
     J = complicated_expression(c1_val, c2_val, p1_val, p2_val)
-    Jhat = ParametrisedReducedFunctional(J, [Control(c1_val), Control(c2_val)], parameters=[p1_val, p2_val])
+    Jhat = ReducedFunctional(J, [Control(c1_val), Control(c2_val)], parameters=[p1_val, p2_val])
 
     # Test initial evaluation
     result = Jhat([c1_new, c2_new])
@@ -353,7 +367,7 @@ def test_parametrised_rf_complicated_expression(c1_val,c2_val,c1_new,c2_new,p1_v
     (1.5, 3.0, 4.0, 5.0, 6.0),
     (4.0, 2.5, 3.0, 4.0, 5.0),
 ])
-def test_parametrised_rf_multiple_update_parameters(c_val, c_new, p_val, p_new1, p_new2):
+def test_rf_multiple_update_parameters(c_val, c_new, p_val, p_new1, p_new2):
     """Test that, in case of multiple parameter updates before a call, the last update is used correctly."""
     c_val = AdjFloat(c_val)
     p_val = AdjFloat(p_val)
@@ -361,7 +375,7 @@ def test_parametrised_rf_multiple_update_parameters(c_val, c_new, p_val, p_new1,
     p_new1 = AdjFloat(p_new1)
     p_new2 = AdjFloat(p_new2)
     J = single_control_single_param_expr(c_val, p_val)
-    Jhat = ParametrisedReducedFunctional(J, Control(c_val), parameters=p_val)
+    Jhat = ReducedFunctional(J, Control(c_val), parameters=p_val)
     # First update
     Jhat.update_parameters(p_new1)
     # Second update
@@ -377,7 +391,7 @@ def test_parametrised_rf_multiple_update_parameters(c_val, c_new, p_val, p_new1,
     (1.5, 3.0, 4.0, 5.0),
     (4.0, 2.5, 3.0, 4.0),
 ])
-def test_parametrised_rf_against_rf(c_val, c_new, p_val, p_new):
+def test_rf_against_rf(c_val, c_new, p_val, p_new):
     """Test that the parametrised reduced functional gives the same results as a standard reduced functional with 
      derivative components."""
     # Build reduced functional with parameter as control and derivative component
@@ -392,7 +406,7 @@ def test_parametrised_rf_against_rf(c_val, c_new, p_val, p_new):
         c = AdjFloat(c_val)
         p = AdjFloat(p_val)
         J = c * p
-        Jhat_param_rf = ParametrisedReducedFunctional(J, Control(c), parameters=p)
+        Jhat_param_rf = ReducedFunctional(J, Control(c), parameters=p)
     
     # Test initial evaluation
     result_rf = Jhat_rf([c_new, p_val])
@@ -424,7 +438,7 @@ def test_optimisation_on_quadratic_polynomial(c_val, p_val1, p_val2, p_val3, p_v
     p_val2 = AdjFloat(p_val2)
     p_val3 = AdjFloat(p_val3)
     J, optima = quadratic_expression(c_val, p_val1, p_val2, p_val3)
-    Jhat_prf = ParametrisedReducedFunctional(J, Control(c_val), parameters=[p_val1, p_val2, p_val3])
+    Jhat_prf = ReducedFunctional(J, Control(c_val), parameters=[p_val1, p_val2, p_val3])
     
     # Perform optimisation
     result_prf = minimize(Jhat_prf)
@@ -468,7 +482,7 @@ def test_optimisation_on_quadratic_polynomial_w_TAO(c_val, p_val1, p_val2, p_val
 
     J, optima = quadratic_expression(c_val, p_val1, p_val2, p_val3)
     J = assemble(J*dx)
-    Jhat = ParametrisedReducedFunctional(J, Control(c_val), [p_val1, p_val2, p_val3])
+    Jhat = ReducedFunctional(J, Control(c_val), parameters=[p_val1, p_val2, p_val3])
     problem = MinimizationProblem(Jhat)
     parameters = { 'method': 'nls',
                    'max_it': 20,
