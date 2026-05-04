@@ -135,7 +135,7 @@ def _get_extract_derivative_components(derivative_components):
 
     Used when derivative components are required.
     """
-    def extract_derivative_components(parameters, controls):
+    def extract_derivative_components(controls):
         controls_out = Enlist([controls[i]
                                for i in derivative_components])
         return controls_out
@@ -147,7 +147,7 @@ def _get_pack_derivative_components(controls, derivative_components):
 
     Used when derivative components are required.
     """
-    def pack_derivative_components(checkpoint, derivatives, parameters, values):
+    def pack_derivative_components(checkpoint, derivatives, values):
         derivatives_out = []
         count = 0
         for i, control in enumerate(controls):
@@ -224,9 +224,9 @@ class ReducedFunctional(AbstractReducedFunctional):
                  scale=1.0, tape=None,
                  eval_cb_pre=lambda *args: None,
                  eval_cb_post=lambda *args: None,
-                 derivative_cb_pre=lambda parameters, controls: controls, 
+                 derivative_cb_pre=lambda controls: controls, 
                  derivative_cb_post=lambda checkpoint, derivative_components,
-                 parameters, controls: derivative_components,
+                 controls: derivative_components,
                  hessian_cb_pre=lambda *args: None,
                  hessian_cb_post=lambda *args: None,
                  tlm_cb_pre=lambda *args: None,
@@ -305,7 +305,7 @@ class ReducedFunctional(AbstractReducedFunctional):
     @no_annotations
     def derivative(self, adj_input=1.0, apply_riesz=False):
         values = [c.tape_value() for c in self.controls]
-        controls = self.derivative_cb_pre(self.parameters if hasattr(self, "_parameters") else None, self.controls)
+        controls = self.derivative_cb_pre(self.controls)
 
         if not controls:
             raise ValueError("""Note that the callback interface
@@ -326,7 +326,6 @@ class ReducedFunctional(AbstractReducedFunctional):
         derivatives = self.derivative_cb_post(
             self.functional.block_variable.checkpoint,
             derivatives,
-            self.parameters if hasattr(self, "_parameters") else None,
             values)
 
         if not derivatives:
