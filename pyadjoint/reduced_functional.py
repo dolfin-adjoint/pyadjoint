@@ -173,9 +173,10 @@ class ReducedFunctional(AbstractReducedFunctional):
         Jhat(m; p) = J(u(m; p), m; p)
 
     Where `u` is the system state and `m` is a `pyadjoint.Control` or list of
-    `pyadjoint.Control`, `p` is a list of parameters, `J` is an overloaded type providing 
-    the functional value, and `Jhat` is a reduced functional where the explicit dependence 
-    on `u` has been eliminated. The parameters `p` can be updated between evaluations, after which evaluation of the reduced functional is performed with the updated parameters, but they are not 
+    `pyadjoint.Control`, `p` is a list of parameters, `J` is an overloaded type providing
+    the functional value, and `Jhat` is a reduced functional where the explicit dependence
+    on `u` has been eliminated. The parameters `p` can be updated between evaluations, after which evaluation
+    of the reduced functional is performed with the updated parameters, but they are not
     included in the derivative calculations.
 
     Args:
@@ -188,9 +189,10 @@ class ReducedFunctional(AbstractReducedFunctional):
         derivative_components (tuple of int): The indices of the controls with
             respect to which to take the derivative. By default, the derivative
             is taken with respect to all controls. If present, it overwrites
-            derivative_cb_pre and derivative_cb_post. Will be deprecated in future in favour 
+            derivative_cb_pre and derivative_cb_post. Will be deprecated in future in favour
             of the parameters argument.
-        parameters (list): A list of parameters, which are updated, but not included in the derivative. Cannot be specified at the same time as derivative_components.
+        parameters (list): A list of parameters, which are updated, but not included in the derivative.
+        Cannot be specified at the same time as derivative_components.
         scale (float): A scaling factor applied to the functional and its
             gradient with respect to the control.
         tape (Tape): A tape object that the reduced functional will use to
@@ -224,7 +226,7 @@ class ReducedFunctional(AbstractReducedFunctional):
                  scale=1.0, tape=None,
                  eval_cb_pre=lambda *args: None,
                  eval_cb_post=lambda *args: None,
-                 derivative_cb_pre=lambda controls: controls, 
+                 derivative_cb_pre=lambda controls: controls,
                  derivative_cb_post=lambda checkpoint, derivative_components,
                  controls: derivative_components,
                  hessian_cb_pre=lambda *args: None,
@@ -232,7 +234,9 @@ class ReducedFunctional(AbstractReducedFunctional):
                  tlm_cb_pre=lambda *args: None,
                  tlm_cb_post=lambda *args: None):
         if derivative_components is not None and parameters is not None:
-            raise ValueError("Cannot specify both derivative_components and parameters. Please specify only one of these, or neither.")
+            raise ValueError(
+                "Cannot specify both derivative_components and parameters. "
+                "Please specify only one of these, or neither.")
         elif parameters is not None and len(Enlist(parameters)) == 0:
             raise ValueError("Parameters list cannot be empty")
         if not isinstance(functional, OverloadedType):
@@ -254,19 +258,21 @@ class ReducedFunctional(AbstractReducedFunctional):
         if parameters is not None:
             self._parameters = Enlist(parameters)
             self.n_opt = len(self._controls)
-            self._all_controls= self._controls + Enlist([Control(p) for p in self._parameters])
-            self._reduced_functional = ReducedFunctional(functional=functional, 
-                                                         controls=self._all_controls, 
-                                                         scale=scale, 
-                                                         tape=tape,
-                                                         eval_cb_pre=eval_cb_pre, 
-                                                         eval_cb_post=eval_cb_post,
-                                                         derivative_cb_pre=derivative_cb_pre,
-                                                         derivative_cb_post=derivative_cb_post,
-                                                         hessian_cb_pre=hessian_cb_pre,
-                                                         hessian_cb_post=hessian_cb_post,
-                                                         tlm_cb_pre=tlm_cb_pre,
-                                                         tlm_cb_post=tlm_cb_post)
+            self._all_controls = self._controls + Enlist([Control(p) for p in self._parameters])
+            self._reduced_functional = ReducedFunctional(
+                functional=functional,
+                controls=self._all_controls,
+                scale=scale,
+                tape=tape,
+                eval_cb_pre=eval_cb_pre,
+                eval_cb_post=eval_cb_post,
+                derivative_cb_pre=derivative_cb_pre,
+                derivative_cb_post=derivative_cb_post,
+                hessian_cb_pre=hessian_cb_pre,
+                hessian_cb_post=hessian_cb_post,
+                tlm_cb_pre=tlm_cb_pre,
+                tlm_cb_post=tlm_cb_post,
+            )
         elif derivative_components is not None:
             self.derivative_components = derivative_components
             # pre callback
@@ -275,10 +281,6 @@ class ReducedFunctional(AbstractReducedFunctional):
             # post callback
             self.derivative_cb_post = _get_pack_derivative_components(
                 controls, derivative_components)
-
-
-        
-
 
     @property
     def controls(self) -> list[Control]:
@@ -290,14 +292,14 @@ class ReducedFunctional(AbstractReducedFunctional):
             return self._parameters
         else:
             raise AttributeError("This ReducedFunctional does not have parameters.")
-    
+
     @no_annotations
     def update_parameters(self, new_parameters):
         if not hasattr(self, "_parameters"):
             raise AttributeError("This ReducedFunctional does not have parameters.")
         elif hasattr(self, "_parameters") and len(Enlist(new_parameters)) != len(self._parameters):
             raise ValueError(
-                """new_parameters should be a list of the same 
+                """new_parameters should be a list of the same
                 length as parameters."""
             )
         self._parameters = Enlist(new_parameters)
@@ -357,12 +359,15 @@ class ReducedFunctional(AbstractReducedFunctional):
         if not hasattr(self, "_parameters"):
             return self.controls.delist(r)
         else:
-            # self._reduced_functional.hessian will expect len(m_dot) = len(self._all_controls), so we pad it with zeros.
-            m_dot_all = Enlist(m_dot) + [p._ad_init_zero() for p in self._parameters] 
-            hessian_all = self._reduced_functional.hessian(m_dot_all, 
-                                                              hessian_input=hessian_input, 
-                                                              evaluate_tlm=evaluate_tlm, 
-                                                              apply_riesz=apply_riesz)
+            # self._reduced_functional.hessian will expect len(m_dot)
+            # = len(self._all_controls), so we pad it with zeros.
+            m_dot_all = Enlist(m_dot) + [p._ad_init_zero() for p in self._parameters]
+            hessian_all = self._reduced_functional.hessian(
+                m_dot_all,
+                hessian_input=hessian_input,
+                evaluate_tlm=evaluate_tlm,
+                apply_riesz=apply_riesz,
+            )
 
             # Return only the hessian components corresponding to optimization controls.
             return self.controls.delist(Enlist(hessian_all)[:self.n_opt])
@@ -382,7 +387,7 @@ class ReducedFunctional(AbstractReducedFunctional):
             return tlm
         else:
             # self._reduced_functional.tlm will expect len(m_dot) = len(self._all_controls), so we pad it with zeros.
-            m_dot_all = Enlist(m_dot) + [p._ad_init_zero() for p in self._parameters] 
+            m_dot_all = Enlist(m_dot) + [p._ad_init_zero() for p in self._parameters]
             tlm_all = self._reduced_functional.tlm(m_dot_all)
             return tlm_all
 
