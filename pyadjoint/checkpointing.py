@@ -198,17 +198,17 @@ class CheckpointManager:
                 # timestep only when required by an action from the schedule. Thus, we
                 # have to clear the checkpoint of block variables excluded from the self._global_deps.
                 for deps in deps_to_clear:
-                    deps._checkpoint = None
+                    deps.checkpoint = None
 
             self.tape.timesteps[timestep - 1].checkpoint(
                 _store_checkpointable_state, _store_adj_dependencies, self._global_deps)
             # Remove unnecessary variables in working memory from previous steps.
             for var in self.tape.timesteps[timestep - 1].checkpointable_state - self._global_deps:
-                var._checkpoint = None
+                var.checkpoint = None
 
             for block in self.tape.timesteps[timestep - 1]:
                 for out in block.get_outputs():
-                    out._checkpoint = None
+                    out.checkpoint = None
 
         if cp_action.storage == StorageType.DISK:
             # Activate disk checkpointing only in the checkpointing process.
@@ -362,7 +362,7 @@ class CheckpointManager:
                 # Handle the case for SingleMemoryStorageSchedule
                 if isinstance(self._schedule, SingleMemoryStorageSchedule):
                     if step > 1 and var not in self.tape.timesteps[step - 1].adjoint_dependencies:
-                        var._checkpoint = None
+                        var.checkpoint = None
                     continue
 
                 # Handle variables in the initial timestep
@@ -373,7 +373,7 @@ class CheckpointManager:
                     continue
 
                 # Clear the checkpoint for other cases
-                var._checkpoint = None
+                var.checkpoint = None
 
             for block in current_step:
                 # Remove unnecessary variables from previous steps.
@@ -383,10 +383,10 @@ class CheckpointManager:
                         or not cp_action.write_adj_deps
                     ):
                         if bv not in to_keep:
-                            bv._checkpoint = None
+                            bv.checkpoint = None
                     else:
                         if bv not in current_step.adjoint_dependencies.union(to_keep):
-                            bv._checkpoint = None
+                            bv.checkpoint = None
 
             if self._gc_timestep_frequency and step % self._gc_timestep_frequency == 0:
                 logging.info("Running a garbage collection cycle")
@@ -428,7 +428,7 @@ class CheckpointManager:
                     if not out.is_control:
                         out.reset_variables(("adjoint", "hessian"))
                     if cp_action.clear_adj_deps and out not in to_keep:
-                        out._checkpoint = None
+                        out.checkpoint = None
             if self._gc_timestep_frequency and step % self._gc_timestep_frequency == 0:
                 logging.info("Running a garbage collection cycle")
                 gc.collect(self._gc_generation)
