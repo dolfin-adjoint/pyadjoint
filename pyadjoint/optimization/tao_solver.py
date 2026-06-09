@@ -7,6 +7,7 @@ from ..enlisting import Enlist
 from ..overloaded_type import OverloadedType
 from .optimization_problem import MinimizationProblem
 from .optimization_solver import OptimizationSolver
+from ..tape import no_annotations
 
 
 try:
@@ -795,6 +796,7 @@ class TAOSolver(OptimizationSolver):
 
         return self._x
 
+    @no_annotations
     def solve(self):
         """Solve the optimization problem.
 
