@@ -65,7 +65,7 @@ visualisation = [
 ]
 tao = [
    "petsc4py",
-   "petsctools>2025.0"
+   "petsctools>2025.3"
 ]
 
 
