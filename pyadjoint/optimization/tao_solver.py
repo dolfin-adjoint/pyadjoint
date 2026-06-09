@@ -777,6 +777,17 @@ class TAOSolver(OptimizationSolver):
 
         return self._x
 
+    @cached_property
+    def _tao_reasons(self):
+        """Dictionary of TAO convergence reason int codes -> python objects
+        """
+        from petsc4py import PETSc
+        # Same approach as in _make_reasons in firedrake/solving_utils.py,
+        # Firedrake master branch 57e21cc8ebdb044c1d8423b48f3dbf70975d5548
+        return {getattr(PETSc.TAO.Reason, key): key
+                for key in dir(PETSc.TAO.Reason)
+                if not key.startswith("_")}
+
     @no_annotations
     def solve(self):
         """Solve the optimization problem.
