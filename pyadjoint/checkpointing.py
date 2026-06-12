@@ -361,7 +361,16 @@ class CheckpointManager:
 
                 # Handle the case for SingleMemoryStorageSchedule
                 if isinstance(self._schedule, SingleMemoryStorageSchedule):
-                    if var.output.block_variable is var:
+                    # `var` is used by a block in this step, so the adjoint of
+                    # this step may still need it as a linearisation point.
+                    # Only clear once the adjoint dependencies have been
+                    # revised by a reverse pass and `var` is provably not one
+                    # of them; before that, keeping every dependency in memory
+                    # is exactly what this schedule promises.
+                    if (
+                        current_step._revised_adj_deps
+                        and var not in current_step.adjoint_dependencies
+                    ):
                         var.checkpoint = None
                     continue
 
