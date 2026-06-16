@@ -366,7 +366,10 @@ class CheckpointManager:
                     # Only clear once the adjoint dependencies have been
                     # revised by a reverse pass and `var` is provably not one
                     # of them; before that, keeping every dependency in memory
-                    # is exactly what this schedule promises.
+                    # is exactly what this schedule promises. The trade-off is
+                    # that a forward-only recomputation retains the conservative
+                    # dependency set and so holds taping-time memory; the more
+                    # precise clearing only takes effect after the first reverse.
                     if (
                         current_step._revised_adj_deps
                         and var not in current_step.adjoint_dependencies
