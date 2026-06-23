@@ -10,6 +10,7 @@ from .adjfloat import AdjFloat
 from .control import Control
 import warnings
 
+
 class AbstractReducedFunctional(ABC):
     """Base class for reduced functionals.
 
@@ -163,13 +164,13 @@ def _get_pack_derivative_components(controls, derivative_components):
 
     return pack_derivative_components
 
+
 def _call_derivative_cb_pre(cb, controls, parameters=None):
     """Call `derivative_cb_pre` with (controls, parameters) if parameters are passd, otherwise preserve backwards
     compatibility and emit a deprecation warning.
     """
     if parameters is None:
         return cb(controls)
-    
     try:
         return cb(controls, parameters)
     except TypeError:
@@ -179,6 +180,7 @@ def _call_derivative_cb_pre(cb, controls, parameters=None):
             category=DeprecationWarning
         )
         return cb(controls)
+
 
 def _call_derivative_cb_post(cb, checkpoint, derivatives, values, parameters=None):
     """Call `derivative_cb_post` with (checkpoint, derivatives, values, parameters) when available, otherwise
@@ -196,7 +198,7 @@ def _call_derivative_cb_post(cb, checkpoint, derivatives, values, parameters=Non
             category=DeprecationWarning
         )
         return cb(checkpoint, derivatives, values)
-    
+
 
 class ReducedFunctional(AbstractReducedFunctional):
     """Class representing the reduced functional.
@@ -358,7 +360,7 @@ class ReducedFunctional(AbstractReducedFunctional):
         values = [c.tape_value() for c in self.controls]
         controls = _call_derivative_cb_pre(
             self.derivative_cb_pre, self.controls, getattr(self, "_parameters", None)
-            )
+        )
 
         if not controls:
             raise ValueError("""Note that the callback interface
