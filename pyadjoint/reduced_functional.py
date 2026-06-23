@@ -8,7 +8,7 @@ from .overloaded_type import OverloadedType, create_overloaded_object
 from .tape import get_working_tape, no_annotations, stop_annotating
 from .adjfloat import AdjFloat
 from .control import Control
-
+import warnings
 
 class AbstractReducedFunctional(ABC):
     """Base class for reduced functionals.
@@ -163,6 +163,40 @@ def _get_pack_derivative_components(controls, derivative_components):
 
     return pack_derivative_components
 
+def _call_derivative_cb_pre(cb, controls, parameters=None):
+    """Call `derivative_cb_pre` with (controls, parameters) if parameters are passd, otherwise preserve backwards
+    compatibility and emit a deprecation warning.
+    """
+    if parameters is None:
+        return cb(controls)
+    
+    try:
+        return cb(controls, parameters)
+    except TypeError:
+        warnings.warn(
+            message="derivative_cb_pre should accept (controls, parameters)."
+            "Falling back to deprecated signature (controls). ",
+            category=DeprecationWarning
+        )
+        return cb(controls)
+
+def _call_derivative_cb_post(cb, checkpoint, derivatives, values, parameters=None):
+    """Call `derivative_cb_post` with (checkpoint, derivatives, values, parameters) when available, otherwise
+    preserve backwards compatibility and emit a deprecation warning.
+    """
+    if parameters is None:
+        return cb(checkpoint, derivatives, values)
+
+    try:
+        return cb(checkpoint, derivatives, values, parameters)
+    except TypeError:
+        warnings.warn(
+            message="derivative_cb_post should accept (checkpoint, derivatives, values, parameters)."
+            "Falling back to deprecated signature (checkpoint, derivatives, values).",
+            category=DeprecationWarning
+        )
+        return cb(checkpoint, derivatives, values)
+    
 
 class ReducedFunctional(AbstractReducedFunctional):
     """Class representing the reduced functional.
@@ -322,7 +356,9 @@ class ReducedFunctional(AbstractReducedFunctional):
     @no_annotations
     def derivative(self, adj_input=1.0, apply_riesz=False):
         values = [c.tape_value() for c in self.controls]
-        controls = self.derivative_cb_pre(self.controls)
+        controls = _call_derivative_cb_pre(
+            self.derivative_cb_pre, self.controls, getattr(self, "_parameters", None)
+            )
 
         if not controls:
             raise ValueError("""Note that the callback interface
@@ -342,8 +378,12 @@ class ReducedFunctional(AbstractReducedFunctional):
         )
 
         # Call callback
-        derivatives = self.derivative_cb_post(
-            self.functional.block_variable.checkpoint, derivatives, values
+        derivatives = _call_derivative_cb_post(
+            self.derivative_cb_post,
+            self.functional.block_variable.checkpoint,
+            derivatives,
+            values,
+            getattr(self, "_parameters", None),
         )
 
         if not derivatives:
