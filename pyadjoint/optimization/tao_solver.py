@@ -832,17 +832,14 @@ class TAOSolver(OptimizationSolver):
 
 class RieszMapPC(PCBase):
     """
-    PETSc.PC Python context to apply the Riesz map as a preconditioner.
+    PETSc.PC Python context to apply the Riesz map as a preconditioner for the
+    reduced Hessian solve of TAO/NLS.
 
-    Applies the Riesz map to the dual vector supplied by the inner KSP and
-    returns its primal representation. Intended to precondition the reduced
-    Hessian solve of TAO/NLS, whose action maps the control space to its dual.
-
-    If V is the control space then the preconditioner has the signature:
+    If V is the control space, the preconditioner has the map:
     RieszMap : V* -> V
 
-    The Riesz map applied is read from the `riesz_map` attribute of each
-    Control. The P matrix must be a PETSc.Mat whose python context is a
+    The Riesz map is read from the `riesz_map` attribute of each Control. The
+    preconditioning matrix must be a PETSc.Mat whose python context is a
     ReducedFunctionalHessianMat.
     """
     needs_python_pmat = True
