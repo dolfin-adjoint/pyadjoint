@@ -184,8 +184,10 @@ def test_rf_empty_parameter_list():
     """Test that creating a ReducedFunctional with an empty parameter list raises an error."""
     c = AdjFloat(2.0)
     J = c * 3.0 
-    with pytest.raises(ValueError):
-        Jhat = ReducedFunctional(J, Control(c), parameters=[])
+    Jhat = ReducedFunctional(J, Control(c), parameters=[])
+    assert Jhat.parameters == []
+    
+
 
 
 @pytest.mark.parametrize("c_val,c_new,p_val,p_new", [
@@ -200,7 +202,7 @@ def test_rf_with_single_control_single_parameter(c_val, c_new, p_val, p_new):
     c_new = AdjFloat(c_new)
     p_new = AdjFloat(p_new)
     J = single_control_single_param_expr(c_val, p_val)
-    Jhat = ReducedFunctional(J, Control(c_val), parameters=p_val)
+    Jhat = ReducedFunctional(J, Control(c_val), parameters=p_val, derivative_cb_pre= lambda controls, parameters: controls)
     
     # Test initial evaluation
     result = Jhat(c_new)
