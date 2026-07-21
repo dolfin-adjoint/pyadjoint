@@ -181,6 +181,16 @@ def _call_derivative_cb_pre(cb, controls, parameters=None):
         )
         return cb(controls)
 
+def _call_callback_pre(cb, vals, parameters=None, name=""):
+    """Call the provided callback with the given controls and parameters, emitting a deprecation warning if the signature is deprecated."""
+    if parameters is None:
+        return cb(vals)
+    try:
+        return cb(vals, parameters)
+    except TypeError as err:
+        raise TypeError(
+            f"Callback {name} should accept (controls/values, parameters). "
+        ) from err
 
 def _call_derivative_cb_post(cb, checkpoint, derivatives, values, parameters=None):
     """Call `derivative_cb_post` with (checkpoint, derivatives, values, parameters) when available, otherwise
@@ -191,13 +201,59 @@ def _call_derivative_cb_post(cb, checkpoint, derivatives, values, parameters=Non
 
     try:
         return cb(checkpoint, derivatives, values, parameters)
-    except TypeError:
-        warnings.warn(
-            message="derivative_cb_post should accept (checkpoint, derivatives, values, parameters)."
+    except TypeError as err:
+        raise TypeError(
+            "derivative_cb_post should accept (checkpoint, derivatives, values, parameters)."
             "Falling back to deprecated signature (checkpoint, derivatives, values).",
-            category=DeprecationWarning
-        )
-        return cb(checkpoint, derivatives, values)
+        ) from err
+
+def _call_eval_cb_post(cb, func_value, values, parameters=None):
+    """Call `eval_cb_post` with (func_value, values, parameters) when available, otherwise
+    preserve backwards compatibility and emit a deprecation warning.
+    """
+    if parameters is None:
+        return cb(func_value, values)
+
+    try:
+        return cb(func_value, values, parameters)
+    except TypeError as err:
+        raise TypeError(
+            "eval_cb_post should accept (func_value, values, parameters)."
+            "Falling back to deprecated signature (func_value, values).",
+        ) from err
+
+def _call_hessian_cb_post(cb, checkpoint, hessian, values, parameters=None):
+    """Call `hessian_cb_post` with (checkpoint, hessian, values, parameters) when available, otherwise
+    preserve backwards compatibility and emit a deprecation warning.
+    """
+    if parameters is None:
+        return cb(checkpoint, hessian, values)
+
+    try:
+        return cb(checkpoint, hessian, values, parameters)
+    except TypeError as err:
+        raise TypeError(
+            "hessian_cb_post should accept (checkpoint, hessian, values, parameters)."
+            "Falling back to deprecated signature (checkpoint, hessian, values).",
+        ) from err
+
+def _call_tlm_cb_post(cb, checkpoint, tlm, values, parameters=None):
+    """Call `tlm_cb_post` with (checkpoint, tlm, values, parameters) when available, otherwise
+    preserve backwards compatibility and emit a deprecation warning.
+    """
+    if parameters is None:
+        return cb(checkpoint, tlm, values)
+
+    try:
+        return cb(checkpoint, tlm, values, parameters)
+    except TypeError as err:
+        raise TypeError(
+            "tlm_cb_post should accept (checkpoint, tlm, values, parameters)."
+            "Falling back to deprecated signature (checkpoint, tlm, values).",
+        ) from err
+
+
+
 
 
 class ReducedFunctional(AbstractReducedFunctional):
@@ -358,8 +414,11 @@ class ReducedFunctional(AbstractReducedFunctional):
     @no_annotations
     def derivative(self, adj_input=1.0, apply_riesz=False):
         values = [c.tape_value() for c in self.controls]
-        controls = _call_derivative_cb_pre(
-            self.derivative_cb_pre, self.controls, getattr(self, "_parameters", None)
+        # controls = _call_derivative_cb_pre(
+        #     self.derivative_cb_pre, self.controls, getattr(self, "_parameters", None)
+        # )
+        controls = _call_callback_pre(
+            self.derivative_cb_pre, self.controls, getattr(self, "_parameters", None), name="derivative_cb_pre"
         )
 
         if not controls:
@@ -405,7 +464,11 @@ class ReducedFunctional(AbstractReducedFunctional):
     def hessian(self, m_dot, hessian_input=None, evaluate_tlm=True, apply_riesz=False):
         # Call callback
         values = [c.tape_value() for c in self.controls]
-        self.hessian_cb_pre(self.controls.delist(values))
+
+        _call_callback_pre(
+            self.hessian_cb_pre, self.controls.delist(values), getattr(self, "_parameters", None), name="hessian_cb_pre"
+        )
+        # self.hessian_cb_pre(self.controls.delist(values))
 
         r = compute_hessian(
             self.functional,
@@ -418,12 +481,13 @@ class ReducedFunctional(AbstractReducedFunctional):
         )
 
         # Call callback
-        self.hessian_cb_post(
+        _call_hessian_cb_post(
+            self.hessian_cb_post,
             self.functional.block_variable.checkpoint,
             self.controls.delist(r),
             self.controls.delist(values),
+            getattr(self, "_parameters", None),
         )
-
         if not hasattr(self, "_parameters"):
             return self.controls.delist(r)
         else:
@@ -443,13 +507,19 @@ class ReducedFunctional(AbstractReducedFunctional):
     def tlm(self, m_dot):
         # Call callback
         values = [c.tape_value() for c in self.controls]
-        self.tlm_cb_pre(self.controls.delist(values))
+        _call_callback_pre(
+            self.tlm_cb_pre, self.controls.delist(values), getattr(self, "_parameters", None), name="tlm_cb_pre"
+        )
 
         tlm = compute_tlm(self.functional, self.controls, m_dot, tape=self.tape)
 
         # Call callback
-        self.tlm_cb_post(
-            self.functional.block_variable.checkpoint, tlm, self.controls.delist(values)
+        _call_tlm_cb_post(
+            self.tlm_cb_post,
+            self.functional.block_variable.checkpoint,
+            tlm,
+            self.controls.delist(values),
+            getattr(self, "_parameters", None),
         )
         if not hasattr(self, "_parameters"):
             return tlm
@@ -485,7 +555,9 @@ class ReducedFunctional(AbstractReducedFunctional):
                         f"with the same type as the control, which is {control_type}"
                     )
         # Call callback.
-        self.eval_cb_pre(self.controls.delist(values))
+        _call_callback_pre(
+            self.eval_cb_pre, self.controls.delist(values), getattr(self, "_parameters", None), name="eval_cb_pre"
+        )
 
         for i, value in enumerate(values):
             self.controls[i].update(value)
@@ -509,7 +581,8 @@ class ReducedFunctional(AbstractReducedFunctional):
         func_value *= self.scale
 
         # Call callback
-        self.eval_cb_post(func_value, self.controls.delist(values))
+        _call_eval_cb_post(
+            self.eval_cb_post, func_value, self.controls.delist(values), getattr(self, "_parameters", None))
 
         if not hasattr(self, "_parameters"):
             return func_value
