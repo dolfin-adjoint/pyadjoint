@@ -324,8 +324,8 @@ class ReducedFunctional(AbstractReducedFunctional):
         tape=None,
         eval_cb_pre=lambda *args: None,
         eval_cb_post=lambda *args: None,
-        derivative_cb_pre=lambda controls: controls,
-        derivative_cb_post=lambda checkpoint, derivative_components, controls: (
+        derivative_cb_pre=lambda controls, parameters=None: controls,
+        derivative_cb_post=lambda checkpoint, derivative_components, controls, parameters=None: (
             derivative_components
         ),
         hessian_cb_pre=lambda *args: None,
@@ -531,12 +531,10 @@ class ReducedFunctional(AbstractReducedFunctional):
     @no_annotations
     def __call__(self, values):
         values = Enlist(values)
-        if self._parameters and len(values) != self.n_opt:
+        if len(values) != len(self._controls):
             raise ValueError(
-                f"values should be a list of same length as optimization controls, which is {self.n_opt}."
+                f"values should be a list of same length as controls, which is {len(self._controls)}."
             )
-        elif len(values) != len(self.controls):
-            raise ValueError("values should be a list of same length as controls.")
 
         for i, value in enumerate(values):
             control_type = type(self.controls[i].control)
