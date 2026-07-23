@@ -183,6 +183,8 @@ def _call_derivative_cb_pre(cb, controls, parameters=None):
 
 def _call_callback_pre(cb, vals, parameters=None, name=""):
     """Call the provided callback with the given controls and parameters, emitting a deprecation warning if the signature is deprecated."""
+    if cb is None:
+        return vals
     if parameters is None:
         return cb(vals)
     try:
@@ -196,6 +198,8 @@ def _call_derivative_cb_post(cb, checkpoint, derivatives, values, parameters=Non
     """Call `derivative_cb_post` with (checkpoint, derivatives, values, parameters) when available, otherwise
     preserve backwards compatibility and emit a deprecation warning.
     """
+    if cb is None:
+        return derivatives
     if parameters is None:
         return cb(checkpoint, derivatives, values)
 
@@ -211,6 +215,8 @@ def _call_eval_cb_post(cb, func_value, values, parameters=None):
     """Call `eval_cb_post` with (func_value, values, parameters) when available, otherwise
     preserve backwards compatibility and emit a deprecation warning.
     """
+    if cb is None:
+        return func_value
     if parameters is None:
         return cb(func_value, values)
 
@@ -226,6 +232,8 @@ def _call_hessian_cb_post(cb, checkpoint, hessian, values, parameters=None):
     """Call `hessian_cb_post` with (checkpoint, hessian, values, parameters) when available, otherwise
     preserve backwards compatibility and emit a deprecation warning.
     """
+    if cb is None:
+        return hessian
     if parameters is None:
         return cb(checkpoint, hessian, values)
 
@@ -241,6 +249,8 @@ def _call_tlm_cb_post(cb, checkpoint, tlm, values, parameters=None):
     """Call `tlm_cb_post` with (checkpoint, tlm, values, parameters) when available, otherwise
     preserve backwards compatibility and emit a deprecation warning.
     """
+    if cb is None:
+        return tlm
     if parameters is None:
         return cb(checkpoint, tlm, values)
 
@@ -369,14 +379,14 @@ class ReducedFunctional(AbstractReducedFunctional):
                 controls=self._all_controls,
                 scale=scale,
                 tape=tape,
-                eval_cb_pre=eval_cb_pre,
-                eval_cb_post=eval_cb_post,
-                derivative_cb_pre=derivative_cb_pre,
-                derivative_cb_post=derivative_cb_post,
-                hessian_cb_pre=hessian_cb_pre,
-                hessian_cb_post=hessian_cb_post,
-                tlm_cb_pre=tlm_cb_pre,
-                tlm_cb_post=tlm_cb_post,
+                eval_cb_pre=None,
+                eval_cb_post=None,
+                derivative_cb_pre=None,
+                derivative_cb_post=None,
+                hessian_cb_pre=None,
+                hessian_cb_post=None,
+                tlm_cb_pre=None,
+                tlm_cb_post=None,
             )
         elif derivative_components is not None:
             self.derivative_components = derivative_components

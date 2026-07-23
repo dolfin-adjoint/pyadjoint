@@ -202,7 +202,7 @@ def test_rf_with_single_control_single_parameter(c_val, c_new, p_val, p_new):
     c_new = AdjFloat(c_new)
     p_new = AdjFloat(p_new)
     J = single_control_single_param_expr(c_val, p_val)
-    Jhat = ReducedFunctional(J, Control(c_val), parameters=p_val, derivative_cb_pre= lambda controls, parameters: controls)
+    Jhat = ReducedFunctional(J, Control(c_val), parameters=p_val)
     
     # Test initial evaluation
     result = Jhat(c_new)
