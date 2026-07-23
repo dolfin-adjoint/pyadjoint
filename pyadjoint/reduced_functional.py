@@ -415,6 +415,12 @@ class ReducedFunctional(AbstractReducedFunctional):
 
     @no_annotations
     def derivative(self, adj_input=1.0, apply_riesz=False):
+        if self._parameters:
+            derivatives_all = self._reduced_functional.derivative(
+                adj_input=adj_input, apply_riesz=apply_riesz
+            )
+            return self.controls.delist(Enlist(derivatives_all)[: self.n_opt])
+        
         values = [c.tape_value() for c in self.controls]
         controls = _call_callback_pre(
             self.derivative_cb_pre, self.controls, self._parameters if self._parameters else None, name="derivative_cb_pre"
@@ -451,23 +457,28 @@ class ReducedFunctional(AbstractReducedFunctional):
             for derivative_cb_post has changed. It should now return a
             list of derivatives, usually the same list as input.""")
 
-        if not self._parameters:
-            return self.controls.delist(derivatives)
-        else:
-            derivatives_all = self._reduced_functional.derivative(
-                adj_input=adj_input, apply_riesz=apply_riesz
-            )
-            return self.controls.delist(Enlist(derivatives_all)[: self.n_opt])
+        return self.controls.delist(derivatives)
+
 
     @no_annotations
     def hessian(self, m_dot, hessian_input=None, evaluate_tlm=True, apply_riesz=False):
-        # Call callback
+        if self._parameters:
+            # self._reduced_functional.hessian will expect len(m_dot) = len(self._all_controls), so pad it with zeros.
+            m_dot_all = Enlist(m_dot) + [p._ad_init_zero() for p in self._parameters]
+            hessian_all = self._reduced_functional.hessian(
+                m_dot_all,
+                hessian_input=hessian_input,
+                evaluate_tlm=evaluate_tlm,
+                apply_riesz=apply_riesz,
+            )
+            # Return only the hessian components corresponding to optimization controls.
+            return self.controls.delist(Enlist(hessian_all)[: self.n_opt])
+        
         values = [c.tape_value() for c in self.controls]
-
+        # Call callback
         _call_callback_pre(
             self.hessian_cb_pre, self.controls.delist(values), self._parameters if self._parameters else None, name="hessian_cb_pre"
         )
-        # self.hessian_cb_pre(self.controls.delist(values))
 
         r = compute_hessian(
             self.functional,
@@ -487,23 +498,17 @@ class ReducedFunctional(AbstractReducedFunctional):
             self.controls.delist(values),
             self._parameters if self._parameters else None,
         )
-        if not self._parameters:
-            return self.controls.delist(r)
-        else:
-            # self._reduced_functional.hessian will expect len(m_dot) = len(self._all_controls), so pad it with zeros.
-            m_dot_all = Enlist(m_dot) + [p._ad_init_zero() for p in self._parameters]
-            hessian_all = self._reduced_functional.hessian(
-                m_dot_all,
-                hessian_input=hessian_input,
-                evaluate_tlm=evaluate_tlm,
-                apply_riesz=apply_riesz,
-            )
 
-            # Return only the hessian components corresponding to optimization controls.
-            return self.controls.delist(Enlist(hessian_all)[: self.n_opt])
+        return self.controls.delist(r)
 
     @no_annotations
     def tlm(self, m_dot):
+        if self._parameters:
+            # self._reduced_functional.tlm will expect len(m_dot) = len(self._all_controls), so we pad it with zeros.
+            m_dot_all = Enlist(m_dot) + [p._ad_init_zero() for p in self._parameters]
+            tlm_all = self._reduced_functional.tlm(m_dot_all)
+            return tlm_all
+        
         # Call callback
         values = [c.tape_value() for c in self.controls]
         _call_callback_pre(
@@ -520,13 +525,9 @@ class ReducedFunctional(AbstractReducedFunctional):
             self.controls.delist(values),
             self._parameters if self._parameters else None,
         )
-        if not self._parameters:
-            return tlm
-        else:
-            # self._reduced_functional.tlm will expect len(m_dot) = len(self._all_controls), so we pad it with zeros.
-            m_dot_all = Enlist(m_dot) + [p._ad_init_zero() for p in self._parameters]
-            tlm_all = self._reduced_functional.tlm(m_dot_all)
-            return tlm_all
+
+        return tlm
+
 
     @no_annotations
     def __call__(self, values):
@@ -551,6 +552,10 @@ class ReducedFunctional(AbstractReducedFunctional):
                         f"The control at index {i} must be an `OverloadedType` object "
                         f"with the same type as the control, which is {control_type}"
                     )
+        if self._parameters:
+            full_values = values + self._parameters
+            return self._reduced_functional(full_values)
+        
         # Call callback.
         _call_callback_pre(
             self.eval_cb_pre, self.controls.delist(values), self._parameters if self._parameters else None, name="eval_cb_pre"
@@ -581,11 +586,8 @@ class ReducedFunctional(AbstractReducedFunctional):
         _call_eval_cb_post(
             self.eval_cb_post, func_value, self.controls.delist(values), self._parameters if self._parameters else None)
 
-        if not self._parameters:
-            return func_value
-        else:
-            full_values = values + self._parameters
-            return self._reduced_functional(full_values)
+        return func_value
+   
 
     def optimize_tape(self):
         self.tape.optimize(controls=self.controls, functionals=[self.functional])
