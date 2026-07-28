@@ -9,10 +9,26 @@ from ..overloaded_type import OverloadedType
 from .optimization_problem import MinimizationProblem
 from .optimization_solver import OptimizationSolver
 
+try:
+    from petsctools import PCBase
+except ImportError:
+    class PCBase:
+        """Fallback base class used when petsctools is not installed.
+
+        Keeps RieszMapPC importable (e.g. for documentation) when
+        petsctools is unavailable. The preconditioner cannot be used
+        without it, so instantiating it raises a clear error.
+        """
+        def __init__(self, *args, **kwargs):
+            raise ImportError(
+                "RieszMapPC requires petsctools, which is not installed"
+            )
+
 
 __all__ = [
     "TAOConvergenceError",
-    "TAOSolver"
+    "TAOSolver",
+    "RieszMapPC"
 ]
 
 
@@ -812,3 +828,53 @@ class TAOSolver(OptimizationSolver):
             return controls.delist(m)
         else:
             return m
+
+
+class RieszMapPC(PCBase):
+    """
+    PETSc.PC Python context to apply the Riesz map as a preconditioner for the
+    reduced Hessian solve of TAO/NLS.
+
+    If V is the control space, the preconditioner has the map:
+    RieszMap : V* -> V
+
+    The Riesz map is read from the `riesz_map` attribute of each Control. The
+    preconditioning matrix must be a PETSc.Mat whose python context is a
+    ReducedFunctionalHessianMat.
+    """
+    needs_python_pmat = True
+    prefix = "riesz"
+
+    def initialize(self, pc):
+        if not isinstance(self.pmat, ReducedFunctionalHessianMat):
+            raise TypeError(
+                "RieszMapPC needs a ReducedFunctionalHessianMat")
+
+        self.controls = self.pmat.rf.controls
+        self.vec_interface = self.pmat.control_interface
+        self.dJ = tuple(c._ad_init_zero(dual=True)
+                        for c in self.controls)
+
+    def apply(self, pc, x, y):
+        self.vec_interface.from_petsc(x, self.dJ)
+        gradJ = tuple(c._ad_convert_riesz(dJi, riesz_map=c.riesz_map)
+                      for c, dJi in zip(self.controls, self.dJ))
+        self.vec_interface.to_petsc(y, gradJ)
+
+    def update(self, pc):
+        pass
+
+    def view(self, pc, viewer=None):
+        """View object. Method usually called by PETSc with e.g. -tao_view.
+        """
+        from petsc4py import PETSc
+        if viewer is None:
+            return
+        if viewer.getType() != PETSc.Viewer.Type.ASCII:
+            return
+
+        viewer.pushASCIITab()
+        viewer.printfASCII(f"Riesz map preconditioner: {type(self).__name__}\n")
+        for control in self.controls:
+            viewer.printfASCII(f"applying the {control.riesz_map} Riesz map\n")
+        viewer.popASCIITab()
