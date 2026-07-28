@@ -873,6 +873,8 @@ class RieszMapPC(PCBase):
         if viewer.getType() != PETSc.Viewer.Type.ASCII:
             return
 
-        viewer.printfASCII(f"  Riesz map preconditioner: {type(self).__name__}\n")
+        viewer.pushASCIITab()
+        viewer.printfASCII(f"Riesz map preconditioner: {type(self).__name__}\n")
         for control in self.controls:
-            viewer.printfASCII(f"  applying the {control.riesz_map} Riesz map\n")
+            viewer.printfASCII(f"applying the {control.riesz_map} Riesz map\n")
+        viewer.popASCIITab()
