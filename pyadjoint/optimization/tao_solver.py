@@ -8,6 +8,7 @@ from ..enlisting import Enlist
 from ..overloaded_type import OverloadedType
 from .optimization_problem import MinimizationProblem
 from .optimization_solver import OptimizationSolver
+from ..tape import no_annotations
 
 try:
     from petsctools import PCBase
@@ -803,6 +804,7 @@ class TAOSolver(OptimizationSolver):
                 for key in dir(PETSc.TAO.Reason)
                 if not key.startswith("_")}
 
+    @no_annotations
     def solve(self):
         """Solve the optimization problem.
 
