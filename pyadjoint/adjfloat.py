@@ -92,6 +92,10 @@ class Operator:
     def codegen(self, diff=()):
         return codegen(self.expr, self.symbols, diff=diff)
 
+    def to_str(self, *args: str) -> str:
+        sp_args = [sp.Symbol(a, real=True) for a in args]
+        return str(self.sp_operator(*sp_args))
+
 
 class AdjFloatExprBlock(Block):
     def __init__(self, operator, *args, np_operator=None):
@@ -100,6 +104,9 @@ class AdjFloatExprBlock(Block):
         self._np_operator = np_operator
         for arg in args:
             self.add_dependency(arg)
+
+    def __str__(self) -> str:
+        return self._operator.to_str(*(map(str, self._dependencies)))
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         adj_input, = adj_inputs
