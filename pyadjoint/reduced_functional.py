@@ -166,7 +166,7 @@ def _get_pack_derivative_components(controls, derivative_components):
 
 
 def _call_derivative_cb_pre(cb, controls, parameters=None):
-    """Call `derivative_cb_pre` with (controls, parameters) if parameters are passd, otherwise preserve backwards
+    """Call `derivative_cb_pre` with (controls, parameters) if parameters are passed, otherwise preserve backwards
     compatibility and emit a deprecation warning.
     """
     if parameters is None:
