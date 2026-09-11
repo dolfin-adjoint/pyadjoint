@@ -1,12 +1,14 @@
 """Provide the abstract reduced functional, and a vanilla implementation."""
+
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from .drivers import compute_derivative, compute_hessian, compute_tlm
 from .enlisting import Enlist
-from .tape import get_working_tape, stop_annotating, no_annotations
 from .overloaded_type import OverloadedType, create_overloaded_object
+from .tape import get_working_tape, no_annotations, stop_annotating
 from .adjfloat import AdjFloat
 from .control import Control
+import warnings
 
 
 class AbstractReducedFunctional(ABC):
@@ -36,9 +38,7 @@ class AbstractReducedFunctional(ABC):
         """Return the list of controls on which this functional depends."""
 
     @abstractmethod
-    def __call__(
-        self, values: OverloadedType | list[OverloadedType]
-    ) -> OverloadedType:
+    def __call__(self, values: OverloadedType | list[OverloadedType]) -> OverloadedType:
         """Compute the reduced functional with supplied control value.
 
         Args:
@@ -135,10 +135,11 @@ def _get_extract_derivative_components(derivative_components):
 
     Used when derivative components are required.
     """
+
     def extract_derivative_components(controls):
-        controls_out = Enlist([controls[i]
-                               for i in derivative_components])
+        controls_out = Enlist([controls[i] for i in derivative_components])
         return controls_out
+
     return extract_derivative_components
 
 
@@ -147,6 +148,7 @@ def _get_pack_derivative_components(controls, derivative_components):
 
     Used when derivative components are required.
     """
+
     def pack_derivative_components(checkpoint, derivatives, values):
         derivatives_out = []
         count = 0
@@ -156,10 +158,112 @@ def _get_pack_derivative_components(controls, derivative_components):
                 count += 1
             else:
                 zero_derivative = control._ad_copy()
-                zero_derivative *= 0.
+                zero_derivative *= 0.0
                 derivatives_out.append(zero_derivative)
         return derivatives_out
+
     return pack_derivative_components
+
+
+def _call_derivative_cb_pre(cb, controls, parameters=None):
+    """Call `derivative_cb_pre` with (controls, parameters) if parameters are passed, otherwise preserve backwards
+    compatibility and emit a deprecation warning.
+    """
+    if parameters is None:
+        return cb(controls)
+    try:
+        return cb(controls, parameters)
+    except TypeError:
+        warnings.warn(
+            message="derivative_cb_pre should accept (controls, parameters)."
+            "Falling back to deprecated signature (controls). ",
+            category=DeprecationWarning
+        )
+        return cb(controls)
+
+def _call_callback_pre(cb, vals, parameters=None, name=""):
+    """Call the provided callback with the given controls and parameters, emitting a deprecation warning if the signature is deprecated."""
+    if cb is None:
+        return vals
+    if parameters is None:
+        return cb(vals)
+    try:
+        return cb(vals, parameters)
+    except TypeError as err:
+        raise TypeError(
+            f"Callback {name} should accept (controls/values, parameters). "
+        ) from err
+
+def _call_derivative_cb_post(cb, checkpoint, derivatives, values, parameters=None):
+    """Call `derivative_cb_post` with (checkpoint, derivatives, values, parameters) when available, otherwise
+    preserve backwards compatibility and emit a deprecation warning.
+    """
+    if cb is None:
+        return derivatives
+    if parameters is None:
+        return cb(checkpoint, derivatives, values)
+
+    try:
+        return cb(checkpoint, derivatives, values, parameters)
+    except TypeError as err:
+        raise TypeError(
+            "derivative_cb_post should accept (checkpoint, derivatives, values, parameters)."
+            "Falling back to deprecated signature (checkpoint, derivatives, values).",
+        ) from err
+
+def _call_eval_cb_post(cb, func_value, values, parameters=None):
+    """Call `eval_cb_post` with (func_value, values, parameters) when available, otherwise
+    preserve backwards compatibility and emit a deprecation warning.
+    """
+    if cb is None:
+        return func_value
+    if parameters is None:
+        return cb(func_value, values)
+
+    try:
+        return cb(func_value, values, parameters)
+    except TypeError as err:
+        raise TypeError(
+            "eval_cb_post should accept (func_value, values, parameters)."
+            "Falling back to deprecated signature (func_value, values).",
+        ) from err
+
+def _call_hessian_cb_post(cb, checkpoint, hessian, values, parameters=None):
+    """Call `hessian_cb_post` with (checkpoint, hessian, values, parameters) when available, otherwise
+    preserve backwards compatibility and emit a deprecation warning.
+    """
+    if cb is None:
+        return hessian
+    if parameters is None:
+        return cb(checkpoint, hessian, values)
+
+    try:
+        return cb(checkpoint, hessian, values, parameters)
+    except TypeError as err:
+        raise TypeError(
+            "hessian_cb_post should accept (checkpoint, hessian, values, parameters)."
+            "Falling back to deprecated signature (checkpoint, hessian, values).",
+        ) from err
+
+def _call_tlm_cb_post(cb, checkpoint, tlm, values, parameters=None):
+    """Call `tlm_cb_post` with (checkpoint, tlm, values, parameters) when available, otherwise
+    preserve backwards compatibility and emit a deprecation warning.
+    """
+    if cb is None:
+        return tlm
+    if parameters is None:
+        return cb(checkpoint, tlm, values)
+
+    try:
+        return cb(checkpoint, tlm, values, parameters)
+    except TypeError as err:
+        raise TypeError(
+            "tlm_cb_post should accept (checkpoint, tlm, values, parameters)."
+            "Falling back to deprecated signature (checkpoint, tlm, values).",
+        ) from err
+
+
+
 
 
 class ReducedFunctional(AbstractReducedFunctional):
@@ -168,6 +272,16 @@ class ReducedFunctional(AbstractReducedFunctional):
     A reduced functional maps a control value to the provided functional.
     It may also be used to compute the derivative of the functional with
     respect to the control.
+    When the `parameters` argument is provided, it represents an object which encompasses computations of the form::
+
+        Jhat(m; p) = J(u(m; p), m; p)
+
+    Where `u` is the system state and `m` is a `pyadjoint.Control` or list of
+    `pyadjoint.Control`, `p` is a list of parameters, `J` is an overloaded type providing
+    the functional value, and `Jhat` is a reduced functional where the explicit dependence
+    on `u` has been eliminated. The parameters `p` can be updated between evaluations, after which evaluation of the
+    reduced functional is performed with the updated parameters, but they are not
+    included in the derivative calculations.
 
     Args:
         functional (:obj:`OverloadedType`): An instance of an OverloadedType,
@@ -179,7 +293,10 @@ class ReducedFunctional(AbstractReducedFunctional):
         derivative_components (tuple of int): The indices of the controls with
             respect to which to take the derivative. By default, the derivative
             is taken with respect to all controls. If present, it overwrites
-            derivative_cb_pre and derivative_cb_post.
+            derivative_cb_pre and derivative_cb_post. Will be deprecated in future in favour
+            of the parameters argument.
+        parameters (list): A list of parameters, which are updated, but not included in the derivative. Cannot be
+        specified at the same time as derivative_components.
         scale (float): A scaling factor applied to the functional and its
             gradient with respect to the control.
         tape (Tape): A tape object that the reduced functional will use to
@@ -207,24 +324,37 @@ class ReducedFunctional(AbstractReducedFunctional):
             Inputs are the functional, the tlm result, and controls.
     """
 
-    def __init__(self, functional, controls,
-                 derivative_components=None,
-                 scale=1.0, tape=None,
-                 eval_cb_pre=lambda *args: None,
-                 eval_cb_post=lambda *args: None,
-                 derivative_cb_pre=lambda controls: controls,
-                 derivative_cb_post=lambda checkpoint, derivative_components,
-                 controls: derivative_components,
-                 hessian_cb_pre=lambda *args: None,
-                 hessian_cb_post=lambda *args: None,
-                 tlm_cb_pre=lambda *args: None,
-                 tlm_cb_post=lambda *args: None):
+    def __init__(
+        self,
+        functional,
+        controls,
+        derivative_components=None,
+        parameters=None,
+        scale=1.0,
+        tape=None,
+        eval_cb_pre=lambda *args: None,
+        eval_cb_post=lambda *args: None,
+        derivative_cb_pre=lambda controls, parameters=None: controls,
+        derivative_cb_post=lambda checkpoint, derivative_components, controls, parameters=None: (
+            derivative_components
+        ),
+        hessian_cb_pre=lambda *args: None,
+        hessian_cb_post=lambda *args: None,
+        tlm_cb_pre=lambda *args: None,
+        tlm_cb_post=lambda *args: None,
+    ):
+        if derivative_components is not None and parameters is not None:
+            raise ValueError(
+                "Cannot specify both derivative_components and parameters. Please specify only one of these, or \
+                neither."
+            )
+        
         if not isinstance(functional, OverloadedType):
             raise TypeError("Functional must be an OverloadedType.")
+
         self.functional = functional
         self.tape = get_working_tape() if tape is None else tape
         self._controls = Enlist(controls)
-        self.derivative_components = derivative_components
         self.scale = scale
         self.eval_cb_pre = eval_cb_pre
         self.eval_cb_post = eval_cb_post
@@ -234,23 +364,77 @@ class ReducedFunctional(AbstractReducedFunctional):
         self.hessian_cb_post = hessian_cb_post
         self.tlm_cb_pre = tlm_cb_pre
         self.tlm_cb_post = tlm_cb_post
+        if parameters is None:
+            self._parameters = []
+        else:
+            self._parameters = Enlist(parameters)
 
-        if self.derivative_components:
+        if self._parameters:
+            self.n_opt = len(self._controls)
+            self._all_controls = self._controls + Enlist(
+                [Control(p) for p in self._parameters]
+            )
+            self._reduced_functional = ReducedFunctional(
+                functional=functional,
+                controls=self._all_controls,
+                scale=scale,
+                tape=tape,
+                eval_cb_pre=None,
+                eval_cb_post=None,
+                derivative_cb_pre=None,
+                derivative_cb_post=None,
+                hessian_cb_pre=None,
+                hessian_cb_post=None,
+                tlm_cb_pre=None,
+                tlm_cb_post=None,
+            )
+        elif derivative_components is not None:
+            self.derivative_components = derivative_components
             # pre callback
             self.derivative_cb_pre = _get_extract_derivative_components(
-                derivative_components)
+                derivative_components
+            )
             # post callback
             self.derivative_cb_post = _get_pack_derivative_components(
-                controls, derivative_components)
+                controls, derivative_components
+            )
+
+
 
     @property
     def controls(self) -> list[Control]:
         return self._controls
 
+    @property
+    def parameters(self) -> list[OverloadedType]:
+        return self._parameters
+
+
+    @no_annotations
+    def update_parameters(self, new_parameters):
+        if not self._parameters:
+            raise AttributeError("This ReducedFunctional does not have parameters.")
+        elif self._parameters and len(Enlist(new_parameters)) != len(
+            self._parameters
+        ):
+            raise ValueError(
+                """new_parameters should be a list of the same
+                length as parameters."""
+            )
+        self._parameters = Enlist(new_parameters)
+
     @no_annotations
     def derivative(self, adj_input=1.0, apply_riesz=False):
+        if self._parameters:
+            derivatives_all = self._reduced_functional.derivative(
+                adj_input=adj_input, apply_riesz=apply_riesz
+            )
+            return self.controls.delist(Enlist(derivatives_all)[: self.n_opt])
+        
         values = [c.tape_value() for c in self.controls]
-        controls = self.derivative_cb_pre(self.controls)
+        controls = _call_callback_pre(
+            self.derivative_cb_pre, self.controls, self._parameters if self._parameters else None, name="derivative_cb_pre"
+        )
 
         if not controls:
             raise ValueError("""Note that the callback interface
@@ -261,17 +445,22 @@ class ReducedFunctional(AbstractReducedFunctional):
         adj_input = create_overloaded_object(adj_input)
         adj_value = adj_input._ad_mul(self.scale)
 
-        derivatives = compute_derivative(self.functional,
-                                         controls,
-                                         tape=self.tape,
-                                         adj_value=adj_value,
-                                         apply_riesz=apply_riesz)
+        derivatives = compute_derivative(
+            self.functional,
+            controls,
+            tape=self.tape,
+            adj_value=adj_value,
+            apply_riesz=apply_riesz,
+        )
 
         # Call callback
-        derivatives = self.derivative_cb_post(
+        derivatives = _call_derivative_cb_post(
+            self.derivative_cb_post,
             self.functional.block_variable.checkpoint,
             derivatives,
-            values)
+            values,
+            self._parameters if self._parameters else None,
+        )
 
         if not derivatives:
             raise ValueError("""Note that the callback interface
@@ -280,43 +469,82 @@ class ReducedFunctional(AbstractReducedFunctional):
 
         return self.controls.delist(derivatives)
 
+
     @no_annotations
     def hessian(self, m_dot, hessian_input=None, evaluate_tlm=True, apply_riesz=False):
-        # Call callback
+        if self._parameters:
+            # self._reduced_functional.hessian will expect len(m_dot) = len(self._all_controls), so pad it with zeros.
+            m_dot_all = Enlist(m_dot) + [p._ad_init_zero() for p in self._parameters]
+            hessian_all = self._reduced_functional.hessian(
+                m_dot_all,
+                hessian_input=hessian_input,
+                evaluate_tlm=evaluate_tlm,
+                apply_riesz=apply_riesz,
+            )
+            # Return only the hessian components corresponding to optimization controls.
+            return self.controls.delist(Enlist(hessian_all)[: self.n_opt])
+        
         values = [c.tape_value() for c in self.controls]
-        self.hessian_cb_pre(self.controls.delist(values))
+        # Call callback
+        _call_callback_pre(
+            self.hessian_cb_pre, self.controls.delist(values), self._parameters if self._parameters else None, name="hessian_cb_pre"
+        )
 
-        r = compute_hessian(self.functional, self.controls, m_dot,
-                            hessian_input=hessian_input, tape=self.tape,
-                            evaluate_tlm=evaluate_tlm, apply_riesz=apply_riesz)
+        r = compute_hessian(
+            self.functional,
+            self.controls,
+            m_dot,
+            hessian_input=hessian_input,
+            tape=self.tape,
+            evaluate_tlm=evaluate_tlm,
+            apply_riesz=apply_riesz,
+        )
 
         # Call callback
-        self.hessian_cb_post(self.functional.block_variable.checkpoint,
-                             self.controls.delist(r),
-                             self.controls.delist(values))
+        _call_hessian_cb_post(
+            self.hessian_cb_post,
+            self.functional.block_variable.checkpoint,
+            self.controls.delist(r),
+            self.controls.delist(values),
+            self._parameters if self._parameters else None,
+        )
 
         return self.controls.delist(r)
 
     @no_annotations
     def tlm(self, m_dot):
+        if self._parameters:
+            # self._reduced_functional.tlm will expect len(m_dot) = len(self._all_controls), so we pad it with zeros.
+            m_dot_all = Enlist(m_dot) + [p._ad_init_zero() for p in self._parameters]
+            tlm_all = self._reduced_functional.tlm(m_dot_all)
+            return tlm_all
+        
         # Call callback
         values = [c.tape_value() for c in self.controls]
-        self.tlm_cb_pre(self.controls.delist(values))
+        _call_callback_pre(
+            self.tlm_cb_pre, self.controls.delist(values), self._parameters if self._parameters else None, name="tlm_cb_pre"
+        )
 
         tlm = compute_tlm(self.functional, self.controls, m_dot, tape=self.tape)
 
         # Call callback
-        self.tlm_cb_post(self.functional.block_variable.checkpoint,
-                         tlm, self.controls.delist(values))
+        _call_tlm_cb_post(
+            self.tlm_cb_post,
+            self.functional.block_variable.checkpoint,
+            tlm,
+            self.controls.delist(values),
+            self._parameters if self._parameters else None,
+        )
 
         return tlm
+
 
     @no_annotations
     def __call__(self, values):
         values = Enlist(values)
-        if len(values) != len(self.controls):
+        if len(values) != len(self._controls):
             raise ValueError(
-                "values should be a list of same length as controls."
+                f"values should be a list of same length as controls, which is {len(self._controls)}."
             )
 
         for i, value in enumerate(values):
@@ -334,8 +562,14 @@ class ReducedFunctional(AbstractReducedFunctional):
                         f"The control at index {i} must be an `OverloadedType` object "
                         f"with the same type as the control, which is {control_type}"
                     )
+        if self._parameters:
+            full_values = values + self._parameters
+            return self._reduced_functional(full_values)
+        
         # Call callback.
-        self.eval_cb_pre(self.controls.delist(values))
+        _call_callback_pre(
+            self.eval_cb_pre, self.controls.delist(values), self._parameters if self._parameters else None, name="eval_cb_pre"
+        )
 
         for i, value in enumerate(values):
             self.controls[i].update(value)
@@ -359,15 +593,14 @@ class ReducedFunctional(AbstractReducedFunctional):
         func_value *= self.scale
 
         # Call callback
-        self.eval_cb_post(func_value, self.controls.delist(values))
+        _call_eval_cb_post(
+            self.eval_cb_post, func_value, self.controls.delist(values), self._parameters if self._parameters else None)
 
         return func_value
+   
 
     def optimize_tape(self):
-        self.tape.optimize(
-            controls=self.controls,
-            functionals=[self.functional]
-        )
+        self.tape.optimize(controls=self.controls, functionals=[self.functional])
 
     @contextmanager
     def marked_controls(self):
