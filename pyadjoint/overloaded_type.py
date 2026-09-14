@@ -258,7 +258,7 @@ class OverloadedType(object):
         This method should be overridden if the default behaviour is not compatible with this OverloadedType.
 
         Args:
-            other (object): The object to multiply `self` with.
+            other (object): The object to add to `self`.
                 Should at the very least accept objects of the same type as `self`.
 
         Returns:

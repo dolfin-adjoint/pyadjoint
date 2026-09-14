@@ -2,9 +2,7 @@ from .tape import no_annotations, get_working_tape
 
 
 class BlockVariable(object):
-    """References a block output variable.
-
-    """
+    """References a block output variable."""
 
     def __init__(self, output):
         self.output = output
@@ -26,19 +24,19 @@ class BlockVariable(object):
         if self.adj_value is None:
             self.adj_value = val
         else:
-            self.adj_value += val
+            self.adj_value._ad_iadd(val)
 
     def add_tlm_output(self, val):
         if self.tlm_value is None:
             self.tlm_value = val
         else:
-            self.tlm_value += val
+            self.tlm_value._ad_iadd(val)
 
     def add_hessian_output(self, val):
         if self.hessian_value is None:
             self.hessian_value = val
         else:
-            self.hessian_value += val
+            self.hessian_value._ad_iadd(val)
 
     def reset_variables(self, types):
         if "adjoint" in types:
