@@ -88,6 +88,10 @@ class MergedConstraints(Constraint):
         [c.jacobian_action(m, dm, result[i]) for (i, c) in enumerate(self.constraints)]
 
     def jacobian_adjoint_action(self, m, dp, result):
+        # `result` is an out-parameter owned by the caller, so `_ad_imul` and
+        # `_ad_iadd` must genuinely mutate it -- there is no name here to rebind
+        # that the caller would see. This restricts the constraint workspace to
+        # mutable types; an immutable one (AdjFloat) silently stays zero.
         result._ad_imul(0.0)
         tmp = copy.deepcopy(result)
 

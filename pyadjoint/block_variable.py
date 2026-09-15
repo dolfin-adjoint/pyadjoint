@@ -1,3 +1,5 @@
+import operator
+
 from .tape import no_annotations, get_working_tape
 
 
@@ -10,12 +12,21 @@ def _accumulate(current, val):
     `float`, so this is the common case, not a corner one. Mutable types return
     `self`, for which the rebinding is a no-op.
 
-    A block is not obliged to return an `OverloadedType` -- `AdjFloatExprBlock`
-    yields a plain `float` whenever the local derivative is a constant -- so
-    values without `_ad_iadd` fall back to `+`.
+    `_ad_iadd` returning `None` is taken to mean "mutated in place, keep what
+    you had". Overrides written against the pre-2026 contract, which documented
+    `Returns: None`, would otherwise wipe the accumulated value and silently
+    drop every contribution so far.
+
+    A block is not obliged to return an `OverloadedType` at all --
+    ``numpy_adjoint.array`` returns a bare ``ndarray`` -- so values without
+    `_ad_iadd` fall back to ``+=``, which stays in place for types that
+    implement it and rebinds for those that do not.
     """
     iadd = getattr(current, "_ad_iadd", None)
-    return current + val if iadd is None else iadd(val)
+    if iadd is None:
+        return operator.iadd(current, val)
+    accumulated = iadd(val)
+    return current if accumulated is None else accumulated
 
 
 class BlockVariable(object):
