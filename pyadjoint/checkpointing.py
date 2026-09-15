@@ -361,7 +361,19 @@ class CheckpointManager:
 
                 # Handle the case for SingleMemoryStorageSchedule
                 if isinstance(self._schedule, SingleMemoryStorageSchedule):
-                    if step > 1 and var not in self.tape.timesteps[step - 1].adjoint_dependencies:
+                    # `var` is used by a block in this step, so the adjoint of
+                    # this step may still need it as a linearisation point.
+                    # Only clear once the adjoint dependencies have been
+                    # revised by a reverse pass and `var` is provably not one
+                    # of them; before that, keeping every dependency in memory
+                    # is exactly what this schedule promises. The trade-off is
+                    # that a forward-only recomputation retains the conservative
+                    # dependency set and so holds taping-time memory; the more
+                    # precise clearing only takes effect after the first reverse.
+                    if (
+                        current_step._revised_adj_deps
+                        and var not in current_step.adjoint_dependencies
+                    ):
                         var.checkpoint = None
                     continue
 
