@@ -266,6 +266,7 @@ class OverloadedType(object):
 
         """
         self += other
+        return self
 
     def _ad_dot(self, other):
         """This method must be overridden.
@@ -460,7 +461,9 @@ class FloatingType(OverloadedType):
             return
 
         tape = get_working_tape()
-        block = self.output_block_class(self, *self._ad_output_args, **self._ad_output_kwargs)
+        block = self.output_block_class(
+            self, *self._ad_output_args, **self._ad_output_kwargs
+        )
         self.output_block = block
         tape.add_block(block)
         for output in self._ad_outputs:

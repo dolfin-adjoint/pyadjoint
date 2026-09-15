@@ -103,7 +103,11 @@ class AdjFloatExprBlock(Block):
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         adj_input, = adj_inputs
-        return self._operator.codegen(diff=(idx,))(*inputs) * adj_input
+        # Wrap the result: the seed is a plain float, and the local derivative is only an
+        # AdjFloat when codegen happens to return a checkpointed input. For a constant
+        # derivative (`+`, `-`, any linear operator) codegen yields a bare int, so nothing
+        # in the product is overloaded and the caller gets a value with no `_ad_iadd`.
+        return AdjFloat(self._operator.codegen(diff=(idx,))(*inputs) * adj_input)
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):
         if idx != 0:
@@ -112,7 +116,7 @@ class AdjFloatExprBlock(Block):
         for idx1 in range(self._operator.nargs):
             if tlm_inputs[idx1] is not None:
                 val += self._operator.codegen(diff=(idx1,))(*inputs) * tlm_inputs[idx1]
-        return val
+        return AdjFloat(val)
 
     def evaluate_hessian_component(self, inputs, hessian_inputs, adj_inputs, block_variable, idx,
                                    relevant_dependencies, prepared=None):
@@ -123,7 +127,7 @@ class AdjFloatExprBlock(Block):
             tlm_input = dep.tlm_value
             if tlm_input is not None:
                 val += self._operator.codegen(diff=(idx, idx1))(*inputs) * adj_input * tlm_input
-        return val
+        return AdjFloat(val)
 
     def recompute_component(self, inputs, block_variable, idx, prepared):
         if idx != 0:
