@@ -1,4 +1,5 @@
 from .optimization_solver import OptimizationSolver
+from ..block_variable import _accumulate
 from ..enlisting import Enlist
 from ..overloaded_type import OverloadedType
 from ..tape import no_annotations
@@ -67,12 +68,17 @@ try:
             self.inner_product = inner_product
 
         def plus(self, yy):
-            for (x, y) in zip(self.dat, yy.dat):
-                x._ad_iadd(y)
+            # Rebind rather than relying on in-place mutation: an immutable
+            # control type (AdjFloat) cannot accumulate in place, so its
+            # _ad_iadd returns a new object and dropping it would make this a
+            # silent no-op, stalling the line search at the initial point.
+            for (i, (x, y)) in enumerate(zip(self.dat, yy.dat)):
+                self.dat[i] = _accumulate(x, y)
 
         def scale(self, alpha):
-            for x in self.dat:
-                x._ad_imul(alpha)
+            for (i, x) in enumerate(self.dat):
+                scaled = x._ad_imul(alpha)
+                self.dat[i] = x if scaled is None else scaled
 
         def riesz_map(self, derivs):
             dat = []

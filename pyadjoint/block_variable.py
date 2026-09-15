@@ -1,10 +1,36 @@
+import operator
+
 from .tape import no_annotations, get_working_tape
 
 
-class BlockVariable(object):
-    """References a block output variable.
+def _accumulate(current, val):
+    """Add `val` into `current` and return the accumulated value.
 
+    The caller must rebind to the return value rather than relying on
+    `_ad_iadd` to mutate in place: an immutable value type cannot accumulate in
+    place, so its `_ad_iadd` returns a new object. `AdjFloat` subclasses
+    `float`, so this is the common case, not a corner one. Mutable types return
+    `self`, for which the rebinding is a no-op.
+
+    `_ad_iadd` returning `None` is taken to mean "mutated in place, keep what
+    you had". Overrides written against the pre-2026 contract, which documented
+    `Returns: None`, would otherwise wipe the accumulated value and silently
+    drop every contribution so far.
+
+    A block is not obliged to return an `OverloadedType` at all --
+    ``numpy_adjoint.array`` returns a bare ``ndarray`` -- so values without
+    `_ad_iadd` fall back to ``+=``, which stays in place for types that
+    implement it and rebinds for those that do not.
     """
+    iadd = getattr(current, "_ad_iadd", None)
+    if iadd is None:
+        return operator.iadd(current, val)
+    accumulated = iadd(val)
+    return current if accumulated is None else accumulated
+
+
+class BlockVariable(object):
+    """References a block output variable."""
 
     def __init__(self, output):
         self.output = output
@@ -26,19 +52,19 @@ class BlockVariable(object):
         if self.adj_value is None:
             self.adj_value = val
         else:
-            self.adj_value += val
+            self.adj_value = _accumulate(self.adj_value, val)
 
     def add_tlm_output(self, val):
         if self.tlm_value is None:
             self.tlm_value = val
         else:
-            self.tlm_value += val
+            self.tlm_value = _accumulate(self.tlm_value, val)
 
     def add_hessian_output(self, val):
         if self.hessian_value is None:
             self.hessian_value = val
         else:
-            self.hessian_value += val
+            self.hessian_value = _accumulate(self.hessian_value, val)
 
     def reset_variables(self, types):
         if "adjoint" in types:
