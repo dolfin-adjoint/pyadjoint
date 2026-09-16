@@ -1,6 +1,6 @@
 import weakref
 from .block_variable import BlockVariable
-from .tape import get_working_tape, no_annotations
+from .tape import get_working_tape
 
 _overloaded_types = {}
 
@@ -219,24 +219,21 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
-    @no_annotations
     def _ad_imul(self, other):
-        """In-place multiplies `self` with `other`.
+        """Multiply `self` by `other`, returning the result.
 
-        This method should be overridden if the default behaviour is not compatible with this OverloadedType.
-
-        An immutable type cannot multiply in place, so the product is returned
-        rather than assigned to `self`, and callers must rebind to the return
-        value. Mutable overrides should mutate and `return self`.
+        Override this if the default behaviour is not compatible with this
+        OverloadedType. Types that can multiply in place should do so and
+        return `self`; immutable types return a new object. Callers must use
+        the return value. Returning `None` means "multiplied in place", and is
+        accepted for backwards compatibility.
 
         Args:
             other (object): The object to multiply `self` with.
                 Should at the very least accept `float` objects.
 
         Returns:
-            :obj:`OverloadedType`: `self` scaled by `other`. An override may
-                return `None` to mean "mutated in place"; callers treat that as
-                leaving the value unchanged.
+            :obj:`OverloadedType`: `self` scaled by `other`.
 
         """
         self *= other
@@ -260,25 +257,21 @@ class OverloadedType(object):
         """
         raise NotImplementedError
 
-    @no_annotations
     def _ad_iadd(self, other):
-        """In-place adds `other` to `self`.
+        """Add `other` to `self`, returning the result.
 
-        This method should be overridden if the default behaviour is not compatible with this OverloadedType.
-
-        An immutable type cannot accumulate in place -- `AdjFloat` subclasses
-        `float` -- so the sum is returned rather than assigned to `self`, and
-        callers must rebind to the return value. Mutable overrides should
-        mutate and `return self`, for which the rebinding is a no-op.
+        Override this if the default behaviour is not compatible with this
+        OverloadedType. Types that can add in place should do so and return
+        `self`; immutable types, such as `AdjFloat`, return a new object.
+        Callers must use the return value. Returning `None` means "added in
+        place", and is accepted for backwards compatibility.
 
         Args:
             other (object): The object to add to `self`.
                 Should at the very least accept objects of the same type as `self`.
 
         Returns:
-            :obj:`OverloadedType`: The accumulated value. An override may return
-                `None` to mean "mutated in place"; callers treat that as leaving
-                the value unchanged.
+            :obj:`OverloadedType`: The sum.
 
         """
         self += other

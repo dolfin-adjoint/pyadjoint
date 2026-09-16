@@ -103,12 +103,10 @@ class AdjFloatExprBlock(Block):
 
     def evaluate_adj_component(self, inputs, adj_inputs, block_variable, idx, prepared=None):
         adj_input, = adj_inputs
-        # Wrap so the adjoint value is always an OverloadedType. On the
-        # `compute_derivative` path the seed is a plain float (only
-        # `ReducedFunctional.derivative` runs it through
-        # `create_overloaded_object` first), and for a constant local derivative
-        # -- `+`, `-`, any linear operator -- codegen yields a bare int, so
-        # neither factor is overloaded and the product would be a plain float.
+        # Neither factor is necessarily an AdjFloat: `adj_input` can be the
+        # plain 1.0 that `compute_derivative` starts the sweep with, and the
+        # SymPy-lambdified derivative is an integer when it is constant. Wrap
+        # so `adj_value` accumulates via `_ad_iadd`.
         return AdjFloat(self._operator.codegen(diff=(idx,))(*inputs) * adj_input)
 
     def evaluate_tlm_component(self, inputs, tlm_inputs, block_variable, idx, prepared=None):

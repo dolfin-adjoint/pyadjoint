@@ -200,10 +200,10 @@ def test_repeated_dependency_accumulates(build, derivative, second_derivative):
 
 
 def test_accumulation_does_not_extend_the_tape():
-    """`_ad_iadd` runs during the reverse sweep and must not annotate.
+    """The reverse sweep runs under `stop_annotating`.
 
-    `AdjFloat.__add__` is annotated, so an unguarded `self += other` would add
-    a block per accumulation and corrupt any later recompute.
+    `AdjFloat.__add__` is annotated, so accumulating outside that guard would
+    add a block per contribution and corrupt any later recompute.
     """
     tape = get_working_tape()
     a = AdjFloat(2.0)
