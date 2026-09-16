@@ -75,6 +75,17 @@ numpify = lambda x: numpy.array(x) if isinstance(x, list) else x
 
 
 class MergedConstraints(Constraint):
+    """Wraps a list of constraints as a single :class:`Constraint`.
+
+    Constraint values, Jacobians and output workspaces are returned as lists
+    with one entry per merged constraint. The Jacobian adjoint and Hessian
+    actions instead sum the contributions of every constraint into the single
+    `result` argument.
+
+    Args:
+        constraints (list): The constraints to merge.
+    """
+
     def __init__(self, constraints):
         self.constraints = constraints
 
@@ -88,10 +99,14 @@ class MergedConstraints(Constraint):
         [c.jacobian_action(m, dm, result[i]) for (i, c) in enumerate(self.constraints)]
 
     def jacobian_adjoint_action(self, m, dp, result):
-        # `result` is an out-parameter owned by the caller, so `_ad_imul` and
-        # `_ad_iadd` must genuinely mutate it -- there is no name here to rebind
-        # that the caller would see. This restricts the constraint workspace to
-        # mutable types; an immutable one (AdjFloat) silently stays zero.
+        """Compute the Jacobian adjoint action of c(m) in direction dp.
+
+        Args:
+            m: The parameter value.
+            dp: The direction, with one entry per merged constraint.
+            result: Output argument, updated in place via `_ad_imul` and
+                `_ad_iadd`, and so must be of a mutable type.
+        """
         result._ad_imul(0.0)
         tmp = copy.deepcopy(result)
 
@@ -100,6 +115,16 @@ class MergedConstraints(Constraint):
             result._ad_iadd(tmp)
 
     def hessian_action(self, m, dm, dp, result):
+        """Compute the Hessian action of c(m) in directions dm and dp.
+
+        Args:
+            m: The parameter value.
+            dm: The direction in the parameter space.
+            dp: The direction in the constraint space, one entry per merged
+                constraint.
+            result: Output argument, updated in place via `_ad_imul` and
+                `_ad_iadd`, and so must be of a mutable type.
+        """
         result._ad_imul(0.0)
         tmp = copy.deepcopy(result)
 
