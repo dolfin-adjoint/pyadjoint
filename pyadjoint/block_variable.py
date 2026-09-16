@@ -4,23 +4,19 @@ from .tape import no_annotations, get_working_tape
 
 
 def _accumulate(current, val):
-    """Add `val` into `current` and return the accumulated value.
+    """Add `val` to `current` and return the sum.
 
-    The caller must rebind to the return value rather than relying on
-    `_ad_iadd` to mutate in place: an immutable value type cannot accumulate in
-    place, so its `_ad_iadd` returns a new object. `AdjFloat` subclasses
-    `float`, so this is the common case, not a corner one. Mutable types return
-    `self`, for which the rebinding is a no-op.
+    `_ad_iadd` can't always add in place; an immutable type such as `AdjFloat`
+    returns a new object, while a mutable one returns `self`. A `None` return
+    means the value was added in place. Values with no `_ad_iadd`, such as the
+    bare `ndarray` returned by `numpy_adjoint`, use `+=`.
 
-    `_ad_iadd` returning `None` is taken to mean "mutated in place, keep what
-    you had". Overrides written against the pre-2026 contract, which documented
-    `Returns: None`, would otherwise wipe the accumulated value and silently
-    drop every contribution so far.
+    Args:
+        current: The value accumulated so far.
+        val: The contribution to add.
 
-    A block is not obliged to return an `OverloadedType` at all --
-    ``numpy_adjoint.array`` returns a bare ``ndarray`` -- so values without
-    `_ad_iadd` fall back to ``+=``, which stays in place for types that
-    implement it and rebinds for those that do not.
+    Returns:
+        The new accumulated value.
     """
     iadd = getattr(current, "_ad_iadd", None)
     if iadd is None:
