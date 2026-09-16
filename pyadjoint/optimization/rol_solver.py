@@ -67,14 +67,12 @@ try:
             self.dat = dat
             self.inner_product = inner_product
 
+        @no_annotations
         def plus(self, yy):
-            # Rebind rather than relying on in-place mutation: an immutable
-            # control type (AdjFloat) cannot accumulate in place, so its
-            # _ad_iadd returns a new object and dropping it would make this a
-            # silent no-op, stalling the line search at the initial point.
             for (i, (x, y)) in enumerate(zip(self.dat, yy.dat)):
                 self.dat[i] = _accumulate(x, y)
 
+        @no_annotations
         def scale(self, alpha):
             for (i, x) in enumerate(self.dat):
                 scaled = x._ad_imul(alpha)
