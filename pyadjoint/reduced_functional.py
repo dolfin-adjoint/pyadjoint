@@ -1,11 +1,10 @@
 """Provide the abstract reduced functional, and a vanilla implementation."""
-
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from .drivers import compute_derivative, compute_hessian, compute_tlm
 from .enlisting import Enlist
+from .tape import get_working_tape, stop_annotating, no_annotations
 from .overloaded_type import OverloadedType, create_overloaded_object
-from .tape import get_working_tape, no_annotations, stop_annotating
 from .adjfloat import AdjFloat
 from .control import Control
 import warnings
@@ -38,7 +37,9 @@ class AbstractReducedFunctional(ABC):
         """Return the list of controls on which this functional depends."""
 
     @abstractmethod
-    def __call__(self, values: OverloadedType | list[OverloadedType]) -> OverloadedType:
+    def __call__(
+        self, values: OverloadedType | list[OverloadedType]
+    ) -> OverloadedType:
         """Compute the reduced functional with supplied control value.
 
         Args:
@@ -135,11 +136,10 @@ def _get_extract_derivative_components(derivative_components):
 
     Used when derivative components are required.
     """
-
     def extract_derivative_components(controls):
-        controls_out = Enlist([controls[i] for i in derivative_components])
+        controls_out = Enlist([controls[i]
+                               for i in derivative_components])
         return controls_out
-
     return extract_derivative_components
 
 
@@ -148,7 +148,6 @@ def _get_pack_derivative_components(controls, derivative_components):
 
     Used when derivative components are required.
     """
-
     def pack_derivative_components(checkpoint, derivatives, values):
         derivatives_out = []
         count = 0
@@ -158,10 +157,9 @@ def _get_pack_derivative_components(controls, derivative_components):
                 count += 1
             else:
                 zero_derivative = control._ad_copy()
-                zero_derivative *= 0.0
+                zero_derivative *= 0.
                 derivatives_out.append(zero_derivative)
         return derivatives_out
-
     return pack_derivative_components
 
 
