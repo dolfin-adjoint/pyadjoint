@@ -221,7 +221,7 @@ def minimize(rf, method='L-BFGS-B', scale=1.0, **kwargs):
     rf.scale = scale
     if isinstance(rf, ReducedFunctionalNumPy):
         rf_np = rf
-    elif isinstance(rf, ReducedFunctional):
+    elif isinstance(rf, (ReducedFunctional)):
         rf_np = ReducedFunctionalNumPy(rf)
     else:
         # Assume the user knows what he is doing - he might for example written
