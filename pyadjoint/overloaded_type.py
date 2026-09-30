@@ -220,19 +220,24 @@ class OverloadedType(object):
         raise NotImplementedError
 
     def _ad_imul(self, other):
-        """In-place multiplies `self` with `other`.
+        """Multiply `self` by `other`, returning the result.
 
-        This method should be overridden if the default behaviour is not compatible with this OverloadedType.
+        Override this if the default behaviour is not compatible with this
+        OverloadedType. Types that can multiply in place should do so and
+        return `self`; immutable types return a new object. Callers must use
+        the return value. Returning `None` means "multiplied in place", and is
+        accepted for backwards compatibility.
 
         Args:
             other (object): The object to multiply `self` with.
                 Should at the very least accept `float` objects.
 
         Returns:
-            None
+            :obj:`OverloadedType`: `self` scaled by `other`.
 
         """
         self *= other
+        return self
 
     def _ad_add(self, other):
         """This method must be overridden.
@@ -253,19 +258,24 @@ class OverloadedType(object):
         raise NotImplementedError
 
     def _ad_iadd(self, other):
-        """In-place adds `other` to `self`.
+        """Add `other` to `self`, returning the result.
 
-        This method should be overridden if the default behaviour is not compatible with this OverloadedType.
+        Override this if the default behaviour is not compatible with this
+        OverloadedType. Types that can add in place should do so and return
+        `self`; immutable types, such as `AdjFloat`, return a new object.
+        Callers must use the return value. Returning `None` means "added in
+        place", and is accepted for backwards compatibility.
 
         Args:
-            other (object): The object to multiply `self` with.
+            other (object): The object to add to `self`.
                 Should at the very least accept objects of the same type as `self`.
 
         Returns:
-            None
+            :obj:`OverloadedType`: The sum.
 
         """
         self += other
+        return self
 
     def _ad_dot(self, other):
         """This method must be overridden.
