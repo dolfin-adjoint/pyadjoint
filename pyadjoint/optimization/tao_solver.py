@@ -1,5 +1,6 @@
 from enum import Enum
 from numbers import Complex
+from functools import cached_property
 
 import numpy as np
 
@@ -8,19 +9,26 @@ from ..overloaded_type import OverloadedType
 from .optimization_problem import MinimizationProblem
 from .optimization_solver import OptimizationSolver
 
+try:
+    from petsctools import PCBase
+except ImportError:
+    class PCBase:
+        """Fallback base class used when petsctools is not installed.
 
-try:
-    import petsc4py.PETSc as PETSc
-except ModuleNotFoundError:
-    PETSc = None
-try:
-    import petsctools
-except ModuleNotFoundError:
-    petsctools = None
+        Keeps RieszMapPC importable (e.g. for documentation) when
+        petsctools is unavailable. The preconditioner cannot be used
+        without it, so instantiating it raises a clear error.
+        """
+        def __init__(self, *args, **kwargs):
+            raise ImportError(
+                "RieszMapPC requires petsctools, which is not installed"
+            )
+
 
 __all__ = [
     "TAOConvergenceError",
-    "TAOSolver"
+    "TAOSolver",
+    "RieszMapPC"
 ]
 
 
@@ -37,10 +45,7 @@ class PETScVecInterface:
     """
 
     def __init__(self, x, *, comm=None):
-        if PETSc is None:
-            raise RuntimeError("PETSc not available")
-        if petsctools is None:
-            raise RuntimeError("petsctools not available")
+        from petsc4py import PETSc
 
         x = Enlist(x)
         comm = valid_comm(comm)
@@ -80,6 +85,7 @@ class PETScVecInterface:
         Returns:
             petsc4py.PETSc.Vec: The new :class:`petsc4py.PETSc.Vec`.
         """
+        from petsc4py import PETSc
 
         vec = PETSc.Vec().create(comm=self.comm)
         vec.setSizes((self.n, self.N))
@@ -152,6 +158,7 @@ def valid_comm(comm):
         petsc4py.PETSc.COMM_WORLD if `comm is None`, otherwise `comm.tompi4py()`.
     """
     if comm is None:
+        from petsc4py import PETSc
         comm = PETSc.COMM_WORLD
     if hasattr(comm, "tompi4py"):
         comm = comm.tompi4py()
@@ -355,7 +362,7 @@ class ReducedFunctionalAdjointMat(ReducedFunctionalMatBase):
 
         self.xinterface = self.functional_interface
         self.yinterface = self.control_interface
-        self.x = rf.functional._ad_copy()
+        self.x = rf.functional._ad_init_zero(dual=True)
 
     @classmethod
     def update_adjoint(self):
@@ -435,6 +442,7 @@ def ReducedFunctionalMat(rf, action=RFOperation.HESSIAN, *, apply_riesz=False, a
             be reevaluated at every call to `mult`.
         comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
     """
+    from petsc4py import PETSc
     if action == RFOperation.HESSIAN:
         ctx = ReducedFunctionalHessianMat(
             rf, appctx=appctx, apply_riesz=apply_riesz,
@@ -511,6 +519,7 @@ def RieszMapMat(controls, symmetric=True, comm=None):
         symmetric (bool): Whether the Riesz map attached to the Control is symmetric.
         comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the controls are defined over.
     """
+    from petsc4py import PETSc
     ctx = RieszMapMatCtx(controls, comm=comm)
 
     n = ctx.vec_interface.n
@@ -623,16 +632,6 @@ class TAOConvergenceError(Exception):
     """
 
 
-if PETSc is None:
-    _tao_reasons = {}
-else:
-    # Same approach as in _make_reasons in firedrake/solving_utils.py,
-    # Firedrake master branch 57e21cc8ebdb044c1d8423b48f3dbf70975d5548
-    _tao_reasons = {getattr(PETSc.TAO.Reason, key): key
-                    for key in dir(PETSc.TAO.Reason)
-                    if not key.startswith("_")}
-
-
 class TAOSolver(OptimizationSolver):
     """Use TAO to solve an optimization problem.
 
@@ -648,10 +647,8 @@ class TAOSolver(OptimizationSolver):
     def __init__(self, problem, parameters, *,
                  options_prefix=None, appctx=None,
                  Pmat=None, comm=None):
-        if PETSc is None:
-            raise RuntimeError("PETSc not available")
-        if petsctools is None:
-            raise RuntimeError("petsctools not available")
+        from petsc4py import PETSc
+        import petsctools
 
         if not isinstance(problem, MinimizationProblem):
             raise TypeError("MinimizationProblem required")
@@ -795,12 +792,24 @@ class TAOSolver(OptimizationSolver):
 
         return self._x
 
+    @cached_property
+    def _tao_reasons(self):
+        """Dictionary of TAO convergence reason int codes -> python objects
+        """
+        from petsc4py import PETSc
+        # Same approach as in _make_reasons in firedrake/solving_utils.py,
+        # Firedrake master branch 57e21cc8ebdb044c1d8423b48f3dbf70975d5548
+        return {getattr(PETSc.TAO.Reason, key): key
+                for key in dir(PETSc.TAO.Reason)
+                if not key.startswith("_")}
+
     def solve(self):
         """Solve the optimization problem.
 
         Returns:
             OverloadedType or Sequence[OverloadedType]: The solution.
         """
+        import petsctools
 
         controls = self.tao_objective.reduced_functional.controls
         m = tuple(control.tape_value()._ad_copy() for control in controls)
@@ -814,8 +823,58 @@ class TAOSolver(OptimizationSolver):
             # Using the same format as Firedrake linear solver errors
             raise TAOConvergenceError(
                 f"TAOSolver failed to converge after {self.tao.getIterationNumber()} iterations "
-                f"with reason: {_tao_reasons[self.tao.getConvergedReason()]}")
+                f"with reason: {self._tao_reasons[self.tao.getConvergedReason()]}")
         if isinstance(controls, Enlist):
             return controls.delist(m)
         else:
             return m
+
+
+class RieszMapPC(PCBase):
+    """
+    PETSc.PC Python context to apply the Riesz map as a preconditioner for the
+    reduced Hessian solve of TAO/NLS.
+
+    If V is the control space, the preconditioner has the map:
+    RieszMap : V* -> V
+
+    The Riesz map is read from the `riesz_map` attribute of each Control. The
+    preconditioning matrix must be a PETSc.Mat whose python context is a
+    ReducedFunctionalHessianMat.
+    """
+    needs_python_pmat = True
+    prefix = "riesz"
+
+    def initialize(self, pc):
+        if not isinstance(self.pmat, ReducedFunctionalHessianMat):
+            raise TypeError(
+                "RieszMapPC needs a ReducedFunctionalHessianMat")
+
+        self.controls = self.pmat.rf.controls
+        self.vec_interface = self.pmat.control_interface
+        self.dJ = tuple(c._ad_init_zero(dual=True)
+                        for c in self.controls)
+
+    def apply(self, pc, x, y):
+        self.vec_interface.from_petsc(x, self.dJ)
+        gradJ = tuple(c._ad_convert_riesz(dJi, riesz_map=c.riesz_map)
+                      for c, dJi in zip(self.controls, self.dJ))
+        self.vec_interface.to_petsc(y, gradJ)
+
+    def update(self, pc):
+        pass
+
+    def view(self, pc, viewer=None):
+        """View object. Method usually called by PETSc with e.g. -tao_view.
+        """
+        from petsc4py import PETSc
+        if viewer is None:
+            return
+        if viewer.getType() != PETSc.Viewer.Type.ASCII:
+            return
+
+        viewer.pushASCIITab()
+        viewer.printfASCII(f"Riesz map preconditioner: {type(self).__name__}\n")
+        for control in self.controls:
+            viewer.printfASCII(f"applying the {control.riesz_map} Riesz map\n")
+        viewer.popASCIITab()

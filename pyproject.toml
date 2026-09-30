@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyadjoint-ad"
-version = "2025.10.1"
+version = "2026.10.0.dev0"
 dependencies = [
   "checkpoint_schedules",
   "scipy>=1.0",
@@ -15,7 +15,8 @@ authors = [
 ]
 description = "High-level automatic differentiation library"
 readme = "README.md"
-license = {file = "LICENSE"}
+license = "LGPL-3.0-only"
+license-files = ["LICENSE"]
 classifiers = [
   "Programming Language :: Python",
 ]
@@ -64,7 +65,7 @@ visualisation = [
 ]
 tao = [
    "petsc4py",
-   "petsctools>2025.0"
+   "petsctools>2025.3"
 ]
 
 

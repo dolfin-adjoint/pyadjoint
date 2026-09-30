@@ -62,18 +62,10 @@ def minimize_scipy_generic(rf_np, method, bounds=None, **kwargs):
     dJ = lambda m: rf_np.derivative()
     H = lambda x, p: rf_np.hessian(p)
 
-    if "options" not in kwargs:
-        kwargs["options"] = {}
-        # TODO: What to do here?
-        """
-    if rank(rf_np.rf.mpi_comm()) != 0:
-        # Shut up all processors except the first one.
-        kwargs["options"]["disp"] = False
-        """
-    else:
+    kwargs.setdefault("options", {})
+    if method not in ["L-BFGS-B"]:
         # Print out progress information by default
-        if "disp" not in kwargs["options"]:
-            kwargs["options"]["disp"] = True
+        kwargs["options"].setdefault("disp", True)
 
     # Make the default SLSLQP options more verbose
     if method == "SLSQP" and "iprint" not in kwargs["options"]:
