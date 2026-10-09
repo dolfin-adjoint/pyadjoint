@@ -1,4 +1,5 @@
 from .optimization_solver import OptimizationSolver
+from ..block_variable import _accumulate
 from ..enlisting import Enlist
 from ..overloaded_type import OverloadedType
 from ..tape import no_annotations
@@ -66,13 +67,16 @@ try:
             self.dat = dat
             self.inner_product = inner_product
 
+        @no_annotations
         def plus(self, yy):
-            for (x, y) in zip(self.dat, yy.dat):
-                x._ad_iadd(y)
+            for (i, (x, y)) in enumerate(zip(self.dat, yy.dat)):
+                self.dat[i] = _accumulate(x, y)
 
+        @no_annotations
         def scale(self, alpha):
-            for x in self.dat:
-                x._ad_imul(alpha)
+            for (i, x) in enumerate(self.dat):
+                scaled = x._ad_imul(alpha)
+                self.dat[i] = x if scaled is None else scaled
 
         def riesz_map(self, derivs):
             dat = []
