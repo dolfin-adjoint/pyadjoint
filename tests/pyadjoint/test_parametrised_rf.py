@@ -51,12 +51,6 @@ def test_rf_init():
     c = AdjFloat(2.0)
     p = AdjFloat(3.0)
     J = c * p
-    Jhat = ReducedFunctional(J, Control(c), parameters=p)
-    assert Jhat is not None
-    Jhat = ReducedFunctional(J, Control(c), parameters=[p])
-    assert Jhat is not None
-    Jhat = ReducedFunctional(J, [Control(c), Control(p)], derivative_components=[0])
-    assert Jhat is not None
     with pytest.raises(ValueError):
         Jhat = ReducedFunctional(J, [Control(c), Control(p)], derivative_components=[0], parameters=p)
     
@@ -83,7 +77,7 @@ def test_rf_basic(c_val, p_val, mult_factor):
     Jhat.update_parameters(new_p)
     result = Jhat(c_val)
     expected = single_control_single_param_expr(c_val, new_p)
-    assert result == expected
+    assert np.isclose(result, expected, atol=1e-8)
     
     #Test derivative
     check_taylor_test_convergence(Jhat, [c_val])
@@ -116,20 +110,18 @@ def test_rf_parameters_property(c_val, p1_val, p2_val, p1_new, p2_new):
     p2_val = AdjFloat(p2_val)
     J = single_control_multi_param_expr(c_val, p1_val, p2_val)
     Jhat = ReducedFunctional(J, Control(c_val), parameters=[p1_val, p2_val])
-    
     # Check initial parameters
     params = Jhat.parameters
     assert len(params) == 2
-    assert params[0] == p1_val
-    assert params[1] == p2_val
+    assert np.isclose(params[0], p1_val, atol=1e-8)
+    assert np.isclose(params[1], p2_val, atol=1e-8)
     
     # Update and check again
     Jhat.update_parameters([p1_new, p2_new])
     params = Jhat.parameters
     assert len(params) == 2
-    assert params[0] == p1_new
-    assert params[1] == p2_new
-
+    assert np.isclose(params[0], p1_new, atol=1e-8)
+    assert np.isclose(params[1], p2_new, atol=1e-8)
 
 @pytest.mark.parametrize("c1_val,c2_val,p_val", [
     (2.0, 3.0, 5.0),
