@@ -353,15 +353,13 @@ class ReducedFunctional(AbstractReducedFunctional):
         else:
             self._parameters = Enlist(parameters)
 
-        if self._parameters:
-            self.n_opt = len(self._controls)
-            self._all_controls = self._controls + Enlist(
-                [Control(p) for p in self._parameters]
+        if self.parameters:
+            all_controls = self._controls + Enlist(
+                [Control(p) for p in self.parameters]
             )
             self._reduced_functional = ReducedFunctional(
                 functional=functional,
-                controls=self._all_controls,
-                scale=scale,
+                controls=all_controls,
                 tape=tape,
             )
         elif derivative_components is not None:
@@ -392,10 +390,10 @@ class ReducedFunctional(AbstractReducedFunctional):
         """Update the parameters for this ReducedFunctional.
         This method will completely replace the current parameters with
         the new parameters, instead of just updating their values."""
-        if not self._parameters:
+        if not self.parameters:
             raise AttributeError("This ReducedFunctional does not have parameters.")
         elif len(Enlist(new_parameters)) != len(
-            self._parameters
+            self.parameters
         ):
             raise ValueError(
                 """new_parameters should be a list of the same
@@ -405,15 +403,11 @@ class ReducedFunctional(AbstractReducedFunctional):
 
     @no_annotations
     def derivative(self, adj_input=1.0, apply_riesz=False):
-        if self._parameters:
-            derivatives_all = self._reduced_functional.derivative(
-                adj_input=adj_input, apply_riesz=apply_riesz
-            )
-            return self.controls.delist(Enlist(derivatives_all)[: self.n_opt])
+
         values = [c.tape_value() for c in self.controls]
         controls = _call_callback_pre(
-            self.derivative_cb_pre, self.controls, self._parameters \
-                if self._parameters else None, name="derivative_cb_pre"
+            self.derivative_cb_pre, self.controls, self.parameters 
+                if self.parameters else None, name="derivative_cb_pre"
         )
 
         if not controls:
@@ -425,13 +419,20 @@ class ReducedFunctional(AbstractReducedFunctional):
         adj_input = create_overloaded_object(adj_input)
         adj_value = adj_input._ad_mul(self.scale)
 
-        derivatives = compute_derivative(
-            self.functional,
-            controls,
-            tape=self.tape,
-            adj_value=adj_value,
-            apply_riesz=apply_riesz,
-        )
+        if self.parameters:
+            derivatives = self._reduced_functional.derivative(
+                adj_input=adj_input, apply_riesz=apply_riesz
+            )
+        else:
+            derivatives = compute_derivative(
+                    self.functional,
+                    controls,
+                    tape=self.tape,
+                    adj_value=adj_value,
+                    apply_riesz=apply_riesz,
+            )
+
+        derivatives = Enlist(derivatives)[: len(self.controls)]
 
         # Call callback
         derivatives = _call_derivative_cb_post(
@@ -439,7 +440,7 @@ class ReducedFunctional(AbstractReducedFunctional):
             self.functional.block_variable.checkpoint,
             derivatives,
             values,
-            self._parameters if self._parameters else None,
+            self.parameters if self.parameters else None,
         )
 
         if not derivatives:
@@ -452,33 +453,35 @@ class ReducedFunctional(AbstractReducedFunctional):
 
     @no_annotations
     def hessian(self, m_dot, hessian_input=None, evaluate_tlm=True, apply_riesz=False):
-        if self._parameters:
-            # self._reduced_functional.hessian will expect len(m_dot) = len(self._all_controls),
+        values = [c.tape_value() for c in self.controls]
+        # Call callback
+        _call_callback_pre(
+            self.hessian_cb_pre, self.controls.delist(values), self.parameters if self.parameters else None, name="hessian_cb_pre"
+        )
+
+        if self.parameters:
+            # self._reduced_functional.hessian will expect len(m_dot) = len(all_controls),
             # so pad it with zeros.
-            m_dot_all = Enlist(m_dot) + [p._ad_init_zero() for p in self._parameters]
-            hessian_all = self._reduced_functional.hessian(
+            m_dot_all = Enlist(m_dot) + [p._ad_init_zero() for p in self.parameters]
+            r = self._reduced_functional.hessian(
                 m_dot_all,
                 hessian_input=hessian_input,
                 evaluate_tlm=evaluate_tlm,
                 apply_riesz=apply_riesz,
             )
-            # Return only the hessian components corresponding to optimization controls.
-            return self.controls.delist(Enlist(hessian_all)[: self.n_opt])
-        values = [c.tape_value() for c in self.controls]
-        # Call callback
-        _call_callback_pre(
-            self.hessian_cb_pre, self.controls.delist(values), self._parameters if self._parameters else None, name="hessian_cb_pre"
-        )
 
-        r = compute_hessian(
-            self.functional,
-            self.controls,
-            m_dot,
-            hessian_input=hessian_input,
-            tape=self.tape,
-            evaluate_tlm=evaluate_tlm,
-            apply_riesz=apply_riesz,
-        )
+        else:
+            r = compute_hessian(
+                self.functional,
+                self.controls,
+                m_dot,
+                hessian_input=hessian_input,
+                tape=self.tape,
+                evaluate_tlm=evaluate_tlm,
+                apply_riesz=apply_riesz,
+            )
+
+        r = Enlist(r)[: len(self.controls)]
 
         # Call callback
         _call_hessian_cb_post(
@@ -486,26 +489,26 @@ class ReducedFunctional(AbstractReducedFunctional):
             self.functional.block_variable.checkpoint,
             self.controls.delist(r),
             self.controls.delist(values),
-            self._parameters if self._parameters else None,
+            self.parameters if self.parameters else None,
         )
 
         return self.controls.delist(r)
 
     @no_annotations
     def tlm(self, m_dot):
-        if self._parameters:
-            # self._reduced_functional.tlm will expect len(m_dot) = len(self._all_controls), so we pad it with zeros.
-            m_dot_all = Enlist(m_dot) + [p._ad_init_zero() for p in self._parameters]
-            tlm_all = self._reduced_functional.tlm(m_dot_all)
-            return tlm_all
+
         
         # Call callback
         values = [c.tape_value() for c in self.controls]
         _call_callback_pre(
-            self.tlm_cb_pre, self.controls.delist(values), self._parameters if self._parameters else None, name="tlm_cb_pre"
+            self.tlm_cb_pre, self.controls.delist(values), self.parameters if self.parameters else None, name="tlm_cb_pre"
         )
-
-        tlm = compute_tlm(self.functional, self.controls, m_dot, tape=self.tape)
+        if self.parameters:
+            # self._reduced_functional.tlm will expect len(m_dot) = len(all_controls), so we pad it with zeros.
+            m_dot_all = Enlist(m_dot) + [p._ad_init_zero() for p in self.parameters]
+            tlm = self._reduced_functional.tlm(m_dot_all)
+        else:
+            tlm = compute_tlm(self.functional, self.controls, m_dot, tape=self.tape)
 
         # Call callback
         _call_tlm_cb_post(
@@ -513,7 +516,7 @@ class ReducedFunctional(AbstractReducedFunctional):
             self.functional.block_variable.checkpoint,
             tlm,
             self.controls.delist(values),
-            self._parameters if self._parameters else None,
+            self.parameters if self.parameters else None,
         )
 
         return tlm
@@ -542,45 +545,46 @@ class ReducedFunctional(AbstractReducedFunctional):
                         f"The control at index {i} must be an `OverloadedType` object "
                         f"with the same type as the control, which is {control_type}"
                     )
-        if self._parameters:
-            full_values = values + self._parameters
-            return self._reduced_functional(full_values)
-        
-        # Call callback.
+                        # Call callback.
         _call_callback_pre(
-            self.eval_cb_pre, self.controls.delist(values), self._parameters if self._parameters else None, name="eval_cb_pre"
+            self.eval_cb_pre, self.controls.delist(values), self.parameters if self.parameters else None, name="eval_cb_pre"
         )
 
-        for i, value in enumerate(values):
-            self.controls[i].update(value)
+        if self.parameters:
+            full_values = values + self._parameters
+            func_value = self._reduced_functional(full_values)
+        else:
+            for i, value in enumerate(values):
+                self.controls[i].update(value)
 
-        self.tape.reset_blocks()
-        blocks = self.tape.get_blocks()
-        self.tape._recompute_count += 1
-        with self.marked_controls():
-            with stop_annotating():
-                if self.tape._checkpoint_manager:
-                    self.tape._checkpoint_manager.recompute(self.functional)
-                else:
-                    for i in self.tape._bar("Evaluating functional").iter(
-                        range(len(blocks))
-                    ):
-                        blocks[i].recompute()
+            self.tape.reset_blocks()
+            blocks = self.tape.get_blocks()
+            self.tape._recompute_count += 1
+            with self.marked_controls():
+                with stop_annotating():
+                    if self.tape._checkpoint_manager:
+                        self.tape._checkpoint_manager.recompute(self.functional)
+                    else:
+                        for i in self.tape._bar("Evaluating functional").iter(
+                            range(len(blocks))
+                        ):
+                            blocks[i].recompute()
 
-        # ReducedFunctional can result in a scalar or an assembled 1-form
-        func_value = self.functional.block_variable.saved_output
-        # Scale the underlying functional value
-        func_value *= self.scale
+            # ReducedFunctional can result in a scalar or an assembled 1-form
+            func_value = self.functional.block_variable.saved_output
+            # Scale the underlying functional value
+            func_value *= self.scale
 
         # Call callback
         _call_eval_cb_post(
-            self.eval_cb_post, func_value, self.controls.delist(values), self._parameters if self._parameters else None)
+            self.eval_cb_post, func_value, self.controls.delist(values), self.parameters if self.parameters else None)
 
         return func_value
    
 
     def optimize_tape(self):
-        self.tape.optimize(controls=self._all_controls, functionals=[self.functional])
+        self.tape.optimize(controls=self._controls + Enlist(
+                [Control(p) for p in self.parameters]), functionals=[self.functional])
 
     @contextmanager
     def marked_controls(self):
