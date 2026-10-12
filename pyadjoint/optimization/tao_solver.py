@@ -799,8 +799,8 @@ class TAOSolver(OptimizationSolver):
         from petsc4py import PETSc
         # Same approach as in _make_reasons in firedrake/solving_utils.py,
         # Firedrake master branch 57e21cc8ebdb044c1d8423b48f3dbf70975d5548
-        return {getattr(PETSc.TAO.Reason, key): key
-                for key in dir(PETSc.TAO.Reason)
+        return {getattr(PETSc.TAO.ConvergedReason, key): key
+                for key in dir(PETSc.TAO.ConvergedReason)
                 if not key.startswith("_")}
 
     def solve(self):
