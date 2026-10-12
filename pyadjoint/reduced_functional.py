@@ -595,8 +595,14 @@ class ReducedFunctional(AbstractReducedFunctional):
    
 
     def optimize_tape(self):
-        self.tape.optimize(controls=self._controls + Enlist(
-                [Control(p) for p in self.parameters]), functionals=[self.functional])
+        if self.parameters:
+            self._reduced_functional.optimize_tape()
+        else:
+            self.tape.optimize(
+                controls=self._controls,
+                functionals=[self.functional]
+            )
+
 
     @contextmanager
     def marked_controls(self):
