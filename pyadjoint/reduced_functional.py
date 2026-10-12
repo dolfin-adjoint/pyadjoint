@@ -7,7 +7,7 @@ from .tape import get_working_tape, stop_annotating, no_annotations
 from .overloaded_type import OverloadedType, create_overloaded_object
 from .adjfloat import AdjFloat
 from .control import Control
-
+import warnings
 
 class AbstractReducedFunctional(ABC):
     """Base class for reduced functionals.
@@ -352,6 +352,12 @@ class ReducedFunctional(AbstractReducedFunctional):
             self._parameters = []
         else:
             self._parameters = Enlist(parameters)
+            #Check that parameters are not in list of controls
+            for p in self._parameters:
+                if p.block_variable in [c.block_variable for c in self._controls]:
+                    raise ValueError(
+                        "Parameters cannot be in the list of controls."
+                    )
 
         if self.parameters:
             all_controls = self._controls + Enlist(
@@ -363,6 +369,13 @@ class ReducedFunctional(AbstractReducedFunctional):
                 tape=tape,
             )
         elif derivative_components is not None:
+            # Raise warning that derivative_components is deprecated and will be removed in future versions
+            warnings.warn(
+                "The derivative_components argument is deprecated and will be removed in future versions. "
+                "Please use the parameters argument instead.",
+                DeprecationWarning,
+            )           
+
             self.derivative_components = derivative_components
             # pre callback
             self.derivative_cb_pre = _get_extract_derivative_components(
@@ -372,7 +385,6 @@ class ReducedFunctional(AbstractReducedFunctional):
             self.derivative_cb_post = _get_pack_derivative_components(
                 controls, derivative_components
             )
-
 
 
     @property

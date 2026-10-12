@@ -47,12 +47,17 @@ def quadratic_expression(c_val, p_val1, p_val2, p_val3):
 #                                                      Tests 
 # ============================================================================
 def test_rf_init():
-    """Test that we can create a parametrised reduced functional with valid inputs."""
-    c = AdjFloat(2.0)
+    """Test that creating a parameterised reduced functional with invalid inputs raises an error."""
+    c0 = AdjFloat(1.0)
+    c1 = AdjFloat(2.0)
     p = AdjFloat(3.0)
-    J = c * p
+    J = c0 * c1 * p
+    # We cannot specify both derivative_components and parameters
     with pytest.raises(ValueError):
-        Jhat = ReducedFunctional(J, [Control(c), Control(p)], derivative_components=[0], parameters=p)
+        Jhat = ReducedFunctional(J, [Control(c0), Control(c1)], derivative_components=[0], parameters=p)
+    # A control cannot also be a parameter
+    with pytest.raises(ValueError):
+        Jhat = ReducedFunctional(J, [Control(c0), Control(p)], parameters=p)
     
 
 @pytest.mark.parametrize("c_val,p_val, mult_factor", [
@@ -94,7 +99,7 @@ def test_rf_controls_property(c_val, p_val):
     c_val = AdjFloat(c_val)
     p_val = AdjFloat(p_val)
     J = single_control_single_param_expr(c_val, p_val)
-    Jhat = ReducedFunctional(J, Control(c_val), p_val)
+    Jhat = ReducedFunctional(J, Control(c_val), parameters=p_val)
     assert len(Jhat.controls) == 1
     assert Jhat.controls[0] is not None
 
