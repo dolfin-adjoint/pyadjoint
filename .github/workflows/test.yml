@@ -1,0 +1,46 @@
+on:
+  pull_request:
+
+concurrency:
+  # Cancel running jobs if new commits are pushed
+  group: >
+    ${{ github.workflow }}-
+    ${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test pyadjoint
+    runs-on: ubuntu-latest
+    container:
+      image: firedrakeproject/firedrake-vanilla-default:dev-main
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Download pyadjoint into a subdirectory not called 'pyadjoint' to
+          # make sure that the package installs correctly. Otherwise
+          # 'import pyadjoint' could work even if the installation failed
+          # because it is a subdirectory.
+          path: pyadjoint-repo
+
+      - name: Install pyadjoint
+        run: |
+          python3 -m venv --system-site-packages venv-pyadjoint
+          . venv-pyadjoint/bin/activate
+          pip install -e pyadjoint-repo[test,tao] --verbose
+
+      - name: Run tests
+        run: |
+          . venv-pyadjoint/bin/activate
+          pytest tests/pyadjoint
+
+      - name: Run Firedrake smoke tests
+        # Pass on exit codes of 0 (pass) or 5 (no tests found)
+        run: |
+          . venv-pyadjoint/bin/activate
+          pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[1]
+          mpiexec -n 2 pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[2] || [ $? == 5 ]
+          mpiexec -n 3 pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[3] || [ $? == 5 ]
+          mpiexec -n 4 pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[4] || [ $? == 5 ]
+          mpiexec -n 5 pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[5] || [ $? == 5 ]
+          mpiexec -n 6 pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[6] || [ $? == 5 ]
