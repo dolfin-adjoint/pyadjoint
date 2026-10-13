@@ -645,6 +645,7 @@ class TAOSolver(OptimizationSolver):
         comm (petsc4py.PETSc.Comm or mpi4py.MPI.Comm): Communicator.
     """
 
+    @no_annotations
     def __init__(self, problem, parameters, *,
                  options_prefix=None, appctx=None,
                  Pmat=None, comm=None):
