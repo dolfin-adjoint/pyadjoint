@@ -4,7 +4,7 @@
 About pyadjoint
 ***************
 
-pyajoint is an operator-overloading algorithmic differentiation framework for
+pyadjoint is an operator-overloading algorithmic differentiation framework for
 Python. It is employed as the basis for the automatic adjoint and tangent
 linear model capabilities of the 
 `Firedrake <http://firedrakeproject.org>`__ project.
