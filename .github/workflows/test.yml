@@ -39,8 +39,8 @@ jobs:
         run: |
           . venv-pyadjoint/bin/activate
           pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[1]
-          mpiexec -n 2 pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[2] || [ $? == 5 ]
-          mpiexec -n 3 pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[3] || [ $? == 5 ]
-          mpiexec -n 4 pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[4] || [ $? == 5 ]
-          mpiexec -n 5 pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[5] || [ $? == 5 ]
-          mpiexec -n 6 pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[6] || [ $? == 5 ]
+          mpiexec -n 2 --oversubscribe pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[2] || [ $? == 5 ]
+          mpiexec -n 3 --oversubscribe pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[3] || [ $? == 5 ]
+          mpiexec -n 4 --oversubscribe pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[4] || [ $? == 5 ]
+          mpiexec -n 5 --oversubscribe pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[5] || [ $? == 5 ]
+          mpiexec -n 6 --oversubscribe pytest /opt/firedrake/tests/firedrake/adjoint -m parallel[6] || [ $? == 5 ]
