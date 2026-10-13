@@ -35,6 +35,7 @@ jobs:
           pytest pyadjoint-repo/tests/pyadjoint
 
       - name: Run Firedrake smoke tests
+        shell: bash
         # Pass on exit codes of 0 (pass) or 5 (no tests found)
         run: |
           . venv-pyadjoint/bin/activate
