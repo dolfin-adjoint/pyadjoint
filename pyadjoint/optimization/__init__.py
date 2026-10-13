@@ -7,3 +7,7 @@ __credits__ = ['Patrick Farrell', 'Simon Funke', 'David Ham', 'Marie Rognes']
 __license__ = 'LGPL-3'
 __maintainer__ = 'Simon Funke'
 __email__ = 'simon@simula.no'
+
+from .tao_solver import RieszMapPC
+
+__all__ = ["RieszMapPC"]
