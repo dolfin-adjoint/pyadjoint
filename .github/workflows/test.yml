@@ -32,7 +32,7 @@ jobs:
       - name: Run tests
         run: |
           . venv-pyadjoint/bin/activate
-          pytest pyadjoint/tests/pyadjoint
+          pytest pyadjoint-repo/tests/pyadjoint
 
       - name: Run Firedrake smoke tests
         # Pass on exit codes of 0 (pass) or 5 (no tests found)
