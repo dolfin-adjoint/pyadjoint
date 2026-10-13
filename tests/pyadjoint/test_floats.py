@@ -360,6 +360,20 @@ def test_pow_hessian(B, E, f):
         assert(min(results[Ri]["Rate"]) >= i + 0.95)
 
 
+def test_taylor_test_restores_expansion_point():
+    set_working_tape(Tape())
+    a = AdjFloat(1.0)
+    b = AdjFloat(1.0)
+    functional = a**3 + a * b**2
+    rf = ReducedFunctional(functional, [Control(a), Control(b)])
+    h = [AdjFloat(0.1), AdjFloat(0.1)]
+
+    taylor_test(rf, [a, b], h)
+
+    assert rf.derivative() == [4.0, 2.0]
+    assert rf.hessian(h) == [0.8, 0.4]
+
+
 def test_min_max():
     from pyadjoint.adjfloat import min, max
     set_working_tape(Tape())

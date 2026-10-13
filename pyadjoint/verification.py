@@ -11,6 +11,9 @@ def taylor_test(J, m, h, dJdm=None, Hm=0):
     control space h, the function computes the taylor remainders and
     returns the convergence rate.
 
+    On return, the functional is evaluated at the expansion point m. This
+    does not restore an evaluation point that was active before this call.
+
     Args:
         J (reduced_functional.ReducedFunctional): The functional to evaluate the taylor remainders of.
             Must be an instance of :class:`ReducedFunctional`, or something with a similar
@@ -56,6 +59,7 @@ def taylor_test(J, m, h, dJdm=None, Hm=0):
         if min(residuals) < 1E-15:
             logging.warning("The taylor remainder is close to machine precision.")
         print("Computed residuals: {}".format(residuals))
+    J(m)
     return min(convergence_rates(residuals, epsilons))
 
 
