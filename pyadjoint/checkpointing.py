@@ -349,6 +349,15 @@ class CheckpointManager:
                 next_step = self.tape.timesteps[step + 1]
                 # The checkpointable state set of the current step.
                 to_keep = next_step.checkpointable_state
+            if cp_action.write_adj_deps and cp_action.storage == StorageType.WORK:
+                # The Reverse of this step follows and reads its adjoint
+                # dependencies from working memory. Keep the same set that
+                # `TimeStep.checkpoint` stores for the other storage types.
+                if current_step._revised_adj_deps:
+                    to_keep = to_keep.union(current_step.adjoint_dependencies)
+                else:
+                    to_keep = to_keep.union(current_step.adjoint_dependencies,
+                                            current_step.checkpointable_state)
             if functional:
                 to_keep = to_keep.union([functional.block_variable])
 
