@@ -327,13 +327,6 @@ class CheckpointManager:
             # Get the blocks of the current step.
             current_step = self.tape.timesteps[step]
             for block in current_step:
-                # The outputs are recomputed, so any checkpoint they still
-                # hold from taping is stale. It may also be a reference to
-                # another variable's checkpoint (e.g. Firedrake's
-                # `DelegatedFunctionCheckpoint`), which this step may clear
-                # before its adjoint is evaluated.
-                for out in block.get_outputs():
-                    out.checkpoint = None
                 block.recompute()
             _store_checkpointable_state = False
             _store_adj_dependencies = False
@@ -356,6 +349,15 @@ class CheckpointManager:
                 next_step = self.tape.timesteps[step + 1]
                 # The checkpointable state set of the current step.
                 to_keep = next_step.checkpointable_state
+            if cp_action.write_adj_deps and cp_action.storage == StorageType.WORK:
+                # The Reverse of this step follows and reads its adjoint
+                # dependencies from working memory. Keep the same set that
+                # `TimeStep.checkpoint` stores for the other storage types.
+                if current_step._revised_adj_deps:
+                    to_keep = to_keep.union(current_step.adjoint_dependencies)
+                else:
+                    to_keep = to_keep.union(current_step.adjoint_dependencies,
+                                            current_step.checkpointable_state)
             if functional:
                 to_keep = to_keep.union([functional.block_variable])
 
