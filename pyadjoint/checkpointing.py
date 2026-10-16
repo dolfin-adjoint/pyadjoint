@@ -327,6 +327,13 @@ class CheckpointManager:
             # Get the blocks of the current step.
             current_step = self.tape.timesteps[step]
             for block in current_step:
+                # The outputs are recomputed, so any checkpoint they still
+                # hold from taping is stale. It may also be a reference to
+                # another variable's checkpoint (e.g. Firedrake's
+                # `DelegatedFunctionCheckpoint`), which this step may clear
+                # before its adjoint is evaluated.
+                for out in block.get_outputs():
+                    out.checkpoint = None
                 block.recompute()
             _store_checkpointable_state = False
             _store_adj_dependencies = False
