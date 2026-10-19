@@ -227,9 +227,32 @@ class ReducedFunctionalMatBase:
     @classmethod
     def update(cls, obj, x, A, P):
         ctx = A.getPythonContext()
-        ctx.control_interface.from_petsc(x, ctx._m)
-        ctx.update_tape_values(update_adjoint=cls.update_adjoint())
-        ctx._shift = 0
+        if ctx.update_schedule == "always":
+            update_rf = True
+        elif ctx.update_schedule == "never":
+            update_rf = False
+        else:  # update_schedule == "when_changed"
+            curr_m = [c.data() for c in ctx.rf.controls]
+            curr_x = ctx.control_interface.new_petsc()
+            ctx.control_interface.to_petsc(curr_x, curr_m)
+            update_rf = (x - curr_x).norm() > ctx.update_eps
+
+        if update_rf:
+            ctx.control_interface.from_petsc(x, ctx._m)
+            ctx.update_tape_values(update_adjoint=cls.update_adjoint())
+            ctx._shift = 0
+
+    def setFromOptions(self, mat):
+        from petsc4py import PETSc
+        options = PETSc.Options(mat.getOptionsPrefix() or "")
+        update_schedule = options.getString("mat_rf_update_schedule", "always")
+
+        if update_schedule not in ("always", "never", "when_changed"):
+            raise ValueError(f"Unrecognised {self.update_schedule=}")
+
+        self.update_schedule = update_schedule
+        if self.update_schedule == "when_changed":
+            self.update_eps = options.getReal("mat_rf_update_eps", 1e-8)
 
     def shift(self, A, alpha):
         self._shift += alpha
@@ -421,7 +444,7 @@ class ReducedFunctionalTLMMat(ReducedFunctionalMatBase):
 
 
 def ReducedFunctionalMat(rf, action=RFOperation.HESSIAN, *, apply_riesz=False, appctx=None,
-                         always_update_tape=False, comm=None):
+                         always_update_tape=False, options_prefix=None, comm=None):
     """
     PETSc.Mat to apply the action of a pyadjoint.ReducedFunctional.
 
@@ -440,7 +463,15 @@ def ReducedFunctionalMat(rf, action=RFOperation.HESSIAN, *, apply_riesz=False, a
         always_update_tape (bool): Whether to force reevaluation of the forward model every time
             `mult` is called. If action is HESSIAN then this will also force the adjoint model to
             be reevaluated at every call to `mult`.
+        options_prefix (str): An prefix to read options from the global options database.
         comm (Optional[petsc4py.PETSc.Comm,mpi4py.MPI.Comm]): Communicator that the rf is defined over.
+
+    PETSc Options:
+        -mat_rf_update_schedule (always|never|when_changed)
+            When to rerun the tape with new values.
+        -mat_rf_update_eps (float)
+            The threshold for the change in the control to rerun the tape when the
+            update schedule is when_changed.
     """
     from petsc4py import PETSc
     if action == RFOperation.HESSIAN:
@@ -473,6 +504,9 @@ def ReducedFunctionalMat(rf, action=RFOperation.HESSIAN, *, apply_riesz=False, a
         ctx, comm=ctx.control_interface.comm)
     if action == RFOperation.HESSIAN:
         mat.setOption(PETSc.Mat.Option.SYMMETRIC, True)
+    if options_prefix is not None:
+        mat.setOptionsPrefix(options_prefix)
+        mat.setFromOptions()
     mat.setUp()
     mat.assemble()
     return mat
@@ -689,12 +723,17 @@ class TAOSolver(OptimizationSolver):
         tao.setGradient(gradient)
 
         hessian_mat = ReducedFunctionalMat(
-            problem.reduced_functional, appctx=appctx,
-            action=RFOperation.HESSIAN, comm=comm)
+            problem.reduced_functional,
+            action=RFOperation.HESSIAN,
+            appctx=appctx,
+            options_prefix=options_prefix,
+            comm=comm,
+        )
 
         tao.setHessian(
             hessian_mat.getPythonContext().update,
-            H=hessian_mat, P=Pmat or hessian_mat)
+            H=hessian_mat, P=Pmat or hessian_mat,
+        )
 
         Minv_mat = RieszMapMat(rf.controls, comm=comm)
         tao.setGradientNorm(Minv_mat)
