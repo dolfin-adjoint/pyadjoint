@@ -240,7 +240,8 @@ class ReducedFunctionalMatBase:
         if update_rf:
             ctx.control_interface.from_petsc(x, ctx._m)
             ctx.update_tape_values(update_adjoint=cls.update_adjoint())
-            ctx._shift = 0
+
+        ctx._shift = 0
 
     def setFromOptions(self, mat):
         from petsc4py import PETSc
