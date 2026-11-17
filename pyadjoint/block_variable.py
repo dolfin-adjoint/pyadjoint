@@ -1,10 +1,32 @@
+import operator
+
 from .tape import no_annotations, get_working_tape
 
 
-class BlockVariable(object):
-    """References a block output variable.
+def _accumulate(current, val):
+    """Add `val` to `current` and return the sum.
 
+    `_ad_iadd` can't always add in place; an immutable type such as `AdjFloat`
+    returns a new object, while a mutable one returns `self`. A `None` return
+    means the value was added in place. Values with no `_ad_iadd`, such as the
+    bare `ndarray` returned by `numpy_adjoint`, use `+=`.
+
+    Args:
+        current: The value accumulated so far.
+        val: The contribution to add.
+
+    Returns:
+        The new accumulated value.
     """
+    iadd = getattr(current, "_ad_iadd", None)
+    if iadd is None:
+        return operator.iadd(current, val)
+    accumulated = iadd(val)
+    return current if accumulated is None else accumulated
+
+
+class BlockVariable(object):
+    """References a block output variable."""
 
     def __init__(self, output):
         self.output = output
@@ -26,19 +48,19 @@ class BlockVariable(object):
         if self.adj_value is None:
             self.adj_value = val
         else:
-            self.adj_value += val
+            self.adj_value = _accumulate(self.adj_value, val)
 
     def add_tlm_output(self, val):
         if self.tlm_value is None:
             self.tlm_value = val
         else:
-            self.tlm_value += val
+            self.tlm_value = _accumulate(self.tlm_value, val)
 
     def add_hessian_output(self, val):
         if self.hessian_value is None:
             self.hessian_value = val
         else:
-            self.hessian_value += val
+            self.hessian_value = _accumulate(self.hessian_value, val)
 
     def reset_variables(self, types):
         if "adjoint" in types:
