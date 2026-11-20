@@ -41,7 +41,7 @@ class IPOPTSolver(OptimizationSolver):
 
         # A callback that evaluates the functional and derivative.
         J = self.rfn.__call__
-        dJ = self.rfn.derivative
+        dJ = lambda x: self.rfn.derivative()
         nlp = cyipopt.Problem(
             n=len(ub),  # length of control vector
             lb=lb,  # lower bounds on control vector
