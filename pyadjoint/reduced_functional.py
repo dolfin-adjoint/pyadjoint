@@ -468,8 +468,9 @@ class ReducedFunctional(AbstractReducedFunctional):
         values = [c.tape_value() for c in self.controls]
         # Call callback
         _call_callback_pre(
-            self.hessian_cb_pre, self.controls.delist(values), self.parameters if self.parameters
-            else None, name="hessian_cb_pre"
+            self.hessian_cb_pre,
+            self.controls.delist(values),
+            self.parameters if self.parameters else None, name="hessian_cb_pre"
         )
 
         if self.parameters:
@@ -512,8 +513,9 @@ class ReducedFunctional(AbstractReducedFunctional):
         # Call callback
         values = [c.tape_value() for c in self.controls]
         _call_callback_pre(
-            self.tlm_cb_pre, self.controls.delist(values), self.parameters if self.parameters
-            else None, name="tlm_cb_pre"
+            self.tlm_cb_pre,
+            self.controls.delist(values),
+            self.parameters if self.parameters else None, name="tlm_cb_pre"
         )
         if self.parameters:
             # self._reduced_functional.tlm will expect len(m_dot) = len(all_controls), so we pad it with zeros.
@@ -558,8 +560,9 @@ class ReducedFunctional(AbstractReducedFunctional):
                     )
         # Call callback.
         _call_callback_pre(
-            self.eval_cb_pre, self.controls.delist(values), self.parameters if self.parameters
-            else None, name="eval_cb_pre"
+            self.eval_cb_pre,
+            self.controls.delist(values),
+            self.parameters if self.parameters else None, name="eval_cb_pre"
         )
 
         if self.parameters:
