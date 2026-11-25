@@ -12,8 +12,11 @@ jobs:
   test:
     name: Test pyadjoint
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: [main, release]
     container:
-      image: firedrakeproject/firedrake-vanilla-default:dev-main
+      image: firedrakeproject/firedrake-vanilla-default:dev-${{ matrix.version }}
     steps:
       - uses: actions/checkout@v5
         with:
