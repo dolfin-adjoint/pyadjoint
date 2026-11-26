@@ -4,6 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyadjoint-ad"
+# TODO RELEASE
 version = "2026.11.0.dev0"
 dependencies = [
   "checkpoint_schedules",
